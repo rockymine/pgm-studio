@@ -99,7 +99,7 @@ checks.section("the sketch Dressing phase places things");
 
 // The placing tools this spec drives, named once: the dock check asserts they are offered and the drive
 // clicks them, so a renamed tool fails both together rather than passing one and timing out in the other.
-const DRIVEN = { stroke: "Stroke", fluid: "Fluid", tree: "Tree" };
+const DRIVEN = { stroke: "Stroke", fluid: "Fluid", tree: "Tree", boulder: "Boulder" };
 
 const browser = await openBrowser();
 const page = await newPage(browser, { width: 1600, height: 1000 });
@@ -142,8 +142,8 @@ try {
   const aim = await worldAimer(page, board);
   const ground = (await api(`/map/${seed.sketchSlug}/sketch`)).layers.flatMap(layer => layer.layout?.shapes ?? [])
     .filter(shape => !shape.role);
-  const spots = aim ? deepestPoints(ground, 4, 12).map(point => aim(point.x, point.z)) : [];
-  checks.add("the ground offers four places for a tree", spots.length === 4
+  const spots = aim ? deepestPoints(ground, 5, 12).map(point => aim(point.x, point.z)) : [];
+  checks.add("the ground offers five places for a tree and a rock", spots.length === 5
     && spots.every(spot => spot.x > box.x && spot.x < box.x + box.width && spot.y > box.y && spot.y < box.y + box.height),
     `${spots.length} found`);
   const placeAt = spot => page.mouse.click(spot.x, spot.y);
@@ -215,6 +215,18 @@ try {
   await page.waitForTimeout(400);
   checks.add("and Escape puts it down", await page.locator('.canvas-dock button[aria-pressed][aria-label="Select"]').count() === 1,
     `${await page.locator('.canvas-dock button[aria-pressed]').evaluateAll(els => els.map(e => e.getAttribute("aria-label")))}`);
+
+  // A boulder's shape picked with the tool in hand is the shape the next boulder is placed in.
+  await page.click(`button[aria-label^="${DRIVEN.boulder}"]`);
+  await page.waitForTimeout(800);
+  await page.locator('.workspace-inspector [title="Outcrop"]').last().click();
+  await page.waitForTimeout(1500);
+  await placeAt(spots[4]);
+  await page.waitForTimeout(1500);
+  const rock = (await placedRows()).at(-1);
+  checks.add("a shape picked with the boulder in hand is the next boulder's", rock === "outcrop", rock ?? "(nothing placed)");
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(400);
 
   // Drag a route: press, trace, release — no separate way to finish, which is the bug the rework fixes.
   await page.click(`button[aria-label^="${DRIVEN.stroke}"]`);

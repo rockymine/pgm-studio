@@ -386,8 +386,9 @@ public partial class SketchDressingInspector
     /// same edit lands on the tool's starting values, so the next prop placed already carries it.</summary>
     private async Task Set(string field, JsonNode? value)
     {
-        if (prop is null || Handle is null) return;
-        prop[field] = value;
+        if (Handle is null) return;
+        if (prop is not null) prop[field] = value;
+        else if (editingSelection || kind.Length == 0) return;
         await Push(new JsonObject { [field] = value?.DeepClone() });
     }
 
