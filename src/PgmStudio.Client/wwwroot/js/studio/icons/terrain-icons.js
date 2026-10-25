@@ -31,6 +31,7 @@
     "terrain-tunnel": [["path",{"d":"M2 20h20"}],["path",{"d":"M2 9c4-5 16-5 20 0"}],["path",{"d":"M7 20v-4a5 5 0 0 1 10 0v4"}]],
     "terrain-chamber": [["path",{"d":"M2 5h20"}],["path",{"d":"M4 19h16"}],["path",{"d":"M5 19c0-6 3-9 7-9s7 3 7 9"}]],
     "terrain-shaft": [["path",{"d":"M2 5h7v15h6V5h7"}],["path",{"d":"M11 8h2M11 12h2M11 16h2"}]],
+    "terrain-arch": [["path",{"d":"M2 20h20"}],["path",{"d":"M4 20v-5c0-5 3-8 8-8s8 3 8 8v5"}],["path",{"d":"M9 20v-3a3 3 0 0 1 6 0v3"}]],
     "terrain-shatter": [["path",{"d":"M3 5h18v14H3z"}],["path",{"d":"M3 11l6-1 3-5"}],["path",{"d":"M9 10l2 9"}],["path",{"d":"M11 14l5-2 5 1"}],["path",{"d":"M16 12l-1-7"}]]
   };
 

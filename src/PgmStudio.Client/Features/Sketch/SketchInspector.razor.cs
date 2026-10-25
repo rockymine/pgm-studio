@@ -69,7 +69,51 @@ public partial class SketchInspector
     private Task TopChanged(double top)
         => Shape is null ? Task.CompletedTask : OnSetHeight.InvokeAsync((Shape.Id, top - Shape.Floor, Shape.Floor));
 
-    private bool IsLevel => Shape?.HeightMode == HeightModeWords.Level;
+    private bool IsLevel => Shape?.HeightMode == HeightModeWords.Level && !Shape.IsSolid;
+
+    /// <summary>Whether the shape's height is the <c>base_height</c> the Height row edits: ground and the
+    /// solids that are as tall as they are stated (box, wedge, cylinder). A sphere and a torus are as tall as
+    /// their radii make them and an arch is its deck.</summary>
+    private bool HasHeight => Shape is not null && (!Shape.IsSolid || Shape.Type is ShapeKinds.Box or ShapeKinds.Wedge or ShapeKinds.Cylinder);
+
+    private static readonly SelectOption[] RectangleForms =
+    [
+        new("",                  "Ground",   "Ground drawn by its outline; the modifiers shape it with the land around."),
+        new(ShapeKinds.Box,      "Box",      "A cuboid over the footprint, turned and tilted."),
+        new(ShapeKinds.Wedge,    "Wedge",    "A box cut away to nothing at the far end."),
+        new(ShapeKinds.Cylinder, "Cylinder", "An upright cylinder in the footprint."),
+        new(ShapeKinds.Sphere,   "Sphere",   "A sphere standing on its floor."),
+        new(ShapeKinds.Torus,    "Torus",    "A ring; tilt it to stand it on its edge."),
+    ];
+
+    private static readonly SelectOption[] PathForms =
+    [
+        new("",              "Ground", "Ground drawn along the line."),
+        new(ShapeKinds.Arch, "Arch",   "A natural arch along the line: a walkable deck over a gap, its feet on the ground."),
+    ];
+
+    /// <summary>The forms the selected shape can be read as: a rectangle or a circle any of the five solids, a
+    /// path an arch, an outline of points none.</summary>
+    private SelectOption[] Forms => Shape?.Footprint switch
+    {
+        ShapeKinds.Rectangle or ShapeKinds.Circle => RectangleForms,
+        ShapeKinds.Polyline => PathForms,
+        _ => [],
+    };
+
+    private string FormHint => Shape is { IsSolid: true } ? "stands in the block grid" : "drawn as ground";
+
+    private Task FormChanged(string kind)
+        => Shape is null || Handle is null ? Task.CompletedTask : Handle.InvokeVoidAsync("setSolid", Shape.Id, kind).AsTask();
+
+    private Task SolidChanged(string field, double value)
+        => Shape is null || Handle is null ? Task.CompletedTask : Handle.InvokeVoidAsync("setSolidField", Shape.Id, field, value).AsTask();
+
+    private Task CrownChanged(double crown)
+        => Shape is null || Handle is null ? Task.CompletedTask : Handle.InvokeVoidAsync("setArchDeck", Shape.Id, crown, Shape.DeckEnd).AsTask();
+
+    private Task FeetChanged(double feet)
+        => Shape is null || Handle is null ? Task.CompletedTask : Handle.InvokeVoidAsync("setArchDeck", Shape.Id, Shape.DeckCrown, feet).AsTask();
 
     /// <summary>What the height number is measured from under the shape's height mode — the floor for ground,
     /// the middle of the ground under it for raise and sink, the ground at each cell for drape.</summary>
@@ -124,9 +168,18 @@ public partial class SketchInspector
         new(Vocabulary.ReliefScopes.Ride, "Ride", "Keeps its form and moves by the median change the modifiers made to the ground under it."),
     ];
 
+    /// <summary>A solid holds unless it says otherwise, so the empty word is Hold and following is the stated one.</summary>
+    private static readonly SelectOption[] SolidReliefScopeOptions =
+    [
+        new("",        "Hold",   "Stays as it is whatever the modifiers do around it."),
+        new(Vocabulary.ReliefScopes.Follow, "Follow", "The modifiers reshape it with the land around it, as they reshape any ground."),
+        new(Vocabulary.ReliefScopes.Ride,   "Ride",   "Keeps its form and moves by the median change the modifiers made to the ground under it."),
+    ];
+
     /// <summary>What holding or riding works out to, in the shape's own numbers. Empty for the default.</summary>
     private string ReliefScopeReadout => Shape?.ReliefScope switch
     {
+        Vocabulary.ReliefScopes.Follow => "Reshaped by the modifiers like the ground beside it.",
         Vocabulary.ReliefScopes.Hold => $"Stays at {Shape.Floor + Shape.BaseHeight} whatever the modifiers do around it.",
         Vocabulary.ReliefScopes.Ride => $"Keeps its {Shape.BaseHeight}-block form and rises or sinks with the ground the modifiers leave under it.",
         _ => "",

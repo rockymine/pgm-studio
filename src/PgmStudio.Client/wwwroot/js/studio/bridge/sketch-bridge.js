@@ -7,7 +7,7 @@
 
 import { SketchCanvas } from "../canvas/sketch-canvas.js";
 import { computeMirrorPreview, settleGroups, uniqueGroups, outlineKey } from "../geometry/boolean.js";
-import { rectToPolygon, translateShape, rotateShape, boundsOfShapes, splitShape } from "../geometry/shape.js";
+import { rectToPolygon, translateShape, rotateShape, boundsOfShapes, splitShape, footprintOf, asSolid } from "../geometry/shape.js";
 import { surfaceHeights } from "../geometry/slope.js";
 import { defaultThemeJson, uniqueScopeId } from "../theme/theme-model.js";
 import { newModifier, addArea, patchModifier, moveModifier, maskRings } from "../relief/modifier-doc.js";
@@ -30,6 +30,15 @@ const genId = () => `s${Date.now()}_${_seq++}`;
 
 // Height invariants: every shape is at least one block tall (height >= 1, default 1) and its floor never
 // dips below 0. clampHeight/clampFloor coerce an unset or out-of-range value to the nearest valid one.
+// The numbers a solid states, each brought into the range the rasterizer reads: a turn is a bearing, a tilt
+// stays short of straight up, a sink is blocks under the floor and a tube is at least a block.
+const SOLID_NUMBERS = {
+  turn: (v) => ((Math.round(v * 100) / 100 % 360) + 360) % 360,
+  tilt: (v) => Math.max(-90, Math.min(90, Math.round(v * 100) / 100)),
+  sunk: (v) => Math.max(0, Math.round(v)),
+  tube: (v) => Math.max(1, Math.round(v)),
+};
+
 const MIN_HEIGHT = 1;
 const clampHeight = (h) => Math.max(MIN_HEIGHT, h ?? MIN_HEIGHT);
 const clampFloor  = (f) => Math.max(0, f ?? 0);
@@ -40,11 +49,12 @@ const clampFloor  = (f) => Math.max(0, f ?? 0);
 const NEW_SHAPE_HEIGHT = 9;
 
 function dimLabel(s) {
-  if (s.type === "rectangle") return `${s.max_x - s.min_x}×${s.max_z - s.min_z}`;
-  if (s.type === "circle")    return `r=${s.radius}`;
+  const kind = footprintOf(s);
+  if (kind === "rectangle") return `${s.max_x - s.min_x}×${s.max_z - s.min_z}`;
+  if (kind === "circle")    return `r=${s.radius}`;
   // A path reads as how wide it is, not how many points it took to draw — the width is the knob an author
   // reaches for, and the point count is already visible as handles on the canvas.
-  if (s.type === "polyline")      return `${(s.radius ?? 0) * 2} wide`;
+  if (kind === "polyline")      return `${(s.radius ?? 0) * 2} wide`;
   return `${s.vertices?.length ?? 0} v`;
 }
 
@@ -764,6 +774,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       baseHeight: clampHeight(s.base_height), floor: clampFloor(s.floor),
       heightMode: s.height_mode ?? "", skirt: s.skirt ?? 0, reliefScope: s.relief_scope ?? "",
       radius: s.radius ?? 0, strokeEdge: s.stroke_edge ?? "", strokeSeed: s.stroke_seed ?? 0,
+      turn: s.turn ?? 0, tilt: s.tilt ?? 0, sunk: s.sunk ?? 0, tube: s.tube ?? 0,
+      deckCrown: s.deck?.[0] ?? 0, deckEnd: s.deck?.[1] ?? s.deck?.[0] ?? 0,
     }));
     fire("OnLayout", JSON.stringify({ groups: uniqueGroups(groups), shapes }));
   }
@@ -1413,12 +1425,43 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // by. All three are stored on the shape and the ring is derived, so each lands as a reshape.
     setStrokeBand(id, radius, edge, seed) {
       const s = canvas.getShape(id);
-      if (s?.type !== "polyline") return;
+      if (footprintOf(s) !== "polyline") return;
       if (radius !== null && radius !== undefined) s.radius = Math.max(1, Math.round(radius));
       if (edge) s.stroke_edge = edge;
       if (seed !== null && seed !== undefined) s.stroke_seed = Math.max(0, Math.round(seed));
       canvas.updateShape(s);
       recompute(); pushLayout(); iso.drop(); markDirty();
+    },
+
+    // Read a rectangle, circle or path as a solid (box, wedge, cylinder, sphere, torus, arch), or back as the
+    // plain footprint when `kind` is empty. The footprint is what the canvas draws and groups, so it recomputes.
+    setSolid(id, kind) {
+      const s = canvas.getShape(id);
+      if (!s) return;
+      const next = asSolid(s, kind || "");
+      if (next === s) return;
+      canvas.updateShape(next);
+      recompute(); pushLayout(); iso.drop(); markDirty();
+    },
+
+    // One number of a solid: how far it is turned, tilted or sunk, or a torus's tube. A zero turn, tilt or sink
+    // is the field's absence, so a document that never used them stays as it was.
+    setSolidField(id, key, value) {
+      const s = canvas.getShape(id);
+      if (!s || !SOLID_NUMBERS[key]) return;
+      const next = SOLID_NUMBERS[key](value ?? 0);
+      if (next === 0 && key !== "tube") delete s[key]; else s[key] = next;
+      canvas.updateShape(s);
+      recompute(); pushLayout(); iso.drop(); markDirty();
+    },
+
+    // An arch's deck at its crown and at its feet; the easing between them is kept as the document states it.
+    setArchDeck(id, crown, end) {
+      const s = canvas.getShape(id);
+      if (s?.type !== "arch") return;
+      s.deck = [Math.max(0, Math.round(crown)), Math.max(0, Math.round(end)), s.deck?.[2] ?? 1];
+      canvas.updateShape(s);
+      pushLayout(); iso.drop(); markDirty();
     },
 
     // How a shape's top is decided against the ground it stands on, and how far in it eases into the ground

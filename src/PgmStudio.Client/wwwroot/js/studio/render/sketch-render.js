@@ -7,7 +7,7 @@
  */
 
 import { paintShape } from "./shape-render.js";
-import { toRing } from "../geometry/shape.js";
+import { toRing, footprintOf } from "../geometry/shape.js";
 import { primitiveStyle, opColors, OBJECTIVE_COLORS, BUILDING_COLORS, UNKNOWN_KIND_COLOR } from "./primitive-style.js";
 
 function shapeStyle(shape, selected) {
@@ -20,14 +20,17 @@ function shapeStyle(shape, selected) {
 /** One draw primitive: add/subtract coloured, dashed when it overrides the normal boolean order. */
 export function paintSketchShape(painter, shape, { selected = false, alpha = 1 } = {}) {
   const style = { ...shapeStyle(shape, selected), alpha };
-  if (shape.type === "rectangle") {
+  const kind = footprintOf(shape);
+  if (kind === "rectangle" && shape.turn) {
+    painter.ring(toRing(shape), { ...style, fillRule: "evenodd" });
+  } else if (kind === "rectangle") {
     paintShape(painter, "rectangle", shape, style);
-  } else if (shape.type === "circle") {
+  } else if (kind === "circle") {
     paintShape(painter, "circle", {
       min_x: shape.center_x - shape.radius, max_x: shape.center_x + shape.radius,
       min_z: shape.center_z - shape.radius, max_z: shape.center_z + shape.radius,
     }, style);
-  } else if (shape.type === "polyline") {
+  } else if (kind === "polyline") {
     // The band, not the line — a path is filled by what it covers, the same as every other primitive.
     const ring = toRing(shape);
     if (ring.length >= 3) painter.ring(ring, { ...style, fillRule: "evenodd" });

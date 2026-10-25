@@ -28,5 +28,8 @@ The ground stays in columns and the carves run after it in the block grid of the
 the relief over it (`docs/pgmvox-port.md`, *The shape it lands in*). Each entry is pgmvox's `volume/` ported, and
 `docs/tools/sketch.md` is the document each leaves correct.
 
-- [ ] **TS212 — Primitives in the block grid.** A box, a cylinder, a wedge, a sphere and a torus as shapes, each
-  turned, tilted and sunk, and the natural arch as a shape whose deck is a surface — pgmvox `volume/solid.py`.
+- [ ] **TS212 — Dragging a solid out in the dock.** The dock draws a rectangle, polygon, polyline or lasso, and a
+  solid is made by reading a drawn footprint with the inspector's Form row. Add dock tools that drag out a box,
+  wedge, cylinder, sphere or torus with the form already chosen (`SketchTool.razor`, `asSolid` in
+  `geometry/shape.js`, `addShape` in `sketch-bridge.js`), and inspector rows for an arch's rock `thick`, its easing
+  powers and its `camber`, stated over the API today (`docs/tools/sketch.md`, *Solids*).

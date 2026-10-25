@@ -337,8 +337,9 @@ public sealed class SketchShape
     /// <summary>What the group lists and the theme scope names this shape by.</summary>
     [JsonPropertyName("id")]        public string Id { get; set; } = "";
 
-    /// <summary>What it is: <c>rectangle</c>, <c>circle</c>, <c>polygon</c>, <c>lasso</c>, <c>polyline</c> —
-    /// which says which of the numbers below it carries.</summary>
+    /// <summary>What it is: <c>rectangle</c>, <c>circle</c>, <c>polygon</c>, <c>lasso</c>, <c>polyline</c>, or a
+    /// solid — <c>box</c>, <c>wedge</c>, <c>cylinder</c>, <c>sphere</c>, <c>torus</c>, <c>arch</c> — which says
+    /// which of the numbers below it carries.</summary>
     [WordSet(typeof(ShapeKinds))]
     [JsonPropertyName("type")]      public string Type { get; set; } = "";
 
@@ -485,4 +486,34 @@ public sealed class SketchShape
     /// same question and a document that states both says nothing about which was meant.</para></summary>
     [JsonPropertyName("material")]   public JsonElement? Material { get; set; }
 
+    // The solids. A box and a wedge read a rectangle's bounds; a cylinder, a sphere and a torus a circle's
+    // centre and radius; an arch a polyline's vertices and radius. Height is `floor` and `base_height`.
+    /// <summary>Degrees a solid is turned about the vertical through its centre, clockwise as the canvas draws
+    /// it: its width axis points <c>(cos turn, sin turn)</c> on the plan. Absent is none.</summary>
+    [JsonPropertyName("turn")]  public double? Turn { get; set; }
+
+    /// <summary>Degrees a solid is tilted about its own width axis, after <c>turn</c>: its depth end rises, so
+    /// a box of tilt 45 is a ramp climbing along its depth and a torus of tilt 90 stands on its edge. Absent is
+    /// upright.</summary>
+    [JsonPropertyName("tilt")]  public double? Tilt { get; set; }
+
+    /// <summary>Blocks a solid is bedded below its <c>floor</c>: its lowest point stands <c>floor − sunk</c>,
+    /// so a sphere floored at the ground's top and sunk by 3 has three blocks of it under the surface.</summary>
+    [JsonPropertyName("sunk")]  public double? Sunk { get; set; }
+
+    /// <summary>A torus's tube radius, in blocks. The ring's outer edge is the shape's <c>radius</c>.</summary>
+    [JsonPropertyName("tube")]  public double? Tube { get; set; }
+
+    /// <summary>An arch's deck as <c>[crown, end]</c> or <c>[crown, end, power]</c>: the height, over the
+    /// layer's base, of the walkable surface at the middle of the span and at its feet, eased by the power
+    /// (1 is straight). Absent is a flat deck at <c>floor + base_height</c>.</summary>
+    [JsonPropertyName("deck")]  public double[]? Deck { get; set; }
+
+    /// <summary>The rock under an arch's deck as <c>[crown, end]</c> or <c>[crown, end, power]</c>, in blocks
+    /// thick. Absent is <c>[4, 12, 1.5]</c>: thin at the crown and heavy at the feet.</summary>
+    [JsonPropertyName("thick")] public double[]? Thick { get; set; }
+
+    /// <summary>Blocks an arch's deck falls towards its two sides, as the square of the distance from the
+    /// centreline over the half-width. Absent is a deck level across.</summary>
+    [JsonPropertyName("camber")] public double? Camber { get; set; }
 }

@@ -22,7 +22,7 @@
 import { svgEl, insertGhost } from "../render/svg.js";
 import { renderTransformBox, gripSideX, gripSideZ } from "../render/canvas-chrome.js";
 import { toScreen } from "../geometry/transform.js";
-import { toBounds, distToSegment } from "../geometry/shape.js";
+import { toBounds, distToSegment, footprintOf, isAxisRect } from "../geometry/shape.js";
 import { ringSelfIntersects } from "../geometry/polygon.js";
 
 const VERTEX_R           = 4;   // a point of an outline, drawn as a disc the size of the insert ghost
@@ -36,8 +36,8 @@ const MIN_LINE_POINTS    = 2;   // an open line with fewer is no line
 // The shapes an author edits point by point. A path joins them because it is stored as the line it was
 // drawn as — dragging one of its points moves the line, and the band follows. Its line is **open**, so the
 // wrap-around edge every closed ring has does not exist for it; `closedVertices` is what says so.
-const vertexEdited = (shape) => shape?.type === "polygon" || shape?.type === "lasso" || shape?.type === "polyline";
-const closedVertices = (shape) => shape?.type !== "polyline";
+const vertexEdited = (shape) => ["polygon", "lasso", "polyline"].includes(footprintOf(shape));
+const closedVertices = (shape) => footprintOf(shape) !== "polyline";
 
 export class SketchEditController {
   #handlesLayer;
@@ -195,7 +195,7 @@ export class SketchEditController {
     if (this.#rectResizeState) {
       const { shapeId, xf, zf } = this.#rectResizeState;
       const shape = this.#getShape(shapeId);
-      if (shape?.type === "rectangle") {
+      if (isAxisRect(shape)) {
         const bx = Math.floor(wx), bz = Math.floor(wz);
         // Proposed dragged-edge coords, then snap them to the canvas's targets (edges/centres + symmetry
         // centre) — same snapping the move path gets. Alt / the Snap toggle are honoured inside the hook.
@@ -410,7 +410,7 @@ export class SketchEditController {
       l: Math.min(tl.x, br.x), r: Math.max(tl.x, br.x),
       t: Math.min(tl.y, br.y), b: Math.max(tl.y, br.y),
     };
-    const scalable = shape.type === "rectangle" || (vertexEdited(shape) && (shape.vertices?.length ?? 0) >= 2);
+    const scalable = isAxisRect(shape) || (vertexEdited(shape) && (shape.vertices?.length ?? 0) >= 2);
     renderTransformBox(this.#handlesLayer, box, {
       onScale: scalable ? (grip, e) => {
         if (e.button !== 0) return;
@@ -429,7 +429,7 @@ export class SketchEditController {
     const side = (s, min, max) => (s === 0 ? null : s < 0 ? min : max);
     const xf = side(gripSideX(grip), "min_x", "max_x");
     const zf = side(gripSideZ(grip), "min_z", "max_z");
-    if (shape.type === "rectangle") { this.#rectResizeState = { shapeId: shape.id, xf, zf }; return; }
+    if (isAxisRect(shape)) { this.#rectResizeState = { shapeId: shape.id, xf, zf }; return; }
     this.#polyScaleState = {
       shapeId: shape.id, xf, zf, from: world,
       vertices: (shape.vertices ?? []).map(([x, z]) => [x, z]),

@@ -8,6 +8,12 @@
  * `{vertices:[[x,z],…], radius, stroke_edge?, stroke_seed?}`. Region/sketch metadata (category/color,
  * operation/override) lives on top — not in the geometry.
  *
+ * A solid (box, wedge, cylinder, sphere, torus, arch) stands in the block grid and is drawn as the footprint of
+ * the kind it reads — a box and a wedge a rectangle's bounds, a cylinder, sphere and torus a circle, an arch a
+ * path's centerline — with `turn` swinging a rectangle's footprint about its middle. Every function below that
+ * switches on a shape's kind switches on {@link footprintOf}, so a solid moves, scales and hit-tests as the
+ * footprint it is drawn as.
+ *
  * A path is the one shape stored as something other than its own outline: its `vertices` are an **open**
  * centerline and `radius` its half-width, and the band those imply is derived (`path.js`) wherever a ring
  * is wanted. That is what keeps a polyline editable as the line it was drawn as while every consumer below
@@ -27,19 +33,77 @@ import { strokeRing } from "./stroke.js";
 export const CIRCLE_POINTS  = 64;   // vertices approximating a circle
 export const BEZIER_SAMPLES = 16;   // points sampled per curved edge (endpoint excluded)
 
+/** The kind each solid is drawn as. Mirrors `PgmStudio.Vocabulary.ShapeKinds.Footprint`. */
+export const SOLID_FOOTPRINTS = {
+  box: "rectangle", wedge: "rectangle", cylinder: "circle", sphere: "circle", torus: "circle", arch: "polyline",
+};
+
+/** Whether the shape stands in the block grid. */
+export const isSolid = (shape) => Object.hasOwn(SOLID_FOOTPRINTS, shape?.type);
+
+/** The kind of outline a shape is drawn with: a solid's footprint, or the shape's own kind. */
+export const footprintOf = (shape) => (isSolid(shape) ? SOLID_FOOTPRINTS[shape.type] : shape?.type);
+
+/** The plain kind a solid's footprint is, and the solids a footprint can be read as. */
+export const SOLIDS_OF = {
+  rectangle: ["box", "wedge", "cylinder", "sphere", "torus"],
+  circle: ["box", "wedge", "cylinder", "sphere", "torus"],
+  polyline: ["arch"],
+};
+
+/** The solid fields a shape drops when it stops being one. */
+const SOLID_FIELDS = ["turn", "tilt", "sunk", "tube", "deck", "thick", "camber"];
+
+/**
+ * The shape read as the solid `kind`, or as the plain footprint it stands on when `kind` is empty. A rectangle
+ * and a circle convert into each other (a circle's radius is half the shorter side), so a box drawn with the
+ * rectangle tool can become a sphere in place; a path becomes an arch and back. Anything else, and a kind the
+ * footprint cannot be, is returned as it came. Pure — id, operation, heights and paint ride through.
+ */
+export function asSolid(shape, kind) {
+  const from = footprintOf(shape);
+  if (kind && !(SOLIDS_OF[from] ?? []).includes(kind)) return shape;
+  if (!kind && !isSolid(shape)) return shape;
+  const to = kind ? SOLID_FOOTPRINTS[kind] : from;
+  const next = { ...shape, type: kind || from };
+  if (from === "rectangle" && to === "circle") {
+    const radius = Math.max(1, Math.round(Math.min(shape.max_x - shape.min_x, shape.max_z - shape.min_z) / 2));
+    next.center_x = (shape.min_x + shape.max_x) / 2;
+    next.center_z = (shape.min_z + shape.max_z) / 2;
+    next.radius = radius;
+    for (const key of ["min_x", "max_x", "min_z", "max_z"]) delete next[key];
+  } else if (from === "circle" && to === "rectangle") {
+    next.min_x = shape.center_x - shape.radius; next.max_x = shape.center_x + shape.radius;
+    next.min_z = shape.center_z - shape.radius; next.max_z = shape.center_z + shape.radius;
+    for (const key of ["center_x", "center_z", "radius"]) delete next[key];
+  }
+  if (!kind) for (const key of SOLID_FIELDS) delete next[key];
+  if (kind === "torus" && !(next.tube > 0)) next.tube = Math.max(1, Math.round(next.radius / 4));
+  if (kind !== "torus") delete next.tube;
+  return next;
+}
+
+/** A rectangle whose sides run along the axes: the footprint a resize grip can move. */
+export const isAxisRect = (shape) => footprintOf(shape) === "rectangle" && !shape.turn;
+
+/** The four corners of a rectangle's bounds, swung `turn` degrees clockwise about its middle. */
+function turnedCorners({ min_x, max_x, min_z, max_z, turn }) {
+  const corners = [[min_x, min_z], [max_x, min_z], [max_x, max_z], [min_x, max_z]];
+  if (!turn) return corners;
+  const angle = turn * Math.PI / 180, cos = Math.cos(angle), sin = Math.sin(angle);
+  const mx = (min_x + max_x) / 2, mz = (min_z + max_z) / 2;
+  return corners.map(([x, z]) => [mx + (x - mx) * cos - (z - mz) * sin, mz + (x - mx) * sin + (z - mz) * cos]);
+}
+
 /**
  * Convert a shape to a **closed** coordinate ring `[[x,z],…]` (last point equals the first — the
  * polygon-clipping convention). Returns `[]` for a degenerate polygon/lasso (< 3 vertices).
  */
 export function toRing(shape) {
-  switch (shape.type) {
+  switch (footprintOf(shape)) {
     case "rectangle": {
-      const { min_x, max_x, min_z, max_z } = shape;
-      return [
-        [min_x, min_z], [max_x, min_z],
-        [max_x, max_z], [min_x, max_z],
-        [min_x, min_z],
-      ];
+      const corners = turnedCorners(shape);
+      return [...corners, corners[0]];
     }
     case "circle":
       return circleToRing(shape.center_x, shape.center_z, shape.radius);
@@ -112,9 +176,9 @@ export function translateBounds(b, dx, dz) {
 
 /** Translate a shape by (dx,dz), returning a new shape (pure — used for ghost preview + drop placement). */
 export function translateShape(shape, dx, dz) {
-  if (shape.type === "rectangle")
+  if (footprintOf(shape) === "rectangle")
     return { ...shape, min_x: shape.min_x + dx, max_x: shape.max_x + dx, min_z: shape.min_z + dz, max_z: shape.max_z + dz };
-  if (shape.type === "circle")
+  if (footprintOf(shape) === "circle")
     return { ...shape, center_x: shape.center_x + dx, center_z: shape.center_z + dz };
   if (shape.vertices) {
     const moved = { ...shape, vertices: shape.vertices.map(([x, z]) => [x + dx, z + dz]) };
@@ -150,6 +214,17 @@ export function rotateShape(shape, angleRad, pivot) {
   const [px, pz] = pivot;
   const cos = Math.cos(angleRad), sin = Math.sin(angleRad);
   const rot = (x, z) => [px + (x - px) * cos - (z - pz) * sin, pz + (x - px) * sin + (z - pz) * cos];
+  // A solid's footprint keeps its kind: its middle orbits the pivot and the turn it states takes up the angle.
+  if (isSolid(shape) && footprintOf(shape) !== "polyline") {
+    const turn = ((((shape.turn ?? 0) + angleRad * 180 / Math.PI) % 360) + 360) % 360;
+    if (footprintOf(shape) === "circle") {
+      const [cx, cz] = rot(shape.center_x, shape.center_z);
+      return { ...shape, center_x: cx, center_z: cz, turn };
+    }
+    const [cx, cz] = rot((shape.min_x + shape.max_x) / 2, (shape.min_z + shape.max_z) / 2);
+    const halfX = (shape.max_x - shape.min_x) / 2, halfZ = (shape.max_z - shape.min_z) / 2;
+    return { ...shape, min_x: cx - halfX, max_x: cx + halfX, min_z: cz - halfZ, max_z: cz + halfZ, turn };
+  }
   if (shape.type === "circle") {
     const [cx, cz] = rot(shape.center_x, shape.center_z);
     return { ...shape, center_x: cx, center_z: cz };
@@ -184,12 +259,12 @@ function rotateControls(controls, rot) {
 export function scaleShape(shape, sx, sz, anchor) {
   const [ax, az] = anchor;
   const sc = (x, z) => [ax + (x - ax) * sx, az + (z - az) * sz];
-  if (shape.type === "rectangle") {
+  if (footprintOf(shape) === "rectangle") {
     const [x0, z0] = sc(shape.min_x, shape.min_z);
     const [x1, z1] = sc(shape.max_x, shape.max_z);
     return { ...shape, min_x: Math.min(x0, x1), max_x: Math.max(x0, x1), min_z: Math.min(z0, z1), max_z: Math.max(z0, z1) };
   }
-  if (shape.type === "circle") {
+  if (footprintOf(shape) === "circle") {
     const [cx, cz] = sc(shape.center_x, shape.center_z);
     return { ...shape, center_x: cx, center_z: cz, radius: shape.radius * Math.sqrt(Math.abs(sx * sz)) };
   }
@@ -221,13 +296,13 @@ function scaleControls(controls, sc) {
  */
 export function snapShape(shape) {
   const rnd = (v) => Math.round(v);
-  if (shape.type === "rectangle") {
+  if (footprintOf(shape) === "rectangle") {
     let min_x = rnd(shape.min_x), max_x = rnd(shape.max_x), min_z = rnd(shape.min_z), max_z = rnd(shape.max_z);
     if (max_x <= min_x) max_x = min_x + 1;
     if (max_z <= min_z) max_z = min_z + 1;
     return { ...shape, min_x, max_x, min_z, max_z };
   }
-  if (shape.type === "circle")
+  if (footprintOf(shape) === "circle")
     return { ...shape, center_x: rnd(shape.center_x), center_z: rnd(shape.center_z), radius: Math.max(1, rnd(shape.radius)) };
   if (shape.vertices) {
     const snapped = { ...shape, vertices: shape.vertices.map(([x, z]) => [rnd(x), rnd(z)]) };
@@ -344,8 +419,13 @@ export function ringCentroid(ring) {
 
 /** Axis-aligned bounds `{min_x,min_z,max_x,max_z}` of a shape (null for a degenerate polygon/lasso). */
 export function toBounds(shape) {
-  switch (shape.type) {
+  switch (footprintOf(shape)) {
     case "rectangle": {
+      if (shape.turn) {
+        const corners = turnedCorners(shape);
+        const xs = corners.map(([x]) => x), zs = corners.map(([, z]) => z);
+        return { min_x: Math.min(...xs), min_z: Math.min(...zs), max_x: Math.max(...xs), max_z: Math.max(...zs) };
+      }
       const { min_x, min_z, max_x, max_z } = shape;
       return { min_x, min_z, max_x, max_z };
     }
@@ -397,8 +477,9 @@ export function boundsOfShapes(shapes) {
  * or a polyline of fewer than two points, contains nothing.
  */
 export function containsPoint(shape, x, z) {
-  switch (shape.type) {
+  switch (footprintOf(shape)) {
     case "rectangle":
+      if (shape.turn) return pointInRing(x, z, toRing(shape));
       return x >= shape.min_x && x <= shape.max_x && z >= shape.min_z && z <= shape.max_z;
     case "circle":
       return Math.hypot(x - shape.center_x, z - shape.center_z) <= shape.radius;

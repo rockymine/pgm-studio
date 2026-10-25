@@ -184,8 +184,10 @@ the game needs them at a spawn floor, a wool room or a monument's plinth, are a 
 only check marks (`RL1`–`RL6`) go with the marks.
 
 **Ground stays in columns; carves run after it in the block grid.** The column model is fast, runs in the browser
-and folds cleanly under symmetry, so shapes and the ground modifiers keep it. Tunnels, chambers, rooms, shafts,
-primitives and undersides run over `VoxelWorld`, so `SK13`'s cut-and-lid stops being the only way down.
+and folds cleanly under symmetry, so shapes and the ground modifiers keep it. Tunnels, chambers, rooms and shafts
+run over `VoxelWorld`, so `SK13`'s cut-and-lid stops being the only way down. A primitive's body is cut into the runs
+of blocks a column meets, a layer holding more than one span of a column where a solid stands apart from the rest, so
+a primitive meets the ground, the paint, the walk and the symmetry through the machinery every shape uses.
 
 **The modifier list makes the old addressing work unnecessary.** `B264` (Configure cannot address a storey), `WE28`
 (a relief keyed by layer and group) and `TS64` (a made thing as one row in the layer strip) were the planned way
@@ -350,7 +352,10 @@ time. Shipped to the live studio with no beta (decision D3).
   built world and dressed as caves (`docs/tools/sketch.md`, *The modifier stack*); rooms joined by stepped halls,
   a gallery and a bore are not ported yet.
 - The primitives in the block grid: a box, a cylinder, a wedge, a sphere and a torus, turned, tilted and sunk, and
-  the natural arch as a shape whose deck is a surface.
+  the natural arch as a shape whose deck is a surface (`docs/tools/sketch.md`, *Solids*). They are shapes whose
+  bodies the column model reads as runs of blocks, a torus on its edge making two in a column; placing one by
+  dragging it out in the dock is not built, and the other `solid.py` forms (frustum, beam, prism, revolve, sheet) are
+  not ported.
 - The walk across surfaces over carved space: the walk reads the built world, so a tunnel is walked, and `SK13`
   complains rather than refuses, because the cut-and-lid is no longer the only way down.
 
