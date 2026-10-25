@@ -27,8 +27,22 @@ public sealed record SketchShapeRow(
     // every other kind of shape, which is what the inspector reads to know whether to offer them.
     [property: JsonPropertyName("radius")] double Radius = 0,
     [property: JsonPropertyName("strokeEdge")] string StrokeEdge = "",
-    [property: JsonPropertyName("strokeSeed")] int StrokeSeed = 0)
+    [property: JsonPropertyName("strokeSeed")] int StrokeSeed = 0,
+    // A solid's numbers: how far it is turned and tilted, how deep it is sunk, a torus's tube, and an arch's deck
+    // at its crown and at its feet. Zero on every shape that does not state them.
+    [property: JsonPropertyName("turn")] double Turn = 0,
+    [property: JsonPropertyName("tilt")] double Tilt = 0,
+    [property: JsonPropertyName("sunk")] double Sunk = 0,
+    [property: JsonPropertyName("tube")] double Tube = 0,
+    [property: JsonPropertyName("deckCrown")] double DeckCrown = 0,
+    [property: JsonPropertyName("deckEnd")] double DeckEnd = 0)
 {
+    /// <summary>Whether the shape is a solid standing in the block grid rather than ground drawn by outline.</summary>
+    public bool IsSolid => ShapeKinds.Solids.Contains(Type);
+
+    /// <summary>The kind of outline the shape is drawn with: a solid's footprint, or its own kind.</summary>
+    public string Footprint => ShapeKinds.Footprint(Type);
+
     /// <summary>The glyph a list draws beside the shape.</summary>
     public string Icon => Type switch
     {
@@ -37,6 +51,12 @@ public sealed record SketchShapeRow(
         ShapeKinds.Polygon   => "pentagon",
         ShapeKinds.Lasso     => "lasso",
         ShapeKinds.Polyline  => "spline",
+        ShapeKinds.Box       => "box",
+        ShapeKinds.Wedge     => "triangle",
+        ShapeKinds.Cylinder  => "cylinder",
+        ShapeKinds.Sphere    => "globe",
+        ShapeKinds.Torus     => "donut",
+        ShapeKinds.Arch      => "terrain-arch",
         _                    => "square",
     };
 }

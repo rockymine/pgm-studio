@@ -563,13 +563,37 @@ public static class SketchLayoutCheck
         ShapeKinds.Rectangle => (shape.MaxX ?? 0) - (shape.MinX ?? 0) != 0 && (shape.MaxZ ?? 0) - (shape.MinZ ?? 0) != 0
             ? null
             : (SketchRules.DrawsNoArea, "has no area"),
-        _ => null,
+        _ => SketchSolids.Is(shape) ? SolidEmpty(shape) : null,
     };
+
+    // A solid draws nothing where its footprint has no extent, its height no blocks or its tube no radius.
+    private static (string Rule, string Why)? SolidEmpty(SketchShape shape)
+    {
+        switch (shape.Type)
+        {
+            case ShapeKinds.Box or ShapeKinds.Wedge
+                when (shape.MaxX ?? 0) - (shape.MinX ?? 0) == 0 || (shape.MaxZ ?? 0) - (shape.MinZ ?? 0) == 0:
+                return (SketchRules.DrawsNoArea, "has no area");
+            case ShapeKinds.Cylinder or ShapeKinds.Sphere or ShapeKinds.Torus when !(shape.Radius > 0):
+                return (SketchRules.DrawsNothing, $"has a radius of {shape.Radius ?? 0:0.##} blocks");
+            case ShapeKinds.Arch when !(shape.Radius > 0):
+                return (SketchRules.DrawsNothing, $"has a radius of {shape.Radius ?? 0:0.##} blocks");
+            case ShapeKinds.Arch when shape.Vertices is not { Length: >= 2 }:
+                return (SketchRules.DrawsNothing, $"has {Wording.Count(shape.Vertices?.Length ?? 0, "point")}, less than 2");
+            case ShapeKinds.Torus when !(shape.Tube is null or > 0):
+                return (SketchRules.DrawsNothing, $"has a `tube` of {shape.Tube:0.##} blocks");
+            case ShapeKinds.Box or ShapeKinds.Wedge or ShapeKinds.Cylinder when !(shape.BaseHeight is null or > 0):
+                return (SketchRules.DrawsNothing, $"has a `base_height` of {shape.BaseHeight:0.##} blocks");
+            default:
+                return null;
+        }
+    }
 
     // A column the world cannot hold, said as the fact that makes it one.
     private static string? Unbuildable(SketchShape shape)
     {
-        double floor = shape.Floor ?? 0, top = floor + (shape.BaseHeight ?? 0);
+        double floor = shape.Floor ?? 0,
+               top = SketchSolids.Is(shape) ? SketchSolids.Top(shape) : floor + (shape.BaseHeight ?? 0);
         if (shape.BaseHeight < 0) return $"has a `base_height` of {shape.BaseHeight:0.##} blocks, less than 0 blocks";
         if (floor < 0) return $"has a `floor` of {floor:0.##} blocks, less than 0 blocks";
         if (top >= WorldHeight) return $"has a top of {top:0.##} blocks, more than {WorldHeight - 1} blocks";
@@ -617,7 +641,7 @@ public static class SketchLayoutCheck
             ? (vertices.Min(v => v[0]) - Reach(shape), vertices.Min(v => v[1]) - Reach(shape),
                vertices.Max(v => v[0]) + Reach(shape), vertices.Max(v => v[1]) + Reach(shape))
             : null,
-        _ => null,
+        _ => SketchSolids.Is(shape) ? SketchSolids.Bounds(shape) : null,
     };
 
     // Whether two boxes share any ground. Touching along an edge counts: a footprint that meets its own

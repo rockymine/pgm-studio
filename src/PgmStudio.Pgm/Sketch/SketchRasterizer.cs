@@ -144,16 +144,20 @@ public static class SketchRasterizer
         (state?.Setup?.Center?.Cx ?? 0, state?.Setup?.Center?.Cz ?? 0, Symmetry.OrbitAxes(SketchLayout.MirrorModeOf(state)));
 
     /// <summary>Every layer rasterized in its own Y and shifted by its <c>base_y</c>. A cell may repeat across
-    /// layers: a column with a gap (ground and a sky bridge) keeps both segments.</summary>
+    /// layers: a column with a gap (ground and a sky bridge) keeps both segments. A layer repeats a cell only
+    /// where a solid it holds meets the column twice (<see cref="LayerGround.Beneath"/>).</summary>
     private static List<ColumnSegment> LayerSegments(SketchLayout? state, double cx, double cz, IReadOnlyList<string> axes)
     {
         var output = new List<ColumnSegment>();
         foreach (var layer in ResolveLayers(state))
         {
             int by = (int)Math.Round(layer.BaseY);
-            foreach (var kv in RasterizeLayout(layer.Layout ?? new SketchShapes(), cx, cz, axes))
+            var ground = RasterizeLayout(layer.Layout ?? new SketchShapes(), cx, cz, axes);
+            foreach (var kv in ground.Cells)
                 output.Add(new ColumnSegment(kv.Key.Item1, kv.Key.Item2,
                                             kv.Value.Floor + by, kv.Value.Top + by, layer.Id!));
+            foreach (var run in ground.Beneath)
+                output.Add(new ColumnSegment(run.X, run.Z, run.Floor + by, run.Top + by, layer.Id!));
         }
         return output;
     }
@@ -229,6 +233,7 @@ public static class SketchRasterizer
     private static bool Holds(SketchShape shape)
         => shape.Role is null && shape.Operation != "subtract"
            && (shape.ReliefScope == ReliefScopes.Hold
+               || SketchSolids.Is(shape) && shape.ReliefScope is not (ReliefScopes.Ride or ReliefScopes.Follow)
                || IsErected(shape) && shape.HeightMode!.ToLowerInvariant() == HeightModes.Level);
 
     private static string? RideMode(SketchShape shape)
@@ -239,7 +244,8 @@ public static class SketchRasterizer
     }
 
     private static IEnumerable<(int X, int Z)> CellsOf(SketchShape shape)
-        => RingOf(shape) is { Count: >= 3 } ring ? CellsOfRing(ring) : [];
+        => SketchSolids.Is(shape) ? SketchSolids.Surface(shape).Select(run => (run.X, run.Z))
+         : RingOf(shape) is { Count: >= 3 } ring ? CellsOfRing(ring) : [];
 
     /// <summary>Every made thing that seats on the ground, moved down onto it, and the terrain over its seat
     /// taken out.
@@ -410,7 +416,7 @@ public static class SketchRasterizer
             var marked = layout.Shapes.Where(shape => shape.KeepClear).ToList();
             if (marked.Count == 0) continue;
             var only = new SketchShapes { Shapes = marked, Groups = layout.Groups };
-            foreach (var cell in RasterizeLayout(only, cx, cz, axes).Keys)
+            foreach (var cell in RasterizeLayout(only, cx, cz, axes).Cells.Keys)
                 kept.Add(cell);
         }
         return kept;
@@ -615,14 +621,21 @@ public static class SketchRasterizer
     // Layers to rasterize, in draw order — read through the document's one stack reader.
     private static IReadOnlyList<SketchLayer> ResolveLayers(SketchLayout? state) => SketchLayout.Stack(state);
 
+    /// <summary>One layer's ground: <see cref="Cells"/> holds each solid column once, as the span the set algebra
+    /// settled on, and <see cref="Beneath"/> the spans under that one in the columns where a solid on the layer
+    /// stands apart from what else is there — a torus on its edge, whose hole a column passes through, or a
+    /// sphere hung over the layer's ground.</summary>
+    private sealed record LayerGround(Dictionary<(int, int), (int Top, int Floor)> Cells, List<(int X, int Z, int Floor, int Top)> Beneath);
+
     // One layer → its solid (x,z) cells with layer-local columns (primary + opted-in group mirror copies).
-    private static Dictionary<(int, int), (int Top, int Floor)> RasterizeLayout(
+    private static LayerGround RasterizeLayout(
         SketchShapes layout, double cx, double cz, IReadOnlyList<string> axes)
     {
         var shapes = layout?.Shapes ?? [];
-        if (shapes.Count == 0) return [];
+        if (shapes.Count == 0) return new LayerGround([], []);
 
-        var cells = RasterGroup(shapes, out var claimed);        // primary
+        var beneath = new List<(int X, int Z, int Floor, int Top)>();
+        var cells = RasterGroup(shapes, out var claimed, beneath);        // primary
         var metas = layout?.Groups ?? [];
 
         // Erected shapes go on after the ordinary ground, which is the whole of what makes them erected: a shape
@@ -634,11 +647,17 @@ public static class SketchRasterizer
         {
             // No group metadata (hand-authored): mirror the whole primary footprint (height is invariant).
             var primary = new Dictionary<(int, int), (int Top, int Floor)>(cells);
+            var primaryBeneath = beneath.ToList();
             foreach (var axis in axes)
             {
                 var mirrored = new Dictionary<(int, int), (int Top, int Floor)>();
                 foreach (var (k, v) in primary) mirrored[Symmetry.ApplyCell(k.Item1, k.Item2, axis, cx, cz)] = v;
                 Merge(cells, mirrored);
+                foreach (var run in primaryBeneath)
+                {
+                    var (x, z) = Symmetry.ApplyCell(run.X, run.Z, axis, cx, cz);
+                    beneath.Add((x, z, run.Floor, run.Top));
+                }
             }
         }
         else
@@ -650,7 +669,7 @@ public static class SketchRasterizer
                 foreach (var axis in axes)
                 {
                     var mirrored = groupShapes.Select(s => MirrorShape(s, axis, cx, cz)).ToList();
-                    var copy = RasterGroup(mirrored, out var mirroredClaims);
+                    var copy = RasterGroup(mirrored, out var mirroredClaims, beneath);
                     // The image gets the same pass over it the primary got, and in the same order: an erected
                     // shape is settled against the ground under its own footprint.
                     Erect(copy, mirrored, mirroredClaims);
@@ -658,14 +677,36 @@ public static class SketchRasterizer
                 }
             }
         }
-        return cells;
+        return new LayerGround(cells, Settle(cells, beneath));
+    }
+
+    /// <summary>The spans under each column's top one, once the spare spans a column collected are joined where
+    /// they overlap or touch. A column the algebra removed has none, and the top span of one whose spare joined it
+    /// is the join.</summary>
+    private static List<(int X, int Z, int Floor, int Top)> Settle(
+        Dictionary<(int, int), (int Top, int Floor)> cells, List<(int X, int Z, int Floor, int Top)> spare)
+    {
+        var beneath = new List<(int X, int Z, int Floor, int Top)>();
+        foreach (var column in spare.Where(run => cells.ContainsKey((run.X, run.Z))).GroupBy(run => (run.X, run.Z)))
+        {
+            var top = cells[column.Key];
+            var joined = new List<(int Floor, int Top)>();
+            foreach (var span in column.Select(run => (run.Floor, run.Top)).Append((top.Floor, top.Top))
+                                       .OrderBy(span => span.Floor).ThenBy(span => span.Top))
+                if (joined.Count > 0 && span.Floor <= joined[^1].Top)
+                    joined[^1] = (joined[^1].Floor, Math.Max(joined[^1].Top, span.Top));
+                else joined.Add(span);
+            cells[column.Key] = (joined[^1].Top, joined[^1].Floor);
+            foreach (var span in joined.Take(joined.Count - 1)) beneath.Add((column.Key.Item1, column.Key.Item2, span.Floor, span.Top));
+        }
+        return beneath;
     }
 
     /// <summary>Whether a shape says how its top is decided, by one of <see cref="HeightModes"/>. Anything else
     /// — including a word a later build knows and this one does not — is ordinary ground, which places terrain
     /// an author drew rather than terrain nobody asked for.</summary>
     private static bool IsErected(SketchShape shape)
-        => shape.Role is null && shape.Operation != "subtract"
+        => shape.Role is null && shape.Operation != "subtract" && !SketchSolids.Is(shape)
            && HeightModes.All.Contains(shape.HeightMode?.ToLowerInvariant());
 
     /// <summary>
@@ -1121,7 +1162,8 @@ public static class SketchRasterizer
             // annotation. An erected shape settles its top against the ground under it, so the span
             // it states here is not the span it builds and a pair holding one cannot be judged.
             var adds = layer.Shapes
-                .Where(shape => shape.Role is null && shape.Operation != "subtract" && !IsErected(shape))
+                .Where(shape => shape.Role is null && shape.Operation != "subtract" && !IsErected(shape)
+                                && !SketchSolids.Is(shape))
                 .ToList();
             // An override add cannot be the shape a pair loses. It is laid after the ordinary pass and
             // overwrites the column it lands on, and where that column reaches its floor the result runs
@@ -1396,10 +1438,12 @@ public static class SketchRasterizer
     // and all" has to survive being merged with another mass: between two masses the taller column wins,
     // which is right for two masses meeting and wrong for a claim meeting ordinary ground.
     private static Dictionary<(int, int), (int Top, int Floor)> RasterGroup(
-        IEnumerable<SketchShape> shapes, out HashSet<(int, int)> claimed)
+        IEnumerable<SketchShape> shapes, out HashSet<(int, int)> claimed,
+        List<(int X, int Z, int Floor, int Top)>? spare = null)
     {
         Dictionary<(int, int), (int Top, int Floor)> add = [], oadd = [];
         HashSet<(int, int)> sub = [], osub = [];
+        var solids = new List<SketchShape>();
         foreach (var s in shapes)
         {
             if (s.Role is not null) continue;   // structural annotation — not terrain, never rasterized
@@ -1408,12 +1452,20 @@ public static class SketchRasterizer
                 var set = s.Override ? osub : sub;
                 foreach (var c in RasterShape(s)) set.Add((c.X, c.Z));
             }
+            else if (SketchSolids.Is(s)) solids.Add(s);
             else
             {
                 var dict = s.Override ? oadd : add;
                 foreach (var c in RasterShape(s)) MergeCell(dict, (c.X, c.Z), (c.Top, c.Floor));
             }
         }
+        // A solid joins the ground it stands in: where a run overlaps or touches the column's span the two are one
+        // mass, so a sphere bedded in a hill does not cut a hollow under itself, and where it stands apart both
+        // stay, the higher as the column's span and the other as a spare. Laid after the ordinary adds so the
+        // answer is the board's and not the list's.
+        spare ??= [];
+        foreach (var s in solids)
+            foreach (var run in SketchSolids.Runs(s)) Absorb(s.Override ? oadd : add, spare, run);
         // ((adds − subs) ∪ override-adds) − override-subs; height = the tallest add on each cell.
         var result = new Dictionary<(int, int), (int Top, int Floor)>(add);
         foreach (var k in sub) result.Remove(k);
@@ -1449,6 +1501,24 @@ public static class SketchRasterizer
         else d[k] = v;
     }
 
+    // A solid's run joins the span it overlaps or touches. Clear of it the higher is the column's span and the
+    // lower is kept as a spare, because a layer holds a solid wherever it stands and a stack in one layer is
+    // what a solid is allowed to make.
+    private static void Absorb(Dictionary<(int, int), (int Top, int Floor)> d,
+                               List<(int X, int Z, int Floor, int Top)> spare, (int X, int Z, int Floor, int Top) run)
+    {
+        var cell = (run.X, run.Z);
+        if (!d.TryGetValue(cell, out var held)) d[cell] = (run.Top, run.Floor);
+        else if (run.Floor <= held.Top && held.Floor <= run.Top)
+            d[cell] = (Math.Max(run.Top, held.Top), Math.Min(run.Floor, held.Floor));
+        else if (run.Top > held.Top)
+        {
+            spare.Add((run.X, run.Z, held.Floor, held.Top));
+            d[cell] = (run.Top, run.Floor);
+        }
+        else spare.Add(run);
+    }
+
     private static void Merge(Dictionary<(int, int), (int Top, int Floor)> dst, Dictionary<(int, int), (int Top, int Floor)> src)
     {
         foreach (var (k, v) in src) MergeCell(dst, k, v);
@@ -1477,6 +1547,13 @@ public static class SketchRasterizer
     // stored data): floor >= 0 and thickness >= 1 (a shape is never zero-height).
     private static IEnumerable<(int X, int Z, int Top, int Floor)> RasterShape(SketchShape s)
     {
+        // A solid states its own runs; the column's top one is the shape's span, and any under it are laid
+        // beside the layer's cells (LayerGround.Beneath).
+        if (SketchSolids.Is(s))
+        {
+            foreach (var run in SketchSolids.Surface(s)) yield return (run.X, run.Z, run.Top, run.Floor);
+            yield break;
+        }
         var ring = RingOf(s);
         if (ring.Count < 3) yield break;
         int floor = Math.Max(0, (int)Math.Round(s.Floor ?? 0));
@@ -1543,7 +1620,7 @@ public static class SketchRasterizer
         // A path arrives as a centerline and a half-width; the band around it is the ring, so nothing below
         // this point learns a shape that is not a ring.
         ShapeKinds.Polyline => StrokeOutline.Ring(s.Vertices ?? [], s.Radius ?? 0, ParseStrokeEdge(s.StrokeEdge), s.StrokeSeed ?? 0),
-        _ => [],
+        _ => SketchSolids.Is(s) ? SketchSolids.Ring(s) : [],
     };
 
     private static StrokeEdge ParseStrokeEdge(string? edge) => edge switch
@@ -1626,6 +1703,7 @@ public static class SketchRasterizer
     /// asks whether a shape states either.</summary>
     private static SketchShape MirrorShape(SketchShape s, string axis, double cx, double cz)
     {
+        if (SketchSolids.Is(s)) return SketchSolids.Mirror(s, axis, cx, cz);
         // Polygon/lasso: transform vertices + Bézier handles in place, keeping anchor_heights index-aligned
         // (height is invariant) so a per-vertex surface mirrors correctly.
         if ((s.Type == "polygon" || s.Type == "lasso") && s.Vertices is { } verts)

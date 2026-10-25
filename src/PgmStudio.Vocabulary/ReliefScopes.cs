@@ -1,9 +1,10 @@
 namespace PgmStudio.Vocabulary;
 
 /// <summary>
-/// How a shape's ground meets the sketch's modifier stack. Absent is the default and has no word: the shape is
-/// ordinary ground and every modifier whose mask reaches it shapes it, which is what a shape drawn to make a
-/// landmass wants. A stated word takes the shape out of the stack or has it ride the stack.
+/// How a shape's ground meets the sketch's modifier stack. Absent is the default: a ground shape follows, so
+/// every modifier whose mask reaches it shapes it, which is what a shape drawn to make a landmass wants, and a
+/// solid (box, wedge, cylinder, sphere, torus, arch) holds. A stated word takes the shape out of the stack,
+/// has it ride the stack, or states the follow a solid would not otherwise have.
 ///
 /// <para>Three parties spell it: the rasterizer that runs the stack, the plan compiler that tags a role piece,
 /// and the canvas the author picks it on. A word none of them knows reads as the default, so a second spelling
@@ -21,6 +22,10 @@ public static class ReliefScopes
     /// A building on a hill the modifiers raise.</summary>
     public const string Ride = "ride";
 
-    /// <summary>The words a shape may state. Absent is the default and is not one of them.</summary>
-    public static readonly string[] All = [Hold, Ride];
+    /// <summary>The modifiers shape the shape's columns as they shape any ground. What a ground shape does
+    /// without saying so, and so the one word a solid states to be reshaped by a hill beside it.</summary>
+    public const string Follow = "follow";
+
+    /// <summary>The words a shape may state.</summary>
+    public static readonly string[] All = [Hold, Ride, Follow];
 }

@@ -10868,6 +10868,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **The walk goes through carved space, and a lid over a hole is a complaint (`WS91`).** The walk reads the built
   world, so a tunnel's floor is walked as the way through a hill no block is placed for; `SK13` complains rather
   than refuses, since a carve is the way under the ground (`docs/world-scan/read-backs.md`).
+- **Primitives in the block grid (`TS212`).** A shape's `type` is also `box`, `wedge`, `cylinder`, `sphere`, `torus` or
+  `arch`, read off the footprint of a rectangle, circle or path with `turn`, `tilt`, `sunk`, a torus's `tube` and an
+  arch's `deck`, `thick` and `camber`. A body is cut into the runs of blocks each column meets (`Geom.Solid`,
+  `Geom.NaturalArch`, `SketchSolids`): one run for the convex forms, two through a torus's hole, and a layer keeps
+  every run a solid makes beside the ground it stands in. A solid holds against the modifiers unless it states
+  `follow` or `ride`, and its images are exact mirrors. The Draw inspector's Form row reads a rectangle, circle or
+  path as one (`docs/tools/sketch.md` *Solids*).
 - **A layer hangs rock under itself (`TS211`).** A layer's `underside` — `edge`, `taper`, `rough`, `seed` and a
   `sheer` list of shape ids — lowers each column's floor to a rock 4 blocks thick at the rim and 0.9 more per
   block inward, 26 and 1.2 beside a sheer side, and rests it on the terrain below where under 4 blocks would stay

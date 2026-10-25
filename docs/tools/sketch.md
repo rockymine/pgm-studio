@@ -195,8 +195,8 @@ beside `layers`; the stack is shown under *Terraform*.
 ### Shapes
 
 A shape is one entry in a layer's `shapes` array. Its geometry is a rectangle (`min_x`/`min_z`/`max_x`/`max_z`),
-a circle (`center_x`/`center_z`/`radius`), or a vertex list (`vertices`, with optional Bézier `controls` per
-edge). Every shape carries an `operation` — `add` builds ground, `subtract` removes it — and an `override`
+a circle (`center_x`/`center_z`/`radius`), a vertex list (`vertices`, with optional Bézier `controls` per
+edge), or a solid that reads the footprint of one of those and stands in the block grid (*Solids*, below). Every shape carries an `operation` — `add` builds ground, `subtract` removes it — and an `override`
 flag that decides the order the set algebra resolves in: the ordinary pass is adds minus subtracts, then
 override-adds overwrite whatever column they land on, then override-subtracts remove theirs last.
 
@@ -315,10 +315,10 @@ absolute y of the flat top (`floor + base_height`); **Height above ground** for 
 height of the ground under the shape; **Depth below ground** for `sink`; **Height above ground** *at every
 cell* for `drape`; and **Height above floor** for ordinary ground, its hint stating the top's y. `skirt` is how far in
 from its own outline an erected shape eases back into the ground it meets, in blocks; zero is a sheer face,
-which is right for a built thing and wrong for a hillside. `relief_scope` is `hold`, `ride` or absent and
+which is right for a built thing and wrong for a hillside. `relief_scope` is `hold`, `ride`, `follow` or absent and
 says how the shape meets the modifier stack (see *Groups and layers*): `hold` keeps its columns out of every
-modifier, `ride` keeps its form and moves it with the ground, and absent lets the modifiers reshape it. Play
-rooms always hold. The canvas
+modifier, `ride` keeps its form and moves it with the ground, and `follow` lets the modifiers reshape it. Absent
+is `follow` for ground and `hold` for a solid. Play rooms always hold. The canvas
 bridge writes only the words `ReliefScopes` and `HeightModes` name, validated against one JS list
 (`shared/relief-words.js`) that a test holds equal to the C# sets. And a polyline carries `stroke_edge`
 (`solid`, `rough`, `tapered`) with a `stroke_seed`, since a polyline is stored as the open centreline it was
@@ -391,6 +391,117 @@ states the house where it was let go. A region stated as several rectangles is n
 ground it stands on is the group's. Selecting the polygon in front of a room therefore selects one that
 reaches under the room as well — which is the shape of the thing, not a fault in it. What keeps the room level
 is that a play room holds against the modifiers.
+
+### Solids: shapes that stand in the block grid
+
+A shape's `type` is also one of six solid words: `box`, `wedge`, `cylinder`, `sphere`, `torus` and `arch`. Ground
+stays in columns, and a solid is read the same way: its body is cut into the runs of blocks a vertical line meets,
+and each run is a `ColumnSegment` of the layer the shape is on. So a solid joins the ground, the paint, the
+modifier stack's relations, the walk and the symmetry through the machinery every shape uses, and there is no
+second world to keep in step. A body is in a column when the **centre of a block** is in the body, and a centre
+exactly on its surface counts as inside, so a body and its mirror image cover the same blocks.
+
+**A solid reads the footprint of the kind it is drawn as, and its height from `floor` and `base_height`.** A
+`box` and a `wedge` read a rectangle (`min_x`, `min_z`, `max_x`, `max_z`); a `cylinder`, a `sphere` and a `torus`
+a circle (`center_x`, `center_z`, `radius`); an `arch` a polyline (`vertices`, the open centreline, and `radius`,
+its half-width). The canvas draws, groups, moves and hit-tests a solid as that footprint (`ShapeKinds.Footprint`,
+`footprintOf` in `geometry/shape.js`), which is why a rectangle drawn with the rectangle tool becomes a box by
+changing a word.
+
+| `type` | Reads | Size | Body |
+|---|---|---|---|
+| `box` | the rectangle | `base_height` tall | a cuboid the footprint wide and deep |
+| `wedge` | the rectangle | `base_height` at its tall end | a box cut by the plane falling to nothing at the far (`+depth`) end |
+| `cylinder` | the circle | `base_height` tall | an upright cylinder of the radius |
+| `sphere` | the circle | the radius, all three ways | a sphere standing on its `floor` |
+| `torus` | the circle: `radius` is its outer edge | `tube`, the tube's radius (default a quarter of `radius`, at least 1) | a ring lying flat, `2 · tube` tall |
+| `arch` | the polyline | `deck`, `thick`, `camber` (below) | a deck over rock, one run a column |
+
+**Three numbers place a body.** `turn` swings it about the vertical through its middle, in degrees, clockwise as the
+canvas draws it: its width axis points `(cos turn, sin turn)` on the plan, so a turn of 90 swaps a box's width and
+depth. `tilt` then tips it about its own width axis so the `+depth` end rises: a box of tilt 45 is a ramp that gains a
+block a column along its depth, and a torus of tilt 90 stands on its edge. `sunk` sets the body down: its lowest point
+stands at `floor − sunk`, so `floor` is the surface a body is bedded in and `sunk` how much of it is under that
+surface. Nothing is built under the layer's own base, so a body sunk past `base_y` is cut off there.
+
+**A convex body makes one run in a column, and a torus makes two through its hole.** A box, wedge, cylinder and
+sphere are convex at any turn and tilt, so a column meets each in one span `[floor, top)` with a floor and a top of
+its own — a sphere is its diameter at the middle and thins to its rim, a tilted box rises along its tilt. A torus on
+its edge is met twice by a column through the hole, and an `arch` is made one span a column.
+
+**A solid is the one shape a layer holds in more than one span of a column.** An ordinary layer keeps a single span
+per column, and the taller shape wins it (`SK9`). A solid keeps every run it makes: where a run overlaps or touches
+the span already there the two are one mass, so a sphere bedded in a hill leaves no hollow under itself and a
+torus's lower arc joins the ground it stands on; where it stands apart, both stay — the higher is the column's span
+and the other is laid as a further `ColumnSegment` of the same layer in the same column
+(`SketchRasterizer.LayerGround.Beneath`). Everything downstream already reads several segments in a column, because a
+gallery under a deck is that. A subtract over the column takes the whole column with it, spans under the top one
+included. A solid on a layer of its own has no set algebra with the ground at all, and standing in the ground
+beneath it is two layers driven into each other (`SK10`) unless they share a single course.
+
+**A solid holds against the modifiers unless it says otherwise.** Its columns are out of every modifier, so a hill
+raised beside it leaves it whole and the ground round it is shaped up to its edge. `relief_scope: "follow"` lets
+the stack reshape it as it reshapes any ground, and `ride` moves it by the median change under it. A ground shape
+follows when it states nothing and a solid holds, which is why `follow` is a word. A solid states no `height_mode`: its
+height is its body.
+
+**Symmetry fans a solid by its images, not by a copy.** A group that mirrors carries each solid through each axis of
+the orbit: the middle goes where the axis takes it, and `turn` is read off where the axis takes the body's depth
+direction, so an image of a wedge is a wedge whose tall end is on the far side and an image of a tilted box tilts the
+same way. A layer that states no groups mirrors its built columns, runs under the top one included. Either way the
+images are the exact mirror of the original, block for block.
+
+**An `arch` is a deck over rock, with a gap a player walks under.** It runs along its centreline, `radius` to each
+side, with the ends cut square as a polyline is. `deck` is `[crown, end]` or `[crown, end, power]`: the height, over
+the layer's base, of the walkable surface at the middle of the span and at its feet, eased by the power, where 1 is a
+straight slope. `thick` is the same triple for the rock under the deck, `[crown, end, power]`, default `[4, 12, 1.5]`:
+thin at the crown and heavy at the feet. `camber` lowers the deck that many blocks towards the two sides, as the square
+of the distance from the centreline over the half-width. A column of the arch is `[deck − thick, deck + 1)` — the top
+course is the surface — so the arch is a convex single run, and what is under it is the ground of the layer beneath: where
+the underside is higher than the ground the span is an opening, and where `thick` reaches the ground the arch has its
+feet. A `deck` not stated is flat at `floor + base_height`.
+
+A board of every solid, an arch on a layer of its own over the ground:
+
+```json PUT /api/map/{slug}/sketch
+{
+  "setup": { "mirror_mode": "rot_180", "center": { "cx": 0, "cz": 0 } },
+  "layers": [
+    { "id": "ground", "name": "Ground", "base_y": 0, "layout": { "shapes": [
+      { "id": "plate", "type": "rectangle", "operation": "add",
+        "min_x": -40, "min_z": -40, "max_x": 40, "max_z": 40, "floor": 0, "base_height": 10 },
+      { "id": "monolith", "type": "box", "operation": "add",
+        "min_x": 6, "min_z": -3, "max_x": 10, "max_z": 3, "floor": 10, "base_height": 14, "sunk": 2, "turn": 20 },
+      { "id": "fallen", "type": "box", "operation": "add",
+        "min_x": -30, "min_z": -6, "max_x": -18, "max_z": -3, "floor": 11, "base_height": 3, "sunk": 1, "turn": 15, "tilt": 8 },
+      { "id": "dome", "type": "sphere", "operation": "add",
+        "center_x": 0, "center_z": -12, "radius": 5, "floor": 10, "sunk": 2 },
+      { "id": "ring", "type": "torus", "operation": "add",
+        "center_x": -24, "center_z": 18, "radius": 8, "tube": 2, "floor": 10, "tilt": 90 },
+      { "id": "ramp", "type": "wedge", "operation": "add",
+        "min_x": 14, "min_z": 6, "max_x": 22, "max_z": 14, "floor": 10, "base_height": 6 },
+      { "id": "drum", "type": "cylinder", "operation": "add",
+        "center_x": -8, "center_z": 24, "radius": 4, "floor": 10, "base_height": 5, "relief_scope": "follow" }
+    ], "groups": [] } },
+    { "id": "span", "name": "Natural arch", "base_y": 0, "layout": { "shapes": [
+      { "id": "arch", "type": "arch", "operation": "add",
+        "vertices": [[-32, -34], [32, -34]], "radius": 3, "deck": [22, 11, 1.2], "thick": [3, 9, 1] }
+    ], "groups": [] } }
+  ]
+}
+```
+
+Read against the fields above: the monolith is a box turned 20° and bedded two blocks into the plate, so it stands
+from 8 to 22 in columns it shares with the ground; the fallen obelisk is a box tipped 8° and half-sunk; the dome is a
+sphere bedded two blocks, the ring a torus on its edge — a column through its hole has two runs — and the drum states
+`follow`, so the modifiers reshape it where the rest hold. The arch is a second layer with a deck at 22 at the crown
+falling to 11 at the feet, rock three blocks thick under the crown, so the opening under it is the gap to the plate
+at 10. Every image the symmetry draws is the exact mirror of what is stated.
+
+**The gate knows them.** An unknown word is `SK3`; a body with no volume (a radius of nothing, a footprint with no
+area, a `base_height` or `tube` of nothing, an arch of fewer than two points) draws nothing (`SK4`, `SK31`); and a
+solid's own top, not its `base_height`, is what `SK5` holds against the world's height. The 3-D preview and the
+column reads see a solid as the segments it makes, so they show it as they show any ground.
 
 ### Groups and layers
 
@@ -673,7 +784,9 @@ by a fraction of a block, which is why the constants carry cross-referencing com
 
 The modifiers run inside that build (`SketchTerraform.Run`), so the contour overlay and every read of the
 columns answer the same ground (*Terraform*). A layer's underside lowers its floors after the modifiers and the
-seats have settled the tops (`SketchRasterizer.Hang`).
+seats have settled the tops (`SketchRasterizer.Hang`). A solid states its own runs (`SketchSolids`, over
+`Geom.Solid` and `Geom.NaturalArch`): the top run of a column is the shape's span in the layer's set algebra, and
+the spans under it ride beside the cells as further segments (*Solids*).
 
 What becomes of those columns once the map is exported — the layer scheme the world folder is written in, its
 `level.dat`, the coordinate anchoring, the wool-cage chests and the observer platform — is
@@ -1018,6 +1131,14 @@ already in hand, and re-entering an untouched board draws it again rather than r
 — placed, moved, turned, resized, a wall's end dragged, a house or its doors changed — touches the board too: it
 changes the intent rather than the layout, so the mesh is let go of on every piece write and the next entry
 builds again.
+
+**A rectangle, a circle or a path becomes a solid in the inspector.** The rectangle tool draws the footprint, and
+the **Form** row of the shape's inspector reads it as a box, wedge, cylinder, sphere or torus — a path as an arch —
+converting between the rectangle and the circle in place (a circle's radius is half the shorter side), or back to
+*Ground*. A solid's rows are its numbers: Height (box, wedge, cylinder), Floor, **Turn**, **Tilt**, **Sunk**, a
+torus's **Tube radius** and an arch's **Deck at crown** and **Deck at feet**; Terraform offers *Hold* (the solid's
+default), *Follow* and *Ride*. The canvas draws a solid as its footprint, a turned box turned, and a turned box moves
+but offers no resize grips, since its bounds are not its footprint.
 
 In Ground the sidebar carries the active layer's settings — its name and its base Y — and the group→shape tree; the
 inspector on the right edits whatever is selected. Which layer is active, and which layers there are, is
@@ -2856,9 +2977,14 @@ is written in the document and has no drawing tool, nor has a rectangle.
 
 **The stack shapes one height per column, and its water stands only over drawn ground.** The carves cut space
 under that height in the built world, which the walk and every world read see; the column reads and the 3-D view
-read the column's top and do not, and no shape stands in the block grid yet (`TS212`).
+read the column's top and do not.
 A Coast's sea floods the columns its mask covers that some shape built, so a sea meant to reach the board's edge is
 a shape drawn out to that edge with the Coast over it; past the last drawn column is void.
+
+**A solid is made in the inspector, not dragged out in the dock.** The dock draws a rectangle, a polygon, a
+polyline or a lasso; a box, wedge, cylinder, sphere, torus or arch is that footprint read as a solid by the Form row,
+and an arch's rock `thick`, its easing powers and its `camber` are stated over the API and ride through a save from
+the browser untouched. A dock tool that drags a chosen solid out is open (`TS212`).
 
 **Only Draw edits geometry.** Palette and Decoration run the canvas as a selection surface: a group or a shape
 can be picked, and the view panned and zoomed, but nothing can be moved, resized, rotated, reshaped or given a

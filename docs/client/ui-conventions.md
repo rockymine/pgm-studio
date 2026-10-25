@@ -257,7 +257,7 @@ A Razor markup lambda cannot contain a string literal, so every wire word an ins
 constant somewhere. Where that somewhere is decides whether the form and the reader can drift apart.
 
 **A kind is declared in `PgmStudio.Vocabulary` and taken from there by everyone who spells it.** `ShapeKinds`
-(rectangle, circle, polygon, lasso, polyline), and `PropKinds` (stroke, fluid, flora, tree, boulder, house, chest) are the two the client writes. `Client` reaches `Vocabulary`
+(rectangle, circle, polygon, lasso, polyline, and the solids box, wedge, cylinder, sphere, torus, arch, which `geometry/shape.js` draws as the footprint `ShapeKinds.Footprint` names), and `PropKinds` (stroke, fluid, flora, tree, boulder, house, chest) are the two the client writes. `Client` reaches `Vocabulary`
 through `Contracts`, so the picker takes the same constant the reader does: `PlacedProp`'s
 `[JsonDerivedType]` attributes name `PropKinds`, and the sketch gate judges against `ShapeKinds.All`.
 There is one list, not two that agree.
