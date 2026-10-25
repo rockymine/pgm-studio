@@ -182,7 +182,7 @@ piece into is a plateau and is never declared.
 
 **And a hole is never scenery.** What the buffer compiles to is a `subtract`, which the sketch tool then holds
 as the board's own statement of its negative space: it may be *redrawn* — rounded off, narrowed, moved — and
-never papered over with an add (`docs/tools/sketch.md`, `SK13`).
+and an add papered over it is named (`docs/tools/sketch.md`, `SK13`).
 
 ### Zones
 

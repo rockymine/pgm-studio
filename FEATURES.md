@@ -10865,6 +10865,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   in the built world after the paint, keeping the ground over it: a Tunnel along a line on a level floor between
   mouths at the ground, a domed Chamber and a Shaft to the sky with a ladder, each dressed as a cave and never
   cutting a stamped structure (`CaveCarver`, `docs/tools/sketch.md`).
+- **The walk goes through carved space, and a lid over a hole is a complaint (`WS91`).** The walk reads the built
+  world, so a tunnel's floor is walked as the way through a hill no block is placed for; `SK13` complains rather
+  than refuses, since a carve is the way under the ground (`docs/world-scan/read-backs.md`).
 - **A layer hangs rock under itself (`TS211`).** A layer's `underside` — `edge`, `taper`, `rough`, `seed` and a
   `sheer` list of shape ids — lowers each column's floor to a rock 4 blocks thick at the rim and 0.9 more per
   block inward, 26 and 1.2 beside a sheer side, and rests it on the terrain below where under 4 blocks would stay

@@ -1,5 +1,6 @@
 using PgmStudio.Domain;
 using PgmStudio.Pgm.Authoring;
+using PgmStudio.Geom;
 using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Export.Tests;
@@ -61,5 +62,29 @@ public sealed class CarveWorldTests
         await Assert.That(built.World.GetBlock(0, 14, 0).Id).IsEqualTo(Blocks.Air);
         var ladders = Enumerable.Range(14, 16).Count(y => Enumerable.Range(-3, 7).Any(z => built.World.GetBlock(0, y, z).Id == Blocks.Ladder));
         await Assert.That(ladders).IsGreaterThan(12).Because("a ladder climbs from its floor to the sky");
+    }
+
+    [Test]
+    public async Task The_walk_goes_through_a_tunnel_where_the_hill_is_a_wall_across_the_board()
+    {
+        var wall = """
+            { "id": "wall", "op": "level", "top": 30, "inner": 1, "outer": 1,
+              "mask": { "areas": [ { "kind": "polygon", "points": [[-10, -41], [10, -41], [10, 41], [-10, 41]] } ], "mirror": false } }
+            """;
+        WalkPath? Across(string carves)
+        {
+            var built = BuiltWorlds.Of(Board(wall + "," + carves), Intent());
+            var ground = BuiltWalk.Ground(built, null);
+            WalkPlace At(int x) => ground.Stacks[(x, 0)].OrderBy(place => place.Y).First();
+            return Walk.Between(At(-30), At(30), ground);
+        }
+
+        var through = Across(Tunnel);
+        var over = Across(Tunnel.Replace("\"op\": \"tunnel\",", "\"op\": \"tunnel\", \"off\": true,"));
+
+        await Assert.That(over!.Cost.Blocks).IsGreaterThan(10).Because("without the tunnel the wall is pillared over");
+        await Assert.That(through!.Cost.Blocks).IsEqualTo(0).Because("the tunnel is walked, no block placed");
+        await Assert.That(through.Places.Any(place => place.X == 0 && place.Y <= 12)).IsTrue()
+            .Because("the route passes under the hill on the tunnel's floor");
     }
 }

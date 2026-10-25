@@ -220,7 +220,8 @@ public static class SketchLayoutCheck
                     Severity.Complaint, Subjects: [standing, hidden]));
 
             // SK13 — a subtract states the board's negative space, and an add over one is silent either way it
-            // lands: it draws nothing, or it puts the ground back.
+            // lands: it draws nothing, or it puts the ground back. A complaint either way, since a carve is the
+            // way under the ground and a lid over a hole is no longer the only one.
             foreach (var (add, addLayer, subtract, subtractLayer, survives, cells, x, z) in
                      SketchRasterizer.AddsOverSubtracts(layout))
                 findings.Add(new Finding(SketchRules.DrawnOverSubtraction,
@@ -229,7 +230,7 @@ public static class SketchLayoutCheck
                           + $"that subtract '{subtract}' on layer '{subtractLayer}' takes away"
                         : $"add '{add}' on layer '{addLayer}' draws nothing over {Wording.Count(cells, "column")} "
                           + $"from ({x}, {z}) where subtract '{subtract}' on layer '{subtractLayer}' takes them away",
-                    survives ? Severity.Refusal : Severity.Complaint, Subjects: [add, subtract]));
+                    Severity.Complaint, Subjects: [add, subtract]));
         }
 
         // SK20 — the list order and base_y disagree about which layer is on top. Read over the plain layers

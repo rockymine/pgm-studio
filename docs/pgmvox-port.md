@@ -351,8 +351,8 @@ time. Shipped to the live studio with no beta (decision D3).
   a gallery and a bore are not ported yet.
 - The primitives in the block grid: a box, a cylinder, a wedge, a sphere and a torus, turned, tilted and sunk, and
   the natural arch as a shape whose deck is a surface.
-- The walk across surfaces over carved space. `SK13` stops refusing anything, because the cut-and-lid is no
-  longer the only way down.
+- The walk across surfaces over carved space: the walk reads the built world, so a tunnel is walked, and `SK13`
+  complains rather than refuses, because the cut-and-lid is no longer the only way down.
 
 **What the author notices:** crypts and mines without the lid trick.
 

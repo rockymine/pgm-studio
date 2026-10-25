@@ -266,6 +266,10 @@ avoids. `comfort` has no field of its own — the bound is the journey's own len
 two cells; `render/walk?aim=comfort` shades the travel field and draws the comfort route on it, which is the
 pairing that shows what the standoff bought.
 
+**`walk` goes through carved space.** It reads the built world's own spans, so a carve's floor is a place to
+stand like any storey's: a Tunnel through a hill that is a wall from edge to edge is walked with no block placed,
+where without it the same journey pillars the wall (`CarveWorldTests`).
+
 **`walk` also says which storey it stood on at every place, which steps it left a walk for, and what stands
 beside it.** `places` carries the route's own `y` at each cell — the storey the walk chose, not the ground a
 deck or a gallery roofs it with — and `steps` names every consecutive pair whose rise is not a plain walk: a

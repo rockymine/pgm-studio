@@ -235,14 +235,14 @@ else stand over it: an **override add above the subtract's own floor** takes the
 records nothing beneath, so the void the subtract stated is still void, with a deck on top. Measured on a
 landmass built `[0..20)` with a subtract through it and an override add stated at `floor 14`: the column comes
 back holding `[14..17)` and nothing else, and the board raises **no finding at all**. The same lid stated at
-`floor 0` — at the subtract's own floor — is the fill `SK13` refuses.
+`floor 0` — at the subtract's own floor — is the fill `SK13` names.
 
 That is the whole rule, and the two halves of it are one sentence: an override add **above** the subtract's
-floor is a lid and is silent; **at or below** it is a fill and is refused. So a chamber under a hill can be
+floor is a lid and is silent; **at or below** it is a fill and is named. So a chamber under a hill can be
 stated as the ground it is not rather than built as walls and a ceiling around a gap — the negative space
 first, then what roofs it.
 
-**A hollow ring is one polygon and not two shapes.** A subtract is refused wherever an add sits over or
+**A hollow ring is one polygon and not two shapes.** A subtract is named wherever an add sits over or
 under it (`SK13`, below), so a ring wall cannot be a disc with a smaller disc taken out of it on any layer
 that also carries a floor or a roof. What it is instead is one polygon that traces its outer ring, slits
 inward along a radius, traces its inner ring the other way round and returns along the slit: the fill rule is
@@ -2149,17 +2149,17 @@ by exactly two. A smaller bound calls every stack detached — at one, `opus5-un
 over 7,766 places**, and at two the same board is one. The bound cuts both ways: a cliff a player can only
 drop off does not join its two sides.
 
-**It refuses a shape that fills ground a subtract takes away, and complains where one draws nothing there.**
+**It complains of a shape that fills ground a subtract takes away, and of one that draws nothing there.**
 A subtract is how a board states its **negative space** — the void a plan's buffer pieces compile to, the hole
 a composed footprint leaves — and **a hole is never scenery**: what a body encircles is ground players go
 round, and a board's walls are drawn to guard it. So the negative space may be *redrawn* — the buffer rounded
-off, narrowed, moved — and never papered over. An override add, or any add on **another layer** (a subtract
-reaches only the layer it is on), puts the ground back and is **refused**, `SK13` — at `finish`, and there
-alone. On the same layer
+off, narrowed, moved — and papering it over is named. An override add, or any add on **another layer** (a
+subtract reaches only the layer it is on), puts the ground back, `SK13`. A complaint rather than a refusal, because
+the way under the ground is a carve (*The modifier stack*) and a lid over a hole is no longer the only one. On the
+same layer
 a plain add draws **nothing at all** instead, because the algebra is
 `((adds − subs) ∪ override-adds) − override-subs` and a subtract beats every plain add whatever order the two
-are written in — the shape is on the canvas and not in the world, which is the rule's other half and only
-complains. Either way `SK13` names both shapes, which of the two happened, how many columns they contest and
+are written in — the shape is on the canvas and not in the world, which is the rule's other half. Either way `SK13` names both shapes, which of the two happened, how many columns they contest and
 the northmost of them.
 
 **A subtract states void over its own courses, so what contests it is a span rather than a footprint.** An add
@@ -2854,8 +2854,8 @@ and nothing else, and a map that came from a plan carries the plan's intent unch
 is written in the document and has no drawing tool, nor has a rectangle.
 
 **The stack shapes one height per column, and its water stands only over drawn ground.** The carves cut space
-under that height in the built world, and the walk, the plan-tier reads and the 3-D view still read the column's
-top, so a route through a tunnel is not walked (`WS91`) and no shape stands in the block grid yet (`TS212`).
+under that height in the built world, which the walk and every world read see; the column reads and the 3-D view
+read the column's top and do not, and no shape stands in the block grid yet (`TS212`).
 A Coast's sea floods the columns its mask covers that some shape built, so a sea meant to reach the board's edge is
 a shape drawn out to that edge with the Coast over it; past the last drawn column is void.
 

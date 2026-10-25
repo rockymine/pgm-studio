@@ -30,8 +30,3 @@ the relief over it (`docs/pgmvox-port.md`, *The shape it lands in*). Each entry 
 
 - [ ] **TS212 — Primitives in the block grid.** A box, a cylinder, a wedge, a sphere and a torus as shapes, each
   turned, tilted and sunk, and the natural arch as a shape whose deck is a surface — pgmvox `volume/solid.py`.
-
-- [ ] **WS91 — The walk crosses carved space.** The walk and the reads answer per surface, a tunnel's floor
-  among them, so a route through a hill is walked; `SK13` stops refusing, because the cut-and-lid is no longer
-  the only way down. `docs/world-scan/read-backs.md`.
-

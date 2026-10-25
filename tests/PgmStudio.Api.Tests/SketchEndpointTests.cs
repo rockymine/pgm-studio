@@ -58,17 +58,17 @@ public sealed class SketchEndpointTests
         var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Mid edit" }))
             .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
 
-        // A mass with a hole in it, and a second layer putting the ground back under the hole — SK13, the
-        // fault an author meets halfway through carving a room.
+        // A shape stating both a palette and a material — SK24, the fault an author meets halfway through
+        // repainting one: the material is written before the palette is taken off.
         const string refused = """
             {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},
              "layers":[
                {"id":"rock","base_y":0,"layout":{"shapes":[
-                  {"id":"mass","type":"rectangle","operation":"add","min_x":-15,"min_z":-10,"max_x":15,"max_z":10,"floor":0,"base_height":30},
-                  {"id":"hole","type":"rectangle","operation":"subtract","min_x":-2,"min_z":-6,"max_x":10,"max_z":6,"floor":0}],
-                "groups":[{"id":"g","mirrors":false,"shapeIds":["mass","hole"]}]}},
-               {"id":"floor","base_y":0,"layout":{"shapes":[
-                  {"id":"f","type":"rectangle","operation":"add","override":true,"min_x":-2,"min_z":-6,"max_x":10,"max_z":6,"floor":0,"base_height":4}],
+                  {"id":"mass","type":"rectangle","operation":"add","min_x":-15,"min_z":-10,"max_x":15,"max_z":10,"floor":0,"base_height":30,
+                   "theme":"stone","material":{"kind":"solid","id":1}}],
+                "groups":[{"id":"g","mirrors":false,"shapeIds":["mass"]}]}},
+               {"id":"floor","base_y":40,"layout":{"shapes":[
+                  {"id":"f","type":"rectangle","operation":"add","min_x":-2,"min_z":-6,"max_x":10,"max_z":6,"floor":0,"base_height":4}],
                 "groups":[{"id":"h","mirrors":false,"shapeIds":["f"]}]}}]}
             """;
         var body = new StringContent(refused, Encoding.UTF8, "application/json");
@@ -77,7 +77,7 @@ public sealed class SketchEndpointTests
         var put = await client.PutAsync($"/api/map/{slug}/sketch", body);
         await Assert.That(put.StatusCode).IsEqualTo(HttpStatusCode.OK);
         await Assert.That(put.Headers.TryGetValues("Pgm-Warnings", out var warned)).IsTrue();
-        await Assert.That(string.Join(" ", warned!)).Contains("SK13");
+        await Assert.That(string.Join(" ", warned!)).Contains("SK24");
 
         // … and it is really there: both layers survive the round-trip, which is the whole point.
         var back = await client.GetFromJsonAsync<JsonElement>($"/api/map/{slug}/sketch");
@@ -94,7 +94,7 @@ public sealed class SketchEndpointTests
         var finish = await client.PostAsync($"/api/map/{slug}/sketch/finish", null);
         await Assert.That(finish.StatusCode).IsEqualTo(HttpStatusCode.UnprocessableEntity);
         var refusal = await finish.Content.ReadFromJsonAsync<JsonElement>();
-        await Assert.That(refusal.GetProperty("message").GetString()).Contains("takes away");
+        await Assert.That(refusal.GetProperty("message").GetString()).Contains("states both palette");
     }
 
     [Test]
