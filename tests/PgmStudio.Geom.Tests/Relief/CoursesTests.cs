@@ -58,10 +58,10 @@ public sealed class CoursesTests
         var field = new ReliefField(Width, Depth, (_, z) => z is 16 or 24 or 14 ? 44 : 50);
         field.Run(River(Run(6)));
 
-        // Rows 16 and 24 border the channel and stand low; row 14 is a block further out.
-        await Assert.That(field.At(30, 16)).IsGreaterThanOrEqualTo(49);
-        await Assert.That(field.At(30, 24)).IsGreaterThanOrEqualTo(49);
-        await Assert.That(field.At(30, 14)).IsLessThan(49).Because("a low column the water does not touch is left");
+        // Rows 16 and 24 border the channel and stand low; the water drops to meet them rather than bank up on them.
+        await Assert.That(field.At(30, 16)).IsGreaterThanOrEqualTo(field.WaterAt(30, 17));
+        await Assert.That(field.At(30, 24)).IsGreaterThanOrEqualTo(field.WaterAt(30, 23));
+        await Assert.That(field.At(30, 16)).IsLessThanOrEqualTo(44).Because("a river cuts its banks and never raises them");
     }
 
     [Test]
@@ -102,9 +102,9 @@ public sealed class CoursesTests
     }
 
     [Test]
-    public async Task A_river_drops_in_falls_only_after_a_reach_and_only_by_two_or_more()
+    public async Task On_gentle_ground_a_river_drops_in_falls_only_after_a_reach_and_only_by_two_or_more()
     {
-        var field = new ReliefField(Width, Depth, (x, _) => 70 - 0.4 * x);
+        var field = new ReliefField(Width, Depth, (x, _) => 70 - 0.1 * x);
         field.Run(River(Run(4)));
 
         var surfaces = Enumerable.Range(3, 54).Select(x => field.WaterAt(x, 20)).ToList();
@@ -113,6 +113,19 @@ public sealed class CoursesTests
         await Assert.That(drops.All(drop => drop >= 2)).IsTrue();
         var runs = surfaces.GroupBy(surface => surface).Select(group => group.Count()).ToList();
         await Assert.That(runs.Take(runs.Count - 1).All(length => length >= 10)).IsTrue();
+    }
+
+    [Test]
+    public async Task On_steep_ground_a_rivers_water_never_stands_above_the_ground_beside_it()
+    {
+        var field = new ReliefField(Width, Depth, (x, _) => 70 - 0.4 * x);
+        field.Run(River(Run(4)));
+
+        for (var x = 3; x < 57; x++)
+        {
+            await Assert.That(field.WaterAt(x, 20)).IsLessThanOrEqualTo(field.Was(x, 17)).Because($"the water at x {x} tops its bank");
+            await Assert.That(field.At(x, 17)).IsLessThanOrEqualTo(field.Was(x, 17)).Because($"the bank at x {x} was raised");
+        }
     }
 
     [Test]

@@ -12,9 +12,13 @@ internal static class Courses
     /// <summary>
     /// A river along a line, flowing from its first point to its last. The bed is the ground the line follows
     /// <c>depth</c> down, never climbing, held level in reaches and stepping down in falls where the ground drops
-    /// two blocks or more after a reach of ten. The channel is the mask's width; its banks ease back to the ground
-    /// over <c>bank</c> blocks from the water's surface; <c>water</c> blocks of water stand in it. The ring of
-    /// columns beside the water is raised to the surface where it is lower, so no water stands over its bank.
+    /// two blocks or more after a reach of ten, and sooner wherever holding would stand its water above the lowest
+    /// ground across its channel. Water already standing where it runs is ground at its surface, so a river leaving a
+    /// lake leaves at the lake's level. The channel is the mask's width; its banks climb from the water's surface by
+    /// the river's depth over <c>bank</c> blocks, and where the ground stands higher than that they climb on at a
+    /// block a block until they meet it, so a river below its banks runs in a valley rather than a slot. <c>water</c> blocks of water
+    /// stand in it, and the ring of columns beside the water is raised to the surface where it is lower, so no water
+    /// stands over its bank.
     /// </summary>
     public static double[] River(ModifierSpec spec, AreaView view, Ground ground, double[] waters)
     {
@@ -24,13 +28,31 @@ internal static class Courses
         double depth = spec.Depth ?? ModifierDefaults.RiverDepth, water = spec.Water ?? ModifierDefaults.RiverWater;
         double bank = spec.Bank ?? ModifierDefaults.RiverBank, half = view.Area.Scale;
 
-        var bed = new double[height.Length];
-        var level = height[0] - depth;
-        double running = level, since = 0;
-        for (var j = 0; j < height.Length; j++)
+        var lowest = new double[height.Length];
+        Array.Fill(lowest, double.PositiveInfinity);
+        var stations = new int[change.Length];
+        for (var i = 0; i < change.Length; i++)
         {
-            running = Math.Min(running, height[j] - depth);
-            if (j > 0 && running <= level - ModifierDefaults.RiverFall && since >= ModifierDefaults.RiverReach)
+            stations[i] = Station(arc, along[i]);
+            if (view.Blocks(i) > half + 1.5) continue;
+            var standing = ground.Standing?[i] is { } still && still > ground.Heights[i] ? still : ground.Heights[i];
+            lowest[stations[i]] = Math.Min(lowest[stations[i]], standing);
+        }
+        var low = new double[lowest.Length];
+        for (var j = 0; j < low.Length; j++)
+        {
+            var near = Math.Min(lowest[j], Math.Min(lowest[Math.Max(j - 1, 0)], lowest[Math.Min(j + 1, low.Length - 1)]));
+            low[j] = double.IsFinite(near) ? near : height[j];
+        }
+
+        var bed = new double[low.Length];
+        var level = low[0] - depth;
+        double running = level, since = 0;
+        for (var j = 0; j < low.Length; j++)
+        {
+            running = Math.Min(running, low[j] - depth);
+            var falls = running <= level - ModifierDefaults.RiverFall && since >= ModifierDefaults.RiverReach;
+            if (j > 0 && (falls || Math.Floor(level) + water > low[j]))
             {
                 level = running;
                 since = 0;
@@ -39,6 +61,7 @@ internal static class Courses
             if (j > 0) since += arc[j] - arc[j - 1];
         }
 
+        var shelving = Math.Min(ModifierDefaults.WaterBankSlope, Math.Max(depth - water, 1) / Math.Max(bank, 1));
         var count = change.Length;
         var lowered = (double[])ground.Heights.Clone();
         var surface = new double[count];
@@ -46,10 +69,13 @@ internal static class Courses
         for (var i = 0; i < count; i++)
         {
             var distance = view.Blocks(i);
-            if (distance > half + bank) continue;
-            var floor = Math.Floor(Ground.Interpolate(arc, bed, along[i]));
+            if (distance > half + bank + ModifierDefaults.WaterBankReach) continue;
+            var floor = bed[stations[i]];
             var top = floor + water;
-            var cut = distance <= half ? floor : top + Modifiers.SmoothStep(half, half + bank, distance) * (ground.Heights[i] - top);
+            var beyond = distance - half;
+            var cut = distance <= half ? floor
+                : beyond <= bank ? top + beyond * shelving
+                : top + bank * shelving + (beyond - bank) * ModifierDefaults.WaterBankSlope;
             lowered[i] = Math.Min(ground.Heights[i], cut);
             if (distance > half) continue;
             surface[i] = top;
@@ -77,10 +103,22 @@ internal static class Courses
         return change;
     }
 
+    /// <summary>The station of a profile nearest a distance along it.</summary>
+    private static int Station(double[] arc, double along)
+    {
+        var at = Array.BinarySearch(arc, along);
+        if (at >= 0) return at;
+        at = ~at;
+        if (at == 0) return 0;
+        if (at >= arc.Length) return arc.Length - 1;
+        return along - arc[at - 1] <= arc[at] - along ? at - 1 : at;
+    }
+
     /// <summary>
     /// A lake in an area: its bed lies <c>depth</c> under the surface in the middle and rises to a block under it at
-    /// the rim, and the ground within <c>shore</c> blocks outside is held at the surface or above, easing back to
-    /// the ground, so no water stands against air. The surface is <c>level</c>, or one block under the ground a tenth
+    /// the rim. Ground outside lower than the surface is held at it within <c>shore</c> blocks, easing back to the
+    /// ground, so no water stands against air; ground higher than it falls to the water at a block a block, so a
+    /// lake on a slope has a shore rather than a wall, and a column under another body's water is left as it lies. The surface is <c>level</c>, or one block under the ground a tenth
     /// of the rim stands at or below.
     /// </summary>
     public static double[] Lake(ModifierSpec spec, AreaView view, Ground ground, double[] waters)
@@ -104,6 +142,13 @@ internal static class Courses
                 continue;
             }
             var beyond = (e - 1) * scale;
+            if (height > surface)
+            {
+                var underWater = ground.Standing?[i] is { } still && still > height;
+                if (!underWater && beyond <= shore + ModifierDefaults.WaterBankReach)
+                    change[i] = Math.Min(height, surface + beyond * ModifierDefaults.WaterBankSlope) - height;
+                continue;
+            }
             if (beyond > shore) continue;
             var ease = Modifiers.SmoothStep(0, shore, beyond);
             var shaped = Math.Max(height, surface) * (1 - ease) + height * ease;

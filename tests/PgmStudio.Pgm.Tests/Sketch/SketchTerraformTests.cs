@@ -125,15 +125,39 @@ public sealed class SketchTerraformTests
         await Assert.That(Top(layout, imageX, imageZ)).IsEqualTo(8);
     }
 
-    [Test]
-    public async Task The_ground_under_a_play_room_holds()
-    {
-        var layout = Layout(Hill(), roomShapes: Spawn);
+    private static readonly (int X, int Z)[] RoomCells = [(18, 18), (20, 20), (21, 21), (18, 21), (21, 18)];
 
-        foreach (var (x, z) in new[] { (18, 18), (20, 20), (21, 21), (18, 21) })
+    [Test]
+    public async Task A_play_room_stands_level_on_the_ground_the_stack_left()
+    {
+        var layout = Layout(Hill(), roomShapes: Spawn.Replace(", \"base_height\": 8", ""));
+        var tops = RoomCells.Select(cell => Top(layout, cell.X, cell.Z)).ToList();
+
+        await Assert.That(tops.Distinct().Count()).IsEqualTo(1).Because("a room moves as one, so its floor stays level");
+        await Assert.That(tops[0]).IsGreaterThan(8).Because("the hill under the room lifted the ground it stands on");
+        await Assert.That(tops[0]).IsLessThanOrEqualTo(Top(Layout(Hill()), 20, 20));
+    }
+
+    [Test]
+    public async Task A_play_room_stating_hold_keeps_the_ground_it_was_drawn_on()
+    {
+        var layout = Layout(Hill(), roomShapes: Spawn.Replace("\"base_height\": 8", "\"base_height\": 8, \"relief_scope\": \"hold\""));
+
+        foreach (var (x, z) in RoomCells)
             await Assert.That(Top(layout, x, z)).IsEqualTo(8);
         await Assert.That(Top(layout, 22, 20)).IsGreaterThan(8);
-        await Assert.That(Top(layout, 20, 22)).IsGreaterThan(8);
+    }
+
+    [Test]
+    [Arguments(true)]
+    [Arguments(false)]
+    public async Task A_play_room_stating_a_height_stands_at_it(bool hill)
+    {
+        var authored = Spawn.Replace("\"base_height\": 8", "\"base_height\": 12, \"height_authored\": true");
+        var layout = Layout(hill ? Hill() : "", roomShapes: authored);
+
+        foreach (var (x, z) in RoomCells)
+            await Assert.That(Top(layout, x, z)).IsEqualTo(12);
     }
 
     [Test]
@@ -649,6 +673,77 @@ public sealed class SketchTerraformTests
         foreach (var ((x, z), column) in river)
             await Assert.That(column.Surface - tops[(x, z)]).IsLessThan(5)
                         .Because($"({x}, {z}) holds its own reach's water, not the height of a reach upstream");
+    }
+
+    [Test]
+    public async Task A_river_run_down_a_hill_only_cuts_and_never_banks_its_water_up()
+    {
+        var hill = Hill(x: 0.5, z: 20.5, radius: 26, rise: 14);
+        var alone = Tops(Layout(hill));
+        var withRiver = Tops(Layout(hill + "," + River()));
+
+        foreach (var (cell, top) in withRiver)
+            await Assert.That(top).IsLessThanOrEqualTo(alone[cell]).Because($"{cell} stands higher than the hill left it");
+    }
+
+    [Test]
+    public async Task A_river_along_a_slope_eases_its_banks_into_it()
+    {
+        var hill = Hill(x: 20.5, z: 2.5, radius: 22, rise: 12);
+        var alone = Tops(Layout(hill));
+        var layout = Layout(hill + "," + River());
+        var tops = Tops(layout);
+        var water = SketchRasterizer.WaterOf(layout);
+
+        foreach (var ((x, z), top) in tops)
+        {
+            if (x < 4 || x > 36 || Math.Abs(z - 20) > 12 || water.ContainsKey((x, z))) continue;
+            foreach (var beside in new[] { (x, z + 1), (x + 1, z) })
+            {
+                if (water.ContainsKey(beside) || !tops.TryGetValue(beside, out var next)) continue;
+                var was = Math.Abs(alone[(x, z)] - alone[beside]);
+                await Assert.That(Math.Abs(top - next)).IsLessThanOrEqualTo(Math.Max(1, was))
+                            .Because($"the bank between {(x, z)} and {beside} steps more than the ground did");
+            }
+        }
+    }
+
+    [Test]
+    public async Task A_lake_on_a_slope_eases_its_shore_into_it()
+    {
+        var hill = Hill(x: 20.5, z: 2.5, radius: 24, rise: 12);
+        var alone = Tops(Layout(hill));
+        var layout = Layout(hill + "," + Lake());
+        var tops = Tops(layout);
+        var water = SketchRasterizer.WaterOf(layout);
+
+        foreach (var ((x, z), top) in tops)
+        {
+            if (water.ContainsKey((x, z))) continue;
+            foreach (var beside in new[] { (x + 1, z), (x - 1, z), (x, z + 1), (x, z - 1) })
+            {
+                if (water.TryGetValue(beside, out var wet))
+                    await Assert.That(top).IsLessThanOrEqualTo(wet.Surface + 1).Because($"{(x, z)} stands over the water beside it as a wall");
+                else if (tops.TryGetValue(beside, out var next) && double.Hypot(x + 0.5 - 20.5, z + 0.5 - 20.5) < 18)
+                    await Assert.That(Math.Abs(top - next)).IsLessThanOrEqualTo(Math.Max(1, Math.Abs(alone[(x, z)] - alone[beside])))
+                                .Because($"the shore between {(x, z)} and {beside} steps more than the ground did");
+            }
+        }
+    }
+
+    [Test]
+    public async Task A_river_leaving_a_lake_leaves_at_its_surface()
+    {
+        const string outflow = """
+            { "id": "outflow", "op": "river", "depth": 2, "water": 1, "bank": 3,
+              "mask": { "areas": [ { "kind": "line", "points": [[20.5, 20.5], [39.5, 20.5]], "width": 4 } ], "mirror": false } }
+            """;
+        var layout = Layout(Lake("\"level\": 7,") + "," + outflow);
+        var tops = Tops(layout);
+
+        for (var x = 32; x < 39; x++)
+            await Assert.That(tops[(x, 20)]).IsGreaterThanOrEqualTo(7 - 2)
+                        .Because($"({x}, 20) is past the lake's shore, and the river's bed lies its depth under the surface it left at");
     }
 
     [Test]

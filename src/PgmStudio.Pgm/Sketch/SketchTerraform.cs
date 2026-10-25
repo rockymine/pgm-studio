@@ -12,8 +12,9 @@ namespace PgmStudio.Pgm.Sketch;
 /// from one modifier to the next and rounds once at the end; a top lowered below its segment's floor stops at
 /// the floor.</para>
 ///
-/// <para>A held column is never moved: one under a play room, under a shape stating <c>relief_scope: hold</c>, or
-/// under a shape standing at a <c>level</c> height. A shape standing a stated amount over the ground rides the
+/// <para>A held column is never moved: one under a play room that holds, under a shape stating <c>relief_scope:
+/// hold</c>, or under a shape standing at a <c>level</c> height. Every other play room rides, and one stating a
+/// height stands at it (<see cref="SketchRasterizer.RoomRelations"/>). A shape standing a stated amount over the ground rides the
 /// stack: a <c>drape</c> moves each column by the change the stack made to the ground there, so a wall climbs the
 /// hill raised under it, and a <c>raise</c>, <c>sink</c> or <c>relief_scope: ride</c> shape moves by the median
 /// change under it, so it stays one flat thing standing proud (<see cref="SketchRasterizer.StackRelations"/>).
@@ -28,12 +29,47 @@ internal static class SketchTerraform
 {
     /// <summary>Applies every enabled modifier, in list order, to <paramref name="segments"/> in place, and
     /// answers the water the stack made: each wet cell and the height its surface stands at. A layout with no
-    /// modifier leaves the segments untouched and makes no water. Given <paramref name="changed"/>, it is filled
+    /// modifier makes no water and moves nothing but a room stating a height. Given <paramref name="changed"/>, it is filled
     /// with one count per modifier in list order: the columns whose rounded top that modifier's own run changed,
     /// zero for one switched off or unknown.</summary>
     public static Dictionary<(int X, int Z), WetColumn> Run(SketchLayout? state, List<ColumnSegment> segments,
                                                       IReadOnlyList<string> axes, double centreX, double centreZ,
                                                       List<int>? changed = null)
+    {
+        var wet = RunStack(state, segments, axes, centreX, centreZ, changed);
+        StandRooms(state, segments);
+        return wet;
+    }
+
+    /// <summary>Puts each play room stating a height at that height, whatever the drawn ground and the stack left
+    /// under it.</summary>
+    private static void StandRooms(SketchLayout? state, List<ColumnSegment> segments)
+    {
+        var (_, _, stated) = SketchRasterizer.RoomRelations(state);
+        if (stated.Count == 0) return;
+        foreach (var (cell, index) in TopsOf(state, segments))
+            if (stated.TryGetValue(cell, out var top))
+                segments[index] = segments[index] with { YTop = Math.Max(segments[index].YFloor, top) };
+    }
+
+    /// <summary>The index of each column's ground: its highest segment among the layers that are terrain.</summary>
+    private static Dictionary<(int X, int Z), int> TopsOf(SketchLayout? state, List<ColumnSegment> segments)
+    {
+        var terrain = SketchLayout.Stack(state).Where(layer => !layer.IsMade && !layer.SeatsOnGround)
+                                  .Select(layer => layer.Id!).ToHashSet(StringComparer.Ordinal);
+        var topOf = new Dictionary<(int X, int Z), int>();
+        for (var index = 0; index < segments.Count; index++)
+        {
+            var segment = segments[index];
+            if (!terrain.Contains(segment.Layer)) continue;
+            if (!topOf.TryGetValue(segment.Cell, out var held) || Higher(segment, segments[held])) topOf[segment.Cell] = index;
+        }
+        return topOf;
+    }
+
+    private static Dictionary<(int X, int Z), WetColumn> RunStack(SketchLayout? state, List<ColumnSegment> segments,
+                                                                  IReadOnlyList<string> axes, double centreX, double centreZ,
+                                                                  List<int>? changed)
     {
         var wet = new Dictionary<(int X, int Z), WetColumn>();
         changed?.Clear();
@@ -45,16 +81,7 @@ internal static class SketchTerraform
                 steps.Add((at, modifiers[at], spec));
         if (steps.Count == 0) return wet;
 
-        var terrain = SketchLayout.Stack(state).Where(layer => !layer.IsMade && !layer.SeatsOnGround)
-                                  .Select(layer => layer.Id!).ToHashSet(StringComparer.Ordinal);
-        var topOf = new Dictionary<(int X, int Z), int>();
-        for (var index = 0; index < segments.Count; index++)
-        {
-            var segment = segments[index];
-            if (!terrain.Contains(segment.Layer)) continue;
-            if (!topOf.TryGetValue(segment.Cell, out var held) || Higher(segment, segments[held])) topOf[segment.Cell] = index;
-        }
-
+        var topOf = TopsOf(state, segments);
         var (holding, riders) = SketchRasterizer.StackRelations(state);
         var moving = topOf.Where(entry => !holding.Contains(entry.Key)).ToArray();
         if (moving.Length == 0) return wet;
@@ -193,7 +220,7 @@ internal static class SketchTerraform
         var keptSurfaces = new double[kept.Length];
         Array.Fill(keptSurfaces, double.NaN);
         Modifiers.Apply(spec, keptHeights, kept.Select(at => xs[at]).ToArray(), kept.Select(at => zs[at]).ToArray(),
-                        keptSurfaces);
+                        keptSurfaces, kept.Select(at => surfaces[at]).ToArray());
         for (var at = 0; at < kept.Length; at++)
         {
             heights[kept[at]] = keptHeights[at];

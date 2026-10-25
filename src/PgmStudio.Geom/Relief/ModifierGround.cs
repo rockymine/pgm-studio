@@ -52,8 +52,11 @@ internal sealed class Ground
     public double[] Xs { get; }
     public double[] Zs { get; }
 
-    public Ground(double[] heights, double[] xs, double[] zs) =>
-        (Heights, Xs, Zs) = ((double[])heights.Clone(), xs, zs);
+    /// <summary>The surface of the water earlier modifiers left standing on each column, NaN where there is none.</summary>
+    public double[]? Standing { get; }
+
+    public Ground(double[] heights, double[] xs, double[] zs, double[]? standing = null) =>
+        (Heights, Xs, Zs, Standing) = ((double[])heights.Clone(), xs, zs, standing);
 
     /// <summary>The index of the column standing in cell (<paramref name="cellX"/>, <paramref name="cellZ"/>), or -1.</summary>
     public int IndexAt(int cellX, int cellZ)

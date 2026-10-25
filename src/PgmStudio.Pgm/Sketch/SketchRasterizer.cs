@@ -162,30 +162,64 @@ public static class SketchRasterizer
         return output;
     }
 
-    /// <summary>The columns under every play room: a shape carrying a <see cref="SketchShape.Role"/>, which the
-    /// layout is read with as an annotation over the ground and not as ground. The intent has drawn each room's
-    /// images as shapes of their own, so the footprints are taken as they stand.</summary>
-    private static HashSet<(int X, int Z)> RoomCells(SketchLayout? state)
+    /// <summary>How each play room meets the stack. A room stating a height — compiled from a plan, or corrected by
+    /// an author — stands at it, and one stating <c>relief_scope: hold</c> keeps the ground it was drawn on; both are
+    /// held. Every other room rides:
+    /// its region and its house's wings move as one by the median change the stack made under them, so its floor
+    /// stays level on the ground the modifiers left. A wing reads what its region states.</summary>
+    internal static (HashSet<(int X, int Z)> Held, List<HashSet<(int X, int Z)>> Riding, Dictionary<(int X, int Z), int> Stated)
+        RoomRelations(SketchLayout? state)
     {
-        var rooms = new HashSet<(int X, int Z)>();
+        var held = new HashSet<(int X, int Z)>();
+        var riding = new Dictionary<string, HashSet<(int X, int Z)>>(StringComparer.Ordinal);
+        var stated = new Dictionary<(int X, int Z), int>();
         foreach (var layer in ResolveLayers(state))
-            foreach (var shape in layer.Shapes.Where(shape => shape.Role is not null))
-                rooms.UnionWith(CellsOf(shape));
-        return rooms;
+        {
+            var rooms = layer.Shapes.Where(shape => shape.Role is not null).ToList();
+            var regions = rooms.Where(shape => shape.Role != StructuralRoles.Building)
+                               .GroupBy(shape => shape.Id).ToDictionary(group => group.Key, group => group.First());
+            foreach (var shape in rooms)
+            {
+                var region = shape.Role == StructuralRoles.Building && regions.TryGetValue(RegionOf(shape.Id), out var own) ? own : shape;
+                var cells = CellsOf(shape).ToList();
+                if (region.BaseHeight is { } height)
+                {
+                    var top = (int)Math.Floor((region.Floor ?? 0) + height + 0.5);
+                    foreach (var cell in cells) stated[cell] = top;
+                    held.UnionWith(cells);
+                }
+                else if (region.ReliefScope == ReliefScopes.Hold) held.UnionWith(cells);
+                else
+                {
+                    if (!riding.TryGetValue(region.Id, out var together)) riding[region.Id] = together = [];
+                    together.UnionWith(cells);
+                }
+            }
+        }
+        return (held, [.. riding.Values], stated);
+    }
+
+    /// <summary>The region a room's wing belongs to: its id with <c>-building</c> and any count after it taken
+    /// off.</summary>
+    private static string RegionOf(string wingId)
+    {
+        var at = wingId.LastIndexOf("-building", StringComparison.Ordinal);
+        return at < 0 ? wingId : wingId[..at];
     }
 
     /// <summary>How the shapes that do not simply follow the modifier stack meet it. <c>Held</c> are the columns
-    /// it never moves: under a play room, a shape stating <c>relief_scope: hold</c>, or a shape standing at a
-    /// <c>level</c> height. <c>Riders</c> are the shapes that keep their form over the ground: those standing a
-    /// stated amount over it (<c>raise</c>, <c>sink</c>, <c>drape</c>) and those stating <c>relief_scope:
-    /// ride</c>, each with its columns. A <c>drape</c> moves each column by the change the stack made to the
-    /// ground there; every other rider moves by the median change under it. A shape counts at its symmetry
-    /// images too, where its group mirrors or its layer has no groups.</summary>
+    /// it never moves: under a play room that holds (<see cref="RoomRelations"/>), a shape stating
+    /// <c>relief_scope: hold</c>, or a shape standing at a <c>level</c> height. <c>Riders</c> are the shapes that
+    /// keep their form over the ground: those standing a stated amount over it (<c>raise</c>, <c>sink</c>,
+    /// <c>drape</c>), those stating <c>relief_scope: ride</c> and every play room that rides, each with its columns.
+    /// A <c>drape</c> moves each column by the change the stack made to the ground there; every other rider moves by
+    /// the median change under it. A shape counts at its symmetry images too, where its group mirrors or its layer
+    /// has no groups.</summary>
     internal static (HashSet<(int X, int Z)> Held, List<(string Mode, HashSet<(int X, int Z)> Cells)> Riders)
         StackRelations(SketchLayout? state)
     {
-        var held = RoomCells(state);
-        var riders = new List<(string Mode, HashSet<(int X, int Z)> Cells)>();
+        var (held, riding, _) = RoomRelations(state);
+        var riders = riding.Select(cells => (ReliefScopes.Ride, cells)).ToList();
         var (cx, cz, axes) = FrameOf(state);
         foreach (var layer in ResolveLayers(state))
         {

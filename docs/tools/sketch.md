@@ -373,7 +373,7 @@ holds one. What the layout states about a room lives in its **`rooms`** record, 
 drawn under: `floor`, `base_height`, `anchor_heights`, `relief_scope`, `height_authored`, `doors`, `theme` and
 `material`, each meaning what it means on a shape. A body `PUT` back with its rooms drawn is stored folded
 (`RoomShapes.Fold`): the rectangles go, and what each room shape stated about its ground lands in its record.
-A room with no record holds against the modifiers all the same, since a play room always holds.
+A room with no record stands on the ground the modifiers leave under it (*How a room meets the stack*, below).
 
 **A room is drawn as its region and its house's wings.** `spawn` and `woolRoom` are the *region* — the
 ground the room stands on and the protection around it — drawn under the piece's id, with the `color` their
@@ -381,7 +381,7 @@ labelled box is filled with, and the height the room's ground is held at. `build
 house raised inside it (`docs/world-export/structures.md` §1), drawn in the **building ink** — the same one a
 house dressed onto the ground takes, because a room's building is that kind of house — as an outline over the
 box rather than a second filled one. It carries no height of its own: the region is what the room's ground is
-held at and what an author corrects a height on. The room's wing takes the region's id plus `-building`,
+stated on and what an author corrects a height on. The room's wing takes the region's id plus `-building`,
 and every wing after it `-building-2`, `-building-3` on. **A room stating no house is drawn with the one it is
 raised as** — `WX1`'s default, the region inset a block and further on a spawn's door sides, a walled room's
 (`RoomHouse.Default`) — so a composed or newly placed room shows its building, and a drag or a resize of it
@@ -389,8 +389,14 @@ states the house where it was let go. A region stated as several rectangles is n
 
 **Its footprint stays inside the fused polygon, and has to.** A room places no terrain of its own, so the
 ground it stands on is the group's. Selecting the polygon in front of a room therefore selects one that
-reaches under the room as well — which is the shape of the thing, not a fault in it. What keeps the room level
-is that a play room holds against the modifiers.
+reaches under the room as well — which is the shape of the thing, not a fault in it.
+
+**How a room meets the stack.** A room stating no height rides it: its region and its house's wings move as
+one by the median change the modifiers made to the ground under them, so it stands level on the hill, the
+apron or the hollow it was placed in, and a Level traced round it makes the yard it opens onto. A room stating a
+height — the plan's, where it was compiled from one, or the one an author corrects in Layout's *Surface* — stands
+at that height whatever the ground under it does, and the ground around it meets it. A room stating
+`relief_scope: hold` keeps the ground it was drawn on (`SketchRasterizer.RoomRelations`).
 
 ### Solids: shapes that stand in the block grid
 
@@ -532,7 +538,7 @@ modifier: it keeps its own column — its stated floor, its thickness and any pe
 around it is reshaped up to its edge. `ride` keeps the shape one thing standing proud: each of its columns
 moves by the median change the stack made to the ground under the shape, as a `raise` does, so a building on a
 hill the stack raises rises with it and is not itself reshaped. Absent lets the modifiers reshape the shape like
-any other ground. A play room always holds.
+any other ground. A play room rides unless it states a height or `hold` (*How a room meets the stack*).
 
 That is what makes a mixed board possible. A flat rectangle with a raised step attached to it is one group;
 marking the step `hold` leaves it standing at exactly the height it was drawn at while a Hill beside it reshapes
@@ -1249,8 +1255,8 @@ centre and a radius that the mask supplies as its centroid and `scale`:
 | `spire` | Spire | raises it to `base + (top − base) × (1 − e)^(1 / taper)`, `base` the ground at the mask's centroid, `e` roughened by `jag`; only lifts | `top` (absent: the median ground inside + 20), `taper` 1.6, `jag` 0.15 |
 | `scarp` | Scarp | on a `line`: lifts the ground on the `side` hand (1 right, −1 left, walking along the line) by `height`, rising over `cliff` blocks on the line, and eases the other hand up by `apron` of `height` falling to nothing over `talus` blocks; the lift ends at the mask's edge | `height` 6, `side` 1, `cliff` 2, `talus` 5, `apron` 0.3 |
 | `canyon` | Canyon | on a `line`: cuts a floor `bed` of the half width across, `depth` under the ground the line follows, its walls climbing to the rim as the distance across to the power `wall`, in steps of `ledges` blocks when it states any; only cuts | `depth` 12, `bed` 0.35, `wall` 2.5, `ledges` 0 |
-| `river` | River | on a `line`: cuts a bed `depth` under the ground the line follows that never climbs, held level in reaches and stepping down in falls (two blocks or more, after ten of reach), banks easing back to the ground over `bank` blocks, the ring beside the water raised to its surface; **makes water** | `depth` 2, `water` 1, `bank` 4, `bed_material` (absent: the default bank) |
-| `lake` | Lake | in an area: cuts a bed `depth` under the surface in the middle and a block under it at the rim, holds the ground within `shore` blocks outside at the surface or above, easing back to the ground; **makes water** | `level` (absent: one under the ground a tenth of the rim stands at or below, so one cleft in the rim does not drain it), `depth` 3, `shore` 3, `bed_material` (absent: the default bank) |
+| `river` | River | on a `line`: cuts a bed `depth` under the lowest ground across its channel that never climbs, held level in reaches and stepping down in falls (two blocks or more, after ten of reach, and sooner wherever holding would stand its water above its banks), water an earlier modifier left being ground at its surface so a river leaving a lake leaves at its level; banks climb from the water by the river's depth over `bank` blocks and on at a block a block to higher ground, so a river below its banks runs in a valley rather than a slot; **makes water** | `depth` 2, `water` 1, `bank` 4, `bed_material` (absent: the default bank) |
+| `lake` | Lake | in an area: cuts a bed `depth` under the surface in the middle and a block under it at the rim, holds lower ground within `shore` blocks outside at the surface, easing back to the ground, and brings higher ground down to the water at a block a block, so a lake on a slope has a shore rather than a wall; **makes water** | `level` (absent: one under the ground a tenth of the rim stands at or below, so one cleft in the rim does not drain it), `depth` 3, `shore` 3, `bed_material` (absent: the default bank) |
 | `road` | Road | on a `line`: grades the ground along it to climb or fall no more than `grade` blocks a block, its ends holding the ground they stand on, level across the mask's width with shoulders easing into the ground over `shoulder` blocks | `grade` 0.25, `shoulder` 4 |
 | `gullies` | Gullies | in an area: cuts `count` grooves running outward from its centroid between a quarter of `scale` and `scale`, each up to `depth` deep, bent by `wander` and narrowed by `sharpness`; only cuts | `count` 8, `depth` 3, `wander` 0.9, `sharpness` 3 |
 | `warp` | Warp | resamples the ground inside at positions shifted by noise, up to `amount` blocks, in swirls `cell` blocks across | `amount` 6, `cell` 24 |

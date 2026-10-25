@@ -273,6 +273,13 @@ public static class ModifierDefaults
     /// <summary>The run a River's bed holds level before it may fall, in blocks.</summary>
     public const double RiverReach = 10;
 
+    /// <summary>How steeply a River's valley side, or a Lake's shore, climbs from the water to meet higher ground,
+    /// in blocks of rise a block: the steepest a player walks.</summary>
+    public const double WaterBankSlope = 1;
+
+    /// <summary>How far past its stated bank or shore that climb may run to meet higher ground, in blocks.</summary>
+    public const double WaterBankReach = 12;
+
     public const double LakeDepth = 3;
     public const double LakeShore = 3;
 

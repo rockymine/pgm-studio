@@ -19,15 +19,17 @@ public static class Modifiers
     /// are the same length. A River or a Lake writes the height its water surface stands at into
     /// <paramref name="waters"/>[i] for each column it wets, replacing what an earlier modifier wrote there; a
     /// caller that wants the water passes an array of the same length, filled with <see cref="double.NaN"/> where
-    /// there is none.
+    /// there is none. <paramref name="standing"/> is the water earlier modifiers left, in the same form, which a
+    /// River reads as ground at its surface.
     /// </summary>
-    public static void Apply(ModifierSpec spec, double[] heights, double[] xs, double[] zs, double[]? waters = null)
+    public static void Apply(ModifierSpec spec, double[] heights, double[] xs, double[] zs, double[]? waters = null,
+                             double[]? standing = null)
     {
         var areas = spec.Areas;
         var count = heights.Length;
         if (areas.Count == 0 || count == 0) return;
 
-        var ground = new Ground(heights, xs, zs);
+        var ground = new Ground(heights, xs, zs, standing);
         var stepWater = new double[count];
         Array.Fill(stepWater, double.NaN);
         var nearest = new double[count];
