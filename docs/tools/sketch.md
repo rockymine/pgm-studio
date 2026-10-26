@@ -1219,8 +1219,9 @@ moves by the median change the stack made to the ground under it). A shape that 
 that mode in place of the choice, because it already meets the stack by its own statement. Setting a relation is
 the bridge's `setReliefScope`, so it is one undo step and the contours answer it.
 
-**Below it, the stack is in the order it runs.** A row picks its modifier; its own buttons move it earlier or
-later and switch it off, which keeps its numbers and leaves it out of the build. The inspector says what the
+**Below it, the stack is in the order it runs.** A row is the operation's icon, which names it on hover, and the
+modifier's name across the rest of the row; picking it opens the modifier. Its own buttons, shown on hover or when
+picked, move it earlier or later and switch it off, which keeps its numbers and leaves it out of the build. The inspector says what the
 operation does and edits its name, its numbers two to a row with its mode and soft rim, and its seed. A number the
 operation works out for itself when it is not stated — a Level's height, a Butte's or Spire's top, a Lake's or
 Sea's level, a floor, a heading — takes its own row, reads *Auto* while empty and says under the box what it takes

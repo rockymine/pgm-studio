@@ -372,12 +372,12 @@
 /* A heading row over the rows of one kind: what it holds and how many. */
 .geo-row--group .geo-label { font-weight: 600; color: var(--text-strong); }
 
-/* The Terraform phase's modifier stack: a row's order and switch sit at its end, shown on hover or when picked. */
-.modifier-row .list-tag { margin-left: 6px; }
-.modifier-row:hover .list-tag, .modifier-row:focus-within .list-tag, .modifier-row.geo-row--selected .list-tag { display: none; }
-.modifier-row-tools { display: flex; gap: 2px; margin-left: 6px; visibility: hidden; }
+/* A stack row — a modifier, a paint rule: its order and switch sit at its end, shown on hover or when picked, and
+   take no room while hidden, so the name has the whole row. A row switched off keeps its eye in view. */
+.modifier-row-tools { display: none; gap: 2px; margin-left: 6px; }
 .modifier-row:hover .modifier-row-tools, .modifier-row:focus-within .modifier-row-tools,
-.modifier-row.geo-row--selected .modifier-row-tools, .modifier-row--off .modifier-row-tools { visibility: visible; }
+.modifier-row.geo-row--selected .modifier-row-tools, .modifier-row--off .modifier-row-tools { display: flex; }
+.modifier-row--off:not(:hover, :focus-within, .geo-row--selected) .modifier-row-tools > :not(.modifier-eye--off) { display: none; }
 .modifier-row--off .geo-label { text-decoration: line-through; color: var(--text-muted); }
 .modifier-row--off .geo-type-icon, .modifier-eye--off { opacity: .45; }
 /* The Shapes list above the stack: a shape's size reads quietly and its relation to the modifiers is the control at the row's end. */

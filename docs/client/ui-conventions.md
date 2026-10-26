@@ -231,7 +231,9 @@ second control in the form.
 inspector shows is deleted by `InspectorDelete`, the full-width danger button pinned to the inspector's foot —
 never an icon in the header beside the close, so Delete is found where it was last time. A row in a sidebar list
 is its glyph and name first, then the tools that act on it in place — earlier, later, the eye that switches it —
-on the right, shown on hover or when picked; the modifier list and the paint-rule list are one row.
+on the right, shown on hover or when picked and taking no room while hidden, so a name has the whole row; a row
+switched off keeps its eye in view. The glyph is the thing's kind, named in its tooltip, so a row never spends
+width on a tag repeating it. The modifier list and the paint-rule list are one row.
 
 **A `?` means there is an explanation the label and its unit do not give.** It sits after the label, a gap from
 it on the label's centre line, and only there: never for a unit, which reads after the label in parentheses.

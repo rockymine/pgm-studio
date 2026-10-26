@@ -10941,7 +10941,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **An empty number says what it stands for (`TS231`).** A modifier's numbers that are worked out when unstated —
   a Level's height, a Butte's or Spire's top, a Lake's or Sea's level, a floor, a heading — read *Auto* and say
   under the box what they take; Soft rim shows its default, 0, a hard edge; a paint rule's empty conditions read
-  *Any*.
+  *Any*. A stack row is the operation's icon and the name across the row: the kind tag beside a renamed
+  modifier is gone, and the row's buttons take no room until hover or pick.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the
