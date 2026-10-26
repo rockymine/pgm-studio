@@ -60,10 +60,11 @@ map.xml regions and filters, symmetry. The third is the things with no icon yet 
 or in a dock: the room and zone pieces the Layout dock shows as swatches, the play pieces the canvas draws as
 colour, the world canvas's `★ ◆ ⊕`, and the Terraform families.
 
-**Six decisions are the author's before the first glyph is drawn.** Whether the registry's one prefix,
-`terrain-`, stays or splits into `terrain-` for ground forms, `pgm-` for the game's things and `deco-` for
-decoration and the library; whether a phase reuses the glyph of its headline thing (Terraform a mound, Cores a
-core); whether the defence chest and the chest prop share a glyph, and the house prop, the room building and the
-Houses library; whether one point glyph serves Places, Notes and Configure; whether glyphs go on the canvas, which
-draws colour today by choice; and four words the glossary has to settle first, because a glyph is named for a
-word — *place*, *point*, *ridge* and *road* each carry two meanings on the screens.
+**The scheme is settled; the drawings are being chosen.** There are three prefixes: `pgm-` for the game's things,
+`deco-` for decoration and the library, and `terrain-` for ground forms, because a core is not terrain. A phase reuses
+the glyph of its headline thing — Cores draws the core, Wools the wool, Terraform the mound. One point glyph serves
+Places, Notes and Configure, since a point is one coordinate wherever it is pressed. The canvas keeps drawing pieces
+as colour, and the review phase's camera stays the one glyph drawn on it. A glyph is a PGM or Minecraft thing, not a
+general metaphor: a flag is a banner, a spawn a bed, a capture point a beacon, a core an obsidian casing round lava.
+The first drafts, one for every thing in the collision lists above, wait on the author's choice before any is
+registered (`C109`).

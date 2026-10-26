@@ -549,11 +549,11 @@ is the standard the copy is held to.
 `docs/client/icon-map.md` is the map: 511 icon assignments, where one picture stands for several things and one
 thing is drawn several ways, and the order the move to the studio's own glyphs takes.
 
-- [ ] **C109 — The studio's own glyph for each thing that collides.** *Parked (author): six decisions first —
-  the prefix scheme, a phase reusing its headline glyph, shared glyphs for chest and house, one point glyph,
-  glyphs on the canvas, and the glossary's* place, point, ridge *and* road. Then draw the first-priority glyphs
-  in `icons/terrain-icons.js` and point every table in `docs/client/icon-map.md`'s collision lists at them; the
-  rule in `docs/client/ui-conventions.md` that names `terrain-*` changes with the prefix.
+- [ ] **C109 — The studio's own glyph for each thing that collides.** *Parked (author): choosing among the first
+  drafts — 46 sketches across `pgm-`, `deco-` and `terrain-`, each beside the Lucide icons it replaces.* Then
+  register the kept ones in `icons/terrain-icons.js` under their prefix, point every table in
+  `docs/client/icon-map.md`'s collision lists at them, rename `terrain-hill` to `terrain-mound` with its modifier,
+  and change the rule in `docs/client/ui-conventions.md` that names `terrain-*` alone.
 - [ ] **C110 — One table per icon set.** The props' icons are stated in `DressingTools.All` and
   `PropKindNames.All`, and the pieces' in the Layout dock's marker list and `SketchStructuralRow.Icon`; each pair
   agrees only by hand. Keep one of each and derive the other, before any glyph moves.
