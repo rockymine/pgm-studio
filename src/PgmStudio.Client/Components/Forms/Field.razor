@@ -48,6 +48,7 @@
 
     private bool helpOpen;
 
-    private string Cls => string.Join(' ', new[] { "field", Half ? "field--half" : null, Class }.Where(c => !string.IsNullOrEmpty(c)));
+    private string Cls => string.Join(' ', new[] { "field", Half ? "field--half" : null, helpOpen ? "field--help-open" : null, Class }
+        .Where(c => !string.IsNullOrEmpty(c)));
     private string LabelCls => LabelEnd is null ? "field-label" : "field-label field-label--split";
 }

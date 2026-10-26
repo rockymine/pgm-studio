@@ -89,7 +89,7 @@ if (views.undrawable) {
   checks.add("the reply box is empty again", (await page.inputValue("#note-reply")) === "");
 
   checks.section("a reply can point: a box drawn in the thread pins the reply, not a new note");
-  await page.click('[aria-label="Box: pin the reply to an area"]');
+  await page.click('[aria-label="Pin the reply to a box"]');
   const area = await page.locator(".ingame__trap").boundingBox();
   await page.mouse.move(area.x + area.width * 0.4, area.y + area.height * 0.45);
   await page.mouse.down();
@@ -121,7 +121,7 @@ if (views.undrawable) {
   const latest = (await api(`/map/${draft.slug}/changes`)).changes.at(-1).number;
 
   const point = async () => {
-    await page.click('[aria-label="Point: pin a note to a block"]');
+    await page.click('[aria-label="Pin a note to a block"]');
     const trap = page.locator(".ingame__trap");
     const box = await trap.boundingBox();
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
