@@ -31,10 +31,12 @@
       </Field>
     </Section>
 
-    @* Each condition narrows where the rule paints; an empty one does not narrow it. *@
-    <Section Title="Paints where the ground is" HelpTitle="How conditions combine">
-      <Help>The rule paints a column only where every condition it states holds. A condition left empty does not
-        narrow it.</Help>
+    @* Where and how the material is laid: every condition narrows where it goes, and the depth and coverage say
+       how much of it goes there. *@
+    <Section Title="Mask" HelpTitle="How the mask works">
+      <Help>The rule paints a column only where every condition it states holds; a condition left empty does not
+        narrow it. Depth is how many blocks down from the top it lays. Coverage below 100% lays it in patches of the
+        given size, leaving the rest of the masked ground as its palette paints it.</Help>
       <ChildContent>
       <div class="field-grid">
         <Field Label="Steeper than" Hint="°" Half>
@@ -59,32 +61,20 @@
             <NumberField Value="@(Number(rule[Near], Width) ?? 3)" Min="0" ValueChanged="v => Edit(edited => edited[Near]![Width] = v)" />
           </Field>
         }
-      </div>
-      </ChildContent>
-    </Section>
-
-    <Section Title="Depth and spread">
-      <div class="field-grid">
-        <Field Label="Courses" Half>
+        <Field Label="Depth" Hint="blocks" Half>
           <NumberField Value="@(Number(rule, Depth) ?? 1)" Min="1" Max="8" ValueChanged="v => Edit(edited => SetOrRemove(edited, Depth, (int)v == 1 ? null : (int)v))" />
         </Field>
-        <Field Label="Spread">
-          <div class="filter-group-options">
-            <Chip Active="@(rule[Noise] is null)" OnClick="() => SetPatches(false)" Title="Everywhere the conditions hold">Whole</Chip>
-            <Chip Active="@(rule[Noise] is not null)" OnClick="() => SetPatches(true)" Title="In noise patches, leaving some ground bare">Patches</Chip>
-          </div>
+        <Field Label="Coverage" Hint="%" Half>
+          <NumberField Value="@Coverage(rule)" Min="5" Max="100" Step="5" ValueChanged="SetCoverage" />
         </Field>
         @if (rule[Noise] is not null)
         {
           <Field Label="Patch size" Hint="blocks" Half>
             <NumberField Value="@(Number(rule[Noise], Cell) ?? 8)" Min="1" ValueChanged="v => Edit(edited => edited[Noise]![Cell] = v)" />
           </Field>
-          <Field Label="Left bare" Hint="%" Half>
-            <NumberField Value="@Math.Round((Number(rule[Noise], Above) ?? 0.5) * 100)" Min="0" Max="100" Step="5"
-                         ValueChanged="v => Edit(edited => edited[Noise]![Above] = v / 100)" />
-          </Field>
         }
       </div>
+      </ChildContent>
     </Section>
     @if (error is not null) { <p class="field-error">@error</p> }
     <InspectorDelete Title="Delete this rule" OnClick="Remove" />
@@ -143,8 +133,19 @@
         SetOrRemove(rule, Near, string.IsNullOrEmpty(modifier) ? null
             : new JsonObject { [Modifier] = modifier, [Width] = Number(rule[Near], Width) ?? 3 }));
 
-    private Task SetPatches(bool on) => Edit(rule =>
-        SetOrRemove(rule, Noise, on ? rule[Noise]?.DeepClone() ?? new JsonObject { [Cell] = 8, [Above] = 0.5, ["seed"] = 1 } : null));
+    /// <summary>How much of the masked ground the material takes, in percent: all of it with no noise, and otherwise
+    /// the share of the noise field it lays over — it lays where the noise reads above <c>above</c>.</summary>
+    private static double Coverage(JsonObject rule) =>
+        rule[Noise] is null ? 100 : Math.Round((1 - (Number(rule[Noise], Above) ?? 0.5)) * 100);
+
+    /// <summary>At 100% the rule lays everywhere its mask holds, so it carries no noise; below, it lays in patches.</summary>
+    private Task SetCoverage(double percent) => Edit(rule =>
+    {
+        if (percent >= 100) { SetOrRemove(rule, Noise, null); return; }
+        var noise = rule[Noise]?.DeepClone() as JsonObject ?? new JsonObject { [Cell] = 8, ["seed"] = 1 };
+        noise[Above] = Math.Round(1 - percent / 100, 2);
+        rule[Noise] = noise;
+    });
 
     private async Task Remove()
     {

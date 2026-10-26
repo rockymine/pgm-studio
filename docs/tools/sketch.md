@@ -1231,7 +1231,7 @@ on the board or in a panel, is one undo step.
 **The inspector carries every operation's numbers.** Each operation has the fields the table under *The modifier
 stack* gives it; Scarp adds a *Raised side* choice (the side of the run, walking along it as it was traced), and
 an area with lines has a *Band width* field for each line; River, Lake and Coast add a *Bed* row that picks the
-block or pattern under their water (`bed_material`). *Shapes left alone* lists the drawn shapes as checkboxes:
+block or pattern under their water (`bed_material`). *Excluded shapes* lists the drawn shapes as checkboxes:
 each ticked shape's columns are left out of that one modifier (`mask.leaves`), which is how one Hill spares a
 plinth that the rest of the stack still shapes. *Changed N columns* under the operation's description is how many
 columns the modifier moved, read from `POST …/sketch/modifiers/changes` with the live layout after the same pause
@@ -1465,10 +1465,11 @@ the same tools a modifier row carries — earlier, later and the eye that switch
 picked; *+* adds a rule at the end and opens it, and how a column reads the list is the section's help, behind
 the `?` beside its heading. Picking a rule closes any group or shape and opens the rule's inspector
 (`SketchPaintRuleInspector`): its *Name*, with the eye in its header; its *Material*, a block or a library
-pattern, reading *Choose a material* until one is picked; *Paints where the ground is* — *Steeper than* and *At
-most* in degrees, *From* and *To* in world y, *Near* one of the board's modifiers *Within* so many blocks of its
-area; and *Depth and spread* — how many *Courses* it lays, and a *Spread* of *Whole* or *Patches*, the latter a noise *Patch size* wide leaving a share *Left bare*.
-Delete is at the inspector's foot. Both write through `SketchPaintRuleSet`, so every edit replaces the list in one
+pattern, reading *Choose a material* until one is picked; and its *Mask*, which says where and how the material is
+laid — *Steeper than* and *At most* in degrees, *From* and *To* in world y, *Near* one of the board's modifiers
+*Within* so many blocks of its area, a *Depth* in blocks down from the top, and a *Coverage*: at 100% the material
+takes all the masked ground, and below it lays in patches a *Patch size* wide over that share of it (a noise
+`above` of one less the share). Delete is at the inspector's foot. Both write through `SketchPaintRuleSet`, so every edit replaces the list in one
 undo step and the Blocks overlay repaints. A rule naming a modifier is how a
 River's bank becomes sand: `docs/world-export/terrain-painting.md`, TP28, is the rule itself.
 

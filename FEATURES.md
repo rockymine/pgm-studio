@@ -10932,11 +10932,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   prop: a tree's picker opens on its *In use* card, and ground cover's sliders are two groups, two to a row.
 - **The picked modifier's area reads on the board, and what it is reads in the panel (`TS230`).** The picked mask
   is drawn in `--canvas-pick` over a halo while the others fall back. The inspector's *Area* says where it acts —
-  *Acts along one line, in a band 110 blocks wide* — with *Mirrored* and *Band width*; *Shapes left alone* replaces
+  *Acts along one line, in a band 110 blocks wide* — with *Mirrored* and *Band width*; *Excluded shapes* replaces
   *Leaves out*. On and off is the eye in a modifier's and a paint rule's header, names take the full width, a
   short field with no partner takes the row, grid controls meet on one line, and a seed's number fills its row
-  beside a Reroll of its height. The paint rule's sections are *Paints where the ground is* and *Depth and spread*,
-  and the sidebar's heading over groups and their shapes is *Shapes*.
+  beside a Reroll of its height. A paint rule is its *Material* and one *Mask* — the conditions, a *Depth* in blocks
+  and a *Coverage* whose share below 100% lays in patches — and the sidebar's heading over groups and their shapes
+  is *Shapes*.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the
