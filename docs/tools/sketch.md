@@ -51,12 +51,11 @@ it goes: the step after this one, or the phase after the last step (*Next: Groun
 groups on the board is not in the bar: the sidebar's *Shapes* list, each group with its shapes under it, is that count. The tool saves
 continuously — every change schedules a debounced write 800 ms later, and Ctrl+S flushes it at
 once. The save state reads *Saving…* while an edit waits for that write and *Saved* once every edit has landed;
-in Info it is the identity's own save, and a refused save leaves it to the Problems button's *Can't save*. The finished map leaves by **Download** (an icon-only button titled *Download map: its world and map.xml,
-ready for a server*, which pulses while it builds) on every phase: it flushes the layout, builds
+in Info it is the identity's own save, and a refused save leaves it to the Problems button's *Save blocked*. The finished map leaves by **Download** (an icon-only button titled *Download map*, which pulses while it builds) on every phase: it flushes the layout, builds
 the world the first time (the finish below, `POST …/sketch/finish`, which rasterizes the layout and moves the
 map to `stage=configure`), and saves the export — the world ZIP with its `map.xml`. A board built from a plan
 carries the plan's game settings, so its export needs nothing from Configure. What stops the map, and what the
-build left out of it, sits behind **one button** in the bar — *Can't download* or *Can't save* with the number
+build left out of it, sits behind **one button** in the bar — *Download blocked* or *Save blocked* with the number
 of rules beside it, or *Left out* and *Warnings* where nothing stops it — which opens the findings as a list of
 rules (`ProblemList`, `docs/client/ui-conventions.md`): the download's refusal, the save's refusal or the
 warnings a landed save carried, and the declines the 3-D build raised. A refused download opens it. Where the
@@ -312,10 +311,10 @@ Four further fields decide how a shape meets the ground under it and the modifie
 part of it: a mesa cut flat at an absolute height, a
 plinth held a fixed amount above the middle of the ground it sits on, a quarry the same downward, and a field
 wall or a hedge held that amount above the ground at every cell, so it climbs the hillside it is laid over.
-The Draw inspector names `base_height` by what it is under the mode: **Top at y** for `level`, edited as the
-absolute y of the flat top (`floor + base_height`); **Height above ground** for `raise`, measured from the middle
-height of the ground under the shape; **Depth below ground** for `sink`; **Height above ground** *at every
-cell* for `drape`; and **Height above floor** for ordinary ground, its hint stating the top's y. `skirt` is how far in
+The Draw inspector names `base_height` by what it is under the mode: **Top** for `level`, edited as the
+absolute y of the flat top (`floor + base_height`); **Height above ground** for `raise`, measured from the median
+height of the ground under the shape; **Depth below ground** for `sink`; **Height above ground**, measured at every
+cell, for `drape`; and **Height above floor** for ordinary ground, with a readout under it stating the top's y. `skirt` is how far in
 from its own outline an erected shape eases back into the ground it meets, in blocks; zero is a sheer face,
 which is right for a built thing and wrong for a hillside. `relief_scope` is `hold`, `ride`, `follow` or absent and
 says how the shape meets the modifier stack (see *Groups and layers*): `hold` keeps its columns out of every
@@ -543,7 +542,7 @@ hill the stack raises rises with it and is not itself reshaped. Absent lets the 
 any other ground. A play room rides unless it states a height or `hold` (*How a room meets the stack*).
 
 That is what makes a mixed board possible. A flat rectangle with a raised step attached to it is one group;
-marking the step `hold` leaves it standing at exactly the height it was drawn at while a Hill beside it reshapes
+marking the step `hold` leaves it standing at exactly the height it was drawn at while a Mound beside it reshapes
 the ground around it.
 
 A shape declaring a `height_mode` meets the modifiers without a scope. A `level` shape holds: its flat top is an
@@ -761,7 +760,7 @@ An island of one shape with a rough, sheer-edged underside, set 40 blocks over v
 
 Read against the fields above: both shapes are one island of one layer, `base_height` 1 leaves the rock to the
 underside, and the west edge, which `cliff` draws, hangs 26 blocks at its rim where the other three hang 4. In the
-Draw phase the active layer's panel carries a *Rock underside* box with the four numbers; `sheer` is stated over the
+Draw phase the active layer's panel carries an *Underside* box with the four numbers; `sheer` is stated over the
 API and rides through a save from the browser untouched.
 
 ### What the rasterizer makes of it
@@ -966,9 +965,9 @@ bottom over one text box, with no filters and no New note step; the first messag
 opening the place reads what was new in it. The places are drawn in this step and in Review's Cameras step, and
 a click here picks a place and nothing under it.
 
-**Layout's dock has three families.** *Pieces* places a spawn piece or a wool room, *Zones* a
-build area or a water lane — each dragged out as a rectangle, the size it is drawn at — and *Markers* puts down
-an iron marker, a destroyable, a core, a control point or a defence chest with a click, centred on the block
+**Layout's dock has three families.** *Pieces* places a *Spawn room* or a *Wool room*, *Zones* a
+*Build region* or a *Water lane* — each dragged out as a rectangle, the size it is drawn at — and *Markers* puts down
+an *Iron cube*, a *Monument*, a *Core*, a *Capture point* or a *Defence chest* with a click, centred on the block
 clicked, or drags out a wall along the line from the block the drag starts at to the one it ends at, two blocks
 thick at whatever angle that runs, which bends once corners are added to it (below). A chest placed beside a wall fronts away from it, and its rail turns it a quarter at a time. A
 destroyable and a core are offered at two teams only; a control point belongs to nobody and is offered at any.
@@ -1022,8 +1021,8 @@ Decoration (`RoomHouseController`): a corner or an edge drags to resize the wing
 the room's region, and a press on the marker adds a wing along that wall, 5 blocks deep and shrunk to
 fit the region, or says there is no room for one. The rail lists the wings with the room's own first, which stays;
 deletes any other the rest still meet through; sets the picked wing's **Storeys**, **Roof**, **Ridge** and whether its
-roof crosses the wing it meets; and dresses the house in a **Style** — the map's for its kind, a library shell copied
-onto it, or **Open ground**, the pad with no building over it (`SketchRoomHouse`).
+roof crosses the wing it meets; and dresses the room in a **House** — the **Map default** for its kind, a library house
+copied onto it, or **No building**, the pad on open ground (`SketchRoomHouse`).
 
 Every change writes the house whole through `PUT /map/{slug}/intent/pieces/{id}/house`, the room's wing first and
 every other image of the room carried through the symmetry (`PlayPieceHouse`). A style left out wears the map's, and
@@ -1186,7 +1185,7 @@ the dock holds one tool per operation, the picked modifier takes the inspector, 
 steps the ground through the stack.
 
 **The dock offers the operations in five families.** After Select and Move come four flyout groups, each showing
-the operation last picked from it and a chevron that lists the rest: *Ground* (Hill, Hollow, Level, Butte,
+the operation last picked from it and a chevron that lists the rest: *Ground* (Mound, Hollow, Level, Butte,
 Spire), *Lines* (Ridge, Scarp, Canyon, Profile, Road), *Water* (River, Lake, Coast), *Texture* (Roughness,
 Lumps, Shatter, Gullies, Warp) and, in a group of its own, *Carve* (Tunnel, Chamber, Shaft).
 Picking an operation arms its tool, `modifier:<op>`. Each operation has its own glyph, drawn as a profile or a plan
@@ -1221,23 +1220,25 @@ the bridge's `setReliefScope`, so it is one undo step and the contours answer it
 
 **Below it, the stack is in the order it runs.** A row is the operation's icon, which names it on hover, and the
 modifier's name across the rest of the row; picking it opens the modifier. Its own buttons, shown on hover or when
-picked, move it earlier or later and switch it off, which keeps its numbers and leaves it out of the build. The inspector says what the
-operation does and edits its name, its numbers two to a row with its mode and soft rim, and its seed. A number the
-operation works out for itself when it is not stated — a Level's height, a Butte's or Spire's top, a Lake's or
-Sea's level, a floor, a heading — takes its own row, reads *Auto* while empty and says under the box what it takes
-then (*Auto: the median ground plus 12*); once stated, the same line says what clearing it returns to. *Soft rim*
-is a number with a default, 0, a hard edge, never an empty box. The eye
-in its header is the row's eye, the one switch. Its *Area* section says where it acts in what was traced —
-*Acts along one line, in a band 110 blocks wide* — with *Mirrored* for whether the map's symmetry fans it, and the
-board draws the picked modifier's area in its own colour over a halo while the others fall back. A field's hint reads after its label when it is a few words;
-a longer one is the field's help, behind a `?`, with its unit — blocks, world y — kept after the label. Every edit,
-on the board or in a panel, is one undo step.
+picked, *Move up*, *Move down* and *Switch off*, which keeps its numbers and leaves it out of the build. The inspector
+heads with what the operation does and edits its name, its numbers two to a row with its mode and *Soft rim*, and its
+seed. A number the operation works out for itself when it is not stated — a Level's or Butte's or Spire's *Top*, a
+Lake's *Water level* or a Coast's *Sea level*, a *Floor*, a *Heading* — takes its own row, reads *Auto* while empty and
+says under the box what it takes then (*Auto: the median ground plus 12.*). *Soft rim* is a number with a default, 0,
+a hard edge, never an empty box. The width over which an operation eases into the ground around it is its *Skirt*,
+in blocks, on every operation that has one. The eye in its header is the row's eye, the one switch. Its *Area*
+section, with the glossary's *area* behind its `?`, counts what was traced — *Acts inside 2 outlines.* — with *Make
+symmetry copies* for whether the map's symmetry copies it, and the canvas draws the picked modifier's area in its own
+colour over a halo while the others fall back. A field's unit — blocks, world y — reads after its label, and a `?`
+beside it opens help only where the label cannot say what the number does. Every edit, on the canvas or in a panel,
+is one undo step.
 
 **The inspector carries every operation's numbers.** Each operation has the fields the table under *The modifier
-stack* gives it; Scarp adds a *Raised side* choice (the side of the run, walking along it as it was traced), and
-an area with lines has a *Band width* field for each line; River, Lake and Coast add a *Bed* row that picks the
+stack* gives it; Scarp adds a *Raised side* choice (the side of the run, walking along it as it was traced), Profile
+its *Steps* and Roughness its *Sizes* as sections of their own, and an area with lines has a *Line width* field for
+each line; River, Lake and Coast add a *Bed* row that picks the
 block or pattern under their water (`bed_material`). *Excluded shapes* lists the drawn shapes as checkboxes:
-each ticked shape's columns are left out of that one modifier (`mask.leaves`), which is how one Hill spares a
+each ticked shape's columns are left out of that one modifier (`mask.leaves`), which is how one Mound spares a
 plinth that the rest of the stack still shapes. *Changed N columns* under the operation's description is how many
 columns the modifier moved, read from `POST …/sketch/modifiers/changes` with the live layout after the same pause
 the contours wait for; where the studio cannot answer, the line is not shown.
@@ -1278,14 +1279,14 @@ read off `column`. The contours, the paint, the 3-D preview, the export and `col
 whose `relief_scope` is `ride`: it moves with the change the stack made to the ground under it (*Groups and
 layers*).
 
-Eighteen operations run. Hill, Hollow, Level and Roughness are ported from pgmvox's ground layer
+Eighteen operations run. Mound, Hollow, Level and Roughness are ported from pgmvox's ground layer
 (`pgmvox/document/layers.py`, `_ground_layer`), Shatter from its broken-ground primitive (`pgmvox/geom/shapes.py`,
 `shatter`), and the other thirteen from its landform library (`pgmvox/ground/landform.py`), where each takes a
 centre and a radius that the mask supplies as its centroid and `scale`:
 
 | `op` | The screen calls it | What it does to each column inside its mask | Its numbers |
 |---|---|---|---|
-| `mound` | Hill | raises it by `rise × (1 − e^power)`, `e` 0 at the mask's deepest point and 1 at its rim | `rise` 8, `power` 1.6 |
+| `mound` | Mound | raises it by `rise × (1 − e^power)`, `e` 0 at the mask's deepest point and 1 at its rim | `rise` 8, `power` 1.6 |
 | `crater` | Hollow | lowers it to a bowl `floor + slope × max(0, e × scale − flat)`, the seam rounded over `melt` blocks | `floor`, `flat` 0, `slope` 1, `melt` 0 |
 | `level` | Level | holds it at `top` out to `inner` and eases it back to the ground by `outer`, both in the mask's units | `top` (absent: the median of the ground it holds), `inner` 1, `outer` 1.5 |
 | `noise` | Roughness | adds each of its `sizes[]`, `{cell, octaves, rise}`, as value noise from `seed` | `sizes`, `seed` |
@@ -1299,7 +1300,7 @@ centre and a radius that the mask supplies as its centroid and `scale`:
 | `road` | Road | on a `line`: grades the ground along it to climb or fall no more than `grade` blocks a block, its ends holding the ground they stand on, level across the mask's width with shoulders easing into the ground over `shoulder` blocks | `grade` 0.25, `shoulder` 4 |
 | `gullies` | Gullies | in an area: cuts `count` grooves running outward from its centroid between a quarter of `scale` and `scale`, each up to `depth` deep, bent by `wander` and narrowed by `sharpness`; only cuts | `count` 8, `depth` 3, `wander` 0.9, `sharpness` 3 |
 | `warp` | Warp | resamples the ground inside at positions shifted by noise, up to `amount` blocks, in swirls `cell` blocks across | `amount` 6, `cell` 24 |
-| `profile` | Profile | on a `line`: sets the ground by its distance from the line. Out to the first step the floor is the ground, or `floor` where stated; each of `steps[]`, `{start, end, rise}` in blocks out, eases from the level before it to `rise` over the floor and holds there beyond, so the first cliff rises out of the floor and never cuts it. The nominal floor a `rise` counts from is `floor`, or the median ground along the line. `talus` lifts the floor over that many blocks before the first step by `apron` of its rise, `jag` moves each step's edges in and out by noise, and `side` (1 or −1) keeps one hand of the line. The last step's plateau holds to the band's edge and stops there, so a Profile wants ground at that height behind it — land drawn that high, or a Level, Butte or Hill under the band's far side — or a `cut` Profile carved into higher ground; drawn over low ground with nothing behind, each edge is a free-standing wall | `steps` (absent: two, from a quarter to two fifths and from three fifths to three quarters of the half width, rising 6 and 12), `jag` 1.5, `talus` 0, `apron` 0.3 |
+| `profile` | Profile | on a `line`: sets the ground by its distance from the line. Out to the first step the floor is the ground, or `floor` where stated; each of `steps[]`, `{start, end, rise}` in blocks out, eases from the level before it to `rise` over the floor and holds there beyond, so the first cliff rises out of the floor and never cuts it. The nominal floor a `rise` counts from is `floor`, or the median ground along the line. `talus` lifts the floor over that many blocks before the first step by `apron` of its rise, `jag` moves each step's edges in and out by noise, and `side` (1 or −1) keeps one hand of the line. The last step's plateau holds to the band's edge and stops there, so a Profile wants ground at that height behind it — land drawn that high, or a Level, Butte or Mound under the band's far side — or a `cut` Profile carved into higher ground; drawn over low ground with nothing behind, each edge is a free-standing wall | `steps` (absent: two, from a quarter to two fifths and from three fifths to three quarters of the half width, rising 6 and 12), `jag` 1.5, `talus` 0, `apron` 0.3 |
 | `coast` | Coast | in an area, the sea: the floor falls from the shore `slope` blocks a block to `depth` under the surface; outside, the land within `shelf` blocks eases down to a beach one over the sea, low land beside it lifted to the beach; **makes water** | `level` (absent: one under the ground a tenth of the rim stands at or below), `shelf` 10, `depth` 6, `slope` 0.35, `bed_material` (absent: the default bank) |
 | `lumps` | Lumps | in an area: strews up to `count` lumps whose middles fall inside it, each a hill on an ellipse `across` blocks long, its short axis `stretch` of that, turned at random or within 25° of `angle`, its foot roughened by `jag`, `heights` blocks high and falling as `1 − e^power`; overlapping lumps add; only lifts | `count` 12, `across` [6, 16], `heights` [2, 5], `stretch` [0.5, 1], `jag` 0.25, `power` 1.8 |
 | `shatter` | Shatter | breaks the ground inside into pieces about `cell` blocks across, their seams bent up to `wander` blocks; each piece is lifted or dropped up to `amount` and tilted up to `tilt` blocks a block, and within `gap` blocks of a seam the ground is cut up to `depth` into a cleft | `cell` 10, `amount` 3, `tilt` 0.25, `gap` 1, `depth` 4, `wander` 3 |
@@ -1310,7 +1311,7 @@ centre and a radius that the mask supplies as its centroid and `scale`:
 **Which masks an operation reads.** Scarp, Canyon, Profile, River and Road read a `line` and nothing else; Butte,
 Spire, Lake, Coast, Lumps and Gullies read an ellipse or a polygon; Shatter reads an ellipse, a polygon or the
 board; Ridge reads a line, an ellipse or a polygon; Warp reads any. An operation
-handed an outline it does not read changes nothing and raises no refusal. Hill, Hollow, Level and Roughness read
+handed an outline it does not read changes nothing and raises no refusal. Mound, Hollow, Level and Roughness read
 every kind, a line included: their distance `e` is measured from it. Canyon, River and Road follow a line as a
 Catmull-Rom curve through its points rather than as straight segments. Heights an operation states (`top`, `floor`,
 `level`) are world y in the unit of a column's top: a Level at `top` 12 and a Lake at `level` 12 meet flush. A
@@ -1453,7 +1454,7 @@ down — a thing in hand is the first thing it lets go of — and so does leavin
 **The inspector says what is in hand, what the selection carries, and — with neither — what the board falls
 back to.** Palette, badged **in hand**: where the theme was copied from and whether it still says what that
 row says — the row is read and the two documents compared, so a snapshot that has been edited on either side
-says so instead of reading as current — the sample plateau the theme finishes, and **Remove**, which takes it
+says so instead of reading as current — the sample plateau the theme finishes, and **Delete**, which takes it
 off the board. A theme is edited in the library, never here. Selection: what that shape or group is painted
 with, `mixed` where a group's shapes disagree, and **Unpaint**. Map defaults, when nothing is selected and
 nothing is in hand: the default theme, the board's biome and the two room shells, in one section rather than
@@ -1466,13 +1467,13 @@ the finish stamped where a room stands.
 
 **The paint rules are a list in the sidebar, under the groups, and the picked one is the inspector.** The list
 (`SketchPaintRuleList`) holds the board's `paint[]` in the order a column meets them, each row a rule's name with
-the same tools a modifier row carries — earlier, later and the eye that switches it — shown on hover or when
+the same tools a modifier row carries — *Move up*, *Move down* and the eye that switches it — shown on hover or when
 picked; *+* adds a rule at the end and opens it, and how a column reads the list is the section's help, behind
-the `?` beside its heading. Picking a rule closes any group or shape and opens the rule's inspector
+the `?` beside its heading, as the glossary's *mask* is behind the inspector's *Mask* heading. Picking a rule closes any group or shape and opens the rule's inspector
 (`SketchPaintRuleInspector`): its *Name*, with the eye in its header; its *Material*, a block or a library
 pattern, reading *Choose a material* until one is picked; and its *Mask*, which says where and how the material is
 laid — *Steeper than* and *At most* in degrees, *From* and *To* in world y, each reading *Any* while empty, *Near* one of the board's modifiers
-*Within* so many blocks of its area, a *Depth* in blocks down from the top, and a *Coverage*: at 100% the material
+*Within* so many blocks of its area, a *Thickness* in blocks down from the top, and a *Coverage*: at 100% the material
 takes all the masked ground, and below it lays in patches a *Patch size* wide over that share of it (a noise
 `above` of one less the share). Delete is at the inspector's foot. Both write through `SketchPaintRuleSet`, so every edit replaces the list in one
 undo step and the Blocks overlay repaints. A rule naming a modifier is how a
@@ -1553,13 +1554,13 @@ One step, because dressing has nothing to define up front: every part of it is a
 sidebar is the list of what is placed, and the inspector edits either the selection or — with nothing selected
 — the settings the next prop of that kind will start from.
 
-**The Placed list is grouped by kind, and a row says what its prop is.** Each kind sits under a heading that
+**The *Placed props* list is grouped by kind, and a row says what its prop is.** Each kind sits under a heading that
 counts it — *Paths and paint*, *Channels*, *Buildings*, *Trees*, *Boulders*, *Ground cover*, *Chests*, in that
 order — with the total beside the section's title, and a heading folds its rows away. Inside a heading the rows
 keep the order they were placed in. A generated tree reads as its species and height (*Spruce · 17*), a hand-built
 one as the library name it was pulled under and the courses it stands, a boulder as its form and size (*Round
 boulder · 3*), a stroke as its style, whether it is a path or paint, and its width, and a building as its shell;
-the tag beside a marker is its x, z, beside a line its length, beside a building its footprint
+the tag beside a marker is its position, beside a line its length, beside a building its footprint
 (`SketchDressingList`, naming each kind from `PropKindNames`). A prop picked on the canvas opens its heading and
 scrolls its row into view, and a row under the pointer or the keyboard's focus rings its prop on the board in the
 accent colour (`hoverProp`); Tab reaches the rows and Enter picks one.
@@ -1691,8 +1692,8 @@ that gathers it into thicker and thinner patches (**Patch size**), and the cover
 
 **The inspector draws no picture of the prop.** Every kind is picked from cards that are pictures of the thing
 itself — a tree's, a boulder's form, a stroke's style in the author's paving, a channel's form, a building's shell —
-so the inspector shows the card in use instead: a tree's picker opens on an *In use* card, or an empty *Nothing
-picked* one. Ground cover's knobs are two groups: *Coverage* and *Patch size*, then *What grows*, each plant's share
+so the inspector shows the card in use instead: a tree's picker opens on an *In use* card, or an empty *No tree
+picked* one. Ground cover's knobs are two groups: *Density* and *Patch size*, then *Plants*, each plant's share
 two to a row. The inspector still asks `prop-preview` about the prop as it changes — one request in flight, the
 newest asked when it lands — because its answer carries the refusal the build would raise.
 
@@ -1705,8 +1706,8 @@ styles in the material already chosen, `/terrain/boulder-forms?rock=…` the fou
 stone, and `/terrain/fluid-forms` the three channels as actual dug beds — so the question answered is
 "what would mine look like", not "what does the catalogue contain". A tree and a boulder are picked from their
 library instead, each row drawn through the pass that builds it; a boulder's four shapes are labelled with
-the names the library's seeded boulders carry: Erratic, Shattered, Outcrop and Cairn. A stroke's **Paving**, a
-channel's **Shore** and a boulder's **Rock** are each picked as a single block or a library pattern and copied
+the names the library's seeded boulders carry: Erratic, Shattered, Outcrop and Cairn. A stroke's **Material**, a
+channel's **Bed** and a boulder's **Stone** are each picked as a single block or a library pattern and copied
 onto the prop; the library's `shore` pattern is the channel's default bank, and a material that is neither
 reads as **Custom**. **Seed** is offered only on the kinds that read one: a hand-built tree, a chest and a
 building build the same whatever it is. `POST /terrain/prop-preview` renders one
@@ -1903,7 +1904,7 @@ carries the pass itself.
 
 **In the Decoration phase a prop takes the layer being drawn on, and the inspector moves it.** A placement
 records the canvas layer strip's active layer (`DressingDoc.add`); a prop that already names one keeps it.
-With a prop selected on a board of more than one layer, the inspector's **Storey** field offers the strip's
+With a prop selected on a board of more than one layer, the inspector's **Layer** field offers the strip's
 own layers and writes the pick as `layer` through the same `updateProp` patch every other knob takes. Unlike
 the other knobs it is not carried into the next placement's starting values, because the next prop takes the
 active layer. The field offers every layer and filters none: one with no ground under the prop is declined
@@ -2014,11 +2015,11 @@ new view of its own, since a suggestion is not stored and cannot be changed.
 draws it at 290 × 246 through the same eye, from the view marked as the picture or, where none is, from the
 whole board seen above its long side (`docs/world-export/sketch-world-export.md`, *Delivery*). A row's picture
 button marks its view — a kept one in place, a suggestion by keeping it — and so does the camera in hand's
-**The map's picture (map.png)** box when it is kept or saved; unticking it on the view the picture is drawn from
+**Use for the map picture** box when it is kept or saved; unticking it on the view the picture is drawn from
 hands the picture back to the overview. The view the picture is drawn from wears a *map picture* badge in the
 list, on the line under its name beside the block it looks at, and over its thumbnail in Notes.
 
-**A kept view other than the board's own is removed here**, from its row in the list or with **Remove** on the
+**A kept view other than the board's own is deleted here**, from its row in the list or with **Delete** on the
 camera in hand. Where the studio refuses that, or refuses drawing the map's picture from a view, the refusal is
 said under the list.
 
@@ -2110,8 +2111,8 @@ on, and *Note sent* or *Reply sent* beside it once the message lands; a press is
 follow it, and Ctrl+Enter (⌘+Enter) in either box sends it.
 
 **The column works in two steps.** The overview lists the notes on the picture in view under four filters — All,
-Waiting (on you), With agent, Resolved, on one line — then the notes on the whole map, then any on a picture the gallery no
-longer offers. Choosing a note, by its row or by its pin on the picture, opens its thread, and **‹ All notes**
+Waiting on you, With agent, Resolved, on one line — then the notes on the whole map, then any on a picture the gallery no
+longer offers. Choosing a note, by its row or by its pin on the picture, opens its thread, and **All notes**
 goes back. A row reads the way a chat app previews a thread: what the note is pinned to, then its status as a
 muted word and as much of the last message as fits, then at its foot the note's pin and how many messages the
 thread holds. A pin is an empty speech bubble, one colour in the column and on the picture, carrying no number;
@@ -2381,7 +2382,7 @@ The reason is that **a sketch is a working document and an edit is not atomic.**
 and then removing the hole is an ordinary order to work in; so is the reverse. A store that refuses the
 intermediate state does not prevent the board — it deletes the shapes the author drew to get there, and the
 tool cannot even see that it did, a refused PUT being a completed round-trip that throws nothing. The Sketch
-tool now reads the status and says **Not saved** with the server's own sentence when a write does not land.
+tool reads the status and says **Couldn't save your changes** with the server's own sentence when a write does not land.
 
 The same rule is why the 3-D preview stays true. It draws what the board builds — the subtract wins, the add
 it beats draws nothing, and that absence is exactly what the author needs to see — rather than going dark on
@@ -2904,7 +2905,7 @@ Claude Code Routine's API trigger — `Notes:Agent:Fire` and `Notes:Agent:Token`
 **Hand to the agent** at the head of the notes column, counting the open notes on every map and how many were
 written or answered since the last hand-off. Pressing it calls the Routine's `/fire`, which starts one session
 that reads the open notes and answers them; the column then says when they were handed over and links the
-session. With nothing written since, the button is **Again**, for a session that stopped short.
+session. With nothing written since, the button is **Hand over again**, for a session that stopped short.
 
 **The hand-off carries no instruction.** Its text names the maps and how many notes each holds, and the
 Routine's saved prompt is what says to answer them: the Routine receives the text as untrusted context, and it

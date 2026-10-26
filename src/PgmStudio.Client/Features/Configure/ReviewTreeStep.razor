@@ -5,21 +5,18 @@
 
 <Workspace>
   <ContentColumn MaxWidth="760">
-    <Section Title="Regions">
+    <Section Title="Regions" Description="Every region written for this map. To change one, go back to the phase that sets it. Dimmed regions combine the others.">
       <Actions>
         <Badge Kind="dim">Read-only@(RegionCount > 0 ? $" · {RegionCount} regions" : "")</Badge>
       </Actions>
       <ChildContent>
-        <p class="section-desc">Every region written for this map. To change one, go back to the phase that sets
-          it. Regions named like <code>__anon_1</code> are added to combine the others.</p>
-
         @if (loading)
         {
-          <p class="panel-empty-msg">Loading…</p>
+          <StatusLine />
         }
         else if (error is not null)
         {
-          <div class="panel-warning"><strong>Couldn't load the regions.</strong> Reload the page to try again. @error</div>
+          <StatusLine>Couldn't load the regions. Reload the page to try again.</StatusLine>
         }
         else
         {

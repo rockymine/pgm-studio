@@ -26,16 +26,18 @@ internal static class ObjectiveTeams
     {
         var changed = new List<string>();
         var teams = (intent["teams"] as JsonArray)?.OfType<JsonObject>().Select(t => Ctx.S(t, "id")).ToList() ?? [];
+        var named = Ctx.LoadTeams(intent);
+        string Name(string id) => named.FirstOrDefault(team => team.Id == id)?.Name is { Length: > 0 } name ? name : id;
         string? At(JsonObject? point) =>
             point is null ? null : AuthoringContext.IslandTeamAt(Ctx.D(point, "x"), Ctx.D(point, "z"), islands, islandTeams);
 
         foreach (var wool in (intent["wools"] as JsonArray)?.OfType<JsonObject>() ?? [])
         {
-            var color = Ctx.S(wool, "color");
+            var color = WoolAuthoring.Name(Ctx.S(wool, "color")).ToLowerInvariant();
             var owner = Ctx.S(wool, "owner");
             if (At(wool["spawn"] as JsonObject) is { } defender && defender != owner)
             {
-                changed.Add($"The {color} wool is defended by {defender}, not {owner}.");
+                changed.Add($"The {color} wool is defended by {Name(defender)}, not {Name(owner)}.");
                 wool["owner"] = owner = defender;
             }
             var capturers = teams.Where(team => team != owner).ToList();
@@ -45,17 +47,17 @@ internal static class ObjectiveTeams
                 var placing = At(monument["location"] as JsonObject)
                     ?? (capturers.Count == 1 ? capturers[0] : null);
                 if (placing is null || placing == team || placing == owner) continue;
-                changed.Add($"The {color} wool's monument is where {placing} places it, not {team}.");
+                changed.Add($"The {color} wool monument stands where {Name(placing)} captures, not {Name(team)}.");
                 monument["team"] = placing;
             }
         }
-        foreach (var (key, kind) in new[] { ("cores", "core"), ("destroyables", "destroyable") })
+        foreach (var (key, kind) in new[] { ("cores", "core"), ("destroyables", "monument") })
             foreach (var goal in (intent[key] as JsonArray)?.OfType<JsonObject>() ?? [])
             {
                 var owner = Ctx.S(goal, "owner");
                 if (At(goal["anchor"] as JsonObject) is { } island && island != owner)
                 {
-                    changed.Add($"A {kind} of {owner} stands on {island}'s island.");
+                    changed.Add($"A {kind} of {Name(owner)} stands on the island of {Name(island)}.");
                     goal["owner"] = island;
                 }
             }

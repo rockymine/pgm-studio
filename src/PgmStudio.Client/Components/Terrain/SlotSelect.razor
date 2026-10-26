@@ -19,7 +19,7 @@
     <BlockPicker Blocks="Blocks" Id="block.Id" Data="block.Data" OnPick="PickBlock" />
     @if (Lays(block.Id))
     {
-      <label class="lib-bind-laid" title="Lay the log along the run it sits in, bark out, rather than standing it upright">
+      <label class="lib-bind-laid">
         <input type="checkbox" checked="@block.Laid" disabled="@Disabled" @onchange="SetLaid" /> Laid along the run
       </label>
     }

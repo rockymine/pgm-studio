@@ -13,7 +13,7 @@ using W = WoolAuthoring;
 using Ctx = AuthoringContext;
 
 // Wools · monuments step. Each wool is captured by every team except its owner (N−1 monuments). The
-// objectives scan usually pre-fills them (signed pedestals); here the author confirms them and fills any
+// objectives scan usually pre-fills them (signed wool monuments); here the author confirms them and fills any
 // gap by BOXING a cluster — monument-suggestions routes each hit to its colour's wool, capturing team =
 // the island the monument sits on. An empty box drops one manual monument at its centre for the selected
 // wool. The capturing team is editable per row.
@@ -103,7 +103,7 @@ public partial class WoolMonumentsStep
         { Clear: false } => "A block is already here, so a wool can't be put into it. The step won't save a monument here.",
         { Support: false } => "No block touches this spot, so a wool can't be put into it. The step won't save a monument here.",
         { Pedestal: false } => "Clear and touching a block. A wool can be placed here.",
-        _ => "Clear and on a pedestal. A wool can be placed here.",
+        _ => "Clear and standing on a block. A wool can be placed here.",
     };
 
     /// <summary>A verdict that costs the author something is the tool's own warning panel; one that costs
@@ -212,7 +212,7 @@ public partial class WoolMonumentsStep
             {
                 id = $"wool-src-{w.Color}",
                 type = "point", marker = true, primary = false, color = W.Hex(w.Color),
-                label = $"{w.Color} source",
+                label = $"{W.Name(w.Color)} wool spawn",
                 bounds = new { min_x = w.SpawnX - 0.5, min_z = w.SpawnZ - 0.5, max_x = w.SpawnX + 0.5, max_z = w.SpawnZ + 0.5 },
             });
             foreach (var m in w.Monuments)
@@ -220,7 +220,7 @@ public partial class WoolMonumentsStep
                 {
                     id = $"wool-mon-{w.Color}-{m.Team}",
                     type = "point", marker = true, primary = w.Color == selectedColor, color = W.Hex(w.Color),
-                    label = $"{w.Color} monument · {(string.IsNullOrEmpty(m.Team) ? "?" : TeamName(m.Team))} captures",
+                    label = $"{W.Name(w.Color)} wool monument, {(string.IsNullOrEmpty(m.Team) ? "no team" : TeamName(m.Team))} captures",
                     bounds = new { min_x = m.X - 0.5, min_z = m.Z - 0.5, max_x = m.X + 0.5, max_z = m.Z + 0.5 },
                 });
         }

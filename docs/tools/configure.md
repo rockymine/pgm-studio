@@ -204,7 +204,7 @@ machine, it also lists the importable world folders under the imports root — a
 server's operator can put a folder on its disk. Next scans the chosen world into MariaDB, which is
 what creates the map row. **Found** is the detection brief over the scanned world: islands, wool blocks,
 monument candidates, resource blocks, chests, spawners, and the detected symmetry with its suggested team
-count, each selectable for a detail explanation. **Plan** hands off to the wizard at Identity.
+count, each selectable for a detail explanation. **Phases** hands off to the wizard at Identity.
 
 A folder carrying a `map.xml` is refused with 422 — it is not a new-map candidate. That is the line between
 a map being configured and a finished one.
@@ -255,20 +255,20 @@ first Next.
 
 ### World — Scan · Islands · Symmetry
 
-Three read-and-confirm steps over the already-scanned world; only Scan's **Replace the world** reads one again.
+Three read-and-confirm steps over the already-scanned world; only Scan's **World replacement** reads one again.
 
 **Scan** is a look at the extracted world on the shared world canvas, with its island-base and surface layer
-toggle. On a map imported from a world it also takes a new download of that world: **Replace the world**
+toggle. On a map imported from a world it also takes a new download of that world: **World replacement**
 fetches the link through the same checks the import makes and reads it over the map's scan
 (`POST /map/{slug}/import-url`). The new world is fetched beside the old one and scanned before anything is
 replaced, and the scan is one write, so a link the import refuses or a scan that fails leaves the map with the
 world it had. What the map states stays as it is: its intent, its document, its notes and its changes. What
 changes is everything read out of the world — the segments every placement check reads, the island outlines,
-the wool, chest, spawner and goal suggestions — and an unconfirmed symmetry, which is dropped to be detected
+the wool, chest, spawner and objective suggestions — and an unconfirmed symmetry, which is dropped to be detected
 again; a confirmed one is the author's answer and stays. Island exclusions and the Teams step's island tags
 are kept by island number, which a new world can renumber, so both steps want walking again. A sketch map has
-no such control: its world is built from its layout. **Islands** is where the strays are excluded — decorative rocks, observer towers —
-selected from the list or by clicking the canvas; excluding one re-runs symmetry detection server-side over
+no such control: its world is built from its layout. **Islands** is where the strays are excluded — decorative rocks, an observer platform — with the *Included*
+and *Excluded* chips on an island selected from the list or by clicking the canvas; excluding one re-runs symmetry detection server-side over
 the already-detected islands rather than touching the world. **Symmetry** confirms the mode and centre: the
 detection is pre-selected and the author clicks another mode, or `none`, only to change it. That choice is the
 World slice, and it is what every later orbit-fill reads.
@@ -280,9 +280,9 @@ source states, and an intent compiled afresh from a plan carries no symmetry and
 compile assigned. Since the World phase's gate is exactly the presence of a confirmed symmetry, a map stored
 that way re-locks the rail behind it until the step is walked once more.
 
-### Teams — Teams & islands · Spawn point · Protection
+### Teams — Teams and islands · Spawns · Protection
 
-**Teams & islands** creates the teams, with the confirmed symmetry suggesting the count (`rot_90` → four,
+**Teams and islands** creates the teams, with the confirmed symmetry suggesting the count (`rot_90` → four,
 everything else → two), sets the shared `maxPlayers`, and tags each island to a team by selecting a team and
 clicking the island, which tints it. The tags are an authoring aid rather than map data: the spawn step reads
 them so a marker takes the team of the island it lands on.
@@ -293,7 +293,7 @@ next, and the row offers only the colours no team holds. Recolouring a team afte
 id, the auto-derived name, the island tags and every `team` or `owner` an intent slice states, wherever it is
 nested. Two teams cannot share an id, so a colour whose id another team already holds recolours alone.
 
-**Spawn point** drops team 0's spawn with the point tool and orbit-fills the rest, reassigning each copy by
+**Spawns** drops team 0's spawn with the point tool and orbit-fills the rest, reassigning each copy by
 the island it actually lands in — so a slightly-off rotation still gives the right team its own spawn. The
 **observer spawn is placed here too**, as a spawn like any other, and it matters because it is the one thing
 no plan authors: a plan puts the observer at the map origin at a computed height and offers no marker, so
@@ -310,10 +310,10 @@ own. A Y typed by hand is the author's and stands.
 team and further rects extend it; authored rects carry a stable id and resize on the canvas, and the symmetry
 orbits them onto the other teams as read-only copies that are listed so the union reads coherently.
 
-### Build — Build height · Buildable layer
+### Build — Build ceiling · Build regions
 
-**Build height** is the Y cap above which nothing may be placed, set on a side-view of the terrain or typed.
-**Buildable layer** draws the over-void bridges as `areas` and the no-build cutouts as `holes` with the
+**Build ceiling** is the world y above which nothing may be placed, set on a side-view of the terrain or typed,
+and left empty there is none. **Build regions** draws the over-void bridges as `areas` and the no-build cutouts as `holes` with the
 rectangle tool. The islands' own terrain needs no rectangle — it is buildable through the void filter — so
 what is drawn here is the crossing: the places a player may bridge a gap. The generator unions the areas,
 subtracts the holes as a complement, and wires the void enforcement over the result (`not-build-area`,
@@ -327,7 +327,7 @@ there — a tree's log and leaves, and every plant the flora overlay scatters. W
 past a coast is sealed for the whole match, since no column out there has a block at y=0. Terrain materials
 are deliberately not in that list: a crag is a shape the author built, and a team may not mine it away.
 
-The **Editable** overlay on the canvas is the read-back of all of it — one colour per column saying what
+The **Buildable** overlay on the canvas is the read-back of all of it — one colour per column saying what
 makes it editable, and `EZ1` on `GET …/editability` naming any patch of standing ground nobody can touch.
 **The void past the map reads sealed, because nothing stands in it.** The break exception lets a canopy over the
 void be cut down, and an empty column has no canopy: a void column no segment of the scan stands in holds nothing
@@ -367,7 +367,7 @@ through, and the spawn kit hands out a stack of each of them in place of wood an
 hands out no block and no digging tool at all. A stated `mode` overrides the default either way
 (`docs/pgm/new-map-authoring.md` §5c). The wizard does not offer the word yet (`TC16`); it is stated on the intent.
 
-### Wools — Objectives · Spawn · Monuments · Room
+### Wools — Objectives · Spawn · Wool monuments · Wool room
 
 The CTW phase, and the one that does the most work on an imported map, because **it reads the world rather
 than asking**.
@@ -387,13 +387,13 @@ empty room list over a saved wool.
 other team captures it at a monument of its own — one capturer on a two-team map, three on a four-team one. The
 step lists each capturing team with its monument beside the defender, and changing the defender re-teams the
 monuments: one takes the team of the island it stands on, on a two-team map one standing where no island has a
-team takes the one team left, and anything else is left without a team for the Monuments step to settle.
+team takes the one team left, and anything else is left without a team for the Wool monuments step to settle.
 
 **Objectives follow the islands.** Reassigning islands after the objectives were confirmed leaves them with their
 old teams, which is how a wool comes to be exported for the wrong team. The Teams step's *Island owners* and the
 Objectives step both say what no longer agrees — a wool defended by another team than the island it spawns on, a
-monument where another team than its own places the wool, a core or destroyable on another team's island — and
-*Move the objectives to these teams* brings them along (`ObjectiveTeams`). The *Wool teams* check and
+monument where another team than its own places the wool, a core or monument on another team's island — and
+*Reassign the objectives* brings them along (`ObjectiveTeams`). The *Wool teams* check and
 every intent save carry the same reading as complaints, `OB34` for a wool without exactly one monument for each
 team but its defender and `OB35` for a wool or monument on another team's island (`WoolTeams.Check`).
 
@@ -403,7 +403,7 @@ by coordinate re-seats it the same way the point tool does, anchored at the wool
 normally sits in a covered room, whose roof would otherwise be the column's topmost surface. Editing the
 anchor team's wool re-derives its symmetric partners; editing an orbit copy nudges that one alone.
 
-**Monuments** confirms one monument per capturing team. The scan usually pre-fills them from signed pedestals;
+**Wool monuments** confirms one wool monument per capturing team. The scan usually pre-fills them from signed wool monuments;
 a gap is filled by drawing a box around a cluster, which routes each hit to its colour's wool with the
 capturing team read off the island. A team that already has a monument on that wool keeps it, so boxing a
 monument that is already placed adds nothing rather than a second for the same team. An empty box drops one
@@ -419,18 +419,18 @@ monument is the block a player puts the wool **into** and so needs two things at
 clear, and a block to place against. A block is placed against **any face** of a neighbour, so all six are
 asked — a monument hung from a ceiling or set into a wall plays exactly like one on a pedestal, and the
 corpus builds all three. `GET /map/{slug}/block-seat` answers off the vertical segments, over the block's own
-column and its four neighbours, and its answers are the sentences the step shows: clear on a pedestal, clear
+column and its four neighbours, and its answers are the sentences the step shows: clear and standing on a block, clear
 and held by the block against it, a block already standing there, nothing on any of the six faces, or a
 column the scan never reached. It reports rather than snapping: the author states the block and the step says
 what it costs. Saving is where it stops being advice: a monument whose block is solid, or that nothing touches,
 is refused when the intent is stored (`OB33`, **422**), off the same read, so a map read from a world never
 exports a monument no wool can be put into. A column the scan never reached is left to the author.
 
-**Room** draws the rectangles the wool lives in — again a union, again orbited onto the partner wools as
+**Wool room** draws the rectangles the wool lives in — again a union, again orbited onto the partner wools as
 read-only copies. A wool with no room still generates its objective and its monuments; what it loses is the
 room region, the spawner and the room wiring.
 
-### Destroyables — Objectives
+### Monuments — Objectives
 
 One step, because a destroyable states less than a core does: what shape it is, what it is built of, and how
 far it floats over the ground solved under its anchor. There is no casing to describe and, like a core, no
@@ -518,7 +518,7 @@ copy's inspector shows what it carries and is read-only, and only the drawn boxe
 
 **Match** states how the match ends, how players respawn and the combat rules (`docs/pgm/match.md` §7), and is
 one form. *Match end* is the *Score limit*, the *Time limit* as PGM writes a duration, and the *Winner at time
-limit*: *Default* (the team furthest along its objectives, then the higher score), *Most objectives*, *Highest
+limit*: *Objectives then score* (the team furthest along its objectives, then the higher score), *Most objectives*, *Highest
 score* or *Tie*. *Respawn* is the *Respawn time*, *Auto respawn*, *Spectate while dead* and the *Lives* a blitz
 gives. *Combat* is *Rage* and the *Kill height* a player falls into the void below. A blank field is the map's
 own default — the score limit the generator derives from the objectives, no time limit, two seconds, no lives,
@@ -743,7 +743,7 @@ short of a side says so as well.
 | Endpoint | Answers |
 |---|---|
 | `GET /map/{slug}/column-floor?x=&z=` | the floor a marker seats on — what makes a placed point land on terrain. `{y: null}` where the column has no segment data |
-| `GET /map/{slug}/block-seat?x=&y=&z=` | whether one block can hold a thing placed into it: `clear` that nothing stands in it, `pedestal` that something stands directly under it, `scanned` that the column was read at all. What the Monuments step says its verdict from |
+| `GET /map/{slug}/block-seat?x=&y=&z=` | whether one block can hold a thing placed into it: `clear` that nothing stands in it, `pedestal` that something stands directly under it, `scanned` that the column was read at all. What the Wool monuments step says its verdict from |
 | `GET /map/{slug}/segments[?axis=&xmin=&xmax=&zmin=&zmax=]` | the vertical section through the world along one axis — what the side view draws. 404 when the map has no segments |
 | `POST /map/{slug}/wool-sources` | wool colours and their source clusters inside a drawn rectangle |
 | `POST /map/{slug}/resources` | the iron, gold and diamond blocks — optionally inside a drawn rectangle, the same `bounds` object — and how many of them a declared `<renewable>` already covers |
@@ -752,7 +752,7 @@ short of a side says so as well.
 | `GET /map/{slug}/core-suggestions[?box=]` | the detected casings, plus the generator's casing defaults. The box is optional and narrows the list; one that is stated and cannot be read is refused (`RQ1`, `field: box`) rather than skipped, because skipping it answers every casing the map has and reads as the volume holding them all |
 | `GET /map/{slug}/destroyable-suggestions[?box=]` | the destroyables the scan proposed, each carrying the two readings it was proposed on — `sameNearby` and `elevation` — beside the generator's defaults and the style and material vocabularies. About two in three are real, which is why the step confirms rather than applies |
 | `GET /map/{slug}/flag-suggestions` | every banner the scan found — position, wall or standing, the yaw a post there takes, base dye and patterns — beside the King of the Flag defaults (points rate, carrier, carrier hearts, score limit). A banner is where a flag may start, since PGM loads none without one (`docs/world-scan/objective-suggestion.md` §6) |
-| `GET /map/{slug}/origin` | whether the map came from a sketch — which drops the Monuments step |
+| `GET /map/{slug}/origin` | whether the map came from a sketch — which drops the Wool monuments step |
 
 ### Asking whether the map can be played
 

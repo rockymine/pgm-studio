@@ -151,6 +151,11 @@ public partial class MaterialEditor
         return Changed();
     }
 
+    /// <summary>Show stone past the stack, or a material of its own; picking the state already held changes
+    /// nothing.</summary>
+    private Task SetBeyond(bool own)
+        => own == JsonEdit.Has(Node, ThemeFields.Beyond) ? Task.CompletedTask : ToggleBeyond();
+
     /// <summary>A checkerboard's two squares. They default apart rather than both to stone, since a board of
     /// one material is not a board and an author would have to change one before seeing anything.</summary>
     private JsonObject Even => JsonEdit.Child(Node, ThemeFields.Even, () => ThemeFields.Solid(1, 0));
@@ -169,13 +174,6 @@ public partial class MaterialEditor
         MaterialKind.Electric => "A field of thin branching lines that fade out around them.",
         _ => "A smooth, cloudy field whose regions fade into one another.",
     };
-
-    /// <summary>What the rise does, shared by every area pattern because it means the same thing in all of
-    /// them: at 0 the field is of the plane, so a column resolves to one block all the way down and the pattern
-    /// only ever decides the ground.</summary>
-    private const string RiseNote =
-        "With a rise of 0 the pattern covers only the ground, and walls come out striped. Set a rise in blocks "
-        + "to carry the pattern down through the terrain.";
 
     /// <summary>What one of a kind's single children is called.</summary>
     private static string ChildLabel(string field) => MaterialTree.ChildLabel(field);
@@ -326,7 +324,7 @@ public partial class MaterialEditor
 
     /// <summary>The families on offer, each over how many blocks it lays.</summary>
     private IReadOnlyList<SelectOption> FamilyRows =>
-        [.. Families.Select(family => new SelectOption(family.Key, $"{family.Key} ({family.Count()})"))];
+        [.. Families.Select(family => new SelectOption(family.Key, $"{family.Key} · {family.Count()}"))];
 
     /// <summary>The family a list currently holds, whole and in order, or empty for one that holds anything
     /// else. Read from the entries rather than remembered, so it stays true through a hand edit: it names the

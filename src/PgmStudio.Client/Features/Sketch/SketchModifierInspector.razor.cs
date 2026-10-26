@@ -8,8 +8,8 @@ using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Client.Features.Sketch;
 
-/// <summary>The picked modifier's numbers and mask. Each edit sends the field it changed to the bridge as a patch
-/// of the modifier, and a mask edit sends the whole mask, which is what the bridge replaces.</summary>
+/// <summary>The picked modifier's numbers and area. Each edit sends the field it changed to the bridge as a patch
+/// of the modifier, and an area edit sends the whole <c>mask</c>, which is what the bridge replaces.</summary>
 public partial class SketchModifierInspector
 {
     [Parameter] public IJSObjectReference? Handle { get; set; }
@@ -38,7 +38,7 @@ public partial class SketchModifierInspector
         StepsField = "steps", Start = "start", End = "end", BedMaterial = "bed_material", Cover = "cover",
         Mouth = "mouth", Sag = "sag", LadderField = "ladder", DressField = "dress";
 
-    /// <summary>The width a line is traced with, which a mask that states none is read at.</summary>
+    /// <summary>The width a line is traced with, which a line that states none is read at.</summary>
     private const double DefaultLineWidth = 6;
 
     private static readonly IReadOnlyList<SelectOption> Modes =
@@ -48,12 +48,12 @@ public partial class SketchModifierInspector
 
     private static readonly IReadOnlyList<SelectOption> Sides =
     [
-        new("1", "Right of the line"), new("-1", "Left of the line"),
+        new("1", "Right side"), new("-1", "Left side"),
     ];
 
     private static readonly IReadOnlyList<SelectOption> ProfileSides =
     [
-        new("", "Both sides"), new("1", "Right of the line"), new("-1", "Left of the line"),
+        new("", "Both sides"), new("1", "Right side"), new("-1", "Left side"),
     ];
 
     private string? error;
@@ -69,7 +69,7 @@ public partial class SketchModifierInspector
     private List<JsonObject> Steps => Modifier[StepsField] is JsonArray steps ? [.. steps.OfType<JsonObject>()] : [];
     private bool HasLine => Areas.Any(SketchModifierState.IsLine);
 
-    /// <summary>The ids of the shapes the mask leaves out.</summary>
+    /// <summary>The ids of the shapes the area leaves out.</summary>
     private HashSet<string> Leaves => Mask[Leaving] is JsonArray leaves
         ? [.. leaves.Select(leaf => leaf?.GetValue<string>()).OfType<string>()]
         : [];
@@ -106,28 +106,25 @@ public partial class SketchModifierInspector
     private static string ChangedLine(int columns) =>
         $"Changed {columns} column{(columns == 1 ? "" : "s")}.";
 
-    /// <summary>Where the modifier acts, said in what an author traced: inside outlines, or along lines in a band
-    /// of their width — and that the board is where they are changed.</summary>
+    /// <summary>Where the modifier acts, counted in what the author traced: outlines and lines.</summary>
     private string AreaLine
     {
         get
         {
-            var lines = Areas.Where(SketchModifierState.IsLine).ToList();
-            var outlines = Areas.Count - lines.Count;
-            if (lines.Count == 0 && outlines == 0) return "No area traced: it acts on the whole board.";
+            var lines = Areas.Count(SketchModifierState.IsLine);
+            var outlines = Areas.Count - lines;
+            if (lines == 0 && outlines == 0) return "Acts on all the ground, since no area is traced.";
             var parts = new List<string>();
-            if (outlines > 0) parts.Add(outlines == 1 ? "inside one outline" : $"inside {outlines} outlines");
-            if (lines.Count == 1)
-                parts.Add($"along one line, in a band {Number(lines[0], Width) ?? DefaultLineWidth:0} blocks wide");
-            else if (lines.Count > 1) parts.Add($"along {lines.Count} lines, each in its band");
-            return $"Acts {string.Join(" and ", parts)}. Drag {(Areas.Count == 1 ? "it or its" : "them or their")} points on the board.";
+            if (outlines > 0) parts.Add($"inside {outlines} outline{(outlines == 1 ? "" : "s")}");
+            if (lines > 0) parts.Add($"along {lines} line{(lines == 1 ? "" : "s")}");
+            return $"Acts {string.Join(" and ", parts)}.";
         }
     }
 
     private string LineWidthLabel(int index)
     {
         var lines = Areas.Take(index + 1).Count(SketchModifierState.IsLine);
-        return Areas.Count(SketchModifierState.IsLine) > 1 ? $"Band {lines} width" : "Band width";
+        return Areas.Count(SketchModifierState.IsLine) > 1 ? $"Line {lines} width" : "Line width";
     }
 
     /// <summary>What a shape is called in the list of what the modifier may leave out: its kind and size, and the
@@ -185,7 +182,7 @@ public partial class SketchModifierInspector
     private Task SetLineWidth(int index, double width) =>
         PatchMask(mask => mask["areas"]![index]![Width] = width);
 
-    /// <summary>Ticks or clears one shape in the mask's <c>leaves</c>. The key is dropped when none is left, and
+    /// <summary>Ticks or clears one shape in the area's <c>leaves</c>. The key is dropped when none is left, and
     /// a shape that has since been deleted is dropped with it.</summary>
     private Task SetLeaves(string shapeId, bool leave)
     {

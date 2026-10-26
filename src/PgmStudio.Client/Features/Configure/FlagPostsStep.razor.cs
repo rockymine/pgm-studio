@@ -42,9 +42,9 @@ public partial class FlagPostsStep
     private static readonly IReadOnlyList<SelectOption> CarrierOptions =
     [
         new(FlagCarriers.Lowered, "Lower health", "The carrier's health drops to the hearts below."),
-        new(FlagCarriers.Absorption, "Absorption", "Absorption III for 3 seconds on pickup."),
+        new(FlagCarriers.Absorption, "Absorption", "Absorption level 3 for 3 seconds on pickup."),
         new(FlagCarriers.Boost, "Health boost", "The carrier's health rises to the hearts below."),
-        new(FlagCarriers.None, "None"),
+        new(FlagCarriers.None, "No kit"),
     ];
 
     private static readonly IReadOnlyList<SelectOption> CaptureOptions =
@@ -56,7 +56,7 @@ public partial class FlagPostsStep
     private void SetCapture(F.Flag flag, string capture) { flag.Capture = capture; Write(); }
 
     private IReadOnlyList<SelectOption> OwnerOptions =>
-        [new(Nobody, "None (King of the Flag)"), .. AuthoringContext.TeamOptions(teams)];
+        [new(Nobody, "Neutral", "Nobody defends it, so the game is King of the Flag."), .. AuthoringContext.TeamOptions(teams)];
 
     // The picker's word for a flag nobody owns: a Select option cannot carry the empty string.
     private const string Nobody = "nobody";
@@ -226,11 +226,11 @@ public partial class FlagPostsStep
                 var post = flags[f].Posts[p];
                 var (x, _, z) = F.Block(post);
                 shapes.Add(Marker($"post-{f}-{p}", x, z, Hex(flags[f]), f == selectedFlag,
-                                  $"{NameOf(flags[f], f)} · {PostName(post, p)}{(p == 0 ? " (start)" : "")}"));
+                                  $"{NameOf(flags[f], f)} · {PostName(post, p)}{(p == 0 ? ", start" : "")}"));
             }
         var n = 0;
         foreach (var banner in Unused)
-            shapes.Add(Marker($"banner-{n++}", banner.X, banner.Z, "#8a8f98", false, $"Banner · {banner.Color}"));
+            shapes.Add(Marker($"banner-{n++}", banner.X, banner.Z, "#8a8f98", false, $"Banner · {WoolAuthoring.Name(banner.Color)}"));
         await canvas.SetAuthorRegionsAsync(shapes);
     }
 

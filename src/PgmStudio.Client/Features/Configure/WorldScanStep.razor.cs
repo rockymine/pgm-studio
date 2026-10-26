@@ -70,7 +70,7 @@ public partial class WorldScanStep
                 var refusal = await response.Content.ReadFromJsonAsync<RefusalDto>();
                 reimportError = refusal?.Message is { Length: > 0 } said
                     ? char.ToUpperInvariant(said[0]) + said[1..] + "."
-                    : $"Couldn't import the world. (HTTP {(int)response.StatusCode})";
+                    : "Couldn't import the world. Check the link and try again.";
                 return;
             }
             await LoadSummaryAsync();

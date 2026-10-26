@@ -6,19 +6,17 @@
 <Workspace>
 
   <Sidebar>
-      <Section Title="Spawn protection">
+      <Section Title="Spawn protection" Description="Drag a rectangle around a spawn with the rectangle tool. Several rectangles make one larger zone. Every other team gets a symmetry copy.">
         @{ var rows = Rows(); }
-        <p class="section-desc">Use the <strong>rectangle tool</strong> to drag a zone around a spawn. Draw
-          several to build a larger zone. The other teams get a copy by symmetry.</p>
         <div class="panel-list">
-          @if (authored.Count == 0) { <div class="list-empty">Nothing drawn yet. Drag a rectangle around a spawn.</div> }
+          @if (authored.Count == 0) { <EmptyState>No protection yet. Drag a rectangle around a spawn.</EmptyState> }
           @foreach (var row in rows)
           {
             <ListRow Compact Selected="selectedRegionId == row.RegionId"
                  @key="row.RegionId" OnClick="() => SelectRow(row.RegionId)">
               <span class="list-swatch" style="--swatch: @Hex(row.Team)"></span>
               <span class="geo-type-icon"><i data-lucide="rectangle-horizontal"></i></span>
-              <span class="list-label list-label--mono">@row.Name</span>
+              <span class="list-label">@row.Name</span>
               <Badge Class="@(row.Authored ? "badge--success" : "badge--dim")">@(row.Authored ? "Main" : "Copy")</Badge>
             </ListRow>
           }
@@ -39,10 +37,13 @@
       @if (Selected is { } sel)
       {
         <div class="panel-stack" @key="sel.RegionId">
-          <Section>
-            <DetailHeader Icon="rectangle-horizontal" IconTint="@Hex(sel.Team)" Mono Label="@sel.Name">
-              <Badge Class="@(sel.Authored ? "badge--success" : "badge--dim")">@(sel.Authored ? "Main" : "Copy")</Badge>
-            </DetailHeader>
+          <Section Description="@(sel.Authored ? "Drag the handles on the canvas to resize it." : null)">
+            <Header>
+              <DetailHeader Icon="rectangle-horizontal" IconTint="@Hex(sel.Team)" Label="@sel.Name">
+                <Badge Class="@(sel.Authored ? "badge--success" : "badge--dim")">@(sel.Authored ? "Main" : "Copy")</Badge>
+              </DetailHeader>
+            </Header>
+            <ChildContent>
             <div class="section-body">
               <Field Label="Min">
                 <div class="ctrl-row">
@@ -58,37 +59,36 @@
               </Field>
               @if (sel.Authored)
               {
-                <p class="section-desc">Owned by <strong>@TeamName(sel.Team)</strong>. Drag the handles on the
-                  canvas to resize it.</p>
-                <div class="section-footer section-footer--separated">
-                  <Button Writes Variant="danger" Fill OnClick="() => Remove(sel.RegionId)">Remove rectangle</Button>
-                </div>
+                <Readout>Owned by @TeamName(sel.Team).</Readout>
               }
               else
               {
-                <p class="section-desc">Copied from <strong>@TeamName(authoredTeam ?? string.Empty)</strong> by
-                  symmetry. Edit that team's zone to change it.</p>
+                <Readout>@(AuthoringContext.CopyOf($"{TeamName(authoredTeam ?? string.Empty)} protection"))</Readout>
               }
             </div>
+            </ChildContent>
           </Section>
 
           <Section Title="Rules">
             <Actions><Badge Kind="dim">Automatic</Badge></Actions>
             <ChildContent>
             <div class="panel-list">
-              <ListRow Compact Class="list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">enter = only-@TeamSlug(sel.Team)</span></ListRow>
-              <ListRow Compact Class="list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">block = never</span></ListRow>
+              <ListRow Compact Class="list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label">Only @TeamName(sel.Team) may enter</span></ListRow>
+              <ListRow Compact Class="list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label">Nobody may place or break blocks</span></ListRow>
             </div>
-            <p class="section-desc">Enemies can't enter the zone, and nobody can place or break blocks in it.</p>
             </ChildContent>
           </Section>
+          @if (sel.Authored)
+          {
+            <InspectorDelete Title="Delete this rectangle" OnClick="() => Remove(sel.RegionId)" />
+          }
         </div>
       }
       else
       {
         <Section>
           <DetailHeader Icon="rectangle-horizontal" IconMuted Label="Spawn protection" />
-          <p class="section-desc">Draw a rectangle around a spawn, or select one to resize it.</p>
+          <EmptyState>No rectangle selected. Draw one around a spawn, or pick one to resize it.</EmptyState>
         </Section>
       }
   </Inspector>

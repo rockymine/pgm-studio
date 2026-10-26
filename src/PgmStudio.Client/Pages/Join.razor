@@ -17,7 +17,7 @@
       <ContentColumn MaxWidth="560">
         @if (discordName is null && !lapsed)
         {
-          <div class="list-empty">Loading…</div>
+          <StatusLine />
         }
         else if (lapsed)
         {
@@ -29,28 +29,27 @@
         }
         else
         {
-          <Section Title="@($"Welcome, {discordName}")">
-            <Description>
-              Name your Minecraft account. Maps you make are credited to it in their map.xml, so it has to be your
-              own. You can start right away with up to @Limit maps; an admin approves you for more.
-            </Description>
+          <Section Title="Minecraft account"
+                   Description="@($"Maps you make are credited to it, so it must be your own. Until an admin approves you, you may own {Limit} maps.")">
             <ChildContent>
-              <div class="invite-link">
-                <input class="field-input" placeholder="Minecraft name" @bind="player" @bind:event="oninput"
-                       @onblur="LookUpAsync" />
-                <Button Icon="search" OnClick="LookUpAsync" Disabled="@string.IsNullOrWhiteSpace(player)">Look up</Button>
-              </div>
+              <Field Label="Minecraft name">
+                <div class="invite-link">
+                  <input class="field-input" aria-label="Minecraft name" @bind="player" @bind:event="oninput"
+                         @onblur="LookUpAsync" />
+                  <Button Icon="search" OnClick="LookUpAsync" Disabled="@string.IsNullOrWhiteSpace(player)">Look up</Button>
+                </div>
+              </Field>
               @if (found is not null)
               {
                 <div class="join-found">
                   <PlayerHead Uuid="@found.Uuid" Name="@found.Name" Size="32" />
                   <span class="list-label">@found.Name</span>
                   <Button Variant="primary" Icon="user-plus" OnClick="JoinAsync" Busy="joining" BusyLabel="Joining…">
-                    This is me — join
+                    Join as this player
                   </Button>
                 </div>
               }
-              @if (error is not null) { <div class="field-error">@error</div> }
+              @if (error is not null) { <Field Error="@error" /> }
             </ChildContent>
           </Section>
         }

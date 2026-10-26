@@ -70,7 +70,7 @@ export function openPalette() {
            role="option" aria-selected="${i === at}"><span class="keys-item-label">${escape(cmd.label)}</span>
            <span class="keys-item-group">${escape(cmd.group)}</span>
            <span class="keys-item-keys">${chordHtml(cmd.keys)}</span></button>`).join("")
-      : `<p class="keys-empty">Nothing matches.</p>`;
+      : `<p class="keys-empty">No commands match.</p>`;
     list.querySelector(".keys-item--at")?.scrollIntoView({ block: "nearest" });
   };
 

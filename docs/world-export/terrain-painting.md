@@ -148,7 +148,7 @@ top-most block, when it is an edge), the **wall** (the exposed riser below the r
   the ground is: `[{"below": 25, "depth": 3}, {"below": 38, "depth": 2}, {"below": 55, "depth": 1}]` lays three
   courses under 25°, two under 38°, one under 55°, and none steeper, so the fill — the rock under the turf —
   shows on a face. The entries are read in order and the first the column's slope is under gives the depth;
-  absent, every column takes the surface's one `depth`. The theme editor's *Thins with the slope* sets those
+  absent, every column takes the surface's one `depth`. The palette editor's *On steep ground* row, set to *Thins out*, sets those
   three steps, each editable. The rim keeps its own depth.
 
 - **TP25** *A column something already rests on has no top course of its own.* The painter runs after every
@@ -364,7 +364,7 @@ and, for the height axis, `from`, `follow`, `reach`, `dip` and `fold`. A theme n
 level. `dip` is the array `[east, south]`; any other shape is a fault of the document.
 
 **The editor writes this shape and no other.** A layered material's form offers the axis, the stack's ending,
-the `beyond` slot and — on the height axis — `from` and `follow`, with `reach` once the stack follows, and `Dip x`, `Dip z` and `Fold` beside them; the band list is reached at `stack/bands`, which is why
+the `beyond` slot and — on the height axis — `from` and `follow`, with `reach` once the stack follows, and *Tilt east*, *Tilt south* and *Fold* beside them; the band list is reached at `stack/bands`, which is why
 `MaterialTree` names a list by a path rather than by a field, `bands` alone naming two lists that measure
 different things. The offered words are `BandAxes` and `BandEndings` in `PgmStudio.Vocabulary`, because the
 client cannot see the enums, and a test pins each set against the enum it spells. A **stored** theme carrying

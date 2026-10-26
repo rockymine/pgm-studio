@@ -137,7 +137,7 @@ try {
   checks.add("the group is Undo, Redo, Download — icons only", group.iconOnly && group.titles.length === 3
     && group.titles[0] === "Undo" && group.titles[1] === "Redo" && group.titles[2].startsWith("Download map"), group.titles.join(" | "));
   checks.add("Download has no text and says what it does", group.downloadText === ""
-    && group.downloadLabel === "Download map: its world and map.xml, ready for a server", group.downloadLabel);
+    && group.downloadLabel === "Download map", group.downloadLabel);
   checks.add("Download is not the primary action; Next is, naming where it goes",
     !group.downloadPrimary && group.primaries.length === 1 && /^Next: \w/.test(group.primaries[0]), group.primaries.join());
   checks.add("the buttons of the group sit together", group.gapInside < 8, `${group.gapInside}px`);
@@ -151,7 +151,7 @@ try {
                                [`/maps/${seed.sketchSlug}/sketch`, "History"],
                                [`/maps/${seed.mapSlug}/configure`, "Identity"]]) {
     await open(path);
-    if (phase === "History") await page.click('.nav-btn[title="History"]');
+    if (phase === "History") await page.click('.nav-btn:has(.nav-btn-caption:text-is("History"))');
     await page.waitForFunction((want) => document.querySelector(".editor-bar-phase")?.textContent.trim() === want, phase,
       { timeout: 10000 }).catch(() => {});
     const bar = await page.evaluate(() => ({

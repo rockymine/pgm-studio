@@ -151,7 +151,7 @@ public partial class SketchTool
         }
     }
 
-    private const string DownloadTitle = "Download map: its world and map.xml, ready for a server";
+    private const string DownloadTitle = "Download map";
 
     private Task StepReview(int step) => step == 0 ? ShowCameras() : ShowNotes();
 
@@ -312,7 +312,7 @@ public partial class SketchTool
 
     // The button already prints the mode it is in, so its tooltip has only the other half to give: what the
     // click does. Naming the destination and not the state keeps it to two words.
-    private string OpTitle => Carving ? "Switch to Build" : "Switch to Carve";
+    private string OpTitle => Carving ? "Switch to build" : "Switch to carve";
 
     private Task ToggleOperation() => SetOperation(Carving ? "add" : "subtract");
 
@@ -321,10 +321,14 @@ public partial class SketchTool
     /// the armed tool draws nothing; the colour is the mode either way.</summary>
     private string OpAccent => Carving ? "var(--canvas-sub-fill)" : "var(--canvas-add-fill)";
 
-    // The same toggle shows the bare voxelization while drawing and the paint on top of it once theming.
-    private string BlocksChipTitle => ScopeApplyActive
-        ? "Show the blocks the export places, painted by palette"
-        : "Show the exact blocks the shapes cover";
+    // Each overlay toggle is named once, so its chip and its line in the keyboard sheet read the same. The blocks
+    // chip shows the bare voxelization while drawing and the paint on top of it in Palette.
+    private const string ChipShapesTitle = "Show the drawn shapes";
+    private const string ChipMirrorTitle = "Show the symmetry copies";
+    private const string ChipChunksTitle = "Show the chunk grid";
+    private const string ChipBlocksTitle = "Show the built blocks";
+    private const string ChipContoursTitle = "Show the height contours";
+    private const string SnapTitle = "Snap to shape edges";
 
     // The shapes the current selection themes: a group's members, else the single selected shape, else none.
     private IReadOnlyList<string> ScopeTargetShapeIds =>
@@ -562,14 +566,14 @@ public partial class SketchTool
         new { id = "sketch.tool.lasso",      keys = "l", label = "Lasso",   group = "Tools" },
         new { id = "sketch.tool.measure",    keys = "m", label = "Measure", group = "Tools" },
         new { id = "sketch.tool.split",      keys = "x", label = "Split",   group = "Tools" },
-        new { id = "sketch.op",              keys = "b", label = "Switch build and carve", group = "Tools" },
+        new { id = "sketch.op",              keys = "b", label = "Switch between build and carve", group = "Tools" },
         new { id = "sketch.fit",             keys = "f", label = "Zoom to fit", group = "Canvas" },
-        new { id = "sketch.chip.shapes",     keys = "alt+1", label = "Show shapes",   group = "Overlays" },
-        new { id = "sketch.chip.mirror",     keys = "alt+2", label = "Show the mirror",    group = "Overlays" },
-        new { id = "sketch.chip.chunks",     keys = "alt+3", label = "Show the chunk grid", group = "Overlays" },
-        new { id = "sketch.chip.blocks",     keys = "alt+4", label = "Show the blocks",    group = "Overlays" },
-        new { id = "sketch.chip.relief",     keys = "alt+5", label = "Show contours",  group = "Overlays" },
-        new { id = "sketch.chip.snap",       keys = "alt+6", label = "Snap while dragging", group = "Tools" },
+        new { id = "sketch.chip.shapes",     keys = "alt+1", label = ChipShapesTitle, group = "Overlays" },
+        new { id = "sketch.chip.mirror",     keys = "alt+2", label = ChipMirrorTitle, group = "Overlays" },
+        new { id = "sketch.chip.chunks",     keys = "alt+3", label = ChipChunksTitle, group = "Overlays" },
+        new { id = "sketch.chip.blocks",     keys = "alt+4", label = ChipBlocksTitle, group = "Overlays" },
+        new { id = "sketch.chip.relief",     keys = "alt+5", label = ChipContoursTitle, group = "Overlays" },
+        new { id = "sketch.chip.snap",       keys = "alt+6", label = SnapTitle, group = "Tools" },
         new { id = "sketch.theme.next",      keys = "]", label = "Next palette",     group = "Palette" },
         new { id = "sketch.theme.prev",      keys = "[", label = "Previous palette", group = "Palette" },
         new { id = "sketch.save",            keys = "mod+s", label = "Save", group = "Everywhere", inField = true },
@@ -931,8 +935,6 @@ public partial class SketchTool
     private IReadOnlyList<Finding> isoNotBuilt = [];
 
     /// <summary>Every finding behind the note, in full, for the tooltip: the rule and its own sentence.</summary>
-    private string IsoContestedWhy => string.Join("\n\n", isoNotBuilt.Select(f => $"{f.Rule}: {f.Message}"));
-
     /// <summary>The build hands over everything it raised; this keeps the <b>declines</b>, which are the
     /// findings whose whole meaning is that a piece of what the author wrote is not in the world
     /// (<see cref="Severity.Decline"/>). A complaint about the same board is a remark on a world that came
@@ -1139,7 +1141,7 @@ public partial class SketchTool
     /// <summary>The rules the list has rows for, which is the count the button carries.</summary>
     private int ProblemRules => problems.Select(p => (p.Kind, p.Finding.Rule)).Distinct().Count();
 
-    private string? StoppedWord => downloadRefusal is not null ? "Can’t download" : saveError is not null ? "Can’t save" : null;
+    private string? StoppedWord => downloadRefusal is not null ? "Download blocked" : saveError is not null ? "Save blocked" : null;
 
     private string ProblemsLabel => StoppedWord
         ?? (problems.Any(p => p.Kind == ProblemKind.LeftOut) ? "Left out" : "Warnings");

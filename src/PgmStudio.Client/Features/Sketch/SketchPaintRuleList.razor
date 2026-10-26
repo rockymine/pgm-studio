@@ -1,20 +1,18 @@
 @namespace PgmStudio.Client.Features.Sketch
 @using System.Text.Json.Nodes
 
-@* The board's paint rules as a list in the order a column meets them — the same row Terraform's modifiers are:
+@* The layout's paint rules as a list in the order a column meets them — the same row Terraform's modifiers are:
    a name, then the order and the switch, shown on hover or when picked. Picking one opens it in the inspector;
    the list itself edits only the order and the switch. *@
 
-<Section Title="Paint rules" HelpTitle="How paint rules are read">
+<Section Title="Paint rules" Help="A column takes the first rule, top to bottom, whose mask its ground meets. A column no rule meets keeps its palette.">
   <Actions>
     <Button Variant="icon" Icon="plus" Writes Title="Add a rule" OnClick="Add" />
   </Actions>
-  <Help>A column takes the first rule, top to bottom, whose conditions its ground meets; a column no rule meets
-    keeps its palette. A condition left empty does not narrow the rule.</Help>
   <ChildContent>
     @if (Rules.Count == 0)
     {
-      <p class="section-desc">No rules: every column keeps its palette.</p>
+      <EmptyState>No paint rules yet. Every column keeps its palette until one is added.</EmptyState>
     }
     else
     {
@@ -30,10 +28,10 @@
             <span class="geo-type-icon"><i data-lucide="paintbrush"></i></span>
             <span class="geo-label">@SketchPaintRuleSet.NameOf(rule)</span>
             <span class="modifier-row-tools" @onclick:stopPropagation>
-              <Button Variant="icon" Icon="chevron-up" Writes Title="Read it earlier" Disabled="@(at == 0)" OnClick="() => Move(id, -1)" />
-              <Button Variant="icon" Icon="chevron-down" Writes Title="Read it later" Disabled="@(at == Rules.Count - 1)" OnClick="() => Move(id, 1)" />
+              <Button Variant="icon" Icon="chevron-up" Writes Title="Move up" Disabled="@(at == 0)" OnClick="() => Move(id, -1)" />
+              <Button Variant="icon" Icon="chevron-down" Writes Title="Move down" Disabled="@(at == Rules.Count - 1)" OnClick="() => Move(id, 1)" />
               <Button Variant="icon" Icon="eye" Writes Class="@(off ? "modifier-eye--off" : null)"
-                      Title="@(off ? "Switched off: switch on" : "Switch off, keeping its conditions")" OnClick="() => Toggle(id, !off)" />
+                      Title="@(off ? "Switch on" : "Switch off")" OnClick="() => Toggle(id, !off)" />
             </span>
           </div>
         }

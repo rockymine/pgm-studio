@@ -12,16 +12,16 @@ public static class PropKindNames
     /// <summary>Every kind, in the order the Placed list shows them.</summary>
     public static readonly IReadOnlyList<(string Kind, Names Names)> All =
     [
-        (PropKinds.Stroke, new("spline", "Stroke", "Paths and paint", "Drag along the board to lay this.")),
-        (PropKinds.Fluid, new("waves", "Fluid", "Channels", "Drag along the board to dig this.")),
-        (PropKinds.House, new("home", "Building", "Buildings", "Drag a rectangle on the board for the building's footprint.")),
-        (PropKinds.Tree, new("trees", "Tree", "Trees", "The next click on the board places this.")),
-        (PropKinds.Boulder, new("mountain", "Boulder", "Boulders", "The next click on the board places this.")),
-        (PropKinds.Flora, new("flower", "Ground cover", "Ground cover", "Drag a ring on the board where this grows.")),
-        (PropKinds.Chest, new("box", "Chest", "Chests", "The next click on the board places this.")),
+        (PropKinds.Stroke, new("spline", "Stroke", "Paths and paint", "Drag along the canvas to lay this.")),
+        (PropKinds.Fluid, new("waves", "Fluid", "Channels", "Drag along the canvas to dig this.")),
+        (PropKinds.House, new("home", "Building", "Buildings", "Drag a rectangle on the canvas for its footprint.")),
+        (PropKinds.Tree, new("trees", "Tree", "Trees", "The next click on the canvas places this.")),
+        (PropKinds.Boulder, new("mountain", "Boulder", "Boulders", "The next click on the canvas places this.")),
+        (PropKinds.Flora, new("flower", "Ground cover", "Ground cover", "Drag a ring on the canvas where this grows.")),
+        (PropKinds.Chest, new("box", "Chest", "Chests", "The next click on the canvas places this.")),
     ];
 
-    private static readonly Names Unknown = new("shapes", "Decoration", "Other", "Place this on the board.");
+    private static readonly Names Unknown = new("shapes", "Decoration", "Other", "Place this on the canvas.");
 
     public static Names Of(string kind) => All.FirstOrDefault(entry => entry.Kind == kind).Names ?? Unknown;
 }

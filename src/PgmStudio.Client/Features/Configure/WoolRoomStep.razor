@@ -8,20 +8,18 @@
 <Workspace>
 
   <Sidebar>
-      <Section Title="Wool rooms">
+      <Section Title="Wool rooms" Description="Drag a rectangle around a wool's spawn with the rectangle tool. Several rectangles make one larger room. Every other team gets a symmetry copy.">
         @{ var rows = Rows(); }
-        <p class="section-desc">Use the <strong>rectangle tool</strong> to drag a room around a wool's spawn.
-          Draw several to build a larger room. The other wools get a copy by symmetry.</p>
         <div class="panel-list">
-          @if (wools.Count == 0) { <div class="list-empty">No wools yet. Confirm them in the Objectives step first.</div> }
-          else if (rows.Count == 0) { <div class="list-empty">Nothing drawn yet. Drag a rectangle over a wool's spawn.</div> }
+          @if (wools.Count == 0) { <EmptyState>No wools yet. Confirm them in the Objectives step first.</EmptyState> }
+          else if (rows.Count == 0) { <EmptyState>No wool rooms yet. Drag a rectangle around a wool's spawn.</EmptyState> }
           @foreach (var row in rows)
           {
             <ListRow Compact Selected="selectedRegionId == row.RegionId"
                  @key="row.RegionId" OnClick="() => SelectRow(row.RegionId)">
               <span class="list-swatch" style="--swatch: @W.Hex(row.Color)"></span>
               <span class="geo-type-icon"><i data-lucide="rectangle-horizontal"></i></span>
-              <span class="list-label list-label--mono">@row.Name</span>
+              <span class="list-label">@row.Name</span>
               <Badge Class="@(row.Authored ? "badge--success" : "badge--dim")">@(row.Authored ? "Main" : "Copy")</Badge>
             </ListRow>
           }
@@ -40,10 +38,13 @@
       @if (Selected is { } sel)
       {
         <div class="panel-stack" @key="sel.RegionId">
-          <Section>
-            <DetailHeader Icon="rectangle-horizontal" IconTint="@W.Hex(sel.Color)" Mono Label="@sel.Name">
-              <Badge Class="@(sel.Authored ? "badge--success" : "badge--dim")">@(sel.Authored ? "Main" : "Copy")</Badge>
-            </DetailHeader>
+          <Section Description="@(sel.Authored ? "Drag the handles on the canvas to resize it." : null)">
+            <Header>
+              <DetailHeader Icon="rectangle-horizontal" IconTint="@W.Hex(sel.Color)" Label="@sel.Name">
+                <Badge Class="@(sel.Authored ? "badge--success" : "badge--dim")">@(sel.Authored ? "Main" : "Copy")</Badge>
+              </DetailHeader>
+            </Header>
+            <ChildContent>
             <div class="section-body">
               <Field Label="Min">
                 <div class="ctrl-row">
@@ -59,18 +60,14 @@
               </Field>
               @if (sel.Authored)
               {
-                <p class="section-desc">Owned by <strong>@TeamName(OwnerSlug(sel.Color))</strong>. Drag the handles
-                  on the canvas to resize it.</p>
-                <div class="section-footer section-footer--separated">
-                  <Button Writes Variant="danger" Fill OnClick="() => Remove(sel.RegionId)">Remove rectangle</Button>
-                </div>
+                <Readout>Owned by @TeamName(OwnerSlug(sel.Color)).</Readout>
               }
               else
               {
-                <p class="section-desc">Copied from the <strong>@sel.Color</strong> room by symmetry. Edit that room
-                  to change it.</p>
+                <Readout>@(AuthoringContext.CopyOf($"the {W.Name(sel.Color).ToLowerInvariant()} wool room"))</Readout>
               }
             </div>
+            </ChildContent>
           </Section>
 
           @if (sel.Authored)
@@ -79,17 +76,16 @@
               <Actions><Badge Kind="dim">Automatic</Badge></Actions>
               <ChildContent>
               <div class="panel-list">
-                <ListRow Compact Class="list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">enter = not-@TeamSlug(OwnerSlug(sel.Color))</span><span class="list-tag">entry</span></ListRow>
-                <ListRow Compact Class="list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">block = not-@TeamSlug(OwnerSlug(sel.Color))</span><span class="list-tag">building</span></ListRow>
+                <ListRow Compact Class="list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label">Only other teams may enter</span></ListRow>
+                <ListRow Compact Class="list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label">Only other teams may build</span></ListRow>
                 @if (WoolOf(sel.Color) is { } sw)
                 {
-                  <ListRow Compact Class="list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">capture ×@sw.Monuments.Count</span><span class="list-tag">monuments</span></ListRow>
+                  <ListRow Compact Class="list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label">Captured at @sw.Monuments.Count wool monuments</span></ListRow>
                 }
               </div>
-              <p class="section-desc">Entry and building rules cover the whole room. Capture is set on each
-                monument.</p>
               </ChildContent>
             </Section>
+            <InspectorDelete Title="Delete this rectangle" OnClick="() => Remove(sel.RegionId)" />
           }
         </div>
       }
@@ -97,7 +93,7 @@
       {
         <Section>
           <DetailHeader Icon="rectangle-horizontal" IconMuted Label="Wool room" />
-          <p class="section-desc">Draw a rectangle over a wool's spawn, or select one to resize it.</p>
+          <EmptyState>No rectangle selected. Draw one around a wool's spawn, or pick one to resize it.</EmptyState>
         </Section>
       }
   </Inspector>

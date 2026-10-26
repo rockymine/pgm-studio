@@ -52,13 +52,13 @@ public sealed class StudioAccess(HttpClient http)
         var caller = await MeAsync();
         if (segments[0] == "maps" && segments.Length >= 3)
             return await MayEditMapAsync(segments[1]) ? null
-                : !caller.SignedIn ? "You are not signed in, so this map opens read-only."
-                : caller.Role is null ? "You are not on this studio's whitelist, so this map opens read-only."
-                : "Only this map's owner, its credited authors, or an admin can change it, so it opens read-only.";
+                : !caller.SignedIn ? "You are not signed in, so this map is read-only."
+                : caller.Role is null ? "You are not on the whitelist, so this map is read-only."
+                : "Only its owner, its authors or an admin can change this map.";
 
         return caller.Role is not null ? null
-            : !caller.SignedIn ? "You are not signed in, so this page opens read-only."
-            : "You are not on this studio's whitelist, so this page opens read-only.";
+            : !caller.SignedIn ? "You are not signed in, so this page is read-only."
+            : "You are not on the whitelist, so this page is read-only.";
     }
 
     /// <summary>
@@ -73,8 +73,8 @@ public sealed class StudioAccess(HttpClient http)
 
         var caller = await MeAsync();
         return caller.Role is not null ? null
-            : !caller.SignedIn ? "Sign in with a whitelisted account to do this."
-            : "Your account is not on this studio's whitelist, so you can only look.";
+            : !caller.SignedIn ? "You are not signed in, so you can only look."
+            : "You are not on the whitelist, so you can only look.";
     }
 
     /// <summary>
@@ -86,7 +86,7 @@ public sealed class StudioAccess(HttpClient http)
     public async Task<string?> DeleteReasonAsync(string path) =>
         await WriteReasonAsync(path)
         ?? (path.Split('?', '#')[0].Trim('/').StartsWith("library", StringComparison.Ordinal) || await IsAdminAsync()
-            ? null : "Only an admin can delete this, because everyone shares it.");
+            ? null : "Only an admin can delete this, because every map shares it.");
 
     /// <summary>
     /// Why asking the server to build something on request (a map's export) is closed, or null where it is
@@ -96,8 +96,8 @@ public sealed class StudioAccess(HttpClient http)
     {
         var caller = await MeAsync();
         return caller.Role is not null ? null
-            : !caller.SignedIn ? "Sign in with a whitelisted account to have the studio build this."
-            : "Your account is not on this studio's whitelist, so you can only look.";
+            : !caller.SignedIn ? "You are not signed in, so the studio cannot build this."
+            : "You are not on the whitelist, so the studio cannot build this.";
     }
 
     private static string[] Segments(string path) =>

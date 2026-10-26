@@ -3,13 +3,13 @@
 
 @* The Terraform phase's left column. Shapes first, because they are what the stack works on: each drawn shape
    with how the modifiers meet it. Then the stack, in the order it runs: each row picks its modifier, switches it
-   off and on, and moves it up or down the order. A modifier is added by tracing its outline or line with its
-   tool in the dock. *@
+   off and on, and moves it up or down the order. A modifier is added by tracing its area with its tool in the
+   dock. *@
 
 <Section Title="Shapes">
   @if (Ground.Count == 0)
   {
-    <p class="section-desc">No shape yet. Draw the ground in the Draw phase.</p>
+    <EmptyState>No shapes yet. Draw the ground in the Draw phase.</EmptyState>
   }
   else
   {
@@ -29,7 +29,7 @@
           else
           {
             <span class="shape-relation">
-              <Select Options="Relations" Value="@shape.ReliefScope" Title="How the modifiers meet this shape"
+              <Select Options="SketchReliefScopes.Ground" Value="@shape.ReliefScope" Title="Set its terraform"
                       ValueChanged="word => Relate(shape.Id, word)" />
             </span>
           }
@@ -42,7 +42,7 @@
 <Section Title="Modifiers">
   @if (State.Modifiers.Count == 0)
   {
-    <p class="section-desc">No modifier yet. Pick one in the dock and drag its outline on the board.</p>
+    <EmptyState>No modifiers yet. Pick one in the dock and trace its area on the canvas.</EmptyState>
   }
   else
   {
@@ -59,10 +59,10 @@
           <span class="geo-type-icon" title="@ModifierOps.Label(SketchModifierState.Op(modifier))"><i data-lucide="@SketchModifierState.Icon(SketchModifierState.Op(modifier))"></i></span>
           <span class="geo-label" title="@SketchModifierState.Name(modifier)">@SketchModifierState.Name(modifier)</span>
           <span class="modifier-row-tools" @onclick:stopPropagation>
-            <Button Variant="icon" Icon="chevron-up" Writes Title="Run earlier" Disabled="@(at == 0)" OnClick="() => Move(id, -1)" />
-            <Button Variant="icon" Icon="chevron-down" Writes Title="Run later" Disabled="@(at == State.Modifiers.Count - 1)" OnClick="() => Move(id, 1)" />
+            <Button Variant="icon" Icon="chevron-up" Writes Title="Move up" Disabled="@(at == 0)" OnClick="() => Move(id, -1)" />
+            <Button Variant="icon" Icon="chevron-down" Writes Title="Move down" Disabled="@(at == State.Modifiers.Count - 1)" OnClick="() => Move(id, 1)" />
             <Button Variant="icon" Icon="eye" Writes Class="@(off ? "modifier-eye--off" : null)"
-                    Title="@(off ? "Switched off: switch on" : "Switch off, keeping its numbers")" OnClick="() => Toggle(id, !off)" />
+                    Title="@(off ? "Switch on" : "Switch off")" OnClick="() => Toggle(id, !off)" />
           </span>
         </div>
       }

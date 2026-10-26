@@ -63,20 +63,20 @@ public partial class HousePartEditor
             if (storey is not null)
             {
                 rows.Add(new EditorPart(WindowsPart, "Windows", "grid",
-                    Badge: WindowForms.Canonical(storey.Windows.Form)));
+                    Badge: WindowForms.Name(storey.Windows.Form)));
             }
             rows.AddRange(Part.Stacked.Select(piece => new EditorPart(
                 piece.Id, piece.Title, "layers",
-                Badge: Courses(piece.Id).Count is var n and > 0 ? $"{n} course{(n == 1 ? "" : "s")}" : "default")));
+                Badge: Courses(piece.Id).Count is var n and > 0 ? $"{n} course{(n == 1 ? "" : "s")}" : "Default")));
             rows.AddRange(Part.Single.Select(piece => new EditorPart(
                 piece.Id, piece.Title, "dot",
-                Badge: Single(piece.Id).Name(styles, blocks) ?? "none")));
+                Badge: Single(piece.Id).Name(styles, blocks) ?? "Default")));
             return rows;
         }
     }
 
-    private string KnobsBadge => roof is not null ? RoofForms.Canonical(roof.Form)
-        : storey is not null ? $"clear {storey.Clear}"
+    private string KnobsBadge => roof is not null ? RoofForms.Name(roof.Form)
+        : storey is not null ? $"{storey.Clear} clear"
         : porch is not null ? $"{porch.Depth} deep"
         : "";
 
@@ -167,10 +167,7 @@ public partial class HousePartEditor
         }
     }
 
-    private const string Unreadable = "Couldn't load this part. Reload the page to try again.";
-
-    /// <summary>What an unbound course says: a part with none keeps the finish the stamper builds in.</summary>
-    private const string Unbound = "None (default finish)";
+    private const string Unreadable = "Couldn't load the part. Reload the page to try again.";
 
     private void Clear() => (roof, storey, porch) = (null, null, null);
 
@@ -263,9 +260,9 @@ public partial class HousePartEditor
     private Task SetOverhang(double value)
         => Roof(r => r with { Overhang = Math.Clamp((int)value, 0, 4) });
 
-    private Task ToggleHole() => Roof(r => r with { RoofHole = !r.RoofHole });
+    private Task SetHole(bool open) => Roof(r => r with { RoofHole = open });
 
-    private Task ToggleRidgeCap() => Roof(r => r with { RidgeCap = !r.RidgeCap });
+    private Task SetRidgeCap(bool capped) => Roof(r => r with { RidgeCap = capped });
 
     /// <summary>Whether the roof climbs half a block at a time. -1 is a roof laid in whole blocks, which is
     /// what a row is until a slab is named.</summary>
@@ -314,7 +311,7 @@ public partial class HousePartEditor
 
     private Task SetPorchRoof(string form) => Porch(porch => porch with { Roof = RoofForms.Canonical(form) });
 
-    private Task ToggleRail() => Porch(p => p with { RailBlock = p.RailBlock > 0 ? 0 : OakFence });
+    private Task SetRail(bool railed) => Porch(p => p with { RailBlock = railed ? (p.RailBlock > 0 ? p.RailBlock : OakFence) : 0 });
 
     private Task PickRailBlock(PaintBlockDto block) => Porch(p => p with { RailBlock = block.Id });
 
@@ -361,11 +358,11 @@ public partial class HousePartEditor
     private async Task Save()
     {
         if (string.IsNullOrWhiteSpace(draftName)) return;
-        if (Draft(draftName.Trim()) is not { } request) { note = "Couldn't save this part. Try again."; return; }
+        if (Draft(draftName.Trim()) is not { } request) { note = "Couldn't save the part. Try again."; return; }
         var saved = editingId is { } id
             ? await Library.UpdateAsync<PartSaved>(Part.Kind, id, request)
             : await Library.CreateAsync<PartSaved>(Part.Kind, request);
-        if (saved is null) { note = "Couldn't save this part. Try again."; return; }
+        if (saved is null) { note = "Couldn't save the part. Try again."; return; }
         note = editingId is null ? "Added to the library." : "Saved.";
         await OnSaved.InvokeAsync("saved");
         if (editingId is null) Nav.NavigateTo($"/library/{Part.Kind.Slug}/{saved.Id}");
@@ -380,7 +377,7 @@ public partial class HousePartEditor
         if (Draft($"{draftName.Trim()} copy") is not { } request
             || await Library.CreateAsync<PartSaved>(Part.Kind, request) is not { } copy)
         {
-            note = "Couldn't save a copy of this part. Try again.";
+            note = "Couldn't save a copy of the part. Try again.";
             return;
         }
         Nav.NavigateTo($"/library/{Part.Kind.Slug}/{copy.Id}");
@@ -397,9 +394,10 @@ public partial class HousePartEditor
         if (editingId is not { } id) return;
         if (await Library.DeleteAsync(Part.Kind, id) is { Deleted: false } refused)
         {
+            var users = string.Join(", ", refused.BoundBy);
             note = refused.BoundBy.Count > 0
-                ? $"Can't delete this part. It is used by {string.Join(", ", refused.BoundBy)}. Remove it there first."
-                : "Couldn't delete this part. Try again.";
+                ? $"Couldn't delete the part while {users} uses it. Unbind it there first."
+                : "Couldn't delete the part. Try again.";
             return;
         }
         Nav.NavigateTo($"/library/{Part.Kind.Slug}");

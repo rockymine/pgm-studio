@@ -62,7 +62,7 @@ async function openPhase(title, { canvas = false } = {}) {
   await page.goto(`${BASE}/maps/${seed.mapSlug}/configure`, { waitUntil: "networkidle", timeout: 30000 });
   await page.waitForSelector(".nav-btn", { timeout: 20000 });
   const regions = canvas ? page.waitForResponse(r => r.url().includes("/regions/tree"), { timeout: 30000 }) : null;
-  await page.click(`.nav-btn[title="${title}"]`);
+  await page.click(`.nav-btn:has(.nav-btn-caption:text-is("${title}"))`);
   await page.waitForSelector(".editor-bar-phase", { timeout: 20000 });
   if (regions) {
     await regions;
@@ -82,7 +82,7 @@ await openPhase("Cores", { canvas: true });
 const phaseTitle = await page.textContent(".editor-bar-phase span");
 checks.add("the Cores phase opens", phaseTitle?.trim() === "Cores", phaseTitle?.trim());
 
-const railTitles = await page.$$eval(".nav-btn", els => els.map(e => e.getAttribute("title")));
+const railTitles = await page.$$eval(".nav-btn .nav-btn-caption", els => els.map(e => e.textContent.trim()));
 checks.add("Wools and Cores are both on the rail", railTitles.includes("Wools") && railTitles.includes("Cores"),
            railTitles.join(" · "));
 
@@ -160,7 +160,7 @@ checks.add("a team's flag says when its team captures", await page.locator(".fie
 await openPhase("Match");
 const matchTitle = await page.textContent(".editor-bar-phase span");
 checks.add("the Match phase opens", matchTitle?.trim() === "Match", matchTitle?.trim());
-const timeBox = await page.inputValue(".workspace input[placeholder='e.g. 10m']");
+const timeBox = await page.inputValue(".workspace .field:has-text('Time limit') input");
 checks.add("the stored time limit is shown", timeBox === "12m", timeBox);
 checks.add("the Match phase raised nothing", featureFaults().length === 0, featureFaults().join(" | "));
 

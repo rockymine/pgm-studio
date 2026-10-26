@@ -2,8 +2,8 @@
 @inject TerrainLibraryClient Library
 @inject NavigationManager Nav
 
-@* One terrain finish, on a page of its own: four buckets bound to saved styles plus the geometry knobs. A
-   theme does not nest and its whole document is fourteen controls, so every bucket is drawn at once rather
+@* One palette, on a page of its own: four parts bound to saved patterns plus the geometry knobs. A
+   palette does not nest and its whole document is fourteen controls, so every bucket is drawn at once rather
    than one at a time; the outline reaches a section instead of choosing which exists. Each bucket carries the
    swatch of what it alone paints, and the picture is the sample plateau the whole composition finishes. *@
 
@@ -17,61 +17,60 @@
   <Fields>
     @* No draft, no fields; and inside that, reading is not refused — the refusal is `note`'s and shows in the
        header. See HouseEditor. *@
-    @if (draft is null) { @if (note is null) { <p class="section-desc">Loading…</p> } }
+    @if (draft is null) { @if (note is null) { <StatusLine /> } }
     else
     {
       @foreach (var bucket in ThemeBucketInfo.All)
       {
         var binding = Binding(bucket.Id);
-        <Section Title="@bucket.Title" Class="@SectionCls(bucket.Id)" id="@LibraryEditor.SectionAnchor(bucket.Id)"
-                 @key="bucket.Id">
+        <Section Title="@bucket.Title" Term="@bucket.Term" Class="@SectionCls(bucket.Id)"
+                 id="@LibraryEditor.SectionAnchor(bucket.Id)" @key="bucket.Id">
           <Actions>
             @if (bucket.CanDisable)
             {
-              @* A bucket switches off whether or not it is bound: a theme needs neither a rim nor a wall, and
+              @* A part switches off whether or not it is bound: a palette needs neither a rim nor a wall, and
                  asking for a material first would be asking which colour the thing you do not want should be. *@
-              <Chip Active="binding.Enabled" OnClick="() => ToggleBucket(bucket.Id)">
-                @(binding.Enabled ? "On" : "Off")
-              </Chip>
+              <Button Variant="icon" Icon="eye" Class="@(binding.Enabled ? null : "modifier-eye--off")"
+                      Title="@(binding.Enabled ? "Switch off" : "Switch on")" OnClick="() => ToggleBucket(bucket.Id)" />
             }
           </Actions>
           <ChildContent>
-            <p class="section-desc">@bucket.Blurb</p>
             @if (binding.Enabled)
             {
               <div class="lib-bucket">
                 <div class="lib-bucket-fields">
-                  <Field Label="Made of">
+                  <Field Label="Material">
                     <SlotSelect Styles="styles" Blocks="blocks" Value="@binding.StyleId" Block="binding.Block"
                                 Unbound="Stone" ValueChanged="fill => Fill(bucket.Id, fill)" />
                   </Field>
                   @if (bucket.HasDepth && IsBound(binding) && binding.Soil is not { Count: > 0 })
                   {
-                    <Field Label="Courses deep">
+                    <Field Label="Depth" Unit="blocks">
                       <NumberField Slim Min="1" Value="binding.Depth" ValueChanged="value => SetDepth(bucket.Id, value)" />
                     </Field>
                   }
                   @if (bucket.Id == ThemeBuckets.Surface && IsBound(binding))
                   {
-                    <label class="check-row">
-                      <input type="checkbox" checked="@(binding.Soil is { Count: > 0 })" @onchange="e => SetThinning(bucket.Id, e.Value is true)" />
-                      Thins with the slope — steep ground shows the rock under it
-                    </label>
+                    <Field Label="On steep ground" Note="@(binding.Soil is { Count: > 0 } ? "Ground steeper than the last row shows the fill." : null)">
+                      <div class="chip-row">
+                        <Chip Active="@(binding.Soil is not { Count: > 0 })" OnClick="() => SetThinning(bucket.Id, false)">Same depth</Chip>
+                        <Chip Active="@(binding.Soil is { Count: > 0 })" OnClick="() => SetThinning(bucket.Id, true)">Thins out</Chip>
+                      </div>
+                    </Field>
                     @if (binding.Soil is { Count: > 0 } soil)
                     {
                       @for (var index = 0; index < soil.Count; index++)
                       {
                         var at = index;
                         <div class="lib-soil-row">
-                          <Field Label="Under (degrees)">
+                          <Field Label="Under" Unit="°">
                             <NumberField Slim Min="1" Max="90" Value="soil[at].Below" ValueChanged="value => SetSoil(bucket.Id, at, below: (int)value)" />
                           </Field>
-                          <Field Label="Courses">
+                          <Field Label="Depth" Unit="blocks">
                             <NumberField Slim Min="0" Value="soil[at].Depth" ValueChanged="value => SetSoil(bucket.Id, at, depth: (int)value)" />
                           </Field>
                         </div>
                       }
-                      <p class="section-desc">Steeper than the last, no courses: the face is rock.</p>
                     }
                   }
                 </div>
@@ -79,7 +78,7 @@
                    picture the sketch's apply rail shows, answered by the same preview call. *@
                 @if (Swatch(bucket.Id) is { Length: > 0 } swatch)
                 {
-                  <div class="theme-swatch-img lib-bucket-swatch" title="@($"What the {bucket.Title.ToLowerInvariant()} paints on its own")">
+                  <div class="theme-swatch-img lib-bucket-swatch">
                     @((MarkupString)swatch)
                   </div>
                 }
@@ -87,7 +86,7 @@
             }
             else
             {
-              <p class="section-desc">Off. These blocks use @bucket.FallsTo instead.</p>
+              <Readout>Switched off, so @bucket.FallsTo paints these blocks.</Readout>
             }
           </ChildContent>
         </Section>
@@ -95,11 +94,10 @@
 
       @if (CanImport)
       {
-        <Section Title="Start from JSON" Class="lib-section--wide">
-          <p class="section-desc">Paste a palette's JSON. Importing it creates one pattern for each part, so
-            the palette stays editable.</p>
+        <Section Title="JSON import" Class="lib-section--wide"
+                 Description="Paste a palette's JSON. Importing it creates one pattern for each part, so the palette stays editable.">
           <Field Error="@importError">
-            <textarea class="field-input theme-json" spellcheck="false" placeholder="{ &quot;rim&quot;: … }"
+            <textarea class="field-input theme-json" spellcheck="false" placeholder="Palette JSON"
                       @bind="importJson"></textarea>
           </Field>
           <div class="panel-actions">
@@ -112,23 +110,24 @@
       }
 
       <Section Title="Ground and edges" Class="@($"{SectionCls(GroundPart)} lib-section--wide")"
-               id="@LibraryEditor.SectionAnchor(GroundPart)">
-        <p class="section-desc">How deep the paint goes, and where the rim and wall are painted.</p>
+               id="@LibraryEditor.SectionAnchor(GroundPart)"
+               Description="How deep the paint goes, and where the rim and wall are painted.">
         <div class="lib-knobs">
-          <Field Label="Bedrock floor">
+          <Field Label="Bedrock floor" Unit="blocks">
             <div class="panel-actions">
               <Select Options="BedrockModes" Value="@BedrockMode" ValueChanged="SetBedrockMode" />
               <NumberField Slim Min="0" Value="draft.BedrockValue" ValueChanged="SetBedrockValue" />
             </div>
           </Field>
-          <Field Label="Where the rim runs">
-            <Select Options="@Select.Words(RimEdgeModes.All, RimEdgeModes.LabelOf)"
+          <Field Label="Rim edges">
+            <Select Options="@Select.Words(RimEdgeModes.All, RimEdgeModes.Name, RimEdgeModes.Describe)"
                     Value="@draft.RimEdges" ValueChanged="SetRimEdges" />
           </Field>
-          <Field Label="Where the wall runs">
-            <Chip Active="draft.WallOnTerrainFaces" OnClick="ToggleWallFaces">
-              @(draft.WallOnTerrainFaces ? "Faces toward terrain or void" : "Only faces toward the void")
-            </Chip>
+          <Field Label="Wall faces">
+            <div class="chip-row">
+              <Chip Active="@(!draft.WallOnTerrainFaces)" OnClick="() => SetWallFaces(false)">Void only</Chip>
+              <Chip Active="draft.WallOnTerrainFaces" OnClick="() => SetWallFaces(true)">Ground and void</Chip>
+            </div>
           </Field>
         </div>
       </Section>

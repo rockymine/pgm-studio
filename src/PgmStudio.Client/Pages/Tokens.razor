@@ -5,7 +5,7 @@
 
 @* The tokens that sign in as the person looking: for an agent or a script that drives the studio over HTTP
    without a browser. A token is shown once, when it is issued; the list says what each is for and when it was
-   last used, and revokes it. *@
+   last used, and deletes it. *@
 
 <StudioShell>
   <Bar>
@@ -21,52 +21,51 @@
         </PageHeading>
         @if (me is null)
         {
-          <div class="list-empty">Loading…</div>
+          <StatusLine />
         }
         else if (me.Mode == AccessModes.Open)
         {
           <div class="callout">
             <span class="callout-icon"><i data-lucide="shield"></i></span>
-            <p>This studio is open to everyone as an admin, so no token is needed.</p>
+            <p>This studio is open, so everyone is an admin and needs no token.</p>
           </div>
         }
         else if (me.Role is null)
         {
           <div class="callout">
             <span class="callout-icon"><i data-lucide="shield"></i></span>
-            <p>Sign in with a whitelisted account to issue a token.</p>
+            <p>@(me.SignedIn ? "You are not on the whitelist, so you cannot issue a token." : "You are not signed in, so you cannot issue a token.")</p>
           </div>
         }
         else
         {
-          <Section Title="Issue a token">
-            <Description>
-              A token lets a script or an agent use this studio as @me.Name, with your role. Keep it secret, and
-              revoke it when it is no longer needed.
-            </Description>
+          <Section Title="New token" Description="Keep a token secret, and delete it when it is no longer needed.">
             <ChildContent>
-              <div class="invite-link">
-                <input class="field-input" placeholder="e.g. Build server" maxlength="100"
-                       @bind="label" @bind:event="oninput" />
-                <Button Variant="primary" Icon="shield-check" OnClick="IssueAsync" Busy="issuing" BusyLabel="Issuing…">Issue</Button>
-              </div>
+              <Field Label="Name">
+                <div class="invite-link">
+                  <input class="field-input" maxlength="100" aria-label="Name" @bind="label" @bind:event="oninput" />
+                  <Button Variant="primary" Icon="shield-check" OnClick="IssueAsync" Busy="issuing" BusyLabel="Creating…">Create</Button>
+                </div>
+              </Field>
               @if (me.Role == StudioRoles.Admin)
               {
                 <label class="check-row">
                   <input type="checkbox" checked="@notes" @onchange="e => notes = e.Value is true" />
-                  May read and answer map notes
+                  Access to map notes
                 </label>
               }
-              @if (error is not null) { <div class="field-error">@error</div> }
+              @if (error is not null) { <Field Error="@error" /> }
               @if (issued is not null)
               {
-                <div class="invite-link">
-                  <input class="field-input" readonly value="@issued.Token" />
-                  <Button Icon="copy" OnClick="() => CopyAsync(issued.Token)">@(copied ? "Copied" : "Copy")</Button>
-                </div>
-                <p class="section-desc">
-                  Copy it now. It is not shown again. Send it as <code>Authorization: Bearer &lt;token&gt;</code>, or
-                  set <code>PGM_STUDIO_TOKEN</code> and <code>PGM_STUDIO_API=@ApiRoot</code> for the mapgen tools.
+                <Field Note="Copy it now, as it is not shown again.">
+                  <div class="invite-link">
+                    <input class="field-input" readonly value="@issued.Token" aria-label="Token" />
+                    <Button Icon="copy" OnClick="() => CopyAsync(issued.Token)">@(copied ? "Copied" : "Copy")</Button>
+                  </div>
+                </Field>
+                <p class="text-xs text-muted">
+                  Send it as <code>Authorization: Bearer &lt;token&gt;</code>, or set <code>PGM_STUDIO_TOKEN</code> and
+                  <code>PGM_STUDIO_API</code> to <code>@ApiRoot</code> for the mapgen tools.
                 </p>
               }
             </ChildContent>
@@ -76,8 +75,8 @@
             <Actions><Badge Kind="dim">@(tokens?.Count ?? 0)</Badge></Actions>
             <ChildContent>
               <div class="panel-list panel-list--separated">
-                @if (tokens is null) { <div class="list-empty">Loading…</div> }
-                else if (tokens.Count == 0) { <div class="list-empty">No tokens yet.</div> }
+                @if (tokens is null) { <StatusLine /> }
+                else if (tokens.Count == 0) { <EmptyState>No tokens yet. Create one above.</EmptyState> }
                 else
                 {
                   @foreach (var token in tokens)
@@ -85,12 +84,12 @@
                     <ListRow @key="token.Id">
                       <ChildContent>
                         <span class="list-label">@token.Label</span>
-                        @if (token.Notes) { <Badge Kind="neutral">notes</Badge> }
-                        <span class="list-tag">issued @token.IssuedAt.ToLocalTime().ToString("dd.MM.yyyy")</span>
+                        @if (token.Notes) { <Badge Kind="neutral">Notes</Badge> }
+                        <span class="list-tag">Issued @token.IssuedAt.ToLocalTime().ToString("dd.MM.yyyy")</span>
                         <span class="list-tag">@LastUse(token)</span>
                       </ChildContent>
                       <Trailing>
-                        <Button Variant="icon" Icon="trash-2" Title="Revoke" OnClick="() => RevokeAsync(token)" />
+                        <Button Variant="icon" Icon="trash-2" Title="Delete this token" OnClick="() => RevokeAsync(token)" />
                       </Trailing>
                     </ListRow>
                   }

@@ -15,7 +15,7 @@ export const LINE_WIDTH = 6;
  * a `line` is an open run with a width. The words mirror `PgmStudio.Vocabulary.ModifierOps`.
  */
 export const MODIFIER_OPS = [
-  { op: "mound", label: "Hill", trace: "ring" },
+  { op: "mound", label: "Mound", trace: "ring" },
   { op: "crater", label: "Hollow", trace: "ring" },
   { op: "level", label: "Level", trace: "ring" },
   { op: "butte", label: "Butte", trace: "ring" },

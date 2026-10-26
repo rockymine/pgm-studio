@@ -1,24 +1,23 @@
 @namespace PgmStudio.Client.Features.Sketch
 @using PgmStudio.Vocabulary
 
-@* The picked modifier: what it does, its numbers, and the areas of its mask. Every field writes through the
-   bridge, so each change is one undo step and the board's contours, paint and 3-D answer it. *@
+@* The picked modifier: what it does, its numbers, and its area. Every field writes through the bridge, so each
+   change is one undo step and the canvas's contours, paint and 3-D answer it. *@
 
 <Inspector>
   <DetailHeader Icon="@SketchModifierState.Icon(Op)" Label="@ModifierOps.Label(Op)">
     <span class="detail-header-badges">
       @* On and off is the list row's eye, and the same eye here: one switch, wherever the modifier is seen. *@
       <Button Variant="icon" Icon="eye" Writes Class="@(SketchModifierState.Off(Modifier) ? "modifier-eye--off" : null)"
-              Title="@(SketchModifierState.Off(Modifier) ? "Switched off: switch on" : "Switch off, keeping its numbers")"
+              Title="@(SketchModifierState.Off(Modifier) ? "Switch on" : "Switch off")"
               OnClick="() => SetBool(Off, !SketchModifierState.Off(Modifier))" />
-      <Button Variant="icon" Icon="x" Title="Done: show the terraform marks" OnClick="Close" />
+      <Button Variant="icon" Icon="x" Title="Close" OnClick="Close" />
     </span>
   </DetailHeader>
-  <Section>
-    <p class="section-desc">@SketchModifierState.Blurb(Op)</p>
+  <Section Description="@SketchModifierState.Blurb(Op)">
     @if (Changed is { } columns && !ModifierOps.Carves(Op))
     {
-      <p class="inspector-readout">@ChangedLine(columns)</p>
+      <Readout>@ChangedLine(columns)</Readout>
     }
     <Field Label="Name">
       <input class="field-input" value="@(Modifier["name"]?.GetValue<string>() ?? "")" placeholder="@Id"
@@ -32,173 +31,143 @@
   @switch (Op)
   {
     case ModifierOps.Mound:
-      @NumberRow("Rise", Rise, 8, "blocks at its deepest point; negative with Cut sinks a dish")
-      @NumberRow("Shoulder", Power, 1.6, "above 1 it holds full height further out", min: 0.1)
-      @NumberRow("Join", Join, 0, "0 keeps the higher of two areas; above, they melt into a ridge", min: 0)
+      @NumberRow("Rise", Rise, 8, unit: "blocks")
+      @NumberRow("Shoulder", Power, 1.6, help: ShoulderHelp, min: 0.1)
+      @NumberRow("Join", Join, 0, help: JoinHelp, min: 0)
       break;
     case ModifierOps.Crater:
-      @NumberRow("Floor", Floor, 0, "the world y of its floor")
-      @NumberRow("Flat floor", Flat, 0, "blocks out from its middle", min: 0)
-      @NumberRow("Wall slope", Slope, 1, "blocks up per block out", min: 0)
-      @NumberRow("Melt", Melt, 0, "blocks over which its rim rounds into the ground", min: 0)
-      @NumberRow("Join", Join, 0, "how overlapping areas add up", min: 0)
+      @NumberRow("Floor", Floor, 0, unit: "world y")
+      @NumberRow("Flat floor", Flat, 0, unit: "blocks", help: "Measured out from the centre of its area.", min: 0)
+      @NumberRow("Wall grade", Slope, 1, help: "Blocks it climbs for each block out from its floor.", min: 0)
+      @NumberRow("Skirt", Melt, 0, unit: "blocks", term: "skirt", min: 0)
+      @NumberRow("Join", Join, 0, help: JoinHelp, min: 0)
       break;
     case ModifierOps.Level:
-      @NumberRow("Height", Top, null, "the world y it holds", empty: "the median height of the ground in its area")
-      @NumberRow("Flat out to", Inner, 1, "1 is the mask's rim", min: 0)
-      @NumberRow("Skirt out to", Outer, 1.5, "where it has eased back to the ground", min: 0)
+      @NumberRow("Top", Top, null, unit: "world y", note: "Auto: the median ground in its area.")
+      @NumberRow("Flat out to", Inner, 1, help: "How far out it holds its height, where 1 is the edge of its area.", min: 0)
+      @NumberRow("Eases out to", Outer, 1.5, help: "How far out it has eased back into the ground, where 1 is the edge of its area.", min: 0)
       break;
     case ModifierOps.Ridge:
-      @NumberRow("Rise", Rise, 8, "blocks at the crest", step: "0.5")
-      @NumberRow("Wander", Wander, 2, "how far noise pushes the foot off the line", min: 0, step: "0.5")
+      @NumberRow("Rise", Rise, 8, unit: "blocks", step: "0.5")
+      @NumberRow("Foot wander", Wander, 2, unit: "blocks", min: 0, step: "0.5")
       break;
     case ModifierOps.Butte:
-      @NumberRow("Top", Top, null, "the world y of its flat top", empty: "the median ground plus 12")
-      @NumberRow("Cliff", Cliff, 1.5, "blocks over which its face drops", min: 0, step: "0.5")
-      @NumberRow("Talus", Talus, 6, "blocks of loose slope at its foot", min: 0)
-      @NumberRow("Apron", Apron, 0.3, "how much of the face's height the talus keeps", min: 0, max: 1, step: "0.05")
-      @NumberRow("Jag", Jag, 0.12, "how ragged the edge is", min: 0, step: "0.01")
+      @NumberRow("Top", Top, null, unit: "world y", note: "Auto: the median ground plus 12.")
+      @NumberRow("Face width", Cliff, 1.5, unit: "blocks", min: 0, step: "0.5")
+      @NumberRow("Talus", Talus, 6, unit: "blocks", help: TalusHelp, min: 0)
+      @NumberRow("Apron", Apron, 0.3, help: ApronHelp, min: 0, max: 1, step: "0.05")
+      @NumberRow("Raggedness", Jag, 0.12, min: 0, step: "0.01")
       break;
     case ModifierOps.Spire:
-      @NumberRow("Top", Top, null, "the world y of its tip", empty: "the median ground plus 20")
-      @NumberRow("Taper", Taper, 1.6, "above 1 it narrows faster toward the tip", min: 0.1, step: "0.1")
-      @NumberRow("Jag", Jag, 0.15, "how ragged the flanks are", min: 0, step: "0.01")
+      @NumberRow("Top", Top, null, unit: "world y", note: "Auto: the median ground plus 20.")
+      @NumberRow("Taper", Taper, 1.6, help: "Above 1 it narrows faster toward its tip.", min: 0.1, step: "0.1")
+      @NumberRow("Raggedness", Jag, 0.15, min: 0, step: "0.01")
       break;
     case ModifierOps.Scarp:
-      @NumberRow("Height", Height, 6, "blocks the raised side stands above the other")
-      <Field Label="Raised side" Hint="walking along the line as it was traced">
+      @NumberRow("Height", Height, 6, unit: "blocks")
+      <Field Label="Raised side" Note="@SideNote">
         <ChildContent>
           <Select Slim="false" Options="Sides" Value="@(Number(Modifier, Side) == -1 ? "-1" : "1")"
                   ValueChanged="SetSide" />
         </ChildContent>
       </Field>
-      @NumberRow("Cliff", Cliff, 2, "blocks over which the face rises", min: 0, step: "0.5")
-      @NumberRow("Talus", Talus, 5, "blocks of loose slope below the face", min: 0)
+      @NumberRow("Face width", Cliff, 2, unit: "blocks", min: 0, step: "0.5")
+      @NumberRow("Talus", Talus, 5, unit: "blocks", help: TalusHelp, min: 0)
       break;
     case ModifierOps.Canyon:
-      @NumberRow("Depth", Depth, 12, "blocks below the ground it cuts", min: 0)
-      @NumberRow("Floor share", Bed, 0.35, "the share of the width that is flat floor", min: 0, max: 1, step: "0.05")
-      @NumberRow("Wall", Wall, 2.5, "how steep the walls are", min: 0.1, step: "0.1")
-      @NumberRow("Ledges", Ledges, 0, "steps cut into the walls", min: 0, max: 6)
+      @NumberRow("Depth", Depth, 12, unit: "blocks", min: 0)
+      @NumberRow("Floor share", Bed, 0.35, help: "The share of its width that is flat floor.", min: 0, max: 1, step: "0.05")
+      @NumberRow("Wall steepness", Wall, 2.5, min: 0.1, step: "0.1")
+      @NumberRow("Ledges", Ledges, 0, min: 0, max: 6)
       break;
     case ModifierOps.River:
-      @NumberRow("Bed depth", Depth, 2, "blocks the bed is cut below the ground", min: 0, step: "0.5")
-      @NumberRow("Water depth", Water, 1, "blocks of water standing in the bed", min: 0, step: "0.5")
-      @NumberRow("Bank", Bank, 4, "blocks over which the banks ease back into the ground", min: 0)
+      @NumberRow("Bed depth", Depth, 2, unit: "blocks", min: 0, step: "0.5")
+      @NumberRow("Water depth", Water, 1, unit: "blocks", min: 0, step: "0.5")
+      @NumberRow("Skirt", Bank, 4, unit: "blocks", term: "skirt", min: 0)
       @BedRow
       break;
     case ModifierOps.Lake:
-      @NumberRow("Level", Level, null, "the world y of the water surface", empty: "one below the ground nine tenths of its rim stands above")
-      @NumberRow("Depth", Depth, 3, "blocks the basin is cut below the surface", min: 0, step: "0.5")
-      @NumberRow("Shore", Shore, 3, "blocks over which the shore eases into the ground", min: 0)
+      @NumberRow("Water level", Level, null, unit: "world y", note: WaterLevelNote)
+      @NumberRow("Depth", Depth, 3, unit: "blocks", min: 0, step: "0.5")
+      @NumberRow("Skirt", Shore, 3, unit: "blocks", term: "skirt", min: 0)
       @BedRow
       break;
     case ModifierOps.Road:
-      @NumberRow("Grade", Grade, 0.25, "the most it may climb per block along its run", min: 0, step: "0.05")
-      @NumberRow("Shoulder", Shoulder, 4, "blocks over which its edges ease into the slope", min: 0)
+      @NumberRow("Grade", Grade, 0.25, help: "The most it climbs for each block along its run.", min: 0, step: "0.05")
+      @NumberRow("Skirt", Shoulder, 4, unit: "blocks", term: "skirt", min: 0)
       break;
     case ModifierOps.Gullies:
-      @NumberRow("Count", Count, 8, "how many channels", min: 1, max: 64)
-      @NumberRow("Depth", Depth, 3, "blocks each is cut", min: 0, step: "0.5")
-      @NumberRow("Wander", Wander, 0.9, "how much each meanders as it falls", min: 0, step: "0.1")
-      @NumberRow("Sharpness", Sharpness, 3, "how narrow and steep their sides are", min: 0.1, step: "0.1")
+      @NumberRow("Count", Count, 8, min: 1, max: 64)
+      @NumberRow("Depth", Depth, 3, unit: "blocks", min: 0, step: "0.5")
+      @NumberRow("Meander", Wander, 0.9, min: 0, step: "0.1")
+      @NumberRow("Sharpness", Sharpness, 3, help: "Higher makes their sides narrower and steeper.", min: 0.1, step: "0.1")
       break;
     case ModifierOps.Warp:
-      @NumberRow("Amount", Amount, 6, "blocks the ground is shifted by", min: 0, step: "0.5")
-      @NumberRow("Cell", Cell, 24, "the size of the noise that shifts it", min: 1)
+      @NumberRow("Shift", Amount, 6, unit: "blocks", min: 0, step: "0.5")
+      @NumberRow("Patch size", Cell, 24, unit: "blocks", min: 1)
       break;
     case ModifierOps.Profile:
-      @NumberRow("Floor", Floor, null, "the world y of a flat floor", empty: "no flat floor; it follows the ground")
-      <Field Label="Shaped side" Hint="walking along the line as it was traced">
+      @NumberRow("Floor", Floor, null, unit: "world y", note: "Auto: no flat floor, so it follows the ground.")
+      <Field Label="Shaped side" Note="@SideNote">
         <ChildContent>
           <Select Slim="false" Options="ProfileSides" Value="@(Number(Modifier, Side) is { } hand ? (hand < 0 ? "-1" : "1") : "")"
                   ValueChanged="SetProfileSide" />
         </ChildContent>
       </Field>
-      @NumberRow("Jag", Jag, 1.5, "blocks each step's edge wanders in and out", min: 0, step: "0.5")
-      @NumberRow("Talus", Talus, 0, "blocks of slope banked against the first cliff", min: 0)
-      @NumberRow("Apron", Apron, 0.3, "how much of the first step the talus climbs", min: 0, max: 1, step: "0.05")
-      <div class="section-header section-header--ruled"><h2 class="section-title">Steps</h2></div>
-      <p class="section-desc">Out from the line: where each cliff starts and ends, in blocks, and how far over the floor it climbs.</p>
-      @for (var index = 0; index < Steps.Count; index++)
-      {
-        var at = index;
-        var step = Steps[at];
-        <div class="modifier-size">
-          <Field Label="Start"><NumberField Value="Number(step, Start)" ValueChanged="v => SetStep(at, Start, v)" Min="0" /></Field>
-          <Field Label="End"><NumberField Value="Number(step, End)" ValueChanged="v => SetStep(at, End, v)" Min="0" /></Field>
-          <Field Label="Rise"><NumberField Value="Number(step, Rise)" ValueChanged="v => SetStep(at, Rise, v)" /></Field>
-          <Button Variant="icon" Icon="trash-2" Writes Title="Remove this step" Disabled="@(Steps.Count == 1)" OnClick="() => RemoveStep(at)" />
-        </div>
-      }
-      <Button Icon="plus" Writes OnClick="AddStep">Add a step</Button>
+      @NumberRow("Edge wander", Jag, 1.5, unit: "blocks", min: 0, step: "0.5")
+      @NumberRow("Talus", Talus, 0, unit: "blocks", help: TalusHelp, min: 0)
+      @NumberRow("Apron", Apron, 0.3, help: ApronHelp, min: 0, max: 1, step: "0.05")
       break;
     case ModifierOps.Coast:
-      @NumberRow("Sea level", Level, null, "the world y of the sea", empty: "one below the ground nine tenths of its rim stands above")
-      @NumberRow("Shelf", Shelf, 10, "blocks inland over which the land eases down to the beach", min: 1)
-      @NumberRow("Depth", Depth, 6, "the deepest the sea floor lies under the surface", min: 0, step: "0.5")
-      @NumberRow("Floor slope", Slope, 0.35, "blocks the floor falls per block out from the shore", min: 0, step: "0.05")
+      @NumberRow("Sea level", Level, null, unit: "world y", note: WaterLevelNote)
+      @NumberRow("Skirt", Shelf, 10, unit: "blocks", term: "skirt", min: 1)
+      @NumberRow("Depth", Depth, 6, unit: "blocks", min: 0, step: "0.5")
+      @NumberRow("Floor grade", Slope, 0.35, help: "Blocks the sea floor falls for each block out from the shore.", min: 0, step: "0.05")
       @BedRow
       break;
     case ModifierOps.Lumps:
-      @NumberRow("Count", Count, 12, "how many are strewn; one whose middle misses the mask is not placed", min: 1, max: 200)
-      @RangeRow("Length", Across, 6, 16, "blocks along the long axis, least to most", min: 1)
-      @RangeRow("Height", Heights, 2, 5, "blocks high, least to most", min: 0)
-      @RangeRow("Width share", Stretch, 0.5, 1, "the short axis as a share of the long", min: 0.05, max: 1, step: "0.05")
-      @NumberRow("Heading", Angle, null, "degrees they line up along", empty: "each turned at random")
-      @NumberRow("Jag", Jag, 0.25, "how ragged each foot is", min: 0, step: "0.05")
-      @NumberRow("Shoulder", Power, 1.8, "above 1 each holds its height further out", min: 0.1, step: "0.1")
+      @NumberRow("Count", Count, 12, min: 1, max: 200)
+      @RangeRow("Length range", Across, 6, 16, unit: "blocks", min: 1)
+      @RangeRow("Height range", Heights, 2, 5, unit: "blocks", min: 0)
+      @RangeRow("Width share range", Stretch, 0.5, 1, help: "Its short axis as a share of its long one.", min: 0.05, max: 1, step: "0.05")
+      @NumberRow("Heading", Angle, null, unit: "°", note: "Auto: each is turned at random.")
+      @NumberRow("Raggedness", Jag, 0.25, min: 0, step: "0.05")
+      @NumberRow("Shoulder", Power, 1.8, help: ShoulderHelp, min: 0.1, step: "0.1")
       break;
     case ModifierOps.Shatter:
-      @NumberRow("Piece size", Cell, 10, "blocks across one piece", min: 2)
-      @NumberRow("Lift", Amount, 3, "the most a piece rises or drops, in blocks", min: 0, step: "0.5")
-      @NumberRow("Tilt", Tilt, 0.25, "the steepest a piece leans, blocks per block", min: 0, step: "0.05")
-      @NumberRow("Cleft", Gap, 1, "blocks either side of a seam cut into a cleft; 0 for none", min: 0, step: "0.5")
-      @NumberRow("Cleft depth", Depth, 4, "how deep the clefts are cut", min: 0, step: "0.5")
-      @NumberRow("Wander", Wander, 3, "how far the seams bend", min: 0, step: "0.5")
+      @NumberRow("Patch size", Cell, 10, unit: "blocks", min: 2)
+      @NumberRow("Lift", Amount, 3, unit: "blocks", help: "The most a patch rises or drops.", min: 0, step: "0.5")
+      @NumberRow("Tilt", Tilt, 0.25, help: "The steepest a patch leans, in blocks for each block across.", min: 0, step: "0.05")
+      @NumberRow("Cleft width", Gap, 1, unit: "blocks", min: 0, step: "0.5")
+      @NumberRow("Cleft depth", Depth, 4, unit: "blocks", min: 0, step: "0.5")
+      @NumberRow("Edge wander", Wander, 3, unit: "blocks", min: 0, step: "0.5")
       break;
     case ModifierOps.Tunnel:
-      @NumberRow("Cover", Cover, 3, "the fewest blocks of roof it keeps; thinner, it is cut open to the sky", min: 0)
-      @NumberRow("Mouth", Mouth, 4, "blocks in from each end it is open to the sky", min: 0)
-      @NumberRow("Sag", Sag, 0, "blocks its floor dips under the straight run between its ends at the middle")
-      @NumberRow("Wander", Wander, 0.2, "how much its width breathes along the run", min: 0, max: 1, step: "0.05")
-      <p class="section-desc">Each end's floor is the ground there; a point may state its own floor as a third number.</p>
-      @DressRow
+      @NumberRow("Cover", Cover, 3, unit: "blocks", help: CoverHelp, min: 0)
+      @NumberRow("Mouth", Mouth, 4, unit: "blocks", help: "How far in from each end it is open to the sky.", min: 0)
+      @NumberRow("Sag", Sag, 0, unit: "blocks", help: "How far its floor dips at the centre of its run.")
+      @NumberRow("Swell", Wander, 0.2, help: "How much its width swells and narrows along its run.", min: 0, max: 1, step: "0.05")
+      @DecorateRow
       break;
     case ModifierOps.Chamber:
-      @NumberRow("Floor", Floor, null, "the world y of its floor", empty: "its cover and height under the lowest ground")
-      @NumberRow("Height", Height, 6, "blocks its dome stands over the floor at the middle", min: 1)
-      @NumberRow("Cover", Cover, 3, "the fewest blocks of ground kept over it", min: 0)
-      @NumberRow("Jag", Jag, 0.15, "how ragged its wall is", min: 0, step: "0.05")
-      @DressRow
+      @NumberRow("Floor", Floor, null, unit: "world y", note: "Auto: its cover and height below the lowest ground.")
+      @NumberRow("Height", Height, 6, unit: "blocks", min: 1)
+      @NumberRow("Cover", Cover, 3, unit: "blocks", help: CoverHelp, min: 0)
+      @NumberRow("Raggedness", Jag, 0.15, min: 0, step: "0.05")
+      @DecorateRow
       break;
     case ModifierOps.Shaft:
-      @NumberRow("Floor", Floor, null, "the world y of its floor", empty: "sixteen under the lowest ground")
+      @NumberRow("Floor", Floor, null, unit: "world y", note: "Auto: 16 below the lowest ground.")
       <label class="check-row">
         <input type="checkbox" checked="@(Modifier[LadderField]?.GetValue<bool>() != false)"
                @onchange="e => SetBool(LadderField, e.Value is true)" />
-        A ladder up its south wall
+        Ladder up the south wall
       </label>
-      @DressRow
-      break;
-    case ModifierOps.Noise:
-      <div class="section-header section-header--ruled"><h2 class="section-title">Sizes</h2></div>
-      @for (var index = 0; index < Sizes.Count; index++)
-      {
-        var at = index;
-        var size = Sizes[at];
-        <div class="modifier-size">
-          <Field Label="Cell"><NumberField Value="Number(size, Cell)" ValueChanged="v => SetSize(at, Cell, v)" Min="1" /></Field>
-          <Field Label="Octaves"><NumberField Value="Number(size, Octaves)" ValueChanged="v => SetSize(at, Octaves, v)" Min="1" Max="6" /></Field>
-          <Field Label="Rise"><NumberField Value="Number(size, Rise)" ValueChanged="v => SetSize(at, Rise, v)" Step="0.5" /></Field>
-          <Button Variant="icon" Icon="trash-2" Writes Title="Remove this size" Disabled="@(Sizes.Count == 1)" OnClick="() => RemoveSize(at)" />
-        </div>
-      }
-      <Button Icon="plus" Writes OnClick="AddSize">Add a size</Button>
+      @DecorateRow
       break;
   }
 
-  @NumberRow("Soft rim", Soft, 0, "share of the area over which the change fades in; 0 is a hard edge", min: 0, max: 1, step: "0.05")
+  @NumberRow("Soft rim", Soft, 0, term: "soft rim", min: 0, max: 1, step: "0.05")
   @if (Op != ModifierOps.Level)
   {
     <Field Label="Mode" Half>
@@ -209,14 +178,49 @@
   </div>
   </Section>
 
-  <Section Title="Area" HelpTitle="What the area is">
-    <Help>Where on the board this modifier acts: the outlines and lines traced for it. It changes the ground inside
-      them and nowhere else. Mirrored, the map's symmetry copies the area to every side.</Help>
-    <ChildContent>
-    <p class="inspector-readout">@AreaLine</p>
-    <label class="check-row" title="The map's symmetry copies this area to every side">
+  @if (Op == ModifierOps.Profile)
+  {
+    <Section Title="Steps" Description="Each step is a face that starts and ends at a distance out from the line and rises over the floor.">
+      @for (var index = 0; index < Steps.Count; index++)
+      {
+        var at = index;
+        var step = Steps[at];
+        <div class="modifier-size">
+          <Field Label="Start" Unit="blocks"><NumberField Value="Number(step, Start)" ValueChanged="v => SetStep(at, Start, v)" Min="0" /></Field>
+          <Field Label="End" Unit="blocks"><NumberField Value="Number(step, End)" ValueChanged="v => SetStep(at, End, v)" Min="0" /></Field>
+          <Field Label="Rise" Unit="blocks"><NumberField Value="Number(step, Rise)" ValueChanged="v => SetStep(at, Rise, v)" /></Field>
+          <Button Variant="icon" Icon="trash-2" Writes Title="Delete this step" Disabled="@(Steps.Count == 1)" OnClick="() => RemoveStep(at)" />
+        </div>
+      }
+      <Button Icon="plus" Writes OnClick="AddStep">Add a step</Button>
+    </Section>
+  }
+
+  @if (Op == ModifierOps.Noise)
+  {
+    <Section Title="Sizes">
+      @for (var index = 0; index < Sizes.Count; index++)
+      {
+        var at = index;
+        var size = Sizes[at];
+        <div class="modifier-size">
+          <Field Label="Patch size" Unit="blocks"><NumberField Value="Number(size, Cell)" ValueChanged="v => SetSize(at, Cell, v)" Min="1" /></Field>
+          <Field Label="Detail" Help="How many finer passes of the noise are added over it."><NumberField Value="Number(size, Octaves)" ValueChanged="v => SetSize(at, Octaves, v)" Min="1" Max="6" /></Field>
+          <Field Label="Rise" Unit="blocks"><NumberField Value="Number(size, Rise)" ValueChanged="v => SetSize(at, Rise, v)" Step="0.5" /></Field>
+          <Button Variant="icon" Icon="trash-2" Writes Title="Delete this size" Disabled="@(Sizes.Count == 1)" OnClick="() => RemoveSize(at)" />
+        </div>
+      }
+      <Button Icon="plus" Writes OnClick="AddSize">Add a size</Button>
+    </Section>
+  }
+
+  @* Where it acts is said once: the glossary's "area" behind the heading, what was traced in the readout, and
+     the one switch for the symmetry. *@
+  <Section Title="Area" Term="area">
+    <Readout>@AreaLine</Readout>
+    <label class="check-row">
       <input type="checkbox" checked="@Mirrored" @onchange="e => SetMirror(e.Value is true)" />
-      Mirrored
+      Make symmetry copies
     </label>
     <div class="field-grid">
       @for (var index = 0; index < Areas.Count; index++)
@@ -224,7 +228,7 @@
         @if (SketchModifierState.IsLine(Areas[index]))
         {
           var at = index;
-          <Field Label="@LineWidthLabel(at)" Hint="blocks" Half>
+          <Field Label="@LineWidthLabel(at)" Unit="blocks" Half>
             <ChildContent>
               <NumberField Value="Number(Areas[at], Width) ?? DefaultLineWidth" ValueChanged="v => SetLineWidth(at, v)" Min="1" />
             </ChildContent>
@@ -232,24 +236,19 @@
         }
       }
     </div>
-    <Button Icon="plus" Writes OnClick="AddOutline"
-            Title="@(HasLine ? "Trace another line on the board; it joins this area" : "Trace another outline on the board; it joins this area")">@(HasLine ? "Add a line" : "Add an outline")</Button>
-    </ChildContent>
+    <Button Icon="plus" Writes OnClick="AddOutline">@(HasLine ? "Add a line" : "Add an outline")</Button>
   </Section>
 
   @if (Leavable.Count > 0)
   {
-    <Section Title="Excluded shapes" HelpTitle="What excluding a shape does">
-      <Help>A ticked shape keeps its ground: this modifier changes nothing over it, even inside its area.</Help>
-      <ChildContent>
-        @foreach (var shape in Leavable)
-        {
-          <label class="check-row" @key="shape.Id">
-            <input type="checkbox" checked="@Leaves.Contains(shape.Id)" @onchange="e => SetLeaves(shape.Id, e.Value is true)" />
-            @ShapeLabel(shape)
-          </label>
-        }
-      </ChildContent>
+    <Section Title="Excluded shapes" Help="A ticked shape keeps its ground, and this modifier changes nothing over it.">
+      @foreach (var shape in Leavable)
+      {
+        <label class="check-row" @key="shape.Id">
+          <input type="checkbox" checked="@Leaves.Contains(shape.Id)" @onchange="e => SetLeaves(shape.Id, e.Value is true)" />
+          @ShapeLabel(shape)
+        </label>
+      }
     </Section>
   }
   @if (!string.IsNullOrEmpty(error))
@@ -260,18 +259,26 @@
 </Inspector>
 
 @code {
-    private RenderFragment DressRow => __builder =>
+    private const string ShoulderHelp = "Above 1 it keeps its full height further out before it falls.";
+    private const string JoinHelp = "How two overlapping areas combine. At 0 the stronger one wins, and above 0 they blend.";
+    private const string TalusHelp = "The loose slope banked at the foot of its face.";
+    private const string ApronHelp = "The share of the face's height the talus climbs.";
+    private const string CoverHelp = "The least ground it keeps over itself.";
+    private const string WaterLevelNote = "Auto: one below the height nine tenths of its edge stands above.";
+    private const string SideNote = "Right and left walking along the line the way it was traced.";
+
+    private RenderFragment DecorateRow => __builder =>
     {
         <label class="check-row">
           <input type="checkbox" checked="@(Modifier[DressField]?.GetValue<bool>() != false)"
                  @onchange="e => SetBool(DressField, e.Value is true)" />
-          Dressed — gravel and clay floors, stalactites, ore in the faces
+          Gravel floors, stalactites and ore
         </label>
     };
 
     private RenderFragment BedRow => __builder =>
     {
-        <Field Label="Bed" Hint="under its water and along its beach; empty is the default bank">
+        <Field Label="Bed" Note="The blocks under its water and along its beach.">
           <ChildContent>
             <SlotSelect Styles="styles" Blocks="blocks" Value="@BedSlot.StyleId" Block="@BedSlot.Block"
                         Unbound="@BedUnbound" ValueChanged="FillBed" />
@@ -279,35 +286,32 @@
         </Field>
     };
 
-    private RenderFragment RangeRow(string label, string field, double least, double most, string hint,
-                                    double? min = null, double? max = null, string step = "1") => __builder =>
+    /// <summary>A stated range of the operation, least then most.</summary>
+    private RenderFragment RangeRow(string label, string field, double least, double most, string? unit = null,
+                                    string? help = null, double? min = null, double? max = null, string step = "1") => __builder =>
     {
         var (low, high) = RangeOf(field, least, most);
-        <Field Label="@label" Hint="@hint">
+        <Field Label="@label" Unit="@unit" Help="@help">
           <ChildContent>
             <div class="modifier-size">
-              <NumberField Value="@low" ValueChanged="v => SetRange(field, v, high)" Min="min" Max="max" Step="@step" />
-              <NumberField Value="@high" ValueChanged="v => SetRange(field, low, v)" Min="min" Max="max" Step="@step" />
+              <NumberField Value="@low" ValueChanged="v => SetRange(field, v, high)" Min="min" Max="max" Step="@step" aria-label="Least" />
+              <NumberField Value="@high" ValueChanged="v => SetRange(field, low, v)" Min="min" Max="max" Step="@step" aria-label="Most" />
             </div>
           </ChildContent>
         </Field>
     };
 
-    /// <summary>One number of the operation. A field that may be left empty states what it takes then
-    /// (<paramref name="empty"/>): it reads *Auto* and says so under the box while empty, and takes the full row so
-    /// that line has room — an empty box that said nothing would leave its value to be guessed.</summary>
-    private RenderFragment NumberRow(string label, string field, double? fallback, string hint,
-                                     double? min = null, double? max = null, string step = "1", string? empty = null) => __builder =>
+    /// <summary>One number of the operation. A field that may be left empty carries a <paramref name="note"/>
+    /// saying what it takes then: it reads *Auto* while empty, and takes the full row so the note has room.</summary>
+    private RenderFragment NumberRow(string label, string field, double? fallback, string? unit = null, string? help = null,
+                                     string? term = null, string? note = null,
+                                     double? min = null, double? max = null, string step = "1") => __builder =>
     {
         var value = Number(Modifier, field) ?? fallback;
-        <Field Label="@label" Hint="@hint" Half="@(empty is null)">
+        <Field Label="@label" Unit="@unit" Help="@help" Term="@term" Note="@note" Half="@(note is null)">
           <ChildContent>
-            <NumberField Value="@value" ValueChanged="v => SetNumber(field, v)" placeholder="@(empty is null ? null : "Auto")"
+            <NumberField Value="@value" ValueChanged="v => SetNumber(field, v)" placeholder="@(note is null ? null : "Auto")"
                          OnCleared="() => Clear(field)" Min="min" Max="max" Step="@step" />
-            @if (empty is not null)
-            {
-              <p class="field-note">@(value is null ? $"Auto: {empty}." : $"Clear it for auto: {empty}.")</p>
-            }
           </ChildContent>
         </Field>
     };

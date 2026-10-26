@@ -1,8 +1,8 @@
 @namespace PgmStudio.Client.Features.Sketch
 
-@* Every camera the board has, as the canvas draws it: the views kept, then the studio's suggestions. Choosing
+@* Every camera the map has, as the canvas draws it: the views kept, then the studio's suggestions. Choosing
    one picks it up as a press on its camera would. Each row says which one the map's picture is drawn from and
-   makes another one it, and a kept view the author placed can be removed; the board's own straight-down view
+   makes another one it, and a kept view the author placed can be removed; the map's own straight-down view
    cannot. *@
 
 <Section Title="Kept views">
@@ -40,20 +40,20 @@
             <span class="list-row__text">
               <span class="list-label" title="@view.Name">@view.Name</span>
               <span class="list-row__meta">
-                @if (view.Picture) { <Badge Kind="neutral">map picture</Badge> }
-                <span>looks at @view.LookX, @view.LookZ</span>
+                @if (view.Picture) { <Badge Kind="neutral">Map picture</Badge> }
+                <span>Looks at @view.LookX, @view.LookZ</span>
               </span>
             </span>
           </ChildContent>
           <Trailing>
             @if (!view.Picture)
             {
-              <Button Variant="icon" Icon="image" Title="Use this view for the map's picture (map.png)" Writes
+              <Button Variant="icon" Icon="image" Title="Use for the map picture" Writes
                       Busy="@(busyId == view.Id)" OnClick="() => PictureAsync(view)" />
             }
             @if (view.Kept && !view.Own)
             {
-              <Button Variant="icon" Icon="trash-2" Title="Remove this view" Writes
+              <Button Variant="icon" Icon="trash-2" Title="Delete this view" Writes
                       Busy="@(busyId == view.Id)" OnClick="() => RemoveAsync(view)" />
             }
           </Trailing>

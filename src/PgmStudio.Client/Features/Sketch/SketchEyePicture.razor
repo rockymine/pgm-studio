@@ -89,12 +89,12 @@
                 StateHasChanged();
                 return;
             }
-            if (answer.IsSuccessStatusCode) { why = "The picture couldn't be shown."; return; }
+            if (answer.IsSuccessStatusCode) { why = "Couldn't show the picture. Try again."; return; }
             var refusal = await answer.Content.ReadFromJsonAsync<RefusalDto>();
             why = refusal?.Findings.FirstOrDefault()?.Message is { Length: > 0 } sentence ? sentence
                 : refusal?.Message is { Length: > 0 } message ? message
-                : "Couldn't draw this view.";
+                : "Couldn't draw the view. Try again.";
         }
-        catch { why = "Couldn't reach the studio. Check your connection."; }
+        catch { why = "Couldn't draw the view. Try again."; }
     }
 }

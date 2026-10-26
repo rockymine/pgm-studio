@@ -26,8 +26,7 @@
        style it came from is not something the slot goes on holding. *@
     @if (Styles.Count > 0)
     {
-      <Select Options="@StyleRows" Value="" Placeholder="Fill from a pattern…" @key="filled"
-              Title="Replace this material with a copy of a saved pattern"
+      <Select Options="@StyleRows" Value="" Placeholder="Copy a pattern" @key="filled"
               ValueChanged="FillFromStyle" />
     }
     @* What a kind is belongs beside the control that names it, and only where the material itself is being
@@ -36,13 +35,13 @@
        three-layer voronoi stack unreadable. *@
     @if (!Nested)
     {
-      <HelpMark Open="helpOpen" Title="@($"What a {Schema.NameOf(Kind).ToLowerInvariant()} is")"
+      <HelpMark Open="helpOpen" Title="@($"About {Schema.NameOf(Kind).ToLowerInvariant()}")"
                 OnClick="() => helpOpen = !helpOpen" />
     }
     @HeadExtra
     @if (OnRemove.HasDelegate)
     {
-      <Button Variant="icon" Icon="trash-2" Title="Remove" OnClick="OnRemove" />
+      <Button Variant="icon" Icon="trash-2" Title="Delete this material" OnClick="OnRemove" />
     }
   </div>
 
@@ -60,7 +59,7 @@
          arc says nothing away from a perimeter, one reading inset draws rings and falls back off a footprint. *@
       @if (Schema.ReadsOf(Kind) is { Count: > 0 } reads)
       {
-        <p class="section-desc">Varies with <strong>@string.Join(", ", reads)</strong>.</p>
+        <p>Varies with <strong>@string.Join(", ", reads)</strong>.</p>
       }
       @switch (Kind)
       {
@@ -69,35 +68,28 @@
           break;
 
         case MaterialKind.TeamTint:
-          <p>Uses the owning team's colour, on the same 0–15 scale as wool, so pick a block that comes in
-            colours. Land with no team uses the neutral material.</p>
+          <p>Takes the owning team's colour, so pick a block that comes in the wool colours. Ground with no team
+            takes the neutral material.</p>
           break;
 
         case MaterialKind.Layered:
-          <p>Bands of a set thickness, counted along a distance. <strong>Read along</strong> picks the distance:
-            down from the top of the ground, in from the edge (as rings), or up from a world height.</p>
-          <p><strong>Past the last band</strong> picks whether the last band holds, the bands cycle from the
-            first, or the stack hands over to another material (stone unless you set one).</p>
+          <p>Bands of a set thickness, counted along the distance <strong>Read along</strong> picks.
+            <strong>Past the last band</strong> says what lies beyond them.</p>
           break;
 
         case MaterialKind.Voronoi:
           <p>Cells about one patch size across, shaded in bands from the cell edge inward. The first band draws
-            the grid lines and the last fills the middle.</p>
-          <p>@RiseNote</p>
+            the grid lines and the last fills the centre.</p>
           break;
 
         case MaterialKind.Cell:
-          <p>Patches of one material each. <strong>Jitter</strong> sets how irregular the layout is (0% is a
-            grid, 100% is shards), and <strong>edge wander</strong> sets how many blocks the edges wobble.</p>
-          <p>@RiseNote</p>
+          <p>Patches of one material each, laid on a grid that jitter breaks up.</p>
           break;
 
         case MaterialKind.Noise:
         case MaterialKind.Turbulence:
         case MaterialKind.Electric:
-          <p>@FieldBlurb The stops split it into bands in order, from the lowest values up. More octaves add
-            finer detail.</p>
-          <p>@RiseNote</p>
+          <p>@FieldBlurb The stops split it into bands in order, from the lowest values up.</p>
           break;
 
         case MaterialKind.WallRun:
@@ -106,8 +98,7 @@
           break;
 
         case MaterialKind.WallDiagonal:
-          <p>Wall stripes that lean. Each course moves <strong>slope</strong> cells along: 1 is 45°, larger
-            values are flatter, and negative values lean the other way.</p>
+          <p>Wall stripes that lean, moving <strong>lean</strong> cells along for each course up.</p>
           break;
 
         case MaterialKind.Checker:
@@ -121,9 +112,7 @@
           break;
 
         case MaterialKind.WallFrame:
-          <p>Outlines the wall's top, bottom, and corners, and fills the panel between. <strong>Angle</strong>
-            sets how sharp a turn must be to count as a corner (90° is a right angle), so rounded shapes have
-            no corners.</p>
+          <p>Outlines the wall's top, bottom, and corners, and fills the panel between.</p>
           break;
       }
     </div>
@@ -148,41 +137,45 @@
       case MaterialKind.Layered:
         <div class="material-editor-scalars">
           <Field Label="Read along">
-            <Select Options="@Select.Words(BandAxes.All, BandAxes.Describe)" Value="@Axis" ValueChanged="SetAxis" />
+            <Select Options="@Select.Words(BandAxes.All, BandAxes.Name, BandAxes.Describe)" Value="@Axis" ValueChanged="SetAxis" />
           </Field>
           @if (Axis == BandAxes.Height)
           {
-            <Field Label="@(Follows ? "From" : "From y")">
-              <input class="field-input field-input--slim" type="number" step="1"
-                     title="@(Follows ? "Where the first band sits, in blocks from the followed ground." : "The world height the first band sits at.")"
-                     value="@Int(ThemeFields.From, 0)" @onchange="SetFrom" />
-            </Field>
-            <Field Label="Follow %">
+            @if (Follows)
+            {
+              <Field Label="Offset" Unit="blocks" Help="How far above the followed ground the first band sits.">
+                <input class="field-input field-input--slim" type="number" step="1"
+                       value="@Int(ThemeFields.From, 0)" @onchange="SetFrom" />
+              </Field>
+            }
+            else
+            {
+              <Field Label="Start height" Unit="world y">
+                <input class="field-input field-input--slim" type="number" step="1"
+                       value="@Int(ThemeFields.From, 0)" @onchange="SetFrom" />
+              </Field>
+            }
+            <Field Label="Follow" Unit="%" Help="How closely the bands follow the ground. At 0 they stay level, and at 100 they follow it fully.">
               <input class="field-input field-input--slim" type="number" min="0" max="100" step="5"
-                     title="How closely the bands follow the ground: 0 keeps them level, 100 follows it fully."
                      value="@Int(ThemeFields.Follow, 0)" @onchange="SetFollow" />
             </Field>
             @if (Follows)
             {
-              <Field Label="Reach">
+              <Field Label="Smoothing" Unit="blocks" Help="How far either side the ground is averaged. Small values follow every bump, and large ones only the broad shape.">
                 <input class="field-input field-input--slim" type="number" min="1" max="64" step="1"
-                       title="How many blocks either side the ground is averaged over. Small values follow every bump, and large values follow only the broad shape."
                        value="@Int(ThemeFields.Reach, 16)" @onchange="SetReach" />
               </Field>
             }
-            <Field Label="Dip x">
+            <Field Label="Tilt east" Help="Blocks the bands rise for each block east. At 0.5 they rise one block every two.">
               <input class="field-input field-input--slim" type="number" min="-8" max="8" step="0.05"
-                     title="Blocks the bands rise for each block east. 0.5 lifts them one block every two blocks east."
                      value="@DipAt(0).ToString(System.Globalization.CultureInfo.InvariantCulture)" @onchange="e => SetDip(0, e)" />
             </Field>
-            <Field Label="Dip z">
+            <Field Label="Tilt south" Help="Blocks the bands rise for each block south. At 0.5 they rise one block every two.">
               <input class="field-input field-input--slim" type="number" min="-8" max="8" step="0.05"
-                     title="Blocks the bands rise for each block south."
                      value="@DipAt(1).ToString(System.Globalization.CultureInfo.InvariantCulture)" @onchange="e => SetDip(1, e)" />
             </Field>
-            <Field Label="Fold">
+            <Field Label="Fold" Unit="blocks" Help="How far a slow wave bends the bands up and down, across features about 24 blocks wide.">
               <input class="field-input field-input--slim" type="number" min="0" max="64" step="0.5"
-                     title="How many blocks a slow noise bends the bands up and down, across features about 24 blocks wide."
                      value="@Fold.ToString(System.Globalization.CultureInfo.InvariantCulture)" @onchange="SetFold" />
             </Field>
           }
@@ -193,20 +186,21 @@
                           Node="@layer.Material" OnChanged="Changed" OnRemove="@layer.Remove">
             <HeadExtra>
               <CoordField Prefix="@BandAxes.Extent(Axis)" Type="number" Value="@layer.Extent" OnChange="@layer.SetExtent"
-                          min="1" step="1" title="@($"How many {BandAxes.Extent(Axis).ToLowerInvariant()} this band covers")" />
+                          min="1" step="1" />
             </HeadExtra>
           </MaterialEditor>
         }
         @ListFoot(ThemeFields.StackBands, "Add band")
         <Field Label="Past the last band">
-          <Select Options="@Select.Words(BandEndings.All, BandEndings.Describe)" Value="@Ending" ValueChanged="SetEnding" />
+          <Select Options="@Select.Words(BandEndings.All, BandEndings.Name, BandEndings.Describe)" Value="@Ending" ValueChanged="SetEnding" />
         </Field>
         @if (ShowsBeyond)
         {
-          <Field Label="What shows there">
-            <Chip Active="@JsonEdit.Has(Node, ThemeFields.Beyond)" OnClick="ToggleBeyond">
-              @(JsonEdit.Has(Node, ThemeFields.Beyond) ? "Custom material" : "Stone")
-            </Chip>
+          <Field Label="Beyond the last band">
+            <div class="chip-row">
+              <Chip Active="@(!JsonEdit.Has(Node, ThemeFields.Beyond))" OnClick="() => SetBeyond(false)">Stone</Chip>
+              <Chip Active="@JsonEdit.Has(Node, ThemeFields.Beyond)" OnClick="() => SetBeyond(true)">Another material</Chip>
+            </div>
           </Field>
           @if (JsonEdit.Has(Node, ThemeFields.Beyond))
           {
@@ -218,13 +212,12 @@
 
       case MaterialKind.Voronoi:
         <div class="material-editor-scalars">
-          <Field Label="Patch size">
+          <Field Label="Patch size" Unit="blocks">
             <input class="field-input field-input--slim" type="number" min="1" step="1"
                    value="@Int(ThemeFields.CellSize, 10)" @onchange="SetCellSize" />
           </Field>
-          <Field Label="Rise">
+          <Field Label="Rise" Unit="blocks" Term="rise">
             <input class="field-input field-input--slim" type="number" min="0" step="1"
-                   title="Vertical period in blocks. 0 keeps the pattern flat."
                    value="@Int(ThemeFields.Rise, 0)" @onchange="SetRise" />
           </Field>
         </div>
@@ -235,7 +228,7 @@
                           Node="@band.Material" OnChanged="Changed" OnRemove="@band.Remove">
             <HeadExtra>
               <CoordField Prefix="Blocks" Type="number" Value="@band.Extent" OnChange="@band.SetExtent"
-                          min="1" step="1" title="How many blocks in from the cell edge this band covers" />
+                          min="1" step="1" />
             </HeadExtra>
           </MaterialEditor>
         }
@@ -244,21 +237,20 @@
 
       case MaterialKind.Cell:
         <div class="material-editor-scalars">
-          <Field Label="Patch size">
+          <Field Label="Patch size" Unit="blocks">
             <input class="field-input field-input--slim" type="number" min="1" step="1"
                    value="@Int(ThemeFields.CellSize, 10)" @onchange="SetCellSize" />
           </Field>
-          <Field Label="Jitter %">
+          <Field Label="Jitter" Unit="%" Note="At 0 the patches lie on a grid, and at 100 they are fully irregular.">
             <input class="field-input field-input--slim" type="number" min="0" max="100" step="5"
                    value="@Int(ThemeFields.Jitter, 50)" @onchange="SetJitter" />
           </Field>
-          <Field Label="Edge wander">
+          <Field Label="Edge wander" Unit="blocks" Help="How far the edges between patches stray from straight.">
             <input class="field-input field-input--slim" type="number" min="0" step="1"
                    value="@Int(ThemeFields.Warp, 4)" @onchange="SetWarp" />
           </Field>
-          <Field Label="Rise">
+          <Field Label="Rise" Unit="blocks" Term="rise">
             <input class="field-input field-input--slim" type="number" min="0" step="1"
-                   title="Vertical period in blocks. 0 keeps the pattern flat."
                    value="@Int(ThemeFields.Rise, 0)" @onchange="SetRise" />
           </Field>
         </div>
@@ -275,17 +267,16 @@
       case MaterialKind.Turbulence:
       case MaterialKind.Electric:
         <div class="material-editor-scalars">
-          <Field Label="Scale">
+          <Field Label="Scale" Unit="blocks">
             <input class="field-input field-input--slim" type="number" min="1" step="1"
                    value="@Int(ThemeFields.Scale, 16)" @onchange="SetScale" />
           </Field>
-          <Field Label="Octaves">
+          <Field Label="Octaves" Help="Each octave lays a finer layer of detail over the last.">
             <input class="field-input field-input--slim" type="number" min="1" max="8" step="1"
                    value="@Int(ThemeFields.Octaves, 3)" @onchange="SetOctaves" />
           </Field>
-          <Field Label="Rise">
+          <Field Label="Rise" Unit="blocks" Term="rise">
             <input class="field-input field-input--slim" type="number" min="0" step="1"
-                   title="Vertical period in blocks. 0 keeps the pattern flat."
                    value="@Int(ThemeFields.Rise, 0)" @onchange="SetRise" />
           </Field>
         </div>
@@ -305,7 +296,7 @@
                           Node="@run.Material" OnChanged="Changed" OnRemove="@run.Remove">
             <HeadExtra>
               <CoordField Prefix="Cells" Type="number" Value="@run.Extent" OnChange="@run.SetExtent"
-                          min="1" step="1" title="How many wall cells wide this stripe runs" />
+                          min="1" step="1" />
             </HeadExtra>
           </MaterialEditor>
         }
@@ -314,9 +305,8 @@
 
       case MaterialKind.WallDiagonal:
         <div class="material-editor-scalars">
-          <Field Label="Slope">
+          <Field Label="Lean" Help="Wall cells a stripe moves along for each course up. At 1 it leans 45 degrees, at 0 it runs straight up, and below 0 it leans the other way.">
             <input class="field-input field-input--slim" type="number" step="1"
-                   title="Cells along the wall per course up. 1 is 45°, 0 is a vertical run."
                    value="@Int(ThemeFields.Slope, 1)" @onchange="SetSlope" />
           </Field>
         </div>
@@ -326,7 +316,7 @@
                           Node="@run.Material" OnChanged="Changed" OnRemove="@run.Remove">
             <HeadExtra>
               <CoordField Prefix="Cells" Type="number" Value="@run.Extent" OnChange="@run.SetExtent"
-                          min="1" step="1" title="How many wall cells wide this stripe runs" />
+                          min="1" step="1" />
             </HeadExtra>
           </MaterialEditor>
         }
@@ -335,9 +325,8 @@
 
       case MaterialKind.Checker:
         <div class="material-editor-scalars">
-          <Field Label="Square">
+          <Field Label="Square" Unit="blocks">
             <input class="field-input field-input--slim" type="number" min="1" step="1"
-                   title="The side of one square, in blocks"
                    value="@Int(ThemeFields.Size, 1)" @onchange="SetSize" />
           </Field>
         </div>
@@ -347,9 +336,8 @@
 
       case MaterialKind.LogChecker:
         <div class="material-editor-scalars">
-          <Field Label="Square">
+          <Field Label="Square" Unit="blocks">
             <input class="field-input field-input--slim" type="number" min="1" step="1"
-                   title="The side of one square, in blocks"
                    value="@Int(ThemeFields.Size, 1)" @onchange="SetSize" />
           </Field>
         </div>
@@ -360,14 +348,12 @@
 
       case MaterialKind.WallFrame:
         <div class="material-editor-scalars">
-          <Field Label="Corner angle">
+          <Field Label="Corner angle" Unit="°" Help="How sharply the outline must turn to count as a corner. At 90 only right angles count, so rounded shapes have no corners.">
             <input class="field-input field-input--slim" type="number" min="1" max="180" step="1"
-                   title="How sharply the outline must turn to count as a corner. 90° is a right angle."
                    value="@Int(ThemeFields.Angle, 45)" @onchange="SetAngle" />
           </Field>
-          <Field Label="Courses">
+          <Field Label="Frame thickness" Unit="blocks" Help="How many courses the frame outlines at the top and bottom of the wall.">
             <input class="field-input field-input--slim" type="number" min="1" step="1"
-                   title="Courses outlined at the top and bottom"
                    value="@Int(ThemeFields.Thickness, 1)" @onchange="SetThickness" />
           </Field>
         </div>
@@ -388,8 +374,7 @@
         <Button Icon="plus" OnClick="() => Add(field)">@addLabel</Button>
         @if (Families.Any())
         {
-            <Select Options="@FamilyRows" Value="@MatchedFamily(field)" Placeholder="Fill from a family…"
-                    Title="Fill this list with a family of blocks. Remove any you don't need."
+            <Select Options="@FamilyRows" Value="@MatchedFamily(field)" Placeholder="Fill from family"
                     ValueChanged="family => ApplyFamily(field, family)" />
         }
     </div>;

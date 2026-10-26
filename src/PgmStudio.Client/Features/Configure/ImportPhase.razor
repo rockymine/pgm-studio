@@ -22,17 +22,11 @@
 
         @if (localFolders)
         {
-          <Section Title="World folders">
-            <Actions><Badge Kind="success">No map.xml needed</Badge></Actions>
+          <Section Title="World folders" Description="Worlds with ground but no map.xml yet. Pick one to scan it.">
             <ChildContent>
-            <p class="section-desc">Worlds with terrain but no <code>map.xml</code> yet. Pick one to scan it.</p>
-
             @if (candidates.Count == 0)
             {
-              <p class="panel-empty-msg panel-empty-msg--left">
-                No worlds to import yet. Add a Minecraft world folder that has terrain but no
-                <code>map.xml</code>.
-              </p>
+              <EmptyState>No worlds to import yet. Add a Minecraft world folder with ground but no map.xml.</EmptyState>
             }
             else
             {
@@ -43,33 +37,20 @@
                     <span class="geo-type-icon"><i data-lucide="@(c == selected ? "folder-open" : "folder")"></i></span>
                     <span class="list-label list-label--mono">@c.Folder</span>
                     <span class="list-tag">@c.RegionFiles region files</span>
-                    @if (c == selected) { <Badge Kind="success">Selected</Badge> }
                   </ListRow>
                 }
-              </div>
-            }
-
-            @if (selected is not null)
-            {
-              <div class="section-footer">
-                <span class="panel-save-status">
-                  <code>@selected.Folder</code> · @selected.RegionFiles region files · no <code>map.xml</code>
-                </span>
               </div>
             }
             </ChildContent>
           </Section>
         }
 
-        <Section Title="Download link">
-          <Actions><Badge Kind="dim">Overcast or S3 zip</Badge></Actions>
+        <Section Title="Download link" Description="Paste a link to a zipped world, such as an Overcast download link. Only approved hosts are accepted.">
           <ChildContent>
-          <p class="section-desc">Paste a link to a zipped world, such as an Overcast <code>…/download</code>
-            link. Only approved hosts can be used.</p>
-          <Field Label="Download URL">
+          <Field Label="Link">
             <div class="ctrl-row">
               <input class="field-input" type="text" @bind="urlInput" @bind:event="oninput"
-                     placeholder="https://…/maps/your-world/download" disabled="@importingUrl"
+                     disabled="@importingUrl"
                      @onkeydown="@(e => { if (e.Key == "Enter") _ = ImportFromUrl(); })" />
               <Button Variant="primary" OnClick="ImportFromUrl" Busy="@importingUrl" BusyLabel="Downloading…" Writes
                       Disabled="@(string.IsNullOrWhiteSpace(urlInput))">
@@ -98,7 +79,7 @@
               </ListRow>
               <ListRow Compact Class="list-row--muted">
                 <span class="geo-type-icon"><i data-lucide="box"></i></span>
-                <span class="list-label list-label--mono">region/ · @SourceRegionFiles .mca</span>
+                <span class="list-label">@SourceRegionFiles region files</span>
               </ListRow>
               <ListRow Compact Class="list-row--muted">
                 <span class="geo-type-icon"><i data-lucide="file-x"></i></span>
@@ -119,16 +100,7 @@
                 </ListRow>
               }
             </div>
-            @if (symType is not null)
-            {
-              <p class="section-desc">Symmetry: <Badge Kind="success">@SymmetryInfo.Label(symType)</Badge>.
-                Suggested teams: <Badge Kind="success">@SuggestedTeams</Badge>. You confirm both in the World and
-                Teams phases.</p>
-            }
-            else
-            {
-              <p class="section-desc">No symmetry found. You set up teams in the Teams phase.</p>
-            }
+            <Readout>@SymmetryFound</Readout>
           </Section>
 
           <Section Title="Already built">
@@ -159,12 +131,14 @@
       <div class="sidebar-handle"></div>
 
       <Inspector>
-          <Section @key="selectedFinding">
-            <DetailHeader Icon="@FindingIcon(selectedFinding)" IconMuted Label="@FindingLabel(selectedFinding)">
-              <Badge Kind="dim">@FindingTag(selectedFinding)</Badge>
-            </DetailHeader>
+          <Section @key="selectedFinding" Description="@FindingExplanation(selectedFinding)">
+            <Header>
+              <DetailHeader Icon="@FindingIcon(selectedFinding)" IconMuted Label="@FindingLabel(selectedFinding)">
+                <Badge Kind="dim">@FindingTag(selectedFinding)</Badge>
+              </DetailHeader>
+            </Header>
+            <ChildContent>
             <div class="section-body">
-              <p class="section-desc">@FindingExplanation(selectedFinding)</p>
 
               @if (selectedFinding == "wool" && woolColors.Count > 0)
               {
@@ -210,6 +184,7 @@
                 </Field>
               }
             </div>
+            </ChildContent>
           </Section>
       </Inspector>
 
@@ -221,11 +196,9 @@
   {
     <Workspace @key="step">
       <ContentColumn MaxWidth="920">
-        <Section Title="What happens next">
+        <Section Title="Setup phases" Description="@($"These phases take {importedSlug} from ground to a finished map.xml.")">
           <Actions><Badge Kind="dim">@importedSlug · @islandCount islands@(symType is not null ? $" · {SymmetryInfo.Label(symType)}" : "")</Badge></Actions>
           <ChildContent>
-          <p class="section-desc">These phases take <strong>@importedSlug</strong> from terrain to a finished
-            <code>map.xml</code>.</p>
 
           <div class="card-grid">
             @foreach (var (p, i) in ConfigurePhases.All.Select((p, i) => (p, i)))
@@ -243,8 +216,8 @@
 
           <div class="callout">
             <span class="callout-icon"><i data-lucide="repeat"></i></span>
-            <p><strong>Playability check.</strong> Before export, the studio checks that every team can
-              reach every wool. If a path is missing, export is blocked until you add a bridge in Build.</p>
+            <p><strong>Playability check.</strong> Export stays blocked until every team can reach every wool,
+              so a missing path needs a bridge in Build.</p>
           </div>
 
           </ChildContent>

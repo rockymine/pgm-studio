@@ -69,8 +69,9 @@ public partial class HouseEditor
                     part.Id, part.Title, "layers", Badge: PartBadge(part))),
                 new(TrimPart, "Frame and trim", "dot", Badge: TrimBadge),
                 new(PorchPart, "Porch", "door-open",
-                    Badge: draft.Porch is null ? "none" : PorchEdges.Canonical(draft.Porch.Edge)),
-                new(DoorPart, "Doorway", "door-open", Badge: draft.Door),
+                    Badge: draft.Porch is null ? "None" : PorchEdges.Name(draft.Porch.Edge)),
+                new(DoorPart, "Doorway", "door-open",
+                    Badge: doors.FirstOrDefault(door => door.Slug == draft.Door)?.Label ?? draft.Door),
             ];
             return rows;
         }
@@ -82,15 +83,15 @@ public partial class HouseEditor
         {
             var bound = (draft!.RoofStyleId is not null ? 1 : 0) + (draft.PorchStyleId is not null ? 1 : 0)
                 + (draft.StoreyStack.Count > 0 ? 1 : 0);
-            return bound == 0 ? "none" : $"{bound} set";
+            return bound == 0 ? "None" : $"{bound} set";
         }
     }
 
     private string PartBadge(RoomPartInfo part)
     {
-        if (!part.Stacked) return Single(part.Id).Name(styles, blocks) ?? "default";
+        if (!part.Stacked) return Single(part.Id).Name(styles, blocks) ?? "Default";
         var count = Courses(part.Id).Count;
-        return count == 0 ? "default" : $"{count} course{(count == 1 ? "" : "s")}";
+        return count == 0 ? "Default" : $"{count} course{(count == 1 ? "" : "s")}";
     }
 
     private string TrimBadge
@@ -98,13 +99,13 @@ public partial class HouseEditor
         get
         {
             var bound = RoomPartInfo.Trim.Count(part => Single(part.Id).Bound);
-            return bound == 0 ? "none" : $"{bound} set";
+            return bound == 0 ? "None" : $"{bound} set";
         }
     }
 
     private string Footnote => draft is null
         ? ""
-        : $"{draft.Storeys} storey{(draft.Storeys == 1 ? "" : "s")} · {RoofForms.Canonical(draft.RoofForm)} roof"
+        : $"{draft.Storeys} storey{(draft.Storeys == 1 ? "" : "s")} · {RoofForms.Name(draft.RoofForm).ToLowerInvariant()} roof"
           + $" · door {draft.DoorHeight} tall";
 
     /// <summary>The six lists the editor's pickers are built from, fetched together. None of them feeds
@@ -208,7 +209,7 @@ public partial class HouseEditor
     {
         if (await Library.GetAsync<RoomStyleDetail>(LibraryKinds.Houses, id) is not { } detail)
         {
-            note = "Couldn't load this house. Reload the page to try again.";
+            note = "Couldn't load the house. Reload the page to try again.";
             draft = null;
             return;
         }
@@ -299,9 +300,9 @@ public partial class HouseEditor
     private Task SetOverhang(double value) =>
         Knob(d => d with { Overhang = Math.Clamp((int)value, 0, 4) });
 
-    private Task ToggleHole() => Knob(d => d with { RoofHole = !d.RoofHole });
+    private Task SetHole(bool open) => Knob(d => d with { RoofHole = open });
 
-    private Task ToggleRidgeCap() => Knob(d => d with { RidgeCap = !d.RidgeCap });
+    private Task SetRidgeCap(bool capped) => Knob(d => d with { RidgeCap = capped });
 
     private Task SetBorderWidth(double value) =>
         Knob(d => d with { BorderWidth = Math.Clamp((int)value, 1, 4) });
@@ -327,9 +328,6 @@ public partial class HouseEditor
     /// <summary>The doors a room may be stamped with, as the library serves them.</summary>
     private IReadOnlyList<SelectOption> Doors
         => [.. doors.Select(door => new SelectOption(door.Slug, door.Label))];
-
-    /// <summary>What an unbound course says: a part with none keeps the finish the stamper builds in.</summary>
-    private const string Unbound = "None (default finish)";
 
     /// <summary>Add a storey on top. The stack reads ground-first, so a new one lands at the end — a building
     /// grows upward, and an author adding a floor is adding the one above the last.</summary>
@@ -395,6 +393,9 @@ public partial class HouseEditor
     /// means "the wall height" and an author reading "0 blocks of air" would have to work that out.</summary>
     private int EffectiveClear => Math.Max(3, draft!.StoreyClear > 0 ? draft.StoreyClear : draft.WallHeight);
 
+    /// <summary>Courses of wall the counted storeys spend: each storey's clear, plus one slab between each pair.</summary>
+    private int StoreyCourses => draft!.Storeys * EffectiveClear + draft.Storeys - 1;
+
     // ── the windows ────────────────────────────────────────────────────────────────────────────────
     private RoomWindowDto Windows => draft?.Windows ?? NoWindows;
 
@@ -429,6 +430,9 @@ public partial class HouseEditor
     /// form "none" — the form it would come back at is the one the author last chose.</summary>
     private bool Gabled => draft?.GableWindows is not null;
 
+    /// <summary>Cut windows into the gable or leave it blank; asking for the state it is in changes nothing.</summary>
+    private Task SetGableWindowsOn(bool on) => on == Gabled ? Task.CompletedTask : ToggleGableWindows();
+
     private Task ToggleGableWindows() => Knob(d => d with
     {
         // A gable starts from the wall's own window, because a building whose gable is glazed differently
@@ -442,6 +446,9 @@ public partial class HouseEditor
     /// <summary>Whether the wall is framed. A beam is a log and only a log (<c>HS1</c>), so the frame an
     /// author switches on starts as one rather than as a block the gate would refuse.</summary>
     private bool Beamed => draft?.Beams is not null;
+
+    /// <summary>Frame the wall or not; asking for the state it is in changes nothing.</summary>
+    private Task SetBeams(bool on) => on == Beamed ? Task.CompletedTask : ToggleBeams();
 
     private Task ToggleBeams() => Knob(d => d with
     {
@@ -497,6 +504,9 @@ public partial class HouseEditor
     private static readonly IReadOnlyList<SelectOption> DoorHeadFillOptions =
         [.. DoorHeadFills.All.Select(fill => new SelectOption(fill.Id, fill.Name))];
 
+    /// <summary>Head the doorway or not; asking for the state it is in changes nothing.</summary>
+    private Task SetDoorHeadOn(bool on) => on == Headed ? Task.CompletedTask : ToggleDoorHead();
+
     private Task ToggleDoorHead() => Knob(d => d with
     {
         // Oak stairs over an upside-down oak slab: one material, which is what HS4 asks of the pair.
@@ -524,7 +534,7 @@ public partial class HouseEditor
 
     /// <summary>A porch is present or it is not — an absent one is not a porch of depth nothing, because the
     /// depth it would come back at is the one the author last set.</summary>
-    private Task TogglePorch() => Knob(d => d with { Porch = d.Porch is null ? DefaultPorch : null });
+    private Task SetPorchOn(bool on) => Knob(d => d with { Porch = on ? d.Porch ?? DefaultPorch : null });
 
     private Task SetPorchDepth(double value) =>
         Deck(porch => porch with { Depth = Math.Clamp((int)value, 1, 8) });
@@ -538,8 +548,8 @@ public partial class HouseEditor
 
     private Task PickRailBlock(PaintBlockDto block) => Deck(porch => porch with { RailBlock = block.Id });
 
-    private Task ToggleRail() =>
-        Deck(porch => porch with { RailBlock = porch.RailBlock > 0 ? 0 : DefaultPorch.RailBlock });
+    private Task SetRail(bool railed) =>
+        Deck(porch => porch with { RailBlock = !railed ? 0 : porch.RailBlock > 0 ? porch.RailBlock : DefaultPorch.RailBlock });
 
     private Task Deck(Func<RoomPorchDto, RoomPorchDto> edit)
         => draft?.Porch is { } porch ? Knob(d => d with { Porch = edit(porch) }) : Task.CompletedTask;
@@ -584,7 +594,7 @@ public partial class HouseEditor
         var saved = editingId is { } id
             ? await Library.UpdateAsync<RoomStyleDetail>(LibraryKinds.Houses, id, request)
             : await Library.CreateAsync<RoomStyleDetail>(LibraryKinds.Houses, request);
-        if (saved is null) { note = "Couldn't save this house. Try again."; return; }
+        if (saved is null) { note = "Couldn't save the house. Try again."; return; }
         note = editingId is null ? "Added to the library." : "Saved.";
         await OnSaved.InvokeAsync("saved");
         if (editingId is null) Nav.NavigateTo($"/library/{LibraryKinds.HousesSlug}/{saved.Id}");
@@ -596,7 +606,7 @@ public partial class HouseEditor
         if (draft is null) return;
         var copy = await Library.CreateAsync<RoomStyleDetail>(LibraryKinds.Houses,
             Saveable(draft) with { Name = $"{draftName.Trim()} copy" });
-        if (copy is null) { note = "Couldn't save a copy of this house. Try again."; return; }
+        if (copy is null) { note = "Couldn't save a copy of the house. Try again."; return; }
         Nav.NavigateTo($"/library/{LibraryKinds.HousesSlug}/{copy.Id}");
     }
 

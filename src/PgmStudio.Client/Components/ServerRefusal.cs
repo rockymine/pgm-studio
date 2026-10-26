@@ -15,14 +15,14 @@ namespace PgmStudio.Client.Components;
 public static class ServerRefusal
 {
     /// <summary>The sentence for an unsuccessful response: the findings' own, the gate's label where a route
-    /// answered no findings, and the status where the body is not a refusal at all.</summary>
+    /// answered no findings, and a plain failure where the body is not a refusal at all.</summary>
     public static async Task<string> SentenceAsync(HttpResponseMessage response) => (await ReadAsync(response)).Message;
 
     /// <summary>The whole refusal, its <c>message</c> being the sentence <see cref="SentenceAsync"/> answers and
     /// its findings empty where the body is not a refusal. <paramref name="fallback"/> is the sentence then.</summary>
     public static async Task<RefusalDto> ReadAsync(HttpResponseMessage response, string? fallback = null)
     {
-        fallback ??= $"The server returned an error ({(int)response.StatusCode}). Try again.";
+        fallback ??= "Couldn't complete the request. Try again.";
         try
         {
             var refusal = await response.Content.ReadFromJsonAsync<RefusalDto>();

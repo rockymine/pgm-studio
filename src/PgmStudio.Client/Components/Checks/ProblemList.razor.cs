@@ -103,10 +103,10 @@ public partial class ProblemList
         static string Said(double number) => number.ToString("0.##", CultureInfo.InvariantCulture);
         if (measured is not { Low: { } low, High: { } high })
         {
-            var edge = measured.Low is { } least ? $"At least {Said(least)}" : $"At most {Said(measured.High ?? value)}";
-            return new Reading(Said(value), $"Measured {Said(value)}. {edge}.", null);
+            var edge = measured.Low is { } least ? $"at least {Said(least)}" : $"at most {Said(measured.High ?? value)}";
+            return new Reading(Said(value), $"Measured {Said(value)}. The rule asks for {edge}.", null);
         }
-        var sentence = $"Measured {Said(value)}. Usually {Said(low)} to {Said(high)}, as the rule states it.";
+        var sentence = $"Measured {Said(value)}. The rule asks for between {Said(low)} and {Said(high)}.";
         var max = Math.Max(high * 1.6, value * 1.15);
         var bar = low < 0 || max <= 0 ? null
             : new Bar(low / max * 100, Math.Max(1.5, (high - low) / max * 100), Math.Min(100, value / max * 100));

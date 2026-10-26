@@ -24,12 +24,20 @@ public static class BiomeKinds
     /// <summary>The three, in the order a control offers them.</summary>
     public static readonly string[] All = [Solid, Cell, Noise];
 
-    /// <summary>What a kind does, in one sentence — what a picker reads under the word.</summary>
+    /// <summary>The name a picker offers each kind under.</summary>
+    public static string Name(string? kind) => Canonical(kind) switch
+    {
+        Cell => "Patches",
+        Noise => "Blended",
+        _ => "One biome",
+    };
+
+    /// <summary>What a kind does, in one sentence — what a picker reads under the name.</summary>
     public static string Describe(string? kind) => Canonical(kind) switch
     {
-        Cell => "Jittered regions, each taking one biome from the palette — the shape a biome map actually has",
-        Noise => "A field cut into bands, one biome per band, so regions wander into one another",
-        _ => "One biome over the whole area",
+        Cell => "Jittered patches, each taking one biome from the list.",
+        Noise => "Regions that drift into one another, one biome each.",
+        _ => "One biome over the whole area.",
     };
 
     /// <summary>The word, or <see cref="Solid"/> for one that is not a kind — the plainest field, and what an

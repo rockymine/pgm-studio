@@ -15,7 +15,7 @@
         @if (me.Mode == AccessModes.Open)
         {
             <button type="button" class="account-button account-local" aria-haspopup="menu" aria-expanded="@(open ? "true" : "false")"
-                    title="This studio is open. Everyone using it is an admin." @onclick="() => open = !open">
+                    @onclick="() => open = !open">
                 local <span class="account-role">admin</span>
                 <i data-lucide="chevron-down"></i>
             </button>
@@ -27,7 +27,7 @@
                 <PlayerHead Uuid="@me.Uuid" Name="@me.Name" Size="22" />
                 <span class="account-name">@me.Name</span>
                 <span class="account-role">@RoleLabel</span>
-                @if (waiting > 0) { <span class="account-waiting" title="@($"{waiting} waiting for approval")">@waiting</span> }
+                @if (waiting > 0) { <span class="account-waiting" title="Waiting for approval">@waiting</span> }
                 <i data-lucide="chevron-down"></i>
             </button>
         }
@@ -73,7 +73,7 @@
                     </a>
                 }
                 <a class="account-menu-item" role="menuitem" href="/api-docs" target="_blank" rel="noopener"
-                   title="Opens the API docs in a new tab" @onclick="() => open = false">
+                   @onclick="() => open = false">
                     <i data-lucide="file-code"></i><span>API docs</span><i data-lucide="external-link" class="account-menu-ext"></i>
                 </a>
                 @if (me.SignedIn && me.Mode != AccessModes.Open)

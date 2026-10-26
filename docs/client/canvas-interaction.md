@@ -380,8 +380,9 @@ that id, when `settleGroups` gives it a fresh one. `SK12` reports a layout that 
 **A preview that cannot run says which of the two reasons it was.** The preview fails for two unrelated
 causes — the browser has no WebGL, or the server would not build the board — and the two are different things
 to do something about. `OnIsoUnavailable(reason)` carries which: an empty string is WebGL itself, and anything
-else is the sentence the build answered with, read out of the refusal envelope. The host shows *No WebGL* for
-the first and the build's own words for the second. A failure with a sentence available should never be
+else is the sentence the build answered with, read out of the refusal envelope. The host's chip reads *3-D
+unavailable*, and its hover says that the browser has no WebGL for the first and gives the build's own words
+for the second. A failure with a sentence available should never be
 reported as a different failure.
 
 **A caller the server would refuse never gets to try.** The preview is a build, which only someone on the

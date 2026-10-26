@@ -8,7 +8,7 @@ public partial class TextSizeMenu
     private static readonly (string Value, string Label)[] Sizes =
     [
         ("small", "Small"),
-        ("default", "Default"),
+        ("default", "Normal"),
         ("large", "Large"),
         ("larger", "Larger"),
     ];

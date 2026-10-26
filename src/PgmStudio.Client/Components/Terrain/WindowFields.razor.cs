@@ -23,8 +23,8 @@ public partial class WindowFields
     /// <summary>The block palette both pickers offer.</summary>
     [Parameter] public IReadOnlyList<PaintBlockDto> Blocks { get; set; } = [];
 
-    /// <summary>What the sill number is measured from, which differs by where the wall is.</summary>
-    [Parameter] public string SillTitle { get; set; } = "How many courses above the floor the window starts.";
+    /// <summary>What the sill height is measured from, which differs by where the wall is.</summary>
+    [Parameter] public string SillHelp { get; set; } = "Measured up from the floor to where the window starts.";
 
     private bool Glazing => WindowForms.Canonical(Window.Form) != WindowForms.None;
 

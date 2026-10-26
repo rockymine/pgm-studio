@@ -16,7 +16,7 @@ recipe by what it builds, and a biome by the ground it colours. A house's row is
 `HouseStyle`; the surface calls it what the thing is.
 
 Three routes, and the rail carries the nine kinds. `/library` is the chooser — one card per kind, grouped as
-*Terrain* (styles, themes, biomes), *Buildings* (houses, roofs, storeys, porches) and *Nature* (trees,
+*Ground* (styles, themes, biomes), *Buildings* (houses, roofs, storeys, porches) and *Nature* (trees,
 boulders), each over the pictures of the newest three entries it holds and its count. `/library/{kind}` browses that kind: a strip carrying a name search,
 whatever else the kind filters by, and **New**, over a grid of cards. `/library/{kind}/{id}`, or
 `/library/{kind}/new`, opens one entry on a page of its own.
@@ -357,8 +357,8 @@ fill, and the fill to nothing — which is why the fill alone cannot be switched
 surface carry a `depth`. Both, and the wall, may be disabled outright, and disabled is not the same as unbound:
 a theme that binds no rim keeps the built-in one, while a theme whose rim is *off* paints no rim at all. The
 surface may instead state `soil`, its depth by slope — `[{"below": 25, "depth": 3}, …]`, the first entry the
-column's slope is under giving the depth and none steeper than the last — which the editor's *Thins with the
-slope* sets to three, two and one course under 25°, 38° and 55° (`docs/world-export/terrain-painting.md`, TP27).
+column's slope is under giving the depth and none steeper than the last — which the editor's *On steep ground*
+row, set to *Thins out*, fills with three, two and one course under 25°, 38° and 55° (`docs/world-export/terrain-painting.md`, TP27).
 It is stored on the surface's `theme_bucket` row and travels on `ThemeBucketDto.soil`.
 
 **The rim and the surface take a band, and the wall and the fill take a material.** A band is
@@ -417,7 +417,7 @@ The preview is a sample plateau painted and cut open, plus a top-down swatch per
 `GET /themes/{id}/json` assembles the row into the painter's own theme JSON — the form the export consumes and
 a map snapshots — and `POST /themes/import` runs the other way, lifting a whole theme JSON into the library: a bucket laid in one block
 holds the block, and a bucket laid in a pattern binds the library's own copy of it, or a new pattern named for
-what it contains where the library holds none. That import is also what the editor's **Start from JSON**
+what it contains where the library holds none. That import is also what the editor's **JSON import**
 offers while a theme is being started: a whole painter theme pasted in — what an agent writes over the API,
 what a board saves out — lands as an editable row rather than a stored blob. It creates a row, so it is
 offered on a new theme and not on one that already exists.
@@ -704,9 +704,9 @@ seconds, and a failure worded into that gap accuses the library of losing a docu
 handing over.
 
 **The outline is the document, not a menu.** Each row carries what its piece states without being opened — a
-part names its block or pattern or keeps the *default* finish, a stack says how many courses it runs, a theme
-bucket names its block or pattern or says it is *off*. Every slot is filled through one control, `SlotSelect`:
-one list offering nothing, *A single block* or a saved pattern by kind, with the block picker under it once a
+part names its block or pattern or keeps the *Default* look, a stack says how many courses it runs, a theme
+bucket names its block or pattern, says *Stone* while unbound, or says it is *Off*. Every slot is filled through one control, `SlotSelect`:
+one list offering the unset value (*Default look* unless the slot names its own), *Single block* or a saved pattern by kind, with the block picker under it once a
 block is chosen and, for a log, whether it is laid along the run. A material's outline is its own nest: a voronoi's bands, a
 stack's layers and a field's stops are each a row, indented by how deep they sit, so a five-entry pattern is
 five rows rather than five boxes inside one another.

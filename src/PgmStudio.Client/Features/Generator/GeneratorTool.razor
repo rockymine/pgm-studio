@@ -17,10 +17,10 @@
   <div class="gen-body">
     <FilterSidebar>
       <FilterPanel Title="Layout settings">
-        <FilterGroup Label="Players per team">
+        <FilterGroup Label="Team size">
           @foreach (var size in SizeBands.All)
           {
-            <Chip Active="band == size" Title="@BandTitle(size)" OnClick="() => PickBand(size)">@BandLabel(size)</Chip>
+            <Chip Active="band == size" OnClick="() => PickBand(size)">@BandLabel(size)</Chip>
           }
         </FilterGroup>
 
@@ -28,12 +28,12 @@
           @foreach (var s in Symmetries)
           {
             <Chip Active="symmetry == s.Id" Disabled="!s.Supported"
-                  Title="@(s.Supported ? s.Label : "Not available yet")"
-                  OnClick="() => PickSymmetry(s.Id)">@s.Label</Chip>
+                  Title="@(s.Supported ? null : "Not available yet")"
+                  OnClick="() => PickSymmetry(s.Id)">@SymmetryInfo.Label(s.Id)</Chip>
           }
         </FilterGroup>
 
-        <FilterGroup Label="Wools per team" Hint="any of" Multi>
+        <FilterGroup Label="Wools per team" Match="any of" Multi>
           @foreach (var count in WoolCounts.All)
           {
             <Chip Active="woolCounts.Contains(count)" OnClick="() => ToggleWoolCount(count)">@count</Chip>
@@ -41,8 +41,8 @@
         </FilterGroup>
       </FilterPanel>
 
-      <FilterPanel Title="Filter by shape" Active="ShapeFiltered" OnClear="ClearShapeFilters">
-          <FilterGroup Label="Wool shapes" Hint="has all" Multi>
+      <FilterPanel Title="Shape filters" Active="ShapeFiltered" OnClear="ClearShapeFilters">
+          <FilterGroup Label="Approach" Match="has all" Multi>
             @foreach (var w in WoolChips)
             {
               <Chip Active="woolFilter.Contains(w.Token)" Disabled="!w.InMix"
@@ -53,7 +53,7 @@
             }
           </FilterGroup>
 
-          <FilterGroup Label="Hub" Hint="any of" Multi>
+          <FilterGroup Label="Hub" Match="any of" Multi>
             @foreach (var h in HubChips)
             {
               <Chip Active="hubFilter.Contains(h.Token)"
@@ -64,7 +64,7 @@
             }
           </FilterGroup>
 
-          <FilterGroup Label="Front line" Hint="any of" Multi>
+          <FilterGroup Label="Front line" Match="any of" Multi>
             @foreach (var f in FrontChips)
             {
               <Chip Active="frontFilter.Contains(f.Token)"
@@ -77,9 +77,9 @@
 
           @if (censusBoards > 0 && CensusIsTelling)
           {
-            <p class="section-desc">A shape at 0 is never generated with these settings.</p>
+            <p class="filter-panel-note">A shape at 0 is never generated with these settings.</p>
           }
-          <a class="gen-catalog-link" href="/catalog"><i data-lucide="shapes"></i><span>Browse every shape in the catalog →</span></a>
+          <a class="gen-catalog-link" href="/catalog"><i data-lucide="shapes"></i><span>Every shape in the catalog</span></a>
       </FilterPanel>
     </FilterSidebar>
 
@@ -99,13 +99,24 @@
         @foreach (var card in cards)
         {
           <PictureCard @key="card.Descriptor.Seed" FigClass="lib-card-fig--board" Svg="@card.Svg" Name="@LayoutId(card)"
-                       OnClick="() => OpenDetail(card)" Title="Open details" />
+                       OnClick="() => OpenDetail(card)" />
         }
       </div>
 
-      @if (feedError is not null) { <p class="gen-status">@feedError</p> }
-      else if (loading) { <p class="gen-status">Loading…</p> }
-      else if (cards.Count == 0) { <p class="gen-status">@EmptyFeedMessage()</p> }
+      @if (feedError is not null) { <StatusLine>@feedError</StatusLine> }
+      else if (loading) { <StatusLine /> }
+      else if (cards.Count == 0 && censusBoards == 0)
+      {
+        <EmptyState>No layouts for these settings yet. They are still being generated.</EmptyState>
+      }
+      else if (cards.Count == 0 && NeverSeen() is { Length: > 0 } never)
+      {
+        <EmptyState>No layout for these settings has @never. These players and symmetry don't produce it.</EmptyState>
+      }
+      else if (cards.Count == 0)
+      {
+        <EmptyState>No layout of the @censusBoards for these settings matches these filters.</EmptyState>
+      }
       else if (atEnd) { <p class="gen-status">No more layouts for these settings.</p> }
 
       <div @ref="sentinelRef" class="gen-sentinel"></div>
@@ -142,7 +153,7 @@
         </p>
 
         <dl class="gen-facts">
-          <div><dt>Players per team</dt><dd>@PlayersLabel(d)</dd></div>
+          <div><dt>Team size</dt><dd>@PlayersLabel(d)</dd></div>
           <div><dt>Wools per team</dt><dd>@d.WoolCount</dd></div>
           <div><dt>Symmetry</dt><dd>@SymmetryLabel(d.Descriptor.Symmetry)</dd></div>
         </dl>
@@ -150,7 +161,7 @@
       <Footer>
         <div class="gen-detail-foot">
           <p class="gen-detail-foot-note">@(openError ?? "Makes a new map of this layout and opens it in the Sketch tool, ready to shape.")</p>
-          <Button Variant="primary" Writes Busy="@opening" BusyLabel="Making the map…" OnClick="() => OpenInSketch(d)">Open in Sketch</Button>
+          <Button Variant="primary" Writes Busy="@opening" BusyLabel="Making the map…" OnClick="() => OpenInSketch(d)">Make a map</Button>
         </div>
       </Footer>
     </SideDrawer>

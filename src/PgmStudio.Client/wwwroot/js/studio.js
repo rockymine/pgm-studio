@@ -86,6 +86,15 @@ window.studio = {
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   },
 
+  // Bring an anchor's target into view and give it focus, so a deep link lands on its entry for a keyboard and a
+  // screen reader as well as for the eye. The target's own scroll-margin keeps it clear of a sticky bar.
+  revealId(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (el.tabIndex >= 0 || el.hasAttribute("tabindex")) el.focus({ preventScroll: true });
+  },
+
   // Download a string as a file (the Configure wizard's XML export). Creates a Blob + a temporary
   // anchor and clicks it, so the bytes shown in the preview are exactly what lands on disk.
   downloadText(filename, text, mime) {

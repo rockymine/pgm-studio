@@ -362,11 +362,11 @@ export class SketchEditController {
     if (verts.length <= (closed ? MIN_RING_POINTS : MIN_LINE_POINTS)) {
       return { refused: closed
         ? "A shape needs at least three points. Delete the shape instead."
-        : "A path needs at least two points. Delete the path instead." };
+        : "A line needs at least two points. Delete the line instead." };
     }
     const remaining = verts.filter((_, at) => at !== index);
     if (closed && ringSelfIntersects(remaining)) {
-      return { refused: "Removing that point would fold the outline over itself." };
+      return { refused: "Deleting that point would fold the outline over itself." };
     }
 
     const count = remaining.length;

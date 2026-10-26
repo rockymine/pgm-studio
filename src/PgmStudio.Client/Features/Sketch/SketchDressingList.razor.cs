@@ -91,13 +91,13 @@ public partial class SketchDressingList
         var recipe = Recipe(prop, styles);
         return kind switch
         {
-            PropKinds.Tree => new Row(id, TreeLabel(prop, recipe), Cell(prop), "x, z"),
-            PropKinds.Boulder => new Row(id, BoulderLabel(recipe), Cell(prop), "x, z"),
+            PropKinds.Tree => new Row(id, TreeLabel(prop, recipe), Cell(prop), "Position"),
+            PropKinds.Boulder => new Row(id, BoulderLabel(recipe), Cell(prop), "Position"),
             PropKinds.Stroke => new Row(id, StrokeLabel(prop), Length(prop), "Length along the line"),
             PropKinds.Fluid => new Row(id, $"{Capital(Field(prop, PropFields.Form, PropFields.CanalForm))} channel", Length(prop), "Length along the line"),
-            PropKinds.Flora => new Row(id, "Ground cover", Extent(prop), "Width × depth"),
-            PropKinds.House => new Row(id, HouseLabel(prop), Footprint(prop), "Footprint, width × depth"),
-            PropKinds.Chest => new Row(id, "Chest", Cell(prop), "x, z"),
+            PropKinds.Flora => new Row(id, "Ground cover", Extent(prop), "Width and depth"),
+            PropKinds.House => new Row(id, HouseLabel(prop), Footprint(prop), "Footprint width and depth"),
+            PropKinds.Chest => new Row(id, "Chest", Cell(prop), "Position"),
             _ => new Row(id, Capital(kind), "", ""),
         };
     }

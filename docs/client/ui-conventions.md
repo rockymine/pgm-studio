@@ -51,8 +51,9 @@ a person's initial on a neutral tile, with the front of an account's head over i
 `/api/minecraft/player/{uuid}/head` — eight pixels drawn large, the face with the hat over it the way the game
 draws it — so a browser asks no third party and a head the studio cannot get leaves the initial showing.
 
-**Forms** — `Field` is the atom the whole system is built from: it owns the label, the required mark, the
-error line and the hint slots, and the input itself is `ChildContent`. Three controls carry every number and
+**Forms** — `Field` is the atom the whole system is built from: it owns the label, the required mark, the unit,
+the `?` and its help or glossary term, the note under the control and the error line, and the input itself is
+`ChildContent`; `docs/client/writing-for-the-ui.md` says what each of those holds. Three controls carry every number and
 every pick from a list. `NumberField` is the number box: it clamps what is typed to its `Min`/`Max` and snaps
 the box back to the clamped value, a null `Value` is a blank box, and `OnCleared` answers a box emptied where
 blank means "none". `RangeField` is the slider: `ValueChanged` follows the thumb and `OnCommit` fires once on
@@ -181,24 +182,24 @@ and what a click does, stays in the page.
 **A facet is a row of chips, never a select or a list of checkboxes.** `FilterGroup Multi` marks a set the
 reader can tick several of: the row gets `filter-group-options--multi`, which draws a checkbox in each chip,
 ticked when the chip is on, and moves the chip's count to its right edge. A group where exactly one option
-holds (a stage, a symmetry) leaves `Multi` off and carries no box. `Hint` is the muted word beside the label
+holds (a stage, a symmetry) leaves `Multi` off and carries no box. `Match` is how the ticked chips combine, read beside the label
 (*has all*, *any of*); `End` is a control at the label row's right edge, such as an author group's
 *Select all*, styled `filter-group-action`.
 
 **A count belongs to the chip.** `Chip Count="n"` renders `filter-chip-n`; a page that counts nothing leaves it
-unset. A note explaining what the counts mean is a `section-desc` paragraph at the foot of its panel.
+unset. What the counts mean, where a reader needs it, is the panel's `Section Description`.
 
 **A block that only holds settings is a `FilterPanel` with no `OnClear`.** The generator's *Layout settings*
-(size band, symmetry, wools) sits above its *Filter by shape* panel in the same rail, so both read
-as one rail while only the second offers *Clear*. Panels are titled for what they do — *Filters*, *Filter
-shapes*, *Layout settings*, *Filter by shape* — and every change applies at once: there is no Apply button to
+(size band, symmetry, wools) sits above its *Shape filters* panel in the same rail, so both read
+as one rail while only the second offers *Clear*. Panels are titled for what they do — *Filters*, *Shape
+filters*, *Layout settings* — and every change applies at once: there is no Apply button to
 forget.
 
 ## Text size
 
 **Every size in the client is one design size times `--ui-scale`.** Type, icons, the control height, the
 spacing steps and the two panel widths in `tokens.css` are each `calc(<px> * var(--ui-scale))`, and the
-reader picks the scale from `TextSizeMenu` in the studio bar: *Small* 0.9, *Default* 1, *Large* 1.15 and
+reader picks the scale from `TextSizeMenu` in the studio bar: *Small* 0.9, *Normal* 1, *Large* 1.15 and
 *Larger* 1.3, kept in `localStorage` as `pgm-text-size` and applied by the inline script in `index.html`
 before any stylesheet loads. A rule that writes a raw pixel size escapes the setting, so a new size is a
 token or a `calc` over the scale. Text drawn on a canvas is outside every stylesheet and takes its size from
@@ -236,7 +237,8 @@ switched off keeps its eye in view. The glyph is the thing's kind, named in its 
 width on a tag repeating it. The modifier list and the paint-rule list are one row.
 
 **A `?` means there is an explanation the label and its unit do not give.** It sits after the label, a gap from
-it on the label's centre line, and only there: never for a unit, which reads after the label in parentheses.
+it on the label's centre line, and only there. Which texts earn one, and every other channel a text can go in,
+is `docs/client/writing-for-the-ui.md`.
 
 **A list row's name is the part that keeps its width.** Where a row carries a name and facts about it — a
 badge, a time, a coordinate — the name takes the first line and the facts go on a second line under it
@@ -268,10 +270,9 @@ dark one.
 and a text field, which holds focus however it was reached, rings itself in the accent instead. A rule never
 removes the outline to make focus look like hover.
 
-**Instructions are `section-desc`; a computed fact is `inspector-readout`.** Prose telling the author what to do
-— *Press where the camera should stand*, *Drag to move it* — reads as panel body text in the secondary colour;
-a line the panel computed — a count, a height, a score — is a readout. The two look different because a
-reader skims one and reads the other.
+**A description and a readout look different because a reader skims one and reads the other.** A `Section
+Description` reads as panel body text in the secondary colour; a `Readout` — a count, a height, a score the panel
+computed — reads in the bright one (`docs/client/writing-for-the-ui.md`).
 
 ## The words a form writes, and where they are declared
 
@@ -296,34 +297,18 @@ one party spelling it is not vocabulary.
 and every shape kind must rasterize to ground. Adding a word to a set
 without teaching a reader fails there rather than in a board that quietly lost a shape.
 
-## What a panel says, and where each kind of saying goes
+## What a panel says
 
-An inspector has four places to put a sentence and they are not interchangeable. Picking the wrong one is how
-a column that edits eleven numbers came to carry four hundred words about what those numbers mean.
-
-**An option is a name, and its sentence is its note.** A `<select>` row has to be read at the width of the
-control and scanned against its siblings, so what belongs there is the word — `Ground`, `Level`, `Raise`,
-`Sink` — and what a row *is* rides as its `Note`, which `Select` renders as the option's title. An option
-reading *"a monolith — this far above the ground"* makes the list a paragraph with a dropdown around it: it
-cannot be scanned, it cannot be compared, and the same sentence is usually repeated under the control anyway.
+Every text a screen shows — a label, a unit, a `?`, a note, a readout, a tooltip, a placeholder, a section's
+title and description, an empty state, an option — has one channel, one mechanism and one form, and
+`docs/client/writing-for-the-ui.md` is where they are written down; `ClientTextTests` holds the client to it. What stays
+here is what a panel does rather than what it says.
 
 **The word an option writes is the word the document uses.** `Hold` is what
 `relief_scope` and `docs/tools/sketch.md` both call it, so what an author picks can be
 grepped for in `docs/` and cited in a finding. A label invented for the picker — *"yes — its ground is the
 group's ground"* — is a third vocabulary for a thing that already had one, and it is the reason a reader
 cannot look up what they just chose.
-
-**Under a control goes what the numbers work out to, not what the control is for.** `Top at 8`; `Drops 12 over
-a 2-block face: 6 a block, only ever descended`; `The edge slopes over 5 blocks. 6 of its 16 blocks stay flat`.
-A readout is short because a fact is short, it is always true because it is computed, and it changes when the
-author changes something, which is the only way a panel teaches a knob. A paragraph explaining what a bevel is
-does none of the three, and the argument for why the knob is shaped that way is a document's job — `docs/` is
-named for subjects so that there is somewhere to put it.
-
-**A control that is doing nothing says nothing.** A readout returns the empty string and renders no line: a
-block step of one, a group with no rim, a push whose corners agree. Two selects at their defaults with an
-explanatory paragraph each is thirty words to say that nothing is happening, and it is the first thing a
-reader learns to skip — which is what then hides the line that matters.
 
 **Undo restores the document; every phase reading a part of it has to be told.** A history step is the whole
 `getState()` value and a restore is `load()`, so the document comes back correct whichever phase is up — and
@@ -339,27 +324,7 @@ back where the step left them standing, the way the shape already was.
 text styled like a readout is a control nobody presses: it sits in a column of readouts, in the readouts' own
 class, saying only the state it is already in. Two `Chip`s say it instead — the current state marked, the other
 one visibly available — which is pressable, keyboard-reachable, and shows what the alternative is before it is
-chosen. The pattern it replaces (`control-input--hidden` under a `inspector-readout` span) was in three panels and
-is in none.
-
-**A hint is a few words; anything longer is help.** `Field`'s `Hint` reads after the label in parentheses while it
-is five words or fewer — a unit, a qualifier. A longer one is the field's help, behind a `?` beside the label and
-opened under it, with the unit it opens with (*blocks*, *world y*, *°*) still after the label, so a column of
-fields shows names and units and keeps its sentences a press away. A definition a reader needs once — what a
-porch is, what a biome tints — is a `Help` on the field or the `Section`, never a paragraph open above the
-controls. A select's unset value names what it stands for (*Plains*, *Stone*, *Bedrock box*, *Bare floor*),
-not `None (…)`, and a select that cannot be used until something is chosen prompts for it (*Choose a material*).
-
-**An empty number states what it stands for.** A number with a default shows the default, never an empty box. A
-number the system works out when it is not stated reads *Auto* as its placeholder (*Any* for a condition that
-does not narrow anything), takes its own row, and says under the box what it takes while empty — *Auto: the
-median ground plus 12* — and, once stated, what clearing it returns to. An empty box that says nothing leaves its
-value to be guessed, and a reader guesses zero.
-
-**What survives as prose is a keymap, an empty state, or a fact with nowhere else to live.** *Move: arrow keys ·
-Shift+arrow = 16 blocks* is a keymap. *Nothing is terraformed yet* is an empty state. *Turns with the building at
-every mirror image* is behaviour a reader cannot see and no number states. Everything else is a note, a
-`LabelHint`, or a readout.
+chosen.
 
 ## The API rules
 
@@ -369,7 +334,7 @@ every mirror image* is behaviour a reader cannot see and no number states. Every
 needs something bespoke:
 
 ```razor
-<Section Title="Spawn Points" Description="@desc">
+<Section Title="Spawns" Description="@desc">
   <Actions><Button Variant="primary" OnClick="Add">Add</Button></Actions>
   <ChildContent>…</ChildContent>
   <Footer>…</Footer>
@@ -425,7 +390,7 @@ text `<input class="field-input">`, a `NumberField`, a `RangeField`, a `Select`,
 class the component should carry (`Fill`, `Full`, `Class="action-btn--push-end"`), not an inline `style`, so a
 redesign restyles the client from its stylesheets and tokens alone. A spacing modifier is named for what it
 does to the block it sits on: `--separated` sets it apart from the block above (`panel-list--separated`,
-`section-desc--separated`, `ctrl-row--separated`).
+`ctrl-row--separated`).
 
 **The one inline style is a runtime value, passed as a custom property a class reads.** A team's colour, a
 confidence, a pin's position or a column's width is data rather than design, so the markup hands it over as

@@ -17,26 +17,26 @@
     <Workspace Class="rules">
       @if (rules is null)
       {
-        <div class="list-empty">Loading…</div>
+        <StatusLine />
       }
       else if (rules.Count == 0)
       {
-        <div class="list-empty">The studio did not answer with its rules. Reload to ask again.</div>
+        <StatusLine>Couldn't load the rules. Reload the page to try again.</StatusLine>
       }
       else
       {
         <aside class="rules-rail" aria-label="Filter rules">
           <div class="rules-rail-group">
-            <input class="field-input" type="search" placeholder="Search id or meaning" aria-label="Search rules"
+            <input class="field-input" type="search" placeholder="Search rules" aria-label="Search rules"
                    @bind="query" @bind:event="oninput" @bind:after="Reveal" />
             <span class="rules-count" role="status">@CountText</span>
           </div>
           <div class="rules-rail-group">
             <h3 class="section-title">Kind</h3>
             <div class="rules-seg" role="group" aria-label="Kind">
-              @foreach (var (value, label, says) in Kinds)
+              @foreach (var (value, label) in Kinds)
               {
-                <button type="button" aria-pressed="@(kind == value ? "true" : "false")" title="@says"
+                <button type="button" aria-pressed="@(kind == value ? "true" : "false")"
                         @onclick="() => PickKind(value)">
                   @label <span class="rules-n">@Count(each => Passes(each, Facet.Kind) && IsKind(each, value))</span>
                 </button>
@@ -44,7 +44,7 @@
             </div>
           </div>
           <div class="rules-rail-group">
-            <h3 class="section-title">What it asks of you</h3>
+            <h3 class="section-title">Action</h3>
             <div class="rules-cats">
               <button type="button" class="rules-cat" aria-pressed="@(category is null ? "true" : "false")"
                       @onclick="() => PickCategory(null)">
@@ -57,7 +57,7 @@
                   <div class="rules-cat-divider" role="separator"></div>
                 }
                 var n = Count(each => each.Category == action.Category && Passes(each, Facet.Category));
-                <button type="button" class="rules-cat" title="@action.Says"
+                <button type="button" class="rules-cat"
                         aria-pressed="@(category == action.Category ? "true" : "false")"
                         disabled="@(n == 0 && category != action.Category)"
                         @onclick="() => PickCategory(action.Category)">
@@ -71,7 +71,7 @@
               <i data-lucide="chevron-right"></i>@(concerns.Count == 0 ? "More filters" : $"More filters · {concerns.Count} on")
             </summary>
             <div class="rules-more-body">
-              <h3 class="section-title" title="A rule shows when it is about every subject you pick">About</h3>
+              <h3 class="section-title">About</h3>
               <div class="filter-group-options">
                 @foreach (var concern in AllConcerns)
                 {
@@ -93,7 +93,7 @@
              @ref="list">
           @if (Shown.Count == 0)
           {
-            <p class="rules-empty">No rule matches these filters.</p>
+            <EmptyState>No rule matches these filters. Clear a filter to see more.</EmptyState>
           }
           @foreach (var family in Shown)
           {
@@ -105,7 +105,7 @@
               {
                 var summary = RuleWords.FirstSentence(entry.Means);
                 <button type="button" role="option" class="rules-row" aria-selected="@(entry.Rule == selected ? "true" : "false")"
-                        title="@($"{entry.Rule}: {summary}")" @onclick="() => Select(entry.Rule)">
+                        title="@summary" @onclick="() => Select(entry.Rule)">
                   <span class="rules-row-id">@entry.Rule</span>
                   <span class="rules-row-sum">@summary</span>
                   <span class="rules-row-act">@RuleWords.KindWord(entry)</span>
@@ -124,7 +124,7 @@
                 <div class="rules-d-act">
                   @if (RuleWords.IsLayoutRule(rule))
                   {
-                    <b>Layout rule</b><span>How a good map is laid out. The studio measures plans against it.</span>
+                    <b>Layout rule</b><span>@RuleWords.LayoutSays</span>
                   }
                   else if (rule.Category is { } ruleCategory)
                   {
@@ -133,7 +133,7 @@
                   }
                   else
                   {
-                    <b>Derivation</b><span>States how something is worked out. No check stops a map on it.</span>
+                    <b>Method</b><span>States how something is worked out. No check stops a map on it.</span>
                   }
                 </div>
               </div>
@@ -155,13 +155,13 @@
               </div>
 
               <div class="rules-d-sec">
-                <h3 class="section-title">What it means</h3>
+                <h3 class="section-title">Meaning</h3>
                 <p class="rules-prose">@((MarkupString)RuleWords.Inline(rule.Means))</p>
               </div>
               @if (rule.Fix is { } fix)
               {
                 <div class="rules-d-sec">
-                  <h3 class="section-title">What to do</h3>
+                  <h3 class="section-title">Fix</h3>
                   <p class="rules-prose">@((MarkupString)RuleWords.Inline(fix))</p>
                 </div>
               }
@@ -183,7 +183,7 @@
                   <div class="rules-terms">
                     @foreach (var term in measured)
                     {
-                      <span><b>@RuleWords.TermLabel(term.Term)</b>, usually @RuleWords.BandText(term) (@RuleWords.BandSource(term))</span>
+                      <span><b>@RuleWords.TermLabel(term.Term)</b> @RuleWords.BandText(term), @RuleWords.BandSource(term)</span>
                     }
                   </div>
                 </div>
@@ -195,7 +195,7 @@
                   @if (RuleWords.Reachability.Any(step => step.Rule == rule.Rule))
                   {
                     <div class="rules-d-sec">
-                      <h3 class="section-title">The same question at every stage</h3>
+                      <h3 class="section-title">At every stage</h3>
                       <div class="rules-ladder">
                         @foreach (var step in RuleWords.Reachability)
                         {
@@ -214,8 +214,7 @@
                     <h3 class="section-title">For agents</h3>
                     <div class="rules-api">
                       <code>GET /api/rules?rule=@rule.Rule</code>
-                      <a class="action-btn" href="/api-docs" target="_blank" rel="noopener"
-                         title="Opens the API docs in a new tab">API docs <i data-lucide="external-link"></i></a>
+                      <a class="action-btn" href="/api-docs" target="_blank" rel="noopener">API docs <i data-lucide="external-link"></i></a>
                       <button type="button" class="action-btn" @onclick="() => CopyAsync(rule)">
                         <i data-lucide="copy"></i>@(copied ? "Copied" : "Copy JSON")
                       </button>

@@ -1,3 +1,5 @@
+using PgmStudio.Vocabulary;
+
 namespace PgmStudio.Client.Components;
 
 /// <summary>
@@ -10,15 +12,20 @@ namespace PgmStudio.Client.Components;
 /// <param name="Title">The kind in the rail, the crumbs and the browse heading.</param>
 /// <param name="One">The kind in the singular — a New button, a count and an empty state read it.</param>
 /// <param name="Icon">The lucide glyph.</param>
-/// <param name="Blurb">What the kind is, on the chooser card.</param>
+/// <param name="Term">The glossary term the kind is, whose definition the chooser card and the browse heading
+/// show.</param>
 /// <param name="DraftPreview">Whether a draft draws at <c>{route}/preview</c>. A style does not: a style
 /// <em>is</em> a material, so it draws as a bare one at <c>terrain/material-preview</c> with no row involved.</param>
 /// <param name="Composed">Whether the kind answers its own composed document at <c>{route}/{id}/json</c> —
 /// the form a map snapshots. Only a theme and a house compose to one; a style is already a document, and a
 /// part is only ever part of one.</param>
 public sealed record LibraryKind(
-    string Slug, string Route, string Title, string One, string Icon, string Blurb,
-    bool DraftPreview = true, bool Composed = false);
+    string Slug, string Route, string Title, string One, string Icon, string Term,
+    bool DraftPreview = true, bool Composed = false)
+{
+    /// <summary>What the kind is, in the glossary's own words, so a kind is defined once.</summary>
+    public string Blurb => Glossary.Terms.FirstOrDefault(entry => entry.Term == Term)?.Definition ?? "";
+}
 
 /// <summary>The libraries, in the order they compose: a style is one material, a theme is a finish made of
 /// styles, a roof, a storey and a porch are the parts a house binds, a house is the whole building, a tree and
@@ -38,43 +45,43 @@ public static class LibraryKinds
 
     public static readonly LibraryKind Styles = new(
         StylesSlug, "styles", "Patterns", "pattern", "paintbrush",
-        "A block pattern: layers of blocks, a team colour, scattered patches, or a mix.",
+        "pattern",
         DraftPreview: false);
 
     public static readonly LibraryKind Themes = new(
         ThemesSlug, "themes", "Palettes", "palette", "layers",
-        "A set of patterns that gives the ground its look: one each for the rim, wall, surface, and fill.",
+        "palette",
         Composed: true);
 
     public static readonly LibraryKind Roofs = new(
         RoofsSlug, "roof-styles", "Roofs", "roof", "triangle",
-        "Roofs: their shape, pitch, overhang, and materials.");
+        "roof form");
 
     public static readonly LibraryKind Storeys = new(
         StoreysSlug, "storey-styles", "Storeys", "storey", "brick-wall",
-        "One floor of a house: its height, walls, windows, and room layout.");
+        "storey");
 
     public static readonly LibraryKind Porches = new(
         PorchesSlug, "porch-styles", "Porches", "porch", "door-open",
-        "The part of a house's footprint outside its walls, and what stands on it.");
+        "porch");
 
     /// <summary>The row is a <c>room_style</c> and composes to a <c>HouseStyle</c>; the surface calls it what
     /// the thing is.</summary>
     public static readonly LibraryKind Houses = new(
         HousesSlug, "room-styles", "Houses", "house", "house",
-        "Whole buildings: storeys under a roof, with a porch, openings, and a foundation.",
+        "house",
         Composed: true);
 
     /// <summary>A tree is a recipe rather than a placement: what is put on the canvas is a position, and what
     /// stands there is one of these. The three forms are three trees, not one with a switch.</summary>
     public static readonly LibraryKind Trees = new(
         TreesSlug, "tree-styles", "Trees", "tree", "trees",
-        "Trees: a vanilla species, or a tree copied from a world.",
+        "recipe",
         Composed: true);
 
     public static readonly LibraryKind Boulders = new(
         BouldersSlug, "boulder-styles", "Boulders", "boulder", "mountain",
-        "Boulders: their shape, size, material, and moss.",
+        "boulder",
         Composed: true);
 
     /// <summary>A biome field is a recipe like a material is — a kind, a scale and a palette — so it is named
@@ -83,7 +90,7 @@ public static class LibraryKinds
     /// that byte tints.</summary>
     public static readonly LibraryKind Biomes = new(
         BiomesSlug, "biome-patterns", "Biomes", "biome", "sun",
-        "The biome of each column, which tints grass, leaves, and water.");
+        "biome");
 
     public static readonly IReadOnlyList<LibraryKind> All =
         [Styles, Themes, Roofs, Storeys, Porches, Houses, Trees, Boulders, Biomes];

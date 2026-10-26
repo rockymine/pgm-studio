@@ -2,7 +2,7 @@
 
 @* The notes column beside Review's picture, in two steps. The overview lists the notes on the picture in
    view, under four filters, and then the notes on the whole map; choosing one opens its thread, and a new note
-   shows what it is pinned to over its text. ‹ All notes goes back from either. Under a place it is the
+   shows what it is pinned to over its text. All notes goes back from either. Under a place it is the
    place's one thread over its text box, with nothing to choose. The host owns what is shown and what is drawn;
    this column only renders it and says what was asked. *@
 
@@ -12,7 +12,7 @@
     case NotesStep.Overview:
       <div class="notes-column__head">
         <div class="notes-column__title">
-          <span class="notes-column__kicker">NOTES</span>
+          <span class="notes-column__kicker">Notes</span>
           <span class="notes-column__name">@(ViewName ?? "This view")</span>
         </div>
         <Button Variant="primary" Icon="plus" OnClick="OnNew">New note</Button>
@@ -20,7 +20,7 @@
       <div class="notes-column__filters">
         @foreach (var (id, label) in Filters)
         {
-          <Chip Active="@(Filter == id)" Title="@FilterTitle(id)" OnClick="() => OnFilter.InvokeAsync(id)">@label&nbsp;<b>@Count(id)</b></Chip>
+          <Chip Active="@(Filter == id)" OnClick="() => OnFilter.InvokeAsync(id)">@label&nbsp;<b>@Count(id)</b></Chip>
         }
       </div>
       @if (Handoff is { Ready: true } handoff)
@@ -28,17 +28,15 @@
         <div class="notes-column__handoff">
           <span class="notes-column__hint">
             @Handed(handoff)
-            @if (handoff.Session is { } session) { <a href="@session" target="_blank" rel="noopener">Watch the session ›</a> }
+            @if (handoff.Session is { } session) { <a href="@session" target="_blank" rel="noopener">Watch the session</a> }
           </span>
           @if (handoff.Fresh > 0)
           {
-            <Button Variant="primary" Icon="sparkles" Busy="Handing" BusyLabel="Handing over…" OnClick="() => OnHandOff.InvokeAsync(false)"
-                    Title="Start one agent session that answers every open note">Hand to the agent</Button>
+            <Button Variant="primary" Icon="sparkles" Busy="Handing" BusyLabel="Handing over…" OnClick="() => OnHandOff.InvokeAsync(false)">Hand to the agent</Button>
           }
           else if (handoff.Waiting > 0)
           {
-            <Button Icon="repeat" Busy="Handing" BusyLabel="Handing over…" OnClick="() => OnHandOff.InvokeAsync(true)"
-                    Title="Start another session with the same notes, for one that stopped short">Again</Button>
+            <Button Icon="repeat" Busy="Handing" BusyLabel="Handing over…" OnClick="() => OnHandOff.InvokeAsync(true)">Hand over again</Button>
           }
         </div>
       }
@@ -46,17 +44,17 @@
         @if (Error is not null) { <p class="notes-column__error">@Error</p> }
         @{ var here = OnThisPicture.Where(Passes).ToList(); }
         @foreach (var note in here) { @Row(note) }
-        @if (here.Count == 0) { <p class="notes-column__empty">No matching notes on this view.</p> }
+        @if (here.Count == 0) { <EmptyState>No matching notes on this view.</EmptyState> }
         @{ var whole = OnTheMap.Where(Passes).ToList(); }
         @if (whole.Count > 0)
         {
-          <div class="notes-column__group">WHOLE MAP</div>
+          <div class="notes-column__group">Whole map</div>
           @foreach (var note in whole) { @Row(note) }
         }
         @{ var elsewhere = Elsewhere.Where(Passes).ToList(); }
         @if (elsewhere.Count > 0)
         {
-          <div class="notes-column__group">OTHER VIEWS</div>
+          <div class="notes-column__group">Other views</div>
           @foreach (var note in elsewhere) { @Row(note) }
         }
       </div>
@@ -64,7 +62,7 @@
 
     case NotesStep.Thread when Current is { } note:
       <div class="notes-column__head notes-column__head--step">
-        <button type="button" class="notes-column__back" @onclick="OnBack">‹ All notes</button>
+        <button type="button" class="notes-column__back" @onclick="OnBack"><Icon Name="chevron-left" />All notes</button>
         <div class="notes-column__threadhead">
           <span class="@PinClass(note)"></span>
           <b class="notes-column__threadtitle" title="@Title(note)">@Title(note)</b>
@@ -83,8 +81,8 @@
           </div>
         }
         @if (Error is not null) { <p class="notes-column__error">@Error</p> }
-        @if (sent is not null) { <span class="notes-column__sent" role="status">✓ @sent</span> }
-        <textarea id="note-reply" class="field-input" rows="3" placeholder="Reply… (Ctrl+Enter sends)" aria-label="Reply" value="@reply"
+        @if (sent is not null) { <span class="notes-column__sent" role="status">@sent</span> }
+        <textarea id="note-reply" class="field-input" rows="3" placeholder="Write a reply" aria-label="Reply" value="@reply"
                   readonly="@sending" @oninput="e => reply = e.Value?.ToString() ?? string.Empty"
                   @onkeydown="key => SendOnKey(key, SendReplyAsync)"></textarea>
         <div class="notes-column__send">
@@ -98,8 +96,7 @@
           }
           @if (note.Status != NoteStatuses.Resolved && note.Status != NoteStatuses.WontDo)
           {
-            <Button Icon="x" OnClick="OnWontDo" Busy="Busy" BusyLabel="Declining…"
-                    Title="Close it as not to be done; it stays listed, and Reopen hands it back">Won't do</Button>
+            <Button Icon="x" OnClick="OnWontDo" Busy="Busy" BusyLabel="Closing…">Won't do</Button>
           }
           <Button Variant="primary" Disabled="@(string.IsNullOrWhiteSpace(reply) || !Ready)" Busy="sending" BusyLabel="Sending…"
                   OnClick="SendReplyAsync">Send</Button>
@@ -113,8 +110,8 @@
       </div>
       <div class="notes-column__compose">
         @if (Error is not null) { <p class="notes-column__error">@Error</p> }
-        @if (sent is not null) { <span class="notes-column__sent" role="status">✓ @sent</span> }
-        <textarea id="note-reply" class="field-input" rows="3" placeholder="Write… (Ctrl+Enter sends)" aria-label="Reply" value="@reply"
+        @if (sent is not null) { <span class="notes-column__sent" role="status">@sent</span> }
+        <textarea id="note-reply" class="field-input" rows="3" placeholder="Write a reply" aria-label="Reply" value="@reply"
                   readonly="@sending" @oninput="e => reply = e.Value?.ToString() ?? string.Empty"
                   @onkeydown="key => SendOnKey(key, SendReplyAsync)"></textarea>
         <div class="notes-column__send">
@@ -126,11 +123,11 @@
 
     case NotesStep.New:
       <div class="notes-column__head notes-column__head--step">
-        <button type="button" class="notes-column__back" @onclick="OnBack">‹ All notes</button>
+        <button type="button" class="notes-column__back" @onclick="OnBack"><Icon Name="chevron-left" />All notes</button>
         <b class="notes-column__threadtitle">New note</b>
       </div>
       <div class="notes-column__thread">
-        <div class="notes-column__group">PINNED TO</div>
+        <div class="notes-column__group">Pinned to</div>
         <div class="notes-column__anchor">
           <b>@AnchorTitle</b>
           <p>@AnchorBody</p>
@@ -144,8 +141,8 @@
       </div>
       <div class="notes-column__compose">
         @if (Error is not null) { <p class="notes-column__error">@Error</p> }
-        @if (sent is not null) { <span class="notes-column__sent" role="status">✓ @sent</span> }
-        <textarea id="note-body" class="field-input" rows="4" placeholder="Write a note. (Ctrl+Enter sends)" aria-label="Note" value="@draft"
+        @if (sent is not null) { <span class="notes-column__sent" role="status">@sent</span> }
+        <textarea id="note-body" class="field-input" rows="4" placeholder="Write a note" aria-label="Note" value="@draft"
                   readonly="@sending" @oninput="e => draft = e.Value?.ToString() ?? string.Empty"
                   @onkeydown="key => SendOnKey(key, SendNoteAsync)"></textarea>
         <div class="notes-column__send">
@@ -159,7 +156,7 @@
 
 @code {
 
-    /// <summary>One thread's messages, with where the board changed between them and since the last.</summary>
+    /// <summary>One thread's messages, with where the map changed between them and since the last.</summary>
     private void ThreadBody(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder __builder, MapNoteDto note)
     {
         @for (var i = 0; i < note.Messages.Count; i++)
@@ -178,7 +175,7 @@
             <div class="note-message__bubble">
               <div class="note-message__who" title="@who">
                 <b>@Writers.Name(message.Author, message.Token)</b>
-                @if (message.Token is not null) { <span class="note-message__badge">agent</span> }
+                @if (message.Token is not null) { <span class="note-message__badge">Agent</span> }
                 <span>@Ago(message.At) · change @message.Change</span>
               </div>
               <div class="note-message__body">@message.Body</div>
@@ -190,7 +187,7 @@
               {
                 <a class="note-message__picture" href="@($"api/notes/pictures/{picture}")" target="_blank" rel="noopener">
                   <img src="@($"api/notes/pictures/{picture}")" width="1920" height="1080" alt="@(first ? "The picture the note was written on" : "The same camera after the change")" loading="lazy" />
-                  <span>@(first ? "before" : "after") · change @message.Change</span>
+                  <span>@(first ? "Before" : "After") · change @message.Change</span>
                 </a>
               }
             </div>
@@ -201,10 +198,10 @@
           @Marker(since, note.Messages[^1].Change)
         }
     }
-    /// <summary>Where the board changed between two messages, or since the last: how many changes landed, which
+    /// <summary>Where the map changed between two messages, or since the last: how many changes landed, which
     /// opens History on them.</summary>
     private RenderFragment Marker(int count, long after) => @<button type="button" class="notes-column__landed"
-        @onclick="() => OnChangesSince.InvokeAsync(after)">@Changed(count) · History ›</button>;
+        @onclick="() => OnChangesSince.InvokeAsync(after)">@Changed(count) · History</button>;
 
     private RenderFragment Row(MapNoteDto note) => @<button type="button" class="notes-row" @key="note.Id" @onclick="() => OnOpen.InvokeAsync(note)">
         <b title="@Title(note)">@Title(note)</b>

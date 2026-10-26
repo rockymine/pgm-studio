@@ -1435,7 +1435,7 @@ export class SketchCanvas extends CanvasBase {
         group: "Canvas",
         when: () => writable() && !this.#reliefOn && !this.#dressingOn && !!this.#selectedId && !this.#pointPicked(),
         run: () => this.#callbacks.onShapeDeleted?.(this.#selectedId) },
-      { id: "modifier.delete", keys: ["delete", "backspace"], label: "Delete the picked modifier",
+      { id: "modifier.delete", keys: ["delete", "backspace"], label: "Delete the selected modifier",
         group: "Terraform", when: () => writable() && this.#reliefOn && !!this.#modifierTools?.selectedId,
         run: () => this.#modifierTools?.deleteSelected() },
       { id: "dressing.delete", keys: ["delete", "backspace"], label: "Delete the selected prop",
@@ -1449,7 +1449,7 @@ export class SketchCanvas extends CanvasBase {
     // A click-by-click draw ends on Enter or on a click back at its first vertex. Neither is a click count,
     // so nothing on this canvas is reached by how fast two presses land.
     Keys.register("sketch-draw", [
-      { id: "sketch.close", keys: "enter", label: "Finish the polygon or path", group: "Sketch",
+      { id: "sketch.close", keys: "enter", label: "Complete the polygon or line", group: "Sketch",
         priority: 10, when: () => live() && (this._activeTool === "polygon" || this._activeTool === "polyline"),
         run: () => this.#draw.onDblClick() },
     ]);

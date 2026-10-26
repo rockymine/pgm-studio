@@ -1,29 +1,28 @@
 @namespace PgmStudio.Client.Features.Sketch
 
-@* Every change to the board's documents, newest first: its number, what its writer said it is or which documents
+@* Every change to the map's documents, newest first: its number, what its writer said it is or which documents
    it wrote, who wrote it and when. Picking one draws what it did on the canvas and opens it in the inspector. *@
 
 <Section Title="Change history" Variant="list">
   <div class="panel-list">
     @if (History.ChangesError is not null)
     {
-      <p class="inspector-readout">@History.ChangesError</p>
+      <StatusLine>@History.ChangesError</StatusLine>
     }
     else if (Changes is null)
     {
-      <p class="inspector-readout">Loading changes…</p>
+      <StatusLine>Loading changes…</StatusLine>
     }
     else if (Changes.Count == 0)
     {
-      <p class="inspector-readout">No changes yet.</p>
+      <EmptyState>No changes yet. Every save to this map adds one.</EmptyState>
     }
     else
     {
       @foreach (var change in Changes.Reverse())
       {
         <ListRow Compact Class="list-row--two-line" Selected="@(History.SpanTo == change.Number)" @key="change.Number"
-                 OnClick="() => History.PickChange(change.Number)"
-                 title="@($"#{change.Number} · {Who(change)} · {Moments.Ago(change.At)} · {Said(change)}")">
+                 OnClick="() => History.PickChange(change.Number)">
           <span class="list-tag">#@change.Number</span>
           <span class="list-row__text">
             <span class="list-label">@Said(change)</span>

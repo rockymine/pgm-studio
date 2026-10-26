@@ -61,9 +61,28 @@ public partial class ObjectiveFields
         get
         {
             var (size, height) = CoreCasing.Of(CoreLava, CoreLavaHeight, CoreOpenTop);
-            return $"{size}×{size}×{height} obsidian, {CoreLava}×{CoreLava}×{CoreLavaHeight} lava inside";
+            return $"{size}×{size}×{height} of obsidian around {CoreLava}×{CoreLava}×{CoreLavaHeight} of lava.";
         }
     }
+
+    /// <summary>What leaking the core takes, from its leak and its float.</summary>
+    private string CoreDigReadout => CoreDigDepth > 0
+        ? $"Leaking it means breaking the casing and digging {CoreDigDepth} block{(CoreDigDepth == 1 ? "" : "s")} out of the ground below it."
+        : "The lava leaks as soon as the casing is broken. No digging is needed.";
+
+    private string? PadNote => PointShape == ControlPointShapes.Disc ? "Held inside a cylinder over the pad." : null;
+
+    private string TakenNote => PointMode == CaptureModes.Touch
+        ? "Taken the moment a player of another team steps on it."
+        : "Held alone for the capture time.";
+
+    /// <summary>What an unnamed monument or core is called: a core "Core", a monument after its team.</summary>
+    private string? GoalNameNote => Kind == "core" ? null : "Left empty, it is named after its team.";
+
+    private string? GoalNamePlaceholder => Kind == "core" ? "Core" : null;
+
+    /// <summary>A vocabulary word as a chip shows it, opening with a capital.</summary>
+    private static string Word(string word) => word.Length == 0 ? word : char.ToUpperInvariant(word[0]) + word[1..];
 
     /// <summary>How far players must dig under the casing before its lava can leak.</summary>
     private int CoreDigDepth => CoreDig.Depth(CoreLeak, CoreFloat);

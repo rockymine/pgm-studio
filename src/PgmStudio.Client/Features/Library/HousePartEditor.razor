@@ -23,7 +23,6 @@
     @foreach (var (id, width, depth) in HouseFootprints.All)
     {
       <DockChoice Active="@(id == footprint)" @key="id"
-                  Title="@($"Preview on a {width} × {depth} building")"
                   OnClick="() => SetFootprint(id)">@width × @depth</DockChoice>
     }
   </Dock>
@@ -35,27 +34,26 @@
     {
       @if (roof is not null)
       {
-          <Field Label="Form">
-            <Select Options="@Select.Words(RoofForms.Offered, RoofForms.Describe)"
+          <Field Label="Roof form" Term="roof form">
+            <Select Options="@Select.Words(RoofForms.Offered, RoofForms.Name, RoofForms.Describe)"
                     Value="@roof.Form" ValueChanged="SetForm" />
           </Field>
           @if (Sloped)
           {
-            <Field Label="Pitch">
-              <NumberField Slim Min="1" Max="4" Value="roof.Pitch" ValueChanged="SetPitch"
-                           title="Blocks of rise per block inward. 1 is 45°." />
+            <Field Label="Pitch" Term="pitch" Note="At 1 the roof climbs at 45 degrees.">
+              <NumberField Slim Min="1" Max="4" Value="roof.Pitch" ValueChanged="SetPitch" />
             </Field>
           }
-          <Field Label="Overhang">
-            <NumberField Slim Min="0" Max="4" Value="roof.Overhang" ValueChanged="SetOverhang"
-                         title="How far the roof reaches past the walls, in blocks. 0 ends it flush." />
+          <Field Label="Overhang" Unit="blocks" Note="At 0 the roof ends flush with the walls.">
+            <NumberField Slim Min="0" Max="4" Value="roof.Overhang" ValueChanged="SetOverhang" />
           </Field>
           @if (Sloped)
           {
-            <Field Label="Ridge">
-              <Chip Active="roof.RidgeCap" OnClick="ToggleRidgeCap">
-                @(roof.RidgeCap ? "Verge material" : "Roof material")
-              </Chip>
+            <Field Label="Ridge" Term="ridge">
+              <div class="chip-row">
+                <Chip Active="@(!roof.RidgeCap)" OnClick="() => SetRidgeCap(false)">Roof material</Chip>
+                <Chip Active="roof.RidgeCap" OnClick="() => SetRidgeCap(true)">Verge material</Chip>
+              </div>
             </Field>
             @* A slab halves the rise per block travelled inward, so a roof laid in slabs stands half as tall
                at the same pitch and the body fills the cubes between. *@
@@ -68,83 +66,68 @@
             </Field>
             @if (Slabbed)
             {
-              <Field Label="Slab">
+              <Field Label="Slab" Note="The roof body's own material, or the house can't be saved.">
                 <BlockPicker Blocks="blocks" Id="roof.RoofSlab" Data="roof.RoofSlabData"
                              OnPick="PickRoofSlab" />
               </Field>
-              <p class="section-desc">Use a slab of the same material as the roof body. A slab that does
-                not match can't be saved.</p>
             }
             @if (Staired)
             {
-              <Field Label="Stair">
+              <Field Label="Stair" Note="The roof body's own material. Along the sloped edges it lies upside down.">
                 <BlockPicker Blocks="blocks" Id="roof.RoofStair" Data="0" OnPick="PickRoofStair" />
               </Field>
-              <p class="section-desc">Use a stair of the same material as the roof body. Along the sloped
-                edges it is placed upside down, so the edge has some depth.</p>
             }
-            <Field Label="Wear"><LabelEnd><strong>@($"{roof.RoofWear * 100:0}%")</strong></LabelEnd>
+            <Field Label="Wear" Help="How weathered the roof is, as the share of its stairs laid as whole blocks and of its edge laid as slabs."><LabelEnd><strong>@($"{roof.RoofWear * 100:0}%")</strong></LabelEnd>
               <ChildContent><RangeField Min="0" Max="100" Value="@((int)(roof.RoofWear * 100))"
                      OnCommit="SetRoofWear" /></ChildContent></Field>
           }
           else
           {
-            <Field Label="Hole">
-              <Chip Active="roof.RoofHole" OnClick="ToggleHole">
-                @(roof.RoofHole ? "Open in the middle" : "Closed (the room is unlit)")
-              </Chip>
+            <Field Label="Roof hole" Note="@(roof.RoofHole ? null : "A closed roof leaves the room unlit.")">
+              <div class="chip-row">
+                <Chip Active="@(!roof.RoofHole)" OnClick="() => SetHole(false)">Closed</Chip>
+                <Chip Active="roof.RoofHole" OnClick="() => SetHole(true)">Open centre</Chip>
+              </div>
             </Field>
           }
       }
       @if (storey is not null)
       {
-      <p class="section-desc">Clear height is the open space a player stands in, not counting walls or
-          floors.</p>
-          <Field Label="Clear height">
-            <NumberField Slim Min="3" Max="16" Value="storey.Clear" ValueChanged="SetClear"
-                         title="Blocks of air between this floor and whatever is above it. At least 3." />
+          <Field Label="Clear height" Unit="blocks" Help="The open space a player stands in, between this floor and whatever is above it, not counting walls or floors." Note="At least 3.">
+            <NumberField Slim Min="3" Max="16" Value="storey.Clear" ValueChanged="SetClear" />
           </Field>
-          <Field Label="@(Bound(RoomParts.Border) ? "Border width" : "Border width (no border set)")">
+          <Field Label="Edge width" Unit="blocks" Help="How far the edge ring reaches in from the walls."
+                 Note="@(Bound(RoomParts.Border) ? null : "Set a pattern for the edge to use this.")">
             <NumberField Slim Min="1" Max="4" Value="storey.BorderWidth" ValueChanged="SetBorderWidth"
-                         disabled="@(!Bound(RoomParts.Border))"
-                         title="@(Bound(RoomParts.Border)
-                                  ? "How many blocks the border ring reaches in from the walls."
-                                  : "Set a pattern for Border to use this.")" />
+                         disabled="@(!Bound(RoomParts.Border))" />
           </Field>
-          <Field Label="@(Bound(RoomParts.Inlay) ? "Inlay inset" : "Inlay inset (no inlay set)")">
+          <Field Label="Inlay inset" Unit="blocks" Help="How far in from the walls the inlay starts."
+                 Note="@(Bound(RoomParts.Inlay) ? null : "Set a pattern for the inlay to use this.")">
             <NumberField Slim Min="1" Max="8" Value="storey.InlayInset" ValueChanged="SetInlayInset"
-                         disabled="@(!Bound(RoomParts.Inlay))"
-                         title="@(Bound(RoomParts.Inlay)
-                                  ? "How far from the walls the inlay starts."
-                                  : "Set a pattern for Inlay to use this.")" />
+                         disabled="@(!Bound(RoomParts.Inlay))" />
           </Field>
       }
       @if (porch is not null)
       {
-          <Field Label="Blocks deep" HelpTitle="What a porch is">
-            <Help>A porch takes space from the footprint rather than adding to it. The walls step back from one side,
-          leaving a deck with posts, a rail, and a roof.</Help>
-            <ChildContent>
-              <NumberField Slim Min="1" Max="8" Value="porch.Depth" ValueChanged="SetPorchDepth"
-                           title="How far the walls step back. The room keeps at least 3 blocks." />
-            </ChildContent>
+          <Field Label="Porch depth" Unit="blocks" Help="How far the walls step back from the porch side. The room keeps at least 3 blocks.">
+            <NumberField Slim Min="1" Max="8" Value="porch.Depth" ValueChanged="SetPorchDepth" />
           </Field>
-          <Field Label="Inset">
-            <NumberField Slim Min="0" Max="8" Value="porch.Inset" ValueChanged="SetPorchInset"
-                         title="How far the deck stops short of each end of that wall. 0 runs it the full width." />
+          <Field Label="Porch inset" Unit="blocks" Help="How far the deck stops short of each end of its wall." Note="At 0 the deck runs the wall's full width.">
+            <NumberField Slim Min="0" Max="8" Value="porch.Inset" ValueChanged="SetPorchInset" />
           </Field>
-          <Field Label="Wall">
-            <Select Options="@Select.Words(PorchEdges.All, PorchEdges.Describe)"
+          <Field Label="Porch wall">
+            <Select Options="@Select.Words(PorchEdges.All, PorchEdges.Name, PorchEdges.Describe)"
                     Value="@porch.Edge" ValueChanged="SetPorchEdge" />
           </Field>
-          <Field Label="Canopy">
-            <Select Options="@Select.Words(RoofForms.Offered, RoofForms.Describe)"
+          <Field Label="Canopy form">
+            <Select Options="@Select.Words(RoofForms.Offered, RoofForms.Name, RoofForms.Describe)"
                     Value="@porch.Roof" ValueChanged="SetPorchRoof" />
           </Field>
           <Field Label="Rail">
-            <Chip Active="@(porch.RailBlock > 0)" OnClick="ToggleRail">
-              @(porch.RailBlock > 0 ? "Along the open edges" : "None")
-            </Chip>
+            <div class="chip-row">
+              <Chip Active="@(porch.RailBlock <= 0)" OnClick="() => SetRail(false)">None</Chip>
+              <Chip Active="@(porch.RailBlock > 0)" OnClick="() => SetRail(true)">Open edges</Chip>
+            </div>
           </Field>
           @if (porch.RailBlock > 0)
           {
@@ -157,21 +140,20 @@
     }
     else if (selected == WindowsPart && storey is not null)
     {
-      <WindowFields Window="storey.Windows" WindowChanged="SetWindows" Blocks="blocks"
-                    SillTitle="How many courses above this storey's floor the window starts." />
+      <WindowFields Window="storey.Windows" WindowChanged="SetWindows" Blocks="blocks" />
     }
     else if (Stacked is { } stacked)
     {
-      <p class="section-desc">@stacked.Blurb</p>
+      <Section Title="Courses" Help="@stacked.Help">
       @foreach (var course in Courses(stacked.Id))
       {
         <div @key="@($"{stacked.Id}-{course.Ordinal}")">
-          <SlotSelect Styles="styles" Blocks="blocks" Value="@course.StyleId" Block="course.Block" Unbound="None"
+          <SlotSelect Styles="styles" Blocks="blocks" Value="@course.StyleId" Block="course.Block"
                       ValueChanged="fill => BindCourse(stacked.Id, course.Ordinal, fill)">
             <Trailing>
               <NumberField Slim Min="1" Value="course.Height" ValueChanged="value => SetCourseHeight(stacked.Id, course.Ordinal, value)"
-                           title="Height in courses" />
-              <Button Variant="icon" Icon="trash-2" Title="Remove this course"
+                           aria-label="Course height in blocks" />
+              <Button Variant="icon" Icon="trash-2" Title="Delete this course"
                       OnClick="() => RemoveCourse(stacked.Id, course.Ordinal)" />
             </Trailing>
           </SlotSelect>
@@ -179,20 +161,20 @@
       }
       @if (Courses(stacked.Id).Count == 0)
       {
-        <p class="section-desc">Nothing set. The default finish is used.</p>
+        <EmptyState>No courses yet. Add one to replace the default look.</EmptyState>
       }
       <div class="panel-actions">
         <Button Icon="plus" OnClick="() => AddCourse(stacked.Id)">Add a course</Button>
       </div>
+      </Section>
     }
     else if (SingleBound is { } single)
     {
       @* One material read straight through, so binding it is a single choice rather than a stack: a post is a
          post all the way up, and a ceiling is one slab. *@
-      <p class="section-desc">@single.Blurb</p>
-      <Field Label="Made of">
+      <Field Label="@single.Title" Term="@single.Term" Help="@single.Help" Note="@single.Note">
         <SlotSelect Styles="styles" Blocks="blocks" Value="@Single(single.Id).StyleId" Block="Single(single.Id).Block"
-                    Title="@single.Blurb" ValueChanged="fill => BindSingle(single.Id, fill)" />
+                    ValueChanged="fill => BindSingle(single.Id, fill)" />
       </Field>
     }
   </Fields>

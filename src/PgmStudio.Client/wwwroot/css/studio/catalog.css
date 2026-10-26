@@ -51,3 +51,6 @@
    short window a fixed pixel height would take the panel and leave the knobs a slit to scroll in. */
 .lib-rail-pin .lib-fig { min-height: 0; }
 .lib-rail-pin .lib-fig svg { max-height: min(180px, 20vh); }
+
+/* The one line under a filter panel's groups, and the line that opens the shape settings rail. */
+.filter-panel-note, .lib-rail-lead { margin: 0; font-size: var(--font-sm); line-height: 1.6; color: var(--text-secondary); }

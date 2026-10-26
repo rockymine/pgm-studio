@@ -91,7 +91,7 @@ export class WorldDrawController {
     painter.line(centerX, centerZ, cursorX ?? centerX, cursorZ ?? centerZ,
                  { stroke: GUIDE_COLOR, width: 1.5, dash: [4, 2] });
     painter.dot(centerX, centerZ, { radius: 5, fill: GUIDE_COLOR, stroke: "var(--canvas-marker-stroke)", width: 1.5 });
-    painter.text(`r=${currentRadius}`, cursorX ?? centerX, cursorZ ?? centerZ, {
+    painter.text(`radius ${currentRadius}`, cursorX ?? centerX, cursorZ ?? centerZ, {
       fill: GUIDE_COLOR, size: 11, align: "left", baseline: "alphabetic", dx: 6, dy: -4,
     });
   }

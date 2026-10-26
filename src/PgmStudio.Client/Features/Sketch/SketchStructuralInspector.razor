@@ -4,79 +4,40 @@
    resized on the canvas; what a region carries and an author may correct here is the height it is held at. *@
 
 <Inspector>
-  <Section>
-    <DetailHeader Icon="@Piece.Icon" Label="@Piece.Label">
-      <span class="detail-header-badges">
-        @if (Piece.Who.Length > 0) { <Badge Kind="neutral">@Piece.Who</Badge> }
-        @if (!Piece.IsPoint) { <Badge Kind="neutral">@Piece.Dim</Badge> }
-        @if (Piece.HeightAuthored) { <Badge Kind="warning">corrected</Badge> }
-      </span>
-    </DetailHeader>
+  <DetailHeader Icon="@Piece.Icon" Label="@Piece.Label">
+    <span class="detail-header-badges">
+      @if (Piece.Who.Length > 0) { <Badge Kind="neutral">@Piece.Who</Badge> }
+      @if (!Piece.IsPoint) { <Badge Kind="neutral">@Piece.Dim</Badge> }
+      @if (Piece.HeightAuthored) { <Badge Kind="warning">Corrected</Badge> }
+    </span>
+  </DetailHeader>
 
-    @if (Piece.IsRegion)
-    {
-      <div class="section-header section-header--ruled"><h2 class="section-title">Height</h2></div>
-      <Field Label="Surface (blocks)">
-        <NumberField Value="@Piece.BaseHeight" ValueChanged="HeightChanged" Min="1" />
+  @if (Piece.IsRegion)
+  {
+    <Section Title="Height">
+      <Field Label="Surface" Unit="blocks" Term="surface" Note="@HeightNote">
+        <NumberField Value="@Piece.BaseHeight" ValueChanged="HeightChanged" Min="1" placeholder="Auto" />
       </Field>
-      <p class="section-desc">
-        @if (Piece.HeightAuthored)
-        {
-          <text>Held at this height. The ground around it meets it.</text>
-        }
-        else if (Piece.BaseHeight is null)
-        {
-          <text>Stands level on the ground the terraform leaves under it. State a height to hold it there.</text>
-        }
-        else
-        {
-          <text>Held at the height the layout was written with. The ground around it meets it.</text>
-        }
-      </p>
-    }
-    else if (!Piece.Piece)
-    {
-      <p class="section-desc">
-        The building has no height of its own. Change the height on the region around it.
-      </p>
-    }
+    </Section>
+  }
+  else if (!Piece.Piece)
+  {
+    <Section Description="The building has no height of its own. Change the height of the room around it." />
+  }
 
-    <div class="section-header section-header--ruled"><h2 class="section-title">Position</h2></div>
+  <Section Title="Position" Description="@PositionDescription">
     @if (Piece.IsPoint)
     {
       <Field Label="X"><span class="stepper-value">@($"{Piece.Middle.X:0.#}")</span></Field>
       <Field Label="Z"><span class="stepper-value">@($"{Piece.Middle.Z:0.#}")</span></Field>
     }
-    <p class="section-desc">
-      Drag to move it.
-      @if (!Piece.Piece)
-      {
-        @(Piece.IsRegion
-          ? "The marker, building, and iron on it move with it."
-          : "The region under it stays where it is.")
-      }
-      @if (House is not null) { <text> Drag a corner or an edge to resize a wing, or click the + on a free wall to add one.</text> }
-      else if (Reshapes && Piece.Role == PlayPieceKinds.Wall)
-      {
-        <text> Drag a corner to move it alone; it snaps to the edge of a shape. Shift-click a leg to add a corner, or a corner to take it out.</text>
-      }
-      else if (Reshapes && Piece.Role == PlayPieceKinds.ControlPoint)
-      {
-        <text> Drag a corner or an edge to resize it; its longer side is the pad's size.</text>
-      }
-      else if (Reshapes && (Piece.IsRegion || Piece.Role is PlayPieceKinds.BuildArea or PlayPieceKinds.WaterLane))
-      {
-        <text> Drag a corner or an edge to resize it@(Piece.IsRegion ? "; what stands on it keeps its place across it" : "").</text>
-      }
-      else if (!Piece.IsPoint) { <text> It can't be resized.</text> }
-    </p>
     @House
     @if (Yaw is { } yaw)
     {
       <Field Label="Facing">
         <div class="ctrl-row">
           <span class="stepper-value">@($"{yaw:0}°")</span>
-          <Button Variant="icon" Writes OnClick="() => OnFace.InvokeAsync()" Title="Turn"><i data-lucide="rotate-cw"></i></Button>
+          <Button Variant="icon" Icon="rotate-cw" Title="Turn clockwise" Writes OnClick="() => OnFace.InvokeAsync()" />
         </div>
       </Field>
     }
@@ -84,29 +45,34 @@
     {
       <ObjectiveFields Kind="@ObjectiveKind" Values="settings" Vocabulary="words" OnSet="OnSetting" />
     }
-    @if (StampsOff is { } off && StampSwitches.Of(Piece.Role) is { Length: > 0 } stamps)
-    {
-      <div class="section-header section-header--ruled"><h2 class="section-title">Stamps</h2></div>
+  </Section>
+  @if (StampsOff is { } off && StampSwitches.Of(Piece.Role) is { Length: > 0 } stamps)
+  {
+    <Section Title="Stamps" Description="Switch one off where the world already carries its own.">
       @foreach (var word in stamps)
       {
         var on = !off.Contains(word);
         <label class="check-row"><input type="checkbox" checked="@on" disabled="@(!Reshapes)"
                @onchange="@(e => OnSwitchStamp.InvokeAsync((word, e.Value is true)))" />@StampLabel(word)</label>
       }
-      <p class="section-desc">Switch one off where the world already carries its own.</p>
-    }
-    @if (Piece.Turns)
-    {
-      <div class="panel-actions">
-        <Button Variant="icon" Icon="rotate-ccw" Title="Turn counterclockwise" Writes OnClick="() => OnTurn.InvokeAsync(-1)" />
-        <Button Variant="icon" Icon="rotate-cw" Title="Turn clockwise" Writes OnClick="() => OnTurn.InvokeAsync(1)" />
-      </div>
-    }
-    @if (!string.IsNullOrEmpty(Note))
-    {
-      <p class="field-error">@Note</p>
-    }
-  </Section>
+    </Section>
+  }
+  @if (Piece.Turns || !string.IsNullOrEmpty(Note))
+  {
+    <Section>
+      @if (Piece.Turns)
+      {
+        <div class="panel-actions">
+          <Button Variant="icon" Icon="rotate-ccw" Title="Turn counterclockwise" Writes OnClick="() => OnTurn.InvokeAsync(-1)" />
+          <Button Variant="icon" Icon="rotate-cw" Title="Turn clockwise" Writes OnClick="() => OnTurn.InvokeAsync(1)" />
+        </div>
+      }
+      @if (!string.IsNullOrEmpty(Note))
+      {
+        <p class="field-error">@Note</p>
+      }
+    </Section>
+  }
   @if (OnDelete is not null && Piece.Role != StructuralRoles.Building && !Piece.IsPoint)
   {
     <InspectorDelete Title="Delete this piece" OnClick="OnDelete" />

@@ -9,22 +9,19 @@
   <Sidebar>
       <Section Title="Kills">
         <ChildContent>
-        <p class="section-desc">A map where kills score is a team deathmatch.</p>
-        <Field Label="Points per kill">
-          <NumberField Value="@killPoints" Min="1" Max="100" placeholder="None"
+        <Field Label="Points per kill" Note="Kills that score make the map a team deathmatch.">
+          <NumberField Value="@killPoints" Min="1" Max="100" placeholder="No points"
                        ValueChanged="@(value => SetKillPoints((int)value))" OnCleared="@(() => SetKillPoints(null))" />
         </Field>
         </ChildContent>
       </Section>
 
-      <Section Title="Score boxes">
+      <Section Title="Score boxes" Description="Drag a rectangle with the rectangle tool. Every other team gets a symmetry copy.">
         <Actions><Badge Class="@(RowCount > 0 ? "badge--success" : "badge--dim")">@RowCount box@(RowCount == 1 ? "" : "es")</Badge></Actions>
         <ChildContent>
         @{ var rows = Rows.ToList(); }
-        <p class="section-desc">Use the <strong>rectangle tool</strong> to draw a box. The other teams get a copy
-          by symmetry.</p>
         <div class="panel-list">
-          @if (rows.Count == 0) { <div class="list-empty">No score boxes yet. Draw one on the map.</div> }
+          @if (rows.Count == 0) { <EmptyState>No score boxes yet. Drag a rectangle on the canvas.</EmptyState> }
           @foreach (var box in rows)
           {
             <ListRow Compact Selected="selectedId == box.Id" @key="box.Id" OnClick="() => SelectBox(box.Id)">
@@ -58,13 +55,15 @@
             <Field Label="Team">
               <Select Slim="false" Disabled Options="@AuthoringContext.TeamOptions(teams)" Value="@sel.Team" />
             </Field>
-            <Field Label="Floor height"><NumberField Value="@sel.MinY" disabled /></Field>
+            <Field Label="Floor height" Unit="world y"><NumberField Value="@sel.MinY" disabled /></Field>
             <Field Label="Points"><NumberField Value="@sel.Points" disabled /></Field>
             <Field Label="Teleport to spawn">
-              <Select Slim="false" Disabled Options="@HomeOptions" Value="@(sel.Home ? Home : Stays)" />
+              <div class="filter-group-options">
+                <Chip Active="!sel.Home" Disabled>No</Chip>
+                <Chip Active="sel.Home" Disabled>Yes</Chip>
+              </div>
             </Field>
-            <p class="section-desc">Copied from <strong>@TeamName(source.Team)</strong>'s box by symmetry. Edit that
-              box to change it.</p>
+            <Readout>@(AuthoringContext.CopyOf($"{TeamName(source.Team)}'s score box"))</Readout>
           </div>
           }
           else
@@ -74,27 +73,31 @@
               <Select Slim="false" Options="@AuthoringContext.TeamOptions(teams)" Value="@sel.Team"
                       ValueChanged="@(team => SetTeam(sel, team))" />
             </Field>
-            <Field Label="Floor height">
+            <Field Label="Floor height" Unit="world y">
               <NumberField Value="@sel.MinY" Min="-64" Max="320" ValueChanged="@(bottom => SetBottom(sel, (int)bottom))" />
             </Field>
             <Field Label="Points">
               <NumberField Value="@sel.Points" Min="1" Max="1000" ValueChanged="@(points => SetPoints(sel, (int)points))" />
             </Field>
             <Field Label="Teleport to spawn">
-              <Select Slim="false" Options="@HomeOptions" Value="@(sel.Home ? Home : Stays)" ValueChanged="@(home => SetHome(sel, home == Home))" />
+              <div class="filter-group-options">
+                <Chip Active="!sel.Home" OnClick="() => SetHome(sel, false)">No</Chip>
+                <Chip Active="sel.Home" OnClick="() => SetHome(sel, true)">Yes</Chip>
+              </div>
             </Field>
-            <div class="ctrl-row ctrl-row--separated">
-              <Button Writes Fill OnClick="() => Remove(sel)" Title="Remove box"><i data-lucide="trash-2"></i> Remove box</Button>
-            </div>
           </div>
           }
         </Section>
+        @if (sel.Source is null)
+        {
+          <InspectorDelete Title="Delete this score box" OnClick="() => Remove(sel)" />
+        }
       }
       else
       {
         <Section>
           <DetailHeader Icon="goal" IconMuted Label="Score box" />
-          <p class="section-desc">Draw a box, then choose the team that scores in it.</p>
+          <EmptyState>No score box selected. Draw one, then choose the team that scores in it.</EmptyState>
         </Section>
       }
   </Inspector>

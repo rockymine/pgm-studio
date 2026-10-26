@@ -41,10 +41,9 @@ public sealed class DocumentSave(HttpClient http)
 {
     /// <summary>The sentence for a write refused as stale.</summary>
     public const string SupersededMessage =
-        "Not saved: this map was saved from somewhere else after this tab opened it. "
-        + "Reload the page to get the latest version. Edits made here since then will be lost.";
+        "Couldn't save your changes. This map changed elsewhere, so reload the page and redo the edits made here.";
 
-    private const string Unreachable = "Not saved. Check your connection and try again.";
+    private const string Unreachable = "Couldn't save your changes. Check your connection and try again.";
 
     private string? held;
     private readonly SemaphoreSlim gate = new(1, 1);
@@ -101,7 +100,7 @@ public sealed class DocumentSave(HttpClient http)
                 return new(SaveStatus.Refused, SupersededMessage);
             }
             var refusal = await ServerRefusal.ReadAsync(response);
-            return new(SaveStatus.Refused, "Not saved. " + refusal.Message, refusal.Findings);
+            return new(SaveStatus.Refused, "Couldn't save your changes. " + refusal.Message, refusal.Findings);
         }
         catch { return new(SaveStatus.Refused, Unreachable); }
         finally { gate.Release(); }

@@ -30,10 +30,10 @@ public partial class HouseViews : IAsyncDisposable
     public static readonly (string Id, string Label, string Icon, string Note)[] Offered =
     [
         (All, "All", "layout-grid", "The building and its three cuts"),
-        (Iso, "3-D", "box", "The building in 3-D. You can turn it."),
-        (Plan, "Plan", "grid", "The roof from above: its shape, opening, and overhang"),
+        (Iso, "3-D", "box", "The building in 3-D, turnable"),
+        (Plan, "Plan", "grid", "The roof from above"),
         (Section, "Section", "layers", "A vertical cut through the courses"),
-        (Cutaway, "Cutaway", "square-dashed", "One face, close up"),
+        (Cutaway, "Cutaway", "square-dashed", "One face close up"),
     ];
 
     [Parameter] public RoomStylePreviewDto? Preview { get; set; }

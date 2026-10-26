@@ -23,7 +23,6 @@
     @foreach (var (id, width, depth) in HouseFootprints.All)
     {
       <DockChoice Active="@(id == footprint)" @key="id"
-                  Title="@($"Preview on a {width} × {depth} building")"
                   OnClick="() => SetFootprint(id)">@width × @depth</DockChoice>
     }
   </Dock>
@@ -38,75 +37,70 @@
        Inside that, the one thing the header cannot say: that there is nothing here YET. A failure worded into
        the space a load has not filled is the failure wearing the loading state's clothes, and a cold client
        wears them for seconds on the way to a house that reads perfectly well. *@
-    @if (draft is null) { @if (note is null) { <p class="section-desc">Loading…</p> } }
+    @if (draft is null) { @if (note is null) { <StatusLine /> } }
     else if (selected == ComposedPart)
     {
-      <Field Label="Roof" HelpTitle="What a saved part is">
-        <Help>A roof, porch or storeys saved in its own library. Picking one replaces this house's own rows for
-          that part.</Help>
-        <ChildContent>
+      <Section Description="Picking a saved roof, porch or storey replaces this house's own settings for that part. A clear height of 0 keeps the storey's own.">
+        <Field Label="Roof">
           <Select Options="@Parts(roofs.Select(part => (part.Id, part.Name)))" Value="@((draft.RoofStyleId ?? 0).ToString())"
-                  Placeholder="This house's own roof" PlaceholderValue="0" ValueChanged="BindRoofStyle" />
-        </ChildContent>
-      </Field>
-      <Field Label="Porch">
-        <Select Options="@Parts(porches.Select(part => (part.Id, part.Name)))" Value="@((draft.PorchStyleId ?? 0).ToString())"
-                Placeholder="This house's own porch" PlaceholderValue="0" ValueChanged="BindPorchStyle" />
-      </Field>
+                  Placeholder="Own roof" PlaceholderValue="0" ValueChanged="BindRoofStyle" />
+        </Field>
+        <Field Label="Porch" Term="porch">
+          <Select Options="@Parts(porches.Select(part => (part.Id, part.Name)))" Value="@((draft.PorchStyleId ?? 0).ToString())"
+                  Placeholder="Own porch" PlaceholderValue="0" ValueChanged="BindPorchStyle" />
+        </Field>
 
-      @* The stack is an order, so it is a list with the ground at the top and no ordinal to type: moving a
-         row is moving a storey. *@
-      <Field Label="Storeys">
-        <Badge Kind="dim">@(draft.StoreyStack.Count == 0
-          ? "This house's own walls" : $"{draft.StoreyStack.Count} set")</Badge>
-      </Field>
-      @for (var at = 0; at < draft.StoreyStack.Count; at++)
-      {
-        var index = at;
-        var storey = draft.StoreyStack[index];
-        <div class="lib-bind" @key="@($"storey-{index}")">
-          <Select Options="@Parts(storeys.Select(part => (part.Id, part.Name)))"
-                  Value="@storey.StoreyStyleId.ToString()" ValueChanged="id => BindStorey(index, id)" />
-          <NumberField Slim Min="0" Max="16" Value="storey.Clear" ValueChanged="value => SetStoreyStackClear(index, value)"
-                       title="Clear height for this storey here. 0 keeps the storey's own." />
-          <Button Variant="icon" Icon="chevron-up" Title="Move down the building"
-                  Disabled="@(index == 0)" OnClick="() => MoveStorey(index, -1)" />
-          <Button Variant="icon" Icon="chevron-down" Title="Move up the building"
-                  Disabled="@(index == draft.StoreyStack.Count - 1)" OnClick="() => MoveStorey(index, 1)" />
-          <Button Variant="icon" Icon="trash-2" Title="Remove this storey"
-                  OnClick="() => RemoveStorey(index)" />
-        </div>
-      }
-      @if (draft.StoreyStack.Count > 0)
-      {
-        <p class="section-desc">Ground floor first. @StackCourses courses of wall, with a ladder on the door
-          wall between floors.</p>
-      }
-      <div class="panel-actions">
-        <Button Icon="plus" Disabled="@(storeys.Count == 0)" OnClick="AddStorey">Add storey</Button>
-        @if (storeys.Count == 0)
+        @* The stack is an order, so it is a list with the ground at the top and no ordinal to type: moving a
+           row is moving a storey. *@
+        <Field Label="Storeys" Term="storey">
+          <Badge Kind="dim">@(draft.StoreyStack.Count == 0
+            ? "Own walls" : $"{draft.StoreyStack.Count} set")</Badge>
+        </Field>
+        @for (var at = 0; at < draft.StoreyStack.Count; at++)
         {
-          <Button Href="/library/storeys/new" Icon="blocks" Writes>New storey</Button>
+          var index = at;
+          var storey = draft.StoreyStack[index];
+          <div class="lib-bind" @key="@($"storey-{index}")">
+            <Select Options="@Parts(storeys.Select(part => (part.Id, part.Name)))"
+                    Value="@storey.StoreyStyleId.ToString()" ValueChanged="id => BindStorey(index, id)" />
+            <NumberField Slim Min="0" Max="16" Value="storey.Clear" ValueChanged="value => SetStoreyStackClear(index, value)"
+                         aria-label="Clear height in blocks" />
+            <Button Variant="icon" Icon="chevron-up" Title="Move up"
+                    Disabled="@(index == 0)" OnClick="() => MoveStorey(index, -1)" />
+            <Button Variant="icon" Icon="chevron-down" Title="Move down"
+                    Disabled="@(index == draft.StoreyStack.Count - 1)" OnClick="() => MoveStorey(index, 1)" />
+            <Button Variant="icon" Icon="trash-2" Title="Delete this storey"
+                    OnClick="() => RemoveStorey(index)" />
+          </div>
         }
-      </div>
+        @if (draft.StoreyStack.Count > 0)
+        {
+          <Readout>Ground floor first. @StackCourses blocks of wall, with a ladder on the door wall between floors.</Readout>
+        }
+        <div class="panel-actions">
+          <Button Icon="plus" Disabled="@(storeys.Count == 0)" OnClick="AddStorey">Add a storey</Button>
+          @if (storeys.Count == 0)
+          {
+            <Button Href="/library/storeys/new" Icon="blocks" Writes>Add a storey</Button>
+          }
+        </div>
+      </Section>
     }
     else if (Piece is { } part)
     {
-      <p class="section-desc">@part.Blurb</p>
       @* A part that takes one material takes one picker. Offering a stack for the roof offered an author
          courses the stamper reads the first of and drops the rest — a knob whose preview never moved. *@
       @if (!part.Stacked)
       {
-        <Field Label="Material">
+        <Field Label="@part.Title" Term="@part.Term" Help="@part.Help" Note="@part.Note">
           <SlotSelect Styles="styles" Blocks="blocks" Value="@Single(part.Id).StyleId" Block="Single(part.Id).Block"
-                      Title="@part.Blurb" Unbound="Default finish"
                       ValueChanged="fill => BindSingle(part.Id, fill)" />
         </Field>
       }
 
       @if (part.Stacked)
       {
-      <Field Label="@part.ExtentLabel">
+      <Field Label="@part.ExtentLabel" Unit="blocks" Help="@part.Help">
         <NumberField Slim Min="1" Value="Extent(part.Id)" ValueChanged="value => SetExtent(part.Id, value)" />
       </Field>
 
@@ -117,10 +111,10 @@
                       ValueChanged="fill => BindCourse(part.Id, course.Ordinal, fill)">
             <Trailing>
               <NumberField Slim Min="1" Value="course.Height" ValueChanged="value => SetCourseHeight(part.Id, course.Ordinal, value)"
-                           title="Height in courses" />
+                           aria-label="Course height in blocks" />
               @* Icon variant: the button carries a glyph and no label, which is what that variant is —
                  as a plain action-btn it kept the text padding and drew a wide box in a row of square ones. *@
-              <Button Variant="icon" Icon="trash-2" Title="Remove this course"
+              <Button Variant="icon" Icon="trash-2" Title="Delete this course"
                       OnClick="() => RemoveCourse(part.Id, course.Ordinal)" />
             </Trailing>
           </SlotSelect>
@@ -129,11 +123,11 @@
 
       @if (Courses(part.Id).Count == 0)
       {
-        <p class="section-desc">Nothing set. The default finish is used.</p>
+        <EmptyState>No courses yet. Add one to replace the default look.</EmptyState>
       }
 
       <div class="panel-actions">
-        <Button Icon="plus" Disabled="@(styles.Count == 0)" OnClick="() => AddCourse(part.Id)">Add course</Button>
+        <Button Icon="plus" Disabled="@(styles.Count == 0)" OnClick="() => AddCourse(part.Id)">Add a course</Button>
       </div>
       }
 
@@ -145,19 +139,16 @@
            depth one, which is why these are parts beside the floor rather than courses inside it. *@
         @foreach (var zone in RoomPartInfo.FloorZones)
         {
-          <Field Label="@zone.Title" @key="zone.Id">
+          <Field Label="@zone.Title" Help="@zone.Help" @key="zone.Id">
             <SlotSelect Styles="styles" Blocks="blocks" Value="@Single(zone.Id).StyleId" Block="Single(zone.Id).Block"
-                        Title="@zone.Blurb" Unbound="Bare floor"
-                        ValueChanged="fill => BindSingle(zone.Id, fill)" />
+                        Unbound="Bare floor" ValueChanged="fill => BindSingle(zone.Id, fill)" />
           </Field>
         }
-        <Field Label="Border width">
-          <NumberField Slim Min="1" Max="4" Value="draft.BorderWidth" ValueChanged="SetBorderWidth"
-                       title="How many blocks the border ring reaches in from the walls." />
+        <Field Label="Edge width" Unit="blocks" Help="How far the edge ring reaches in from the walls.">
+          <NumberField Slim Min="1" Max="4" Value="draft.BorderWidth" ValueChanged="SetBorderWidth" />
         </Field>
-        <Field Label="Inlay inset">
-          <NumberField Slim Min="1" Max="8" Value="draft.InlayInset" ValueChanged="SetInlayInset"
-                       title="How far from the walls the inlay starts." />
+        <Field Label="Inlay inset" Unit="blocks" Help="How far in from the walls the inlay starts.">
+          <NumberField Slim Min="1" Max="8" Value="draft.InlayInset" ValueChanged="SetInlayInset" />
         </Field>
       }
 
@@ -168,21 +159,20 @@
 
         @* Beams are the wall's timber frame: posts and a plate the courses are laid between, so they belong
            to the wall rather than to the trim the corners are finished in. *@
-        <Field Label="Beams">
-          <Chip Active="@Beamed" OnClick="ToggleBeams">
-            @(Beamed ? "Timber frame" : "None")
-          </Chip>
+        <Field Label="Timber frame" Term="timber frame">
+          <div class="chip-row">
+            <Chip Active="@(!Beamed)" OnClick="() => SetBeams(false)">None</Chip>
+            <Chip Active="@Beamed" OnClick="() => SetBeams(true)">Framed</Chip>
+          </div>
         </Field>
         @if (draft.Beams is { } beams)
         {
-          <Field Label="Made of">
+          <Field Label="Beam material" Note="Logs only, or the house can't be saved.">
             <BlockPicker Blocks="blocks" Id="beams.Block" Data="beams.Data" OnPick="PickBeamBlock" />
           </Field>
-          <Field Label="Reach">
-            <NumberField Slim Min="0" Max="16" Value="beams.Reach" ValueChanged="SetBeamReach"
-                         title="How far a beam runs from a corner, in blocks. 0 places posts at the corners only." />
+          <Field Label="Beam length" Unit="blocks" Help="How far a beam runs along the wall from each corner." Note="At 0 only the corner posts stand.">
+            <NumberField Slim Min="0" Max="16" Value="beams.Reach" ValueChanged="SetBeamReach" />
           </Field>
-          <p class="section-desc">Beams must be logs. Any other block can't be saved.</p>
         }
       }
 
@@ -190,45 +180,41 @@
       {
         @* Storeys belong to the wall: they are how the wall is divided up, and the courses each one
            spends come out of the same height. *@
-        <Field Label="Storeys">
-          <NumberField Slim Min="1" Max="8" Value="draft.Storeys" ValueChanged="SetStoreys"
-                       title="How many floors are inside. Every floor but the top has a ceiling and a ladder." />
+        <Field Label="Storey count" Help="How many floors stand inside the walls. Every floor but the top has a ceiling and a ladder.">
+          <NumberField Slim Min="1" Max="8" Value="draft.Storeys" ValueChanged="SetStoreys" />
         </Field>
         @if (draft.Storeys > 1)
         {
-          <Field Label="Clear per storey">
-            <NumberField Slim Min="0" Max="16" Value="draft.StoreyClear" ValueChanged="SetStoreyClear"
-                         title="Blocks of air in each storey. 0 uses the wall height above. At least 3." />
+          <Field Label="Clear height" Unit="blocks" Help="The open space a player stands in, between this floor and whatever is above it, not counting walls or floors."
+                 Note="At 0 each storey takes the wall height, and never less than 3.">
+            <NumberField Slim Min="0" Max="16" Value="draft.StoreyClear" ValueChanged="SetStoreyClear" />
           </Field>
-          <p class="section-desc">@draft.Storeys storeys of @EffectiveClear clear:
-            @(draft.Storeys * EffectiveClear + draft.Storeys - 1) courses of wall, with a ladder on the
-            door wall.</p>
+          <Readout>The walls stand @StoreyCourses blocks tall and hold @draft.Storeys storeys of @EffectiveClear blocks clear.</Readout>
         }
       }
 
       @if (part.Id == RoomParts.Roof)
       {
-        <Field Label="Shape">
-          <Select Options="@Select.Words(RoofForms.Offered, RoofForms.Describe)"
+        <Field Label="Roof form" Term="roof form">
+          <Select Options="@Select.Words(RoofForms.Offered, RoofForms.Name, RoofForms.Describe)"
                   Value="@draft.RoofForm" ValueChanged="SetForm" />
         </Field>
         @if (Sloped)
         {
-          <Field Label="Pitch">
-            <NumberField Slim Min="1" Max="4" Value="draft.Pitch" ValueChanged="SetPitch"
-                         title="Blocks of rise per block inward. 1 is 45°." />
+          <Field Label="Pitch" Term="pitch" Note="At 1 the roof climbs at 45 degrees.">
+            <NumberField Slim Min="1" Max="4" Value="draft.Pitch" ValueChanged="SetPitch" />
           </Field>
         }
-        <Field Label="Overhang">
-          <NumberField Slim Min="0" Max="4" Value="draft.Overhang" ValueChanged="SetOverhang"
-                       title="How far the roof reaches past the walls, in blocks. 0 ends it flush." />
+        <Field Label="Overhang" Unit="blocks" Note="At 0 the roof ends flush with the walls.">
+          <NumberField Slim Min="0" Max="4" Value="draft.Overhang" ValueChanged="SetOverhang" />
         </Field>
         @if (Sloped)
         {
-          <Field Label="Ridge">
-            <Chip Active="draft.RidgeCap" OnClick="ToggleRidgeCap">
-              @(draft.RidgeCap ? "Verge material" : "Roof material")
-            </Chip>
+          <Field Label="Ridge" Term="ridge">
+            <div class="chip-row">
+              <Chip Active="@(!draft.RidgeCap)" OnClick="() => SetRidgeCap(false)">Roof material</Chip>
+              <Chip Active="draft.RidgeCap" OnClick="() => SetRidgeCap(true)">Verge material</Chip>
+            </div>
           </Field>
           @* A slab halves the rise per block travelled inward, so a roof laid in slabs stands half as tall at
              the same pitch and the body fills the cubes between. *@
@@ -241,96 +227,88 @@
           </Field>
           @if (Slabbed)
           {
-            <Field Label="Slab">
+            <Field Label="Slab" Note="The roof body's own material, or the house can't be saved.">
               <BlockPicker Blocks="blocks" Id="draft.RoofSlab" Data="draft.RoofSlabData"
                            OnPick="PickRoofSlab" />
             </Field>
-            <p class="section-desc">Use a slab of the same material as the roof body. A slab that does
-              not match can't be saved.</p>
           }
           @if (Staired)
           {
-            <Field Label="Stair">
+            <Field Label="Stair" Note="The roof body's own material. Along the sloped edges it lies upside down.">
               <BlockPicker Blocks="blocks" Id="draft.RoofStair" Data="0" OnPick="PickRoofStair" />
             </Field>
-            <p class="section-desc">Use a stair of the same material as the roof body. Along the sloped
-              edges it is placed upside down, so the edge has some depth.</p>
           }
-          <Field Label="Wear"><LabelEnd><strong>@($"{draft.RoofWear * 100:0}%")</strong></LabelEnd>
+          <Field Label="Wear" Help="How weathered the roof is, as the share of its stairs laid as whole blocks and of its edge laid as slabs."><LabelEnd><strong>@($"{draft.RoofWear * 100:0}%")</strong></LabelEnd>
             <ChildContent><RangeField Min="0" Max="100" Value="@((int)(draft.RoofWear * 100))"
                    OnCommit="SetRoofWear" /></ChildContent></Field>
           @* The gable is the triangle above the wall's own top, so what is cut into it is its own opening. *@
           <Field Label="Gable windows">
-            <Chip Active="@Gabled" OnClick="ToggleGableWindows">
-              @(Gabled ? "Cut into the gable" : "None")
-            </Chip>
+            <div class="chip-row">
+              <Chip Active="@(!Gabled)" OnClick="() => SetGableWindowsOn(false)">None</Chip>
+              <Chip Active="@Gabled" OnClick="() => SetGableWindowsOn(true)">Cut in</Chip>
+            </div>
           </Field>
           @if (draft.GableWindows is { } gable)
           {
             <WindowFields Window="gable" WindowChanged="SetGableWindows" Blocks="blocks"
-                          SillTitle="How many courses above the top of the wall the window starts." />
+                          SillHelp="Measured up from the top of the wall to where the window starts." />
           }
         }
         else
         {
-          <Field Label="Hole">
-            <Chip Active="draft.RoofHole" OnClick="ToggleHole">
-              @(draft.RoofHole ? "Open in the middle" : "Closed (the room is unlit)")
-            </Chip>
+          <Field Label="Roof hole" Note="@(draft.RoofHole ? null : "A closed roof leaves the room unlit.")">
+            <div class="chip-row">
+              <Chip Active="@(!draft.RoofHole)" OnClick="() => SetHole(false)">Closed</Chip>
+              <Chip Active="draft.RoofHole" OnClick="() => SetHole(true)">Open centre</Chip>
+            </div>
           </Field>
         }
       }
     }
     else if (selected == TrimPart)
     {
-      <p class="section-desc">Each trim piece uses one material. With none set, the corners match the walls and
-      the roof edge matches the roof.</p>
       @foreach (var trim in RoomPartInfo.Trim.Where(part => part.Id != RoomParts.Sill || Single(part.Id).Bound))
       {
-        <Field Label="@trim.Title" @key="trim.Id">
+        <Field Label="@trim.Title" Term="@trim.Term" Help="@trim.Help" Note="@trim.Note" @key="trim.Id">
           <SlotSelect Styles="styles" Blocks="blocks" Value="@Single(trim.Id).StyleId" Block="Single(trim.Id).Block"
-                      Title="@trim.Blurb" Unbound="None" ValueChanged="fill => BindSingle(trim.Id, fill)" />
+                      ValueChanged="fill => BindSingle(trim.Id, fill)" />
         </Field>
       }
     }
     else if (selected == PorchPart)
     {
-      <Field Label="Porch">
-        <Help>A porch takes space from the footprint rather than adding to it. The walls step back from one side,
-          leaving a deck with posts, a rail, and a roof.</Help>
-        <ChildContent>
-          <Chip Active="@(Porch is not null)" OnClick="TogglePorch">
-            @(Porch is null ? "None" : "Deck along one wall")
-          </Chip>
-        </ChildContent>
+      <Field Label="Porch" Term="porch">
+        <div class="chip-row">
+          <Chip Active="@(Porch is null)" OnClick="() => SetPorchOn(false)">None</Chip>
+          <Chip Active="@(Porch is not null)" OnClick="() => SetPorchOn(true)">Deck</Chip>
+        </div>
       </Field>
       @if (Porch is { } deck)
       {
-        <Field Label="Blocks deep">
-          <NumberField Slim Min="1" Max="8" Value="deck.Depth" ValueChanged="SetPorchDepth"
-                       title="How far the walls step back. The room keeps at least 3 blocks." />
+        <Field Label="Porch depth" Unit="blocks" Help="How far the walls step back from the porch side. The room keeps at least 3 blocks.">
+          <NumberField Slim Min="1" Max="8" Value="deck.Depth" ValueChanged="SetPorchDepth" />
         </Field>
-        <Field Label="Inset">
-          <NumberField Slim Min="0" Max="8" Value="deck.Inset" ValueChanged="SetPorchInset"
-                       title="How far the deck stops short of each end of that wall. 0 runs it the full width." />
+        <Field Label="Porch inset" Unit="blocks" Help="How far the deck stops short of each end of its wall." Note="At 0 the deck runs the wall's full width.">
+          <NumberField Slim Min="0" Max="8" Value="deck.Inset" ValueChanged="SetPorchInset" />
         </Field>
-        <Field Label="Wall">
-          <Select Options="@Select.Words(PorchEdges.All, PorchEdges.Describe)"
+        <Field Label="Porch wall">
+          <Select Options="@Select.Words(PorchEdges.All, PorchEdges.Name, PorchEdges.Describe)"
                   Value="@deck.Edge" ValueChanged="SetPorchEdge" />
         </Field>
-        <Field Label="Canopy">
-          <Select Options="@Select.Words(RoofForms.Offered, RoofForms.Describe)"
+        <Field Label="Canopy form">
+          <Select Options="@Select.Words(RoofForms.Offered, RoofForms.Name, RoofForms.Describe)"
                   Value="@deck.Roof" ValueChanged="SetPorchRoof" />
         </Field>
-        <Field Label="@RoomPartInfo.Canopy.Title">
+        <Field Label="@RoomPartInfo.Canopy.Title" Help="@RoomPartInfo.Canopy.Help">
           <SlotSelect Styles="styles" Blocks="blocks" Value="@Single(RoomParts.Canopy).StyleId"
-                      Block="Single(RoomParts.Canopy).Block" Title="@RoomPartInfo.Canopy.Blurb"
-                      Unbound="The house roof" ValueChanged="fill => BindSingle(RoomParts.Canopy, fill)" />
+                      Block="Single(RoomParts.Canopy).Block"
+                      Unbound="House roof" ValueChanged="fill => BindSingle(RoomParts.Canopy, fill)" />
         </Field>
         <Field Label="Rail">
-          <Chip Active="@(deck.RailBlock > 0)" OnClick="ToggleRail">
-            @(deck.RailBlock > 0 ? "Along the open edges" : "None")
-          </Chip>
+          <div class="chip-row">
+            <Chip Active="@(deck.RailBlock <= 0)" OnClick="() => SetRail(false)">None</Chip>
+            <Chip Active="@(deck.RailBlock > 0)" OnClick="() => SetRail(true)">Open edges</Chip>
+          </div>
         </Field>
         @if (deck.RailBlock > 0)
         {
@@ -343,45 +321,44 @@
     }
     else if (selected == DoorPart)
     {
-      <p class="section-desc">Only these doors can be broken by attackers to open a wool room. A spawn's door
-        is always open.</p>
-      <Field Label="Made of">
-        <Select Options="@Doors" Value="@draft.Door" ValueChanged="SetDoor" />
-      </Field>
-      <Field Label="Courses tall">
-        <NumberField Slim Min="1" Value="draft.DoorHeight" ValueChanged="SetDoorHeight" />
-      </Field>
-      <Field Label="Blocks wide">
-        <NumberField Slim Min="2" Max="8" Value="draft.DoorWidth" ValueChanged="SetDoorWidth"
-                     title="At least 2 blocks." />
-      </Field>
+      <Section Description="Only these doors can be broken by attackers to open a wool room. A spawn's door is always open.">
+        <Field Label="Door">
+          <Select Options="@Doors" Value="@draft.Door" ValueChanged="SetDoor" />
+        </Field>
+        <Field Label="Door height" Unit="blocks">
+          <NumberField Slim Min="1" Value="draft.DoorHeight" ValueChanged="SetDoorHeight" />
+        </Field>
+        <Field Label="Door width" Unit="blocks" Note="At least 2.">
+          <NumberField Slim Min="2" Max="8" Value="draft.DoorWidth" ValueChanged="SetDoorWidth" />
+        </Field>
+      </Section>
 
-      <div class="section-header section-header--ruled"><h2 class="section-title">Head</h2></div>
-      <p class="section-desc">A row of stairs over the door, with a fill above them. The stairs and the fill
-        must be the same material, or the house can't be saved.</p>
-      <Field Label="Over the door">
-        <Chip Active="@Headed" OnClick="ToggleDoorHead">
-          @(Headed ? "Stair lintel" : "None")
-        </Chip>
-      </Field>
-      @if (draft.DoorHead is { } head)
-      {
-        <Field Label="Form">
-          <Select Options="@DoorHeadFormOptions" Value="@head.Form" ValueChanged="SetDoorHeadForm" />
+      <Section Title="Door head" Term="door head">
+        <Field Label="Over the door">
+          <div class="chip-row">
+            <Chip Active="@(!Headed)" OnClick="() => SetDoorHeadOn(false)">None</Chip>
+            <Chip Active="@Headed" OnClick="() => SetDoorHeadOn(true)">Door head</Chip>
+          </div>
         </Field>
-        <Field Label="Stairs">
-          <BlockPicker Blocks="blocks" Id="head.Block" Data="0" OnPick="PickDoorHeadBlock" />
-        </Field>
-        <Field Label="Filled with">
-          <Select Options="@DoorHeadFillOptions" Value="@head.Fill" ValueChanged="SetDoorHeadFill" />
-        </Field>
-        @if (DoorHeadFilled)
+        @if (draft.DoorHead is { } head)
         {
-          <Field Label="Fill">
-            <BlockPicker Blocks="blocks" Id="head.FillBlock" Data="head.FillData" OnPick="PickDoorHeadFill" />
+          <Field Label="Head form">
+            <Select Options="@DoorHeadFormOptions" Value="@head.Form" ValueChanged="SetDoorHeadForm" />
           </Field>
+          <Field Label="Head stairs" Note="The centre's own material, or the house can't be saved.">
+            <BlockPicker Blocks="blocks" Id="head.Block" Data="0" OnPick="PickDoorHeadBlock" />
+          </Field>
+          <Field Label="Head centre">
+            <Select Options="@DoorHeadFillOptions" Value="@head.Fill" ValueChanged="SetDoorHeadFill" />
+          </Field>
+          @if (DoorHeadFilled)
+          {
+            <Field Label="Centre material">
+              <BlockPicker Blocks="blocks" Id="head.FillBlock" Data="head.FillData" OnPick="PickDoorHeadFill" />
+            </Field>
+          }
         }
-      }
+      </Section>
     }
   </Fields>
   <Actions>

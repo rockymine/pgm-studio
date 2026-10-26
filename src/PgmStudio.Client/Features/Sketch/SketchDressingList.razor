@@ -3,14 +3,14 @@
 @* What is placed on the map, as a list. The canvas is the primary way to reach a prop, but a small marker in a
    dense corner is hard to hit, and a list is the one view that says how much has been placed at all. *@
 
-<Section Title="Placed">
+<Section Title="Placed props">
   <Actions>
-    @if (total > 0) { <span class="list-tag" title="Props placed on the map">@total</span> }
+    @if (total > 0) { <span class="list-tag">@total</span> }
   </Actions>
   <ChildContent>
     @if (total == 0)
     {
-      <p class="section-desc">Nothing placed yet. Pick a tool and place something.</p>
+      <EmptyState>No props yet. Pick a tool in the dock and place one.</EmptyState>
     }
     else
     {

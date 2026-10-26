@@ -94,7 +94,7 @@ plan ──compile──┤                                  ├──► what a
 The two branches rejoin at the end rather than staying independent. Building the world **resolves** parts of
 the intent — a destroyable's and a core's block volume, which only the terrain they float over can fix, and,
 on a sketch-built map, the monuments themselves — and the `map.xml` is rendered from that resolved copy. It is
-why Configure drops its Monuments step on a map that came from a sketch: the answer is derived at build time
+why Configure drops its Wool monuments step on a map that came from a sketch: the answer is derived at build time
 rather than authored.
 
 **Plan → layout and intent.** `POST /api/plan/compile` turns the document into both halves at once, and it is

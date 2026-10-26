@@ -7,13 +7,11 @@
 <Workspace>
 
   <Sidebar>
-      <Section Title="Islands">
+      <Section Title="Islands" Description="Exclude islands that aren't part of the playable map, such as an observer platform or decoration. Symmetry is detected again without them.">
         <Actions><Badge Kind="dim">@islands.Count detected</Badge></Actions>
         <ChildContent>
-        <p class="section-desc">Exclude islands that aren't part of the playable map, such as observer
-          towers or decoration. Symmetry is detected again without them.</p>
         <div class="panel-list">
-          @if (Included.Count == 0) { <div class="list-empty">No islands.</div> }
+          @if (Included.Count == 0) { <EmptyState>No islands found.</EmptyState> }
           @foreach (var isl in Included)
           {
             <ListRow Compact Selected="selectedId == isl.Id"
@@ -28,7 +26,7 @@
       </Section>
       <Section Title="Excluded islands">
         <div class="panel-list">
-          @if (ExcludedList.Count == 0) { <div class="list-empty">No islands excluded.</div> }
+          @if (ExcludedList.Count == 0) { <EmptyState>No islands excluded.</EmptyState> }
           @foreach (var isl in ExcludedList)
           {
             <ListRow Compact Selected="selectedId == isl.Id"
@@ -54,9 +52,7 @@
       @if (Selected is { } sel)
       {
         <Section @key="sel.Id">
-          <DetailHeader Icon="layers" IconMuted Label="@Label(sel)">
-            <Badge Class="@(IsExcluded(sel) ? "badge--dim" : "badge--success")">@(IsExcluded(sel) ? "Excluded" : "Included")</Badge>
-          </DetailHeader>
+          <DetailHeader Icon="layers" IconMuted Label="@Label(sel)" />
           <div class="section-body">
             <Field Label="Centre">
               <div class="ctrl-row">
@@ -69,14 +65,16 @@
                 <span class="field-value">@sel.BlockCount.ToString("N0")</span>
               </div>
             </Field>
-            @if (IsExcluded(sel))
-            {
-              <Button Writes Fill OnClick="() => ToggleExclude(sel)">Include island</Button>
-            }
-            else
-            {
-              <Button Writes Variant="danger" Fill OnClick="() => ToggleExclude(sel)">Exclude island</Button>
-            }
+            <Field Label="In the map">
+              <WriteGate Context="closed">
+                <div class="filter-group-options">
+                  <Chip Active="!IsExcluded(sel)" Disabled="@(closed is not null)" Title="@closed"
+                        OnClick="@(async () => { if (IsExcluded(sel)) await ToggleExclude(sel); })">Included</Chip>
+                  <Chip Active="IsExcluded(sel)" Disabled="@(closed is not null)" Title="@closed"
+                        OnClick="@(async () => { if (!IsExcluded(sel)) await ToggleExclude(sel); })">Excluded</Chip>
+                </div>
+              </WriteGate>
+            </Field>
           </div>
         </Section>
       }
@@ -84,7 +82,7 @@
       {
         <Section>
           <DetailHeader Icon="layers" IconMuted Label="Islands" />
-          <p class="section-desc">Select an island in the list or on the canvas.</p>
+          <EmptyState>No island selected. Pick one in the list or on the canvas.</EmptyState>
         </Section>
       }
   </Inspector>

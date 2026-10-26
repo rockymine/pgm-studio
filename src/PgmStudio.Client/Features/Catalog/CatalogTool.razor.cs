@@ -42,18 +42,18 @@ public partial class CatalogTool
     /// width rather than adding forms of their own, so they are not a separate row yet.</summary>
     private static readonly (string Token, string Label, string Hint)[] Kinds =
     [
-        ("wool", "Wool", "The path of land leading from a team's side to a wool room."),
-        ("hub", "Hub", "The central area of a team's side, which the spawn, the wool approaches, and the front line connect to. Its edge widths decide which shapes can attach to it."),
-        ("frontline", "Front line", "The edge of a team's land that faces the enemy across the gap. Players build bridges from here."),
+        ("wool", "Approach", "Wool approach shapes"),
+        ("hub", "Hub", "Hub shapes"),
+        ("frontline", "Front line", "Front line shapes"),
     ];
 
     /// <summary>The reach tiers, in narrowing order. The hints are the page's whole honesty contract, so they
     /// name the mechanism rather than grading the shape.</summary>
     private static readonly (string Token, string Label, string Hint)[] Tiers =
     [
-        ("in-mix", "In use", "Generated layouts contain this shape."),
-        ("reachable", "Never picked", "The generator can build this shape but never chooses it."),
-        ("emitter-only", "Preview only", "Only built when asked for directly, as on this page. The generator never builds it."),
+        ("in-mix", "In use", "In generated layouts"),
+        ("reachable", "Never picked", "Buildable, never chosen by the generator"),
+        ("emitter-only", "Preview only", "Built only when asked for here"),
     ];
 
     /// <summary>Families in pipeline-legibility order (straight → bent → branch → enclosing → bodies), so the
@@ -76,9 +76,9 @@ public partial class CatalogTool
             byKind = page.ByKind;
             key = page.Key;
         }
-        catch (HttpRequestException e)
+        catch (HttpRequestException)
         {
-            error = $"Couldn't load the catalog. Reload the page to try again. ({e.Message})";
+            error = "Couldn't load the catalog. Reload the page to try again.";
         }
         finally
         {
@@ -160,10 +160,10 @@ public partial class CatalogTool
     private bool AttachWAllowed => ProbeFamilySchema?.Knobs.Contains("attachW") ?? false;
 
     private string SideTuckTitle =>
-        SideTuckAllowed ? "Turn the wool room sideways at the end" : "Only available for the I, Z, and scythe shapes";
+        SideTuckAllowed ? "Turn the wool room sideways" : "Only the I, Z and Scythe";
 
     private string WoolAtEndTitle =>
-        WoolAtEndAllowed ? "Put the wool room at an end instead of the middle" : "Not available for this shape";
+        WoolAtEndAllowed ? "Put the wool room at an end" : "Not for this shape";
 
     /// <summary>Open the panel seeded from a card, so the first thing it shows is that exact shape and the
     /// author edits from a known-good state rather than guessing a starting box.</summary>

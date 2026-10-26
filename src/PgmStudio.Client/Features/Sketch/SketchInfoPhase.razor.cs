@@ -31,7 +31,7 @@ public partial class SketchInfoPhase : IAsyncDisposable
     [Parameter] public EventCallback<double> OnCenterZ { get; set; }
 
     private static readonly IReadOnlyList<SelectOption> ModeOptions =
-        [.. SymmetryModes.Sketched.Select(mode => new SelectOption(mode, SymmetryInfo.Label(mode)))];
+        [.. SymmetryModes.Sketched.Select(mode => new SelectOption(mode, SymmetryInfo.Label(mode), SymmetryInfo.Note(mode)))];
 
     /// <summary>How long typing has to pause before the identity is saved.</summary>
     private static readonly TimeSpan SaveAfter = TimeSpan.FromMilliseconds(800);
@@ -87,7 +87,7 @@ public partial class SketchInfoPhase : IAsyncDisposable
         if (!dirty) return;
         if (string.IsNullOrWhiteSpace(name))
         {
-            await OnSaveStatus.InvokeAsync("Not saved: a map needs a name");
+            await OnSaveStatus.InvokeAsync("Not saved. A map needs a name.");
             return;
         }
         dirty = false;
@@ -112,12 +112,12 @@ public partial class SketchInfoPhase : IAsyncDisposable
                 return;
             }
             dirty = true;
-            await OnSaveStatus.InvokeAsync($"Not saved (HTTP {(int)resp.StatusCode})");
+            await OnSaveStatus.InvokeAsync("Couldn't save the map details. Try again.");
         }
         catch
         {
             dirty = true;
-            await OnSaveStatus.InvokeAsync("Not saved: the studio did not answer");
+            await OnSaveStatus.InvokeAsync("Couldn't save the map details. Try again.");
         }
     }
 }

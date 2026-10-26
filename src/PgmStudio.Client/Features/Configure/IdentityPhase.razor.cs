@@ -20,8 +20,8 @@ public partial class IdentityPhase
 
     // Auto-derived identity shown locked — the generator (MetaGenerator) sets these, not the author.
     private const string Version = "1.0";
-    private const string Mode = "ctw";
-    private const string Objective = "Capture the other teams' wools and bring them to your monuments to win.";
+    private const string Mode = "Capture the Wool";
+    private const string Objective = "Capture the other teams' wools and bring them to your wool monuments to win.";
 
     protected override void OnInitialized()
     {

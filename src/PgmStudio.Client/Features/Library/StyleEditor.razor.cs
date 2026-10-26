@@ -85,7 +85,7 @@ public partial class StyleEditor
         {
             if (await Library.GetAsync<StyleDto>(LibraryKinds.Styles, id) is not { } row)
             {
-                note = "Couldn't load this pattern. Reload the page to try again.";
+                note = "Couldn't load the pattern. Reload the page to try again.";
                 return;
             }
             editingId = row.Id;
@@ -127,11 +127,11 @@ public partial class StyleEditor
         var saved = editingId is { } id
             ? await Library.UpdateAsync<StyleDto>(LibraryKinds.Styles, id, request)
             : await Library.CreateAsync<StyleDto>(LibraryKinds.Styles, request);
-        if (saved is null) { note = "Couldn't save this pattern. Try again."; return; }
+        if (saved is null) { note = "Couldn't save the pattern. Try again."; return; }
 
         // An edit reaches every theme binding this style — the library is the shared copy, and a map's applied
         // theme is its own snapshot, so nothing already exported moves.
-        note = editingId is null ? "Added to the library." : "Saved. Palettes and buildings that use this pattern are updated.";
+        note = editingId is null ? "Added to the library." : "Saved. Palettes and houses that use this pattern take the change.";
         await OnSaved.InvokeAsync("saved");
         if (editingId is null) Nav.NavigateTo($"/library/{LibraryKinds.StylesSlug}/{saved.Id}");
         else editingId = saved.Id;
@@ -144,7 +144,7 @@ public partial class StyleEditor
             new StyleSaveRequest($"{draftName.Trim()} copy", DraftKind, draft.ToJsonString()));
         if (copy is null)
         {
-            note = "Couldn't save a copy of this pattern. The library holds each pattern once, so change it first.";
+            note = "Couldn't save a copy of the pattern. Change it first, because the library holds each pattern once.";
             return;
         }
         Nav.NavigateTo($"/library/{LibraryKinds.StylesSlug}/{copy.Id}");
@@ -155,9 +155,10 @@ public partial class StyleEditor
         if (editingId is not { } id) return;
         if (await Library.DeleteAsync(LibraryKinds.Styles, id) is { Deleted: false } refused)
         {
+            var users = string.Join(", ", refused.BoundBy);
             note = refused.BoundBy.Count > 0
-                ? $"Can't delete this pattern. It is used by {string.Join(", ", refused.BoundBy)}. Remove it there first."
-                : "Couldn't delete this pattern. Try again.";
+                ? $"Couldn't delete the pattern while {users} uses it. Unbind it there first."
+                : "Couldn't delete the pattern. Try again.";
             return;
         }
         Nav.NavigateTo($"/library/{LibraryKinds.StylesSlug}");

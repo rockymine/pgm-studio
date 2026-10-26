@@ -58,7 +58,7 @@ Every producer of `intent.Spawns` dedupes by team: `SpawnStep.PlaceAndOrbit` gua
 A wool's monument is a **standalone stamp tied to the spawn**, and it sits inside that spawn's structure.
 `WorldBuilder` fills every monument's `location` from the air cell the capturing team's spawn stamp left, so
 an authored location on a map the studio built is replaced, and `ConfigureTool.LoadOriginAsync` drops the
-Wools · Monuments step entirely for a sketch-origin map.
+Wools · Wool monuments step entirely for a sketch-origin map.
 
 - *Looks wrong:* three write paths accept a monument `location` — `POST …/wools/{woolId}/monuments`,
   `PATCH …/monuments/{monumentId}` and `PUT /map/{slug}/intent` — and every read answers it, so a stated
@@ -71,7 +71,7 @@ Wools · Monuments step entirely for a sketch-origin map.
 - *Enforced:* `OB25` reports the replacement rather than performing it silently, and its remark says what to
   do — read the location back off the exported intent instead of stating it. On a map the studio did **not**
   build the stored location is authoritative: `GET /xml` renders the document, and `WoolEditor` moves the
-  `<block>` with the region that names it, and the Monuments step is where an author places one by hand.
+  `<block>` with the region that names it, and the Wool monuments step is where an author places one by hand.
 
 ## Analysis / export pipeline
 

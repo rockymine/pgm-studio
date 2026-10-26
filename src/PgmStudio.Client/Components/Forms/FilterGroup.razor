@@ -1,11 +1,12 @@
 @namespace PgmStudio.Client.Components
 
 @* One facet of a FilterPanel: a Field whose control is a row of Chips. Multi marks a set the reader can tick
-   several of, so each chip leads with a checkbox; a group where exactly one option holds leaves it off. Hint
-   is the muted word beside the label ("any of"), End a control at the label row's right edge. *@
+   several of, so each chip leads with a checkbox; a group where exactly one option holds leaves it off. Match
+   is how the ticked chips combine, read at the label row's right ("any of", "has all"), End a control at the
+   label row's right edge. *@
 
 <Field Label="@Label" Class="@Class">
-    <LabelEnd>@if (Hint is not null) { <span class="text-xs text-muted">@Hint</span> }@End</LabelEnd>
+    <LabelEnd>@if (Match is not null) { <span class="text-xs text-muted">@Match</span> }@End</LabelEnd>
     <ChildContent>
         <div class="@Cls">@ChildContent</div>
     </ChildContent>
@@ -14,7 +15,8 @@
 @code {
     [Parameter, EditorRequired] public string Label { get; set; } = "";
     [Parameter] public bool Multi { get; set; }
-    [Parameter] public string? Hint { get; set; }
+    /// <summary>How the ticked chips combine: "any of", "has all".</summary>
+    [Parameter] public string? Match { get; set; }
     [Parameter] public RenderFragment? End { get; set; }
     [Parameter] public string? Class { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }

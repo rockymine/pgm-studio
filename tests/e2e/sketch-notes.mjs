@@ -36,11 +36,11 @@ await page.waitForSelector(".flow-step >> text=Notes", { timeout: 60000 });
 checks.add("the first step is Cameras", (await page.locator(".flow-step--active").textContent())?.trim() === "Cameras");
 const own = views.views.find((view) => view.own);
 const row = page.locator(".list-row-pair", { hasText: own.name });
-await row.locator('[title="Use this view for the map\'s picture (map.png)"]').click();
+await row.locator('[title="Use for the map picture"]').click();
 await row.locator(".badge", { hasText: "map picture" }).waitFor({ timeout: 30000 });
 const pictured = (await api(`/map/${draft.slug}/views`)).views.find((view) => view.picture);
 checks.add("a row's picture button makes its view the map's picture", pictured?.id === own.id, pictured?.id ?? "none");
-checks.add("the board's own view offers no remove", (await row.locator('[title="Remove this view"]').count()) === 0);
+checks.add("the board's own view offers no remove", (await row.locator('[title="Delete this view"]').count()) === 0);
 await toNotes();
 
 if (views.undrawable) {
@@ -56,7 +56,7 @@ if (views.undrawable) {
   checks.add("the camera reads XYZ and Facing, values only", /XYZ: [-\d.]+ [-\d.]+ [-\d.]+/.test(camera) && camera.includes("Facing:") && !camera.includes("/"),
     camera.replace(/\s+/g, " ").trim());
   checks.add("the head offers no map picture or remove", (await page.locator(".ingame__head", { hasText: "map picture" }).count()) === 0
-    && (await page.locator(".ingame__head", { hasText: "Remove" }).count()) === 0);
+    && (await page.locator(".ingame__head", { hasText: "Delete" }).count()) === 0);
   const send = page.locator(".notes-column__send .action-btn--primary");
   const notes = async () => api(`/map/${draft.slug}/notes`);
 
@@ -112,7 +112,7 @@ if (views.undrawable) {
   checks.add("the reply box lets the mark go once sent", (await page.locator(".notes-column__replymark").count()) === 0);
 
   checks.section("a mark on a picture of a board that has changed is refused until it is drawn again");
-  await page.click("text=‹ All notes");
+  await page.click(".notes-column__back");
   const moved = structuredClone(layout);
   const shape = moved.layers.flatMap((layer) => layer.layout?.shapes ?? []).find((candidate) => !candidate.role);
   for (const key of ["min_x", "max_x", "center_x"]) if (typeof shape[key] === "number") shape[key] += 8;

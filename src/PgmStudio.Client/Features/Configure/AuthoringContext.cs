@@ -20,6 +20,16 @@ public static class AuthoringContext
     /// reads.</summary>
     public sealed class Team { public string Id = ""; public string Name = ""; public string Color = ""; }
 
+    /// <summary>The note under every objective's defending-team picker, one wording for a wool, a monument, a core
+    /// and a flag.</summary>
+    public const string DefendingTeamNote = "The other teams attack it.";
+
+    /// <summary>The sentence a step's description ends with where what is drawn is copied to the other teams.</summary>
+    public const string SymmetryCopies = "Every other team gets a symmetry copy.";
+
+    /// <summary>What a symmetry copy says under it: which entry to edit instead.</summary>
+    public static string CopyOf(string source) => $"Edit {source} to change this symmetry copy.";
+
     /// <summary>The teams an intent states, in the order it states them. Nine steps read them and every one
     /// reads them here: a step walking the document itself is a second reader free to disagree about what a
     /// missing field means.</summary>

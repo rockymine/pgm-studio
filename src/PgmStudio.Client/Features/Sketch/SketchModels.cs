@@ -43,6 +43,23 @@ public sealed record SketchShapeRow(
     /// <summary>The kind of outline the shape is drawn with: a solid's footprint, or its own kind.</summary>
     public string Footprint => ShapeKinds.Footprint(Type);
 
+    /// <summary>The name a shape of its kind is shown under, in the inspector and its group's list.</summary>
+    public string Name => Type switch
+    {
+        ShapeKinds.Rectangle => "Rectangle",
+        ShapeKinds.Circle    => "Circle",
+        ShapeKinds.Polygon   => "Polygon",
+        ShapeKinds.Lasso     => "Lasso",
+        ShapeKinds.Polyline  => "Polyline",
+        ShapeKinds.Box       => "Box",
+        ShapeKinds.Wedge     => "Wedge",
+        ShapeKinds.Cylinder  => "Cylinder",
+        ShapeKinds.Sphere    => "Sphere",
+        ShapeKinds.Torus     => "Torus",
+        ShapeKinds.Arch      => "Arch",
+        _                    => "Shape",
+    };
+
     /// <summary>The glyph a list draws beside the shape.</summary>
     public string Icon => Type switch
     {
@@ -70,7 +87,7 @@ public sealed record SketchShapeRow(
 /// corrected rather than the one the layout was written with. A <c>building</c> carries no height of its own —
 /// the region it stands in is what its ground is — so its fields read empty.</para>
 ///
-/// <para><see cref="Carried"/> says the piece is an orbit's image rather than the one authored: it is drawn and
+/// <para><see cref="Carried"/> says the piece is a symmetry copy rather than the one authored: it is drawn and
 /// listed, and never picked.</para>
 /// </summary>
 public sealed record SketchStructuralRow(
@@ -124,19 +141,19 @@ public sealed record SketchStructuralRow(
     /// <summary>The name a piece of its kind is shown under, in the inspector and the Layout list.</summary>
     public string Label => Role switch
     {
-        StructuralRoles.Spawn => "Spawn region",
+        StructuralRoles.Spawn => "Spawn room",
         StructuralRoles.WoolRoom => "Wool room",
         StructuralRoles.Building => "Building",
-        PlayPieceKinds.Destroyable => "Destroyable",
+        PlayPieceKinds.Destroyable => "Monument",
         PlayPieceKinds.Core => "Core",
-        PlayPieceKinds.ControlPoint => "Control point",
-        PlayPieceKinds.BuildArea => "Build area",
+        PlayPieceKinds.ControlPoint => "Capture point",
+        PlayPieceKinds.BuildArea => "Build region",
         PlayPieceKinds.WaterLane => "Water lane",
-        PlayPieceKinds.IronCube => "Iron marker",
+        PlayPieceKinds.IronCube => "Iron cube",
         PlayPieceKinds.Wall => "Wall",
         PlayPieceKinds.Chest => "Defence chest",
         PlayPieceKinds.Observer => "Observer",
-        PlayPieceKinds.SpawnPoint => "Spawn point",
+        PlayPieceKinds.SpawnPoint => "Spawn",
         PlayPieceKinds.WoolSpawn => "Wool spawn",
         _ => Role,
     };
@@ -161,7 +178,7 @@ public sealed class SketchSlopeControl
     [JsonPropertyName("height")] public double Height { get; set; }
 }
 
-// A stacked layer row (from the bridge's OnLayers): identity + Y offset, for the Layers panel (S7b).
+// A stacked layer row (from the bridge's OnLayers): identity + Y offset, for the Layers panel.
 public sealed record SketchLayerRow(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("name")] string Name,

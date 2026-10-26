@@ -8,14 +8,14 @@
 
     <Section Title="Match end">
       <div class="section-body">
-        <Field Label="Score limit">
-          <NumberField Value="@scoreLimit" Min="0" Max="100000" placeholder="Default"
+        <Field Label="Score limit" Note="Auto: worked out from the objectives.">
+          <NumberField Value="@scoreLimit" Min="0" Max="100000" placeholder="Auto"
                        ValueChanged="@(value => { scoreLimit = (int)value; Sync(); })"
                        OnCleared="@(() => { scoreLimit = null; Sync(); })" />
         </Field>
         <div class="field-row">
-          <Field Label="Time limit">
-            <input class="field-input" type="text" placeholder="e.g. 10m" value="@duration"
+          <Field Label="Time limit" Term="time limit" Note="A length such as 10m or 8m30s.">
+            <input class="field-input" type="text" placeholder="No limit" value="@duration"
                    @onchange="@(e => { duration = (e.Value?.ToString() ?? "").Trim(); Sync(); })" />
           </Field>
           <Field Label="Winner at time limit">
@@ -28,20 +28,26 @@
     <Section Title="Respawn">
       <div class="section-body">
         <div class="field-row">
-          <Field Label="Respawn time">
-            <input class="field-input" type="text" placeholder="2s" value="@delay"
+          <Field Label="Respawn time" Note="Auto: 2s, as PGM waits by default.">
+            <input class="field-input" type="text" placeholder="Auto" value="@delay"
                    @onchange="@(e => { delay = (e.Value?.ToString() ?? "").Trim(); Sync(); })" />
           </Field>
           <Field Label="Auto respawn">
-            <Select Slim="false" Options="@YesNo" Value="@(auto ? Yes : No)" ValueChanged="@(value => { auto = value == Yes; Sync(); })" />
+            <div class="filter-group-options">
+              <Chip Active="!auto" OnClick="@(() => { auto = false; Sync(); })">No</Chip>
+              <Chip Active="auto" OnClick="@(() => { auto = true; Sync(); })">Yes</Chip>
+            </div>
           </Field>
         </div>
         <div class="field-row">
           <Field Label="Spectate while dead">
-            <Select Slim="false" Options="@YesNo" Value="@(spectate ? Yes : No)" ValueChanged="@(value => { spectate = value == Yes; Sync(); })" />
+            <div class="filter-group-options">
+              <Chip Active="!spectate" OnClick="@(() => { spectate = false; Sync(); })">No</Chip>
+              <Chip Active="spectate" OnClick="@(() => { spectate = true; Sync(); })">Yes</Chip>
+            </div>
           </Field>
           <Field Label="Lives">
-            <NumberField Value="@lives" Min="1" Max="100" placeholder="Unlimited"
+            <NumberField Value="@lives" Min="1" Max="100" placeholder="Unlimited lives"
                          ValueChanged="@(value => { lives = (int)value; Sync(); })"
                          OnCleared="@(() => { lives = null; Sync(); })" />
           </Field>
@@ -52,11 +58,14 @@
     <Section Title="Combat">
       <div class="section-body">
         <div class="field-row">
-          <Field Label="Rage">
-            <Select Slim="false" Options="@YesNo" Value="@(rage ? Yes : No)" ValueChanged="@(value => { rage = value == Yes; Sync(); })" />
+          <Field Label="Rage" Term="rage">
+            <div class="filter-group-options">
+              <Chip Active="!rage" OnClick="@(() => { rage = false; Sync(); })">No</Chip>
+              <Chip Active="rage" OnClick="@(() => { rage = true; Sync(); })">Yes</Chip>
+            </div>
           </Field>
-          <Field Label="Kill height">
-            <NumberField Value="@killHeight" Min="-64" Max="255" placeholder="None"
+          <Field Label="Kill height" Unit="world y" Term="kill height">
+            <NumberField Value="@killHeight" Min="-64" Max="255" placeholder="World void"
                          ValueChanged="@(value => { killHeight = (int)value; Sync(); })"
                          OnCleared="@(() => { killHeight = null; Sync(); })" />
           </Field>

@@ -94,7 +94,7 @@ public partial class SlotSelect
 
     /// <summary>What the unbound row says — what this part does when nothing is bound to it. Null offers no
     /// unbound row, for a slot that is always filled.</summary>
-    [Parameter] public string? Unbound { get; set; } = "Unbound";
+    [Parameter] public string? Unbound { get; set; } = "Default look";
 
     /// <summary>What the part is, on hover.</summary>
     [Parameter] public string? Title { get; set; }
@@ -112,7 +112,7 @@ public partial class SlotSelect
 
     private IReadOnlyList<SelectOption> Rows =>
     [
-        new SelectOption(BlockKey, "A single block"),
+        new SelectOption(BlockKey, "Single block"),
         .. Styles.Select(style => new SelectOption(
             style.Id.ToString(), style.Name, Group: Schema.NameOf(style.Kind))),
     ];

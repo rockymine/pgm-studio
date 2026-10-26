@@ -160,29 +160,29 @@ try {
   // the Placed list is what says one landed.
   const panel = () => page.evaluate(() => document.body.innerText);
   // The library's trees load with the first tree the phase shows, and a cold studio draws every card first.
-  await page.waitForSelector('.prop-card[title="oak"]', { timeout: 30000 }).catch(() => {});
+  await page.waitForSelector('.prop-card[data-name="oak"]', { timeout: 30000 }).catch(() => {});
   checks.add("a click places a tree, and the phase asks which one",
-    (await placedRows()).length === before.length + 1 && await page.locator('.prop-card[title="oak"]').count() > 0,
+    (await placedRows()).length === before.length + 1 && await page.locator('.prop-card[data-name="oak"]').count() > 0,
     `${before.length} → ${(await placedRows()).length} placed · ${(await panel()).match(/GENERATED/)?.[0] ?? "(no tree list)"}`);
   await shot("dressing-tree.png");
 
   // Which tree a placement is, is the recipe it names, so what the phase carries is the card it marks
   // active. Cards are addressed by their title attribute, which is the row's name exactly: `oak` as text
   // also matches `dark oak`.
-  await page.locator('.prop-card[title="spruce"]').click();
+  await page.locator('.prop-card[data-name="spruce"]').click();
   await page.waitForTimeout(2500);
   checks.add("picking a recipe marks it, and only it",
-    await page.locator('.prop-card--active[title="spruce"]').count() === 1
+    await page.locator('.prop-card--active[data-name="spruce"]').count() === 1
     && await page.locator(".prop-card--active").count() === 1);
   // A generated tree is tuned where it stands: its height is a slider on the placement, not a library row.
   checks.add("a generated tree offers its height, and its seed",
     /height \(blocks\)/i.test(await panel()) && /seed/i.test(await panel()),
     (await panel()).match(/height \(blocks\)|seed/gi)?.join(",") ?? "(neither)");
   await shot("dressing-tree-spruce.png");
-  await page.locator('.prop-card[title="oak"]').click();
+  await page.locator('.prop-card[data-name="oak"]').click();
   await page.waitForTimeout(2000);
   checks.add("and picking another moves the mark rather than adding one",
-    await page.locator('.prop-card--active[title="oak"]').count() === 1
+    await page.locator('.prop-card--active[data-name="oak"]').count() === 1
     && await page.locator(".prop-card--active").count() === 1);
 
   // Arming the tool again lets go of the tree just placed, so the recipe picked next is the next tree's and
@@ -193,7 +193,7 @@ try {
     /in hand/.test(await panel()), (await panel()).match(/selected|in hand/)?.[0] ?? "(no badge)");
   checks.add("and says that Shift keeps placing", /Hold\s+Shift\s+to place several/.test(await panel()),
     (await panel()).match(/next click[^.]*\.[^.]*\./)?.[0] ?? "(no hint)");
-  await page.locator('.prop-card[title="spruce"]').click();
+  await page.locator('.prop-card[data-name="spruce"]').click();
   await page.waitForTimeout(1500);
   await placeAt(spots[1]);
   await page.waitForTimeout(1500);
@@ -234,7 +234,7 @@ try {
   // A boulder's shape picked with the tool in hand is the shape the next boulder is placed in.
   await page.click(`button[aria-label^="${DRIVEN.boulder}"]`);
   await page.waitForTimeout(800);
-  await page.locator('.workspace-inspector [title="Outcrop"]').last().click();
+  await page.locator('.workspace-inspector [data-name="Outcrop"]').last().click();
   await page.waitForTimeout(1500);
   await placeAt(spots[4]);
   await page.waitForTimeout(1500);
@@ -253,7 +253,7 @@ try {
   }
   await page.mouse.up();
   await page.waitForTimeout(1500);
-  checks.add("a drag places a path, and releasing ends it", await page.locator("text=Style").count() > 0);
+  checks.add("a drag places a path, and releasing ends it", await page.locator('text="Look"').count() > 0);
   await shot("dressing-path.png");
 
   // Drag a fluid channel: the same press-trace-release, but its inspector is the fluid one — a depth and a

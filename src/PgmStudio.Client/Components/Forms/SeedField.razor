@@ -7,7 +7,7 @@
 <Field Label="@Label">
   <div class="seed-field">
     <NumberField Slim Value="Value" Min="Min" ValueChanged="v => ValueChanged.InvokeAsync((int)v)" />
-    <Button Writes OnClick="() => ValueChanged.InvokeAsync(Value + 1)" Title="Roll a new seed"><i data-lucide="refresh-cw"></i> Reroll</Button>
+    <Button Writes Icon="refresh-cw" OnClick="() => ValueChanged.InvokeAsync(Value + 1)">Reroll</Button>
   </div>
 </Field>
 

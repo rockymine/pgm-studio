@@ -47,7 +47,7 @@ public partial class ConfigureTool : IDisposable
     private SaveState save = SaveState.Saved;
     private enum SaveState { Saved, Saving, Unsaved }
 
-    // The wizard phases for this map. Sketch-origin maps drop the Wools · Monuments step (monuments are
+    // The wizard phases for this map. Sketch-origin maps drop the Wools · Wool monuments step (wool monuments are
     // derived at export, not authored) — see LoadOriginAsync.
     private ConfigurePhase[] phases = ConfigurePhases.All;
 
@@ -171,7 +171,7 @@ public partial class ConfigureTool : IDisposable
         if (string.IsNullOrWhiteSpace(Str(meta, "name"))) meta["name"] = mapName;
     }
 
-    // Sketch-origin maps auto-wire their monuments at export, so the manual Wools · Monuments step is
+    // Sketch-origin maps auto-wire their monuments at export, so the manual Wools · Wool monuments step is
     // dropped from the flow (best-effort: a non-sketch / unreachable map keeps the full set).
     private async Task LoadOriginAsync()
     {
@@ -183,7 +183,7 @@ public partial class ConfigureTool : IDisposable
                 var origin = await resp.Content.ReadFromJsonAsync<MapOriginDto>();
                 if (origin?.Sketch == true)
                     phases = [.. ConfigurePhases.All.Select(p => p.Id == "wools"
-                        ? p with { Steps = [.. p.Steps.Where(label => label != "Monuments")] }
+                        ? p with { Steps = [.. p.Steps.Where(label => label != "Wool monuments")] }
                         : p)];
             }
         }

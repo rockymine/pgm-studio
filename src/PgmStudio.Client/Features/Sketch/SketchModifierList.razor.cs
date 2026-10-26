@@ -24,19 +24,11 @@ public partial class SketchModifierList
     /// <summary>The shapes that are ground. A carve takes ground away and has none of its own to meet the stack.</summary>
     private IReadOnlyList<SketchShapeRow> Ground => [.. Shapes.Where(shape => shape.Operation != "subtract")];
 
-    private static readonly IReadOnlyList<SelectOption> Relations =
-    [
-        new("", "Follow", "The modifiers reshape it with the land around it."),
-        new(ReliefScopes.Hold, "Hold", "Stays at its own height; the modifiers leave it out."),
-        new(ReliefScopes.Ride, "Ride",
-            "Keeps its form and moves by the median change the modifiers made to the ground under it."),
-    ];
-
     private static string Capitalised(string word) =>
         word.Length == 0 ? word : char.ToUpperInvariant(word[0]) + word[1..];
 
     private static string HeightModeNote(string mode) =>
-        $"{Capitalised(mode)}: it stands at its own height statement, so the modifiers leave it out.";
+        $"{Capitalised(mode)} stands at its own height, so the modifiers leave it out.";
 
     private Task Relate(string id, string word) => Call("setReliefScope", id, word);
 

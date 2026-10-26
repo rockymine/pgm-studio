@@ -26,7 +26,7 @@ checks.add("typing narrows the list", filtered > 0 && filtered < listed, `${filt
 checks.add("and the address carries ?q=", new URL(page.url()).searchParams.get("q") === "hub", page.url());
 checks.add("the hub entry is among them", (await page.locator("#hub").count()) === 1);
 await page.fill('input[type="search"]', "zzzz-no-such-word");
-await page.waitForSelector(".rules-empty", { timeout: 10000 });
+await page.waitForSelector(".empty-state", { timeout: 10000 });
 checks.add("a word nothing matches says so", (await page.locator(".glossary-term").count()) === 0);
 
 checks.section("an address with ?q= opens filtered");
@@ -34,6 +34,28 @@ await page.goto(`${BASE}/glossary?q=hub`, { waitUntil: "networkidle", timeout: 3
 await page.waitForSelector(".glossary-term", { timeout: 20000 });
 checks.add("the search box holds it", (await page.inputValue('input[type="search"]')) === "hub");
 checks.add("and the list is narrowed", (await page.locator(".glossary-term").count()) < listed);
+
+checks.section("A to Z, with every retired name filed in its own place");
+await page.goto(`${BASE}/glossary`, { waitUntil: "networkidle", timeout: 30000 });
+await page.waitForSelector(".glossary-az", { timeout: 20000 });
+checks.add("the letter bar holds A to Z and #", (await page.locator(".glossary-az-letter").count()) === 27);
+checks.add("a letter with no word is shown but cannot be followed",
+  (await page.locator(".glossary-az-letter--empty[aria-disabled='true']").count()) >= 1);
+const see = page.locator(".glossary-see", { hasText: "board" });
+checks.add("a retired name is filed under its own letter", (await see.count()) === 1);
+checks.add("and points at the term that replaced it", ((await see.locator("a").getAttribute("href")) ?? "").endsWith("#layout"));
+
+checks.section("a search ranks a name above a meaning");
+await page.fill('input[type="search"]', "wool");
+await page.waitForFunction(() => document.querySelector(".glossary-az") === null, null, { timeout: 10000 });
+const first = (await page.locator(".glossary-term-name").first().textContent())?.trim() ?? "";
+checks.add("the first word found has the search in its name", /wool/i.test(first), first);
+checks.add("the match is marked", (await page.locator("mark.glossary-match").count()) > 0);
+
+checks.section("a link to a word lands even through a search that hides it");
+await page.goto(`${BASE}/glossary?q=zzzz-no-such-word#hub`, { waitUntil: "networkidle", timeout: 30000 });
+await page.waitForSelector("#hub.glossary-term--target", { timeout: 20000 });
+checks.add("the search is cleared and the entry shown", !new URL(page.url()).searchParams.has("q"), page.url());
 
 checks.section("an anchor opens on its term");
 await page.goto(`${BASE}/glossary#hub`, { waitUntil: "networkidle", timeout: 30000 });
@@ -46,11 +68,11 @@ checks.add("it reads Maps, Generator, Library, Rules, Glossary", links.join(", "
 checks.add("Glossary is lit on its own page",
   ((await page.locator(".app-nav-link", { hasText: "Glossary" }).getAttribute("class")) ?? "").includes("app-nav-link--active"));
 checks.add("no divider stands in it", (await page.locator(".app-nav-divider").count()) === 0);
-for (const label of ["Keyboard shortcuts", "Design"]) {
+for (const label of ["Show keyboard shortcuts", "Open the design reference"]) {
   checks.add(`${label} is an icon at the right`, (await page.locator(`.app-nav-right [aria-label^="${label}"]`).count()) === 1);
 }
 checks.add("the footer no longer carries them", (await page.locator(".app-footer-link", { hasText: /Keyboard|Design/ }).count()) === 0);
-await page.click('.app-nav-right [aria-label="Keyboard shortcuts"]');
+await page.click('.app-nav-right [aria-label="Show keyboard shortcuts"]');
 await page.waitForFunction(() => /Keyboard|shortcut/i.test(document.body.textContent), null, { timeout: 5000 });
 
 checks.add("the glossary is clean", page.faults.length === 0, page.faults.slice(0, 3).join(" | "));

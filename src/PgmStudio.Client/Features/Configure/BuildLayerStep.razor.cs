@@ -53,7 +53,7 @@ public partial class BuildLayerStep
     private string Label(Box b)
     {
         var drawn = b.Source ?? b;
-        return $"{(drawn.Hole ? "hole" : "bridge")}-{boxes.Where(x => x.Hole == drawn.Hole).ToList().IndexOf(drawn) + 1}";
+        return $"{(drawn.Hole ? "Hole" : "Bridge")} {boxes.Where(x => x.Hole == drawn.Hole).ToList().IndexOf(drawn) + 1}";
     }
 
     protected override void OnInitialized() => LoadFromIntent();

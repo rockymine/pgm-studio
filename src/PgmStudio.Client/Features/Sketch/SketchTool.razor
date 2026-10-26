@@ -5,9 +5,8 @@
 @inject NavigationManager Nav
 @implements IAsyncDisposable
 
-@* Sketch tool — Layout step. Blazor renders the editor bar + toolbar + svg shell; the reused SketchCanvas
-   JS (via bridge/sketch-bridge.js) owns drawing, the live group computation, and the mirror preview.
-   Persistence (load/save) is wired in S2d; this step is the draw + live-groups experience. *@
+@* Sketch tool. Blazor renders the editor bar, the dock and the svg shell; the SketchCanvas JS (via
+   bridge/sketch-bridge.js) owns drawing, the live group computation and the symmetry preview. *@
 
 <StudioShell>
   <Bar>
@@ -22,7 +21,7 @@
         {
           <span class="problems-pop-host">
             <button type="button" class="problems-btn@(Stopped ? null : " problems-btn--warn")" aria-expanded="@(popOpen ? "true" : "false")"
-                    title="What stops this map, and what the build left out" @onclick="() => TogglePop(null)">
+                    @onclick="() => TogglePop(null)">
               <Icon Name="@(Stopped ? "circle-x" : "triangle-alert")" />@ProblemsLabel<span class="problems-btn-n">@ProblemRules</span>
             </button>
             @if (popOpen)
@@ -148,27 +147,27 @@
             {
               @if (ChipOffered(ChipShapes))
               {
-                <LayerChip Icon="shapes" Active="shapesOn" Title="Show the drawn shapes"
+                <LayerChip Icon="shapes" Active="shapesOn" Title="@ChipShapesTitle"
                            OnClick="ToggleShapes">Shapes</LayerChip>
               }
               @if (ChipOffered(ChipMirror))
               {
-                <LayerChip Icon="flip-horizontal-2" Active="mirrorOn" Title="Show the mirrored copies"
+                <LayerChip Icon="flip-horizontal-2" Active="mirrorOn" Title="@ChipMirrorTitle"
                            OnClick="ToggleMirror">Mirror</LayerChip>
               }
               @if (ChipOffered(ChipChunks))
               {
-                <LayerChip Icon="grid" Active="chunksOn" Title="Show the 16-block chunk grid"
+                <LayerChip Icon="grid" Active="chunksOn" Title="@ChipChunksTitle"
                            OnClick="ToggleChunks">Chunks</LayerChip>
               }
               @if (ChipOffered(ChipBlocks))
               {
-                <LayerChip Icon="box" Active="blocksOn" Title="@BlocksChipTitle"
+                <LayerChip Icon="box" Active="blocksOn" Title="@ChipBlocksTitle"
                            OnClick="ToggleBlocks">Blocks</LayerChip>
               }
               @if (ChipOffered(ChipRelief))
               {
-                <LayerChip Icon="mountain" Active="reliefOn" Title="Show height contours"
+                <LayerChip Icon="mountain" Active="reliefOn" Title="@ChipContoursTitle"
                            OnClick="ToggleRelief">Contours</LayerChip>
               }
               <CanvasRoundButton Icon="scan" Title="Zoom to fit (F)" OnClick="OnFit" />
@@ -181,14 +180,14 @@
                            Title="@($"Show layer '{id}'")"
                            OnClick="@(() => ToggleIsoLayer(id))">@id</LayerChip>
               }
-              <CanvasRoundButton Icon="rotate-cw" Title="Rotate the preview 90°" OnClick="iso.RotateAsync" />
+              <CanvasRoundButton Icon="rotate-cw" Title="Turn clockwise" OnClick="iso.RotateAsync" />
             }
             @* The picture is the world the export builds, so where the drawing and the build disagree the
                screen shows the build and says nothing about the difference. Name the shapes; the finding's
                own sentence, on hover, says what happened to which. *@
             @if (iso.ThreeD && isoNotBuilt.Count > 0)
             {
-              <button type="button" class="problems-btn problems-btn--warn canvas-problems" title="@IsoContestedWhy"
+              <button type="button" class="problems-btn problems-btn--warn canvas-problems"
                       @onclick="() => TogglePop(ProblemKind.LeftOut)">
                 <i data-lucide="triangle-alert"></i>@isoNotBuilt.Count left out
               </button>
@@ -197,7 +196,7 @@
             {
               <span class="canvas-note canvas-note--warn" role="status">@editNote</span>
             }
-            @* Placing a view is 2-D only: the eye is stood on a map of the board. *@
+            @* Placing a view is 2-D only: the eye is stood on a map of the canvas. *@
             <IsoToggle View="iso" OfferToggle="@(!CamerasActive)" />
           </CanvasLayerBar>
 
@@ -231,7 +230,7 @@
             <DockGroup Viewing>
               <DockButton Icon="mouse-pointer-2" Title="Select" Active="@(tool == "select")"
                           OnClick='() => SetTool("select")' />
-              <DockButton Icon="hand" Title="Move" Active="@(tool == "move")"
+              <DockButton Icon="hand" Title="Pan" Active="@(tool == "move")"
                           OnClick='() => SetTool("move")' />
             </DockGroup>
             @if (DressingActive)
@@ -247,7 +246,7 @@
             else if (CamerasActive)
             {
               <DockGroup>
-                <DockButton Icon="camera" Title="Place a view: press where to stand, then drag toward the target"
+                <DockButton Icon="camera" Title="Place a view"
                             Active="@(tool == "eye")" OnClick='() => SetTool("eye")' />
               </DockGroup>
             }
@@ -341,7 +340,7 @@
                 <DockButton Icon="scissors" Title="Split" Active="@(tool == "split")" OnClick='() => SetTool("split")' />
                 @* Not an overlay: it changes what a drag does rather than what is drawn, so it sits with the
                    tools that drag rather than in the bar that says what is shown. *@
-                <DockButton Icon="magnet" Title="Snap to shape edges (hold Alt to skip)"
+                <DockButton Icon="magnet" Title="@($"{SnapTitle} (hold Alt to skip)")"
                             Active="@snapOn" OnClick="ToggleSnap" />
               </DockGroup>
             }
@@ -374,7 +373,9 @@
           else
           {
             <Inspector>
-              <p class="section-desc">Pick a modifier in the dock and drag its outline on the board, or click an outline to edit it.</p>
+              <Section>
+                <EmptyState>No modifier selected. Pick one in the dock to trace it, or in the list to edit it.</EmptyState>
+              </Section>
             </Inspector>
           }
         }

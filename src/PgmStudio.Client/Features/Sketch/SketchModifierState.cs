@@ -58,7 +58,7 @@ public sealed record SketchModifierState(
     /// <summary>The dock tool that traces a new modifier of <paramref name="op"/>.</summary>
     public static string Tool(string op) => $"modifier:{op}";
 
-    /// <summary>Whether a mask area is an open line with a width rather than an outline.</summary>
+    /// <summary>Whether a traced area is an open line with a width rather than an outline.</summary>
     public static bool IsLine(JsonObject area) => area["kind"]?.GetValue<string>() == MaskKinds.Line;
 
     public static string Icon(string op) => op switch
@@ -87,30 +87,30 @@ public sealed record SketchModifierState(
         _ => "shapes",
     };
 
-    /// <summary>What an operation does, in a sentence the inspector heads with.</summary>
+    /// <summary>What an operation does, as the description the inspector heads with.</summary>
     public static string Blurb(string op) => op switch
     {
-        ModifierOps.Mound => "Raises the ground inside the mask, highest where the mask is deepest and falling to nothing at its rim.",
-        ModifierOps.Crater => "Sinks a bowl to its floor, flat in the middle and rounded into the ground over its melt.",
-        ModifierOps.Level => "Eases the ground to one height inside the mask and back out over its skirt: a plaza, a battlefield floor.",
-        ModifierOps.Noise => "Adds noise inside the mask, in one or more sizes.",
+        ModifierOps.Mound => "Raises the ground inside its area into a rounded rise, highest at its deepest point. A negative rise with Only lower sinks a dish.",
+        ModifierOps.Crater => "Sinks a bowl to its floor, flat at its centre and rounded into the ground over its skirt.",
+        ModifierOps.Level => "Brings the ground inside its area to one height and eases it back into the ground around: a plaza, a fighting floor.",
+        ModifierOps.Noise => "Adds noise inside its area, in one or more patch sizes.",
         ModifierOps.Ridge => "Raises a crest along the line, its foot wandering by noise.",
-        ModifierOps.Butte => "Lifts a flat top with a cliff face, a talus skirt and an apron: a mesa, a plateau.",
-        ModifierOps.Spire => "Raises a narrow peak that tapers from the mask to a point.",
-        ModifierOps.Scarp => "Lifts one side of the line as a step, with a cliff on the line and a talus slope below it.",
-        ModifierOps.Canyon => "Cuts a trench along the line: a floor, walls and, if asked, ledges. Cuts only.",
-        ModifierOps.River => "Cuts a bed along the line and fills it with water, the banks easing back into the ground.",
-        ModifierOps.Lake => "Cuts a basin inside the mask and fills it with water to one level.",
-        ModifierOps.Road => "Grades the ground along the line so it climbs no faster than its grade, shouldered into the slope.",
-        ModifierOps.Gullies => "Cuts channels down the slope inside the mask, wandering as they fall.",
-        ModifierOps.Warp => "Resamples the ground inside the mask at noise-shifted positions, so straight forms bend.",
-        ModifierOps.Profile => "Sets the ground by its distance from the line: a floor, then steps of cliff and bench out to a plateau.",
-        ModifierOps.Coast => "Floods the mask as a sea, its floor falling away from the shore, and eases the land around it down to a beach.",
-        ModifierOps.Lumps => "Strews hummocks and fallen blocks over the mask, each its own size, height and heading.",
-        ModifierOps.Shatter => "Breaks the ground into plates, each lifted and tilted on its own, with clefts cut along the seams.",
-        ModifierOps.Tunnel => "Carves a passage along the line, its floor level between mouths at the ground, the hill kept over it. Cut in the built world: 3-D shows the ground's top.",
-        ModifierOps.Chamber => "Carves a domed hall under the mask, keeping its cover of ground over it. Cut in the built world.",
-        ModifierOps.Shaft => "Carves a well from its floor up to the sky, with a ladder up its south wall. Cut in the built world.",
+        ModifierOps.Butte => "Lifts a flat top inside its area with a steep face and a talus slope round it: a mesa, a plateau.",
+        ModifierOps.Spire => "Raises a narrow peak that tapers from the edge of its area to a point.",
+        ModifierOps.Scarp => "Lifts one side of the line as a step, with a face on the line and a talus slope below it.",
+        ModifierOps.Canyon => "Cuts a trench along the line: a floor, walls and, if asked, ledges. It only cuts.",
+        ModifierOps.River => "Cuts a bed along the line and fills it with water, the banks easing into the ground over its skirt.",
+        ModifierOps.Lake => "Cuts a basin inside its area and fills it with water to one level, the shore easing into the ground over its skirt.",
+        ModifierOps.Road => "Grades the ground along the line so it climbs no faster than its grade, easing into the ground over its skirt.",
+        ModifierOps.Gullies => "Cuts channels down the slope inside its area, meandering as they fall.",
+        ModifierOps.Warp => "Shifts the ground inside its area by noise, so straight forms bend.",
+        ModifierOps.Profile => "Sets the ground by its distance from the line: a floor, then steps of face and bench out to a plateau.",
+        ModifierOps.Coast => "Floods its area as a sea, its floor falling from the shore, and eases the ground around down to a beach over its skirt.",
+        ModifierOps.Lumps => "Strews up to its count of hummocks and fallen blocks over its area, each its own size, height and heading.",
+        ModifierOps.Shatter => "Breaks the ground inside its area into patches, each lifted and tilted on its own, with clefts cut between them.",
+        ModifierOps.Tunnel => "Carves a passage along the line, open to the sky where its cover runs thin. It is cut only in the built world.",
+        ModifierOps.Chamber => "Carves a domed hall under its area, keeping its cover of ground over it. It is cut only in the built world.",
+        ModifierOps.Shaft => "Carves a well from its floor up to the sky, with a ladder up its south wall. It is cut only in the built world.",
         _ => "",
     };
 }

@@ -34,29 +34,29 @@ public partial class SketchTool
 
     private static readonly DockItem[] PieceItems =
     [
-        new(PlayPieceKinds.Spawn, "Spawn piece", Swatch: "var(--canvas-role-spawn)"),
+        new(PlayPieceKinds.Spawn, "Spawn room", Swatch: "var(--canvas-role-spawn)"),
         new(PlayPieceKinds.WoolRoom, "Wool room", Swatch: "var(--canvas-role-wool-room)"),
     ];
 
     private static readonly DockItem[] ZoneItems =
     [
-        new(PlayPieceKinds.BuildArea, "Build area", SwatchClass: "canvas-dock-swatch--build"),
+        new(PlayPieceKinds.BuildArea, "Build region", SwatchClass: "canvas-dock-swatch--build"),
         new(PlayPieceKinds.WaterLane, "Water lane", SwatchClass: "canvas-dock-swatch--water-lane"),
     ];
 
-    /// <summary>The markers a board may place. A destroyable and a core are offered at two teams only (OB14); a
-    /// control point belongs to nobody and is offered at any.</summary>
+    /// <summary>The markers a layout may place. A monument and a core are offered at two teams only (OB14); a
+    /// capture point belongs to nobody and is offered at any.</summary>
     private DockItem[] MarkerItems =>
     [
-        new(PlayPieceKinds.IronCube, "Iron marker", Icon: "pickaxe"),
+        new(PlayPieceKinds.IronCube, "Iron cube", Icon: "pickaxe"),
         .. Symmetry.Order(mode) == 2
             ? new DockItem[]
             {
-                new(PlayPieceKinds.Destroyable, "Destroyable", Icon: "gem"),
+                new(PlayPieceKinds.Destroyable, "Monument", Icon: "gem"),
                 new(PlayPieceKinds.Core, "Core", Icon: "flame"),
             }
             : [],
-        new(PlayPieceKinds.ControlPoint, "Control point", Icon: "flag"),
+        new(PlayPieceKinds.ControlPoint, "Capture point", Icon: "flag"),
         new(PlayPieceKinds.Wall, "Wall", Icon: "brick-wall"),
         new(PlayPieceKinds.Chest, "Defence chest", Icon: "box"),
     ];

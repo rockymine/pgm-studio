@@ -7,20 +7,17 @@
 <Workspace>
 
   <Sidebar>
-      <Section Title="Cores">
+      <Section Title="Cores" Term="core" Description="Confirm a suggestion below, or drag a rectangle around a casing on the canvas to add a core.">
         <Actions><Badge Class="@(cores.Count > 0 ? "badge--success" : "badge--dim")">@cores.Count core@(cores.Count == 1 ? "" : "s")</Badge></Actions>
         <ChildContent>
-        <p class="section-desc">One team defends a core and the others try to make it leak. Confirm a
-          suggested core below, or drag a box around a casing on the canvas to add one.</p>
-
         @if (loading)
         {
-          <div class="list-empty">Loading suggestions…</div>
+          <StatusLine>Loading suggestions…</StatusLine>
         }
         else
         {
           <div class="panel-list">
-            @if (cores.Count == 0) { <div class="list-empty">No cores yet.</div> }
+            @if (cores.Count == 0) { <EmptyState>No cores yet.</EmptyState> }
             @for (var i = 0; i < cores.Count; i++)
             {
               var index = i;
@@ -36,10 +33,7 @@
           var proposals = Unconfirmed.ToList();
           @if (proposals.Count > 0)
           {
-            <p class="section-desc section-desc--separated">
-              <strong>@proposals.Count</strong> suggested core@(proposals.Count == 1 ? "" : "s") to confirm. Click one
-              to add it.
-            </p>
+            <Readout Class="section-desc--separated">Suggestions to confirm: @proposals.Count. Click one to add it.</Readout>
             <div class="panel-list">
               @foreach (var proposal in proposals)
               {
@@ -78,8 +72,7 @@
             <Badge Class="@(sel.Volume is null ? "badge--warning" : "badge--success")">@(sel.Volume is null ? "Not built yet" : "In the world")</Badge>
           </DetailHeader>
           <div class="section-body">
-            <Field Label="Defending team">
-              <LabelHint>(the others attack it)</LabelHint>
+            <Field Label="Defending team" Note="@AuthoringContext.DefendingTeamNote">
               <ChildContent>
                 <div class="field-pick-row">
                   <span class="field-swatch" style="--swatch: @(string.IsNullOrEmpty(sel.Owner) ? "transparent" : TeamHex(sel.Owner))"></span>
@@ -89,15 +82,14 @@
               </ChildContent>
             </Field>
 
-            <Field Label="Name">
-              <LabelHint>(optional)</LabelHint>
+            <Field Label="Name" Unit="optional">
               <ChildContent>
-                <input class="field-input" value="@sel.Name" placeholder="e.g. Core"
+                <input class="field-input" value="@sel.Name" placeholder="Core"
                        @onchange="@(e => SetName(sel, e.Value?.ToString() ?? string.Empty))" />
               </ChildContent>
             </Field>
 
-            <Field Label="Casing">
+            <Field Label="Casing" Note="@(sel.OpenTop ? "Lava flush with the rim." : "A lid over the lava.")">
               <div class="field-value">
                 @if (sel.Volume is { } vol)
                 {
@@ -111,25 +103,22 @@
             </Field>
             @if (sel.Lava > 0)
             {
-              <Field Label="Why it was suggested">
+              <Field Label="Evidence">
                 <ChildContent>
-                  <div class="field-value">@sel.Lava lava block@(sel.Lava == 1 ? "" : "s") sealed in obsidian</div>
+                  <div class="field-value">@sel.Lava lava block@(sel.Lava == 1 ? "" : "s") sealed in obsidian.</div>
                 </ChildContent>
               </Field>
             }
 
-            <div class="ctrl-row ctrl-row--separated">
-              <Button Writes Fill OnClick="() => Remove(sel)" Title="Remove core"><i data-lucide="trash-2"></i> Remove</Button>
-            </div>
           </div>
         </Section>
+        <InspectorDelete Title="Delete this core" OnClick="() => Remove(sel)" />
       }
       else
       {
         <Section>
           <DetailHeader Icon="flame" IconMuted Label="Core" />
-          <p class="section-desc">Select a core to set the team that defends it. A map can have wools and cores
-            at the same time.</p>
+          <EmptyState>No core selected. Pick one to set the team that defends it.</EmptyState>
         </Section>
       }
   </Inspector>

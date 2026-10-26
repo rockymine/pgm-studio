@@ -8,16 +8,27 @@ namespace PgmStudio.Client.Models;
 /// </summary>
 public static class SymmetryInfo
 {
-    /// <summary>The full friendly label for a symmetry mode (e.g. "Mirror X (left/right)"); unknown/none → "No symmetry".</summary>
+    /// <summary>The name of a symmetry mode, short enough for an option (e.g. "Mirror X"); unknown/none → "No symmetry".</summary>
     public static string Label(string? mode) => mode switch
     {
         "rot_90" => "Rotate 90°",
         "rot_180" => "Rotate 180°",
-        "mirror_x" => "Mirror X (left/right)",
-        "mirror_z" => "Mirror Z (front/back)",
-        "mirror_d1" => "Mirror ╲ (diagonal)",
-        "mirror_d2" => "Mirror ╱ (diagonal)",
+        "mirror_x" => "Mirror X",
+        "mirror_z" => "Mirror Z",
+        "mirror_d1" => "Mirror ╲",
+        "mirror_d2" => "Mirror ╱",
         _ => "No symmetry",
+    };
+
+    /// <summary>What a symmetry mode does, as an option's note; none where the name says it.</summary>
+    public static string? Note(string? mode) => mode switch
+    {
+        "rot_90" => "Four quarters turn into each other.",
+        "rot_180" => "Two halves turn into each other.",
+        "mirror_x" => "The left and right halves mirror each other.",
+        "mirror_z" => "The front and back halves mirror each other.",
+        "mirror_d1" or "mirror_d2" => "The halves mirror each other across the diagonal.",
+        _ => null,
     };
 
     /// <summary>A short inline label for prose (e.g. "90° rotational", "mirror"); unknown/none → "no".</summary>

@@ -273,8 +273,7 @@
           <div class="ds-example-label">Section: Title, Actions, Description, Help</div>
           <div class="ds-panel-frame">
             <div class="workspace-scroll">
-              <Section Title="Teams" Required>
-                <Description>Each team gets its own spawn and goals.</Description>
+              <Section Title="Teams" Required Description="Each team gets its own spawn and objectives.">
                 <Actions><Button>+ Add team</Button></Actions>
                 <ChildContent>
                   <div class="panel-list">
@@ -460,7 +459,7 @@
         <Button Icon="layers" OnClick="() => drawerOpen = true">Open the drawer</Button>
         <SideDrawer Open="drawerOpen" Title="Board detail" Icon="layout-grid" OnClose="() => drawerOpen = false">
           <Body>
-            <Section Title="Facts"><p class="section-desc">A right-anchored overlay: backdrop, titled header, scrolling body and an optional pinned footer.</p></Section>
+            <Section Title="Facts" Description="A right-anchored overlay: backdrop, titled header, scrolling body and an optional pinned footer." />
           </Body>
           <Footer><Button Variant="primary" OnClick="() => drawerOpen = false">Done</Button></Footer>
         </SideDrawer>
@@ -480,7 +479,7 @@
                 <Chip Active='@chipsOn.Contains("sketch")' Count="7" OnClick='() => Toggle("sketch")'>Sketch</Chip>
                 <Chip Active='@chipsOn.Contains("configure")' Count="5" OnClick='() => Toggle("configure")'>Configure</Chip>
               </FilterGroup>
-              <FilterGroup Label="Kind" Hint="any of" Multi>
+              <FilterGroup Label="Kind" Match="any of" Multi>
                 <Chip Active='@chipsOn.Contains("wool")' Count="4" OnClick='() => Toggle("wool")'>Wool</Chip>
                 <Chip Active='@chipsOn.Contains("hub")' Count="9" OnClick='() => Toggle("hub")'>Hub</Chip>
                 <Chip Disabled Count="0">Scythe</Chip>
@@ -607,7 +606,7 @@
         <h3>Messages, empty, readout</h3>
         <div class="ds-state-grid">
           <div class="panel-warning">The selected region overlaps the map boundary.</div>
-          <div class="ds-empty-sample"><p class="panel-empty-msg">Select a team or region to inspect.</p></div>
+          <div class="ds-empty-sample"><EmptyState>No selection yet. Select a team or region to inspect.</EmptyState></div>
           <div class="callout">
             <span class="callout-icon"><i data-lucide="shield"></i></span>
             <p>Sign in with a whitelisted account to issue a token.</p>
@@ -615,9 +614,9 @@
           <span class="readonly-tag" role="status"><i data-lucide="eye"></i><span>View only</span></span>
         </div>
         <div class="ds-state-grid">
-          <Field Label="Confidence · high"><LabelHint>0.90</LabelHint><ChildContent><div class="meter"><div class="meter-fill" style="--meter-level: 90%"></div></div></ChildContent></Field>
-          <Field Label="Confidence · mid"><LabelHint>0.55</LabelHint><ChildContent><div class="meter"><div class="meter-fill meter-fill--mid" style="--meter-level: 55%"></div></div></ChildContent></Field>
-          <Field Label="Confidence · low"><LabelHint>0.25</LabelHint><ChildContent><div class="meter"><div class="meter-fill meter-fill--low" style="--meter-level: 25%"></div></div></ChildContent></Field>
+          <Field Label="Confidence · high"><LabelEnd><span class="text-xs text-muted">0.90</span></LabelEnd><ChildContent><div class="meter"><div class="meter-fill" style="--meter-level: 90%"></div></div></ChildContent></Field>
+          <Field Label="Confidence · mid"><LabelEnd><span class="text-xs text-muted">0.55</span></LabelEnd><ChildContent><div class="meter"><div class="meter-fill meter-fill--mid" style="--meter-level: 55%"></div></div></ChildContent></Field>
+          <Field Label="Confidence · low"><LabelEnd><span class="text-xs text-muted">0.25</span></LabelEnd><ChildContent><div class="meter"><div class="meter-fill meter-fill--low" style="--meter-level: 25%"></div></div></ChildContent></Field>
         </div>
       </div>
 

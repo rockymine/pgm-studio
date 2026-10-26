@@ -7,14 +7,14 @@
 <Workspace>
 
   <Sidebar Class="workspace-sidebar--narrow">
-      <Section Title="Sections">
+      <Section Title="Sections" Description="@(loading || xml is null ? null : "Export downloads the full map.")">
         @if (loading)
         {
-          <p class="panel-empty-msg">Loading…</p>
+          <StatusLine />
         }
         else if (xml is null)
         {
-          <p class="section-desc">No XML yet. Export is blocked until the checks pass.</p>
+          <EmptyState>No XML yet. Export is blocked until the checks pass.</EmptyState>
         }
         else
         {
@@ -28,7 +28,6 @@
               </ListRow>
             }
           </div>
-          <p class="section-desc"><strong>Export</strong> downloads the full map.</p>
         }
       </Section>
   </Sidebar>
@@ -39,7 +38,7 @@
     <div class="workspace-scroll">
       @if (loading)
       {
-        <p class="panel-empty-msg">Generating XML…</p>
+        <StatusLine>Generating XML…</StatusLine>
       }
       else if (blocked is not null)
       {

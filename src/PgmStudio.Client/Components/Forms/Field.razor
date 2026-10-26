@@ -1,64 +1,52 @@
 @namespace PgmStudio.Client.Components
 
-@* The label+input atom — the field .label (with optional required mark and a right-aligned LabelEnd
-   value), the control (ChildContent — an <input class="field-input">, a NumberField, a chip row, …),
-   and an optional .field-error line. When LabelEnd is set the label row splits (label left, value
-   right) via .field-label--split. Help is what the field is, behind a "?" after its label and opened under it —
-   for a definition a reader needs once, which would otherwise sit open above the control every time. *@
+@* The label+input atom, and the one place a field's words are written (docs/client/writing-for-the-ui.md): the Label names
+   it, the Unit qualifies its value, Help or a glossary Term explains it behind a "?", the Note under the control
+   says what its value does, and Error says what went wrong. LabelEnd is the label row's right end, for a live
+   value. *@
 
 <div class="@Cls">
-    @if (!string.IsNullOrEmpty(Label) || LabelEnd is not null || LabelHint is not null || Hint is not null)
+    @if (!string.IsNullOrEmpty(Label) || LabelEnd is not null)
     {
         <label class="@LabelCls" for="@For">
-            @* The hint is spaced and muted here rather than at each call site — see .field-hint for why the
-               separator is a margin and not a space. *@
-            <span>@Label @if (Required) { <span class="field-required">*</span> }@if (LabelHint is not null) { <span class="field-hint">@LabelHint</span> }@if (InlineHint is not null || HasHelp) { <span class="field-label-tail">@if (InlineHint is { } inline) { <span class="field-hint">(@inline)</span> }@if (HasHelp) { <HelpMark Open="helpOpen" Title="@(HelpTitle ?? $"About {Label}")" OnClick="() => helpOpen = !helpOpen" /> }</span> }</span>
+            <span>@Label @if (Required) { <span class="field-required">*</span> }@if (Unit is not null || HasHelp) { <span class="field-label-tail">@if (Unit is not null) { <span class="field-hint">(@Unit)</span> }@if (HasHelp) { <HelpMark Open="helpOpen" Title="@($"About {Label}")" OnClick="() => helpOpen = !helpOpen" /> }</span> }</span>
             @if (LabelEnd is not null) { @LabelEnd }
         </label>
     }
-    @if (HasHelp && helpOpen) { <div class="help-note-body">@(Help ?? (RenderFragment)(builder => builder.AddContent(0, Capitalized(Hint!))))</div> }
+    @if (HasHelp && helpOpen) { <HelpNote Help="@Help" Term="@Term" /> }
     @ChildContent
+    @if (!string.IsNullOrEmpty(Note)) { <p class="field-note">@Note</p> }
     @if (!string.IsNullOrEmpty(Error)) { <div class="field-error">@Error</div> }
 </div>
 
 @code {
     [Parameter] public string? Label { get; set; }
-    [Parameter] public RenderFragment? LabelHint { get; set; }  // inline helper markup after the label text (e.g. a muted note)
-    [Parameter] public RenderFragment? LabelEnd { get; set; }   // right-aligned value in the label row
+    [Parameter] public RenderFragment? LabelEnd { get; set; }   // right-aligned live value in the label row
     [Parameter] public bool Required { get; set; }
     [Parameter] public string? Error { get; set; }
     [Parameter] public string? For { get; set; }
     [Parameter] public string? Class { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
-    /// <summary>What the field is, behind a "?" beside its label.</summary>
-    [Parameter] public RenderFragment? Help { get; set; }
-    [Parameter] public string? HelpTitle { get; set; }
-    /// <summary>What the label leaves unsaid, as plain words. A short one — a unit, a qualifier — reads after the
-    /// label; a longer one is the field's help, with its unit kept after the label where it opens with one, so a
-    /// column of fields shows its names and units and keeps its sentences a press away.</summary>
-    [Parameter] public string? Hint { get; set; }
 
-    /// <summary>The most words a hint may run to and still read after the label: a few on a full-width field, and
-    /// one — a unit — on a half one, where a longer hint wraps and pushes its control below its neighbour's.</summary>
-    private int InlineWords => Half ? 1 : 5;
+    /// <summary>The unit of the value, one of <see cref="FieldUnits"/>, read after the label in parentheses.</summary>
+    [Parameter] public string? Unit { get; set; }
 
-    private bool LongHint => Hint is not null && Hint.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length > InlineWords;
-    private bool HasHelp => Help is not null || LongHint;
-    private string? InlineHint => Hint is null ? null : LongHint ? UnitOf(Hint) : Hint;
+    /// <summary>What the label cannot say — a definition, a behaviour — behind a "?" beside it. Never on a field that
+    /// explains itself, and never where the label is a glossary term: that is <see cref="Term"/>.</summary>
+    [Parameter] public string? Help { get; set; }
 
-    /// <summary>The unit a hint opens with, or none.</summary>
-    private static string? UnitOf(string hint) =>
-        hint.StartsWith("blocks", StringComparison.Ordinal) ? "blocks"
-        : hint.StartsWith("the world y", StringComparison.Ordinal) ? "world y"
-        : hint.StartsWith("degrees", StringComparison.Ordinal) ? "°"
-        : null;
+    /// <summary>The glossary term the label names; its "?" shows the glossary's own definition and links to it.</summary>
+    [Parameter] public string? Term { get; set; }
 
-    private static string Capitalized(string text) => text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text[1..] + ".";
-
-    private bool helpOpen;
+    /// <summary>One sentence under the control: what an empty value stands for, or what a value does.</summary>
+    [Parameter] public string? Note { get; set; }
 
     /// <summary>A short field — a number, a short select — that takes half a row inside a <c>field-grid</c>.</summary>
     [Parameter] public bool Half { get; set; }
+
+    private bool HasHelp => Help is not null || HelpNote.Defined(Term) is not null;
+
+    private bool helpOpen;
 
     private string Cls => string.Join(' ', new[] { "field", Half ? "field--half" : null, Class }.Where(c => !string.IsNullOrEmpty(c)));
     private string LabelCls => LabelEnd is null ? "field-label" : "field-label field-label--split";

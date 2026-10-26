@@ -39,7 +39,7 @@ else if (Href is not null)
 else
 {
     <button @key="Busy" class="@Cls" type="@Type" title="@(Closed ?? Title)" disabled="@(Disabled || Busy || Closed is not null)"
-            @onclick="OnClick" @attributes="Extra">
+            aria-label="@(Variant == "icon" ? Title : null)" @onclick="OnClick" @attributes="Extra">
         @if (Busy && BusyLabel is not null)
         {
             @BusyLabel

@@ -12,6 +12,10 @@ public partial class LibraryChooser
     private readonly Dictionary<string, IReadOnlyList<LibraryRow>> held = [];
     private bool loading = true;
 
+    /// <summary>What the library is, in the glossary's own words.</summary>
+    private static string LibraryDefinition =>
+        PgmStudio.Vocabulary.Glossary.Terms.FirstOrDefault(entry => entry.Term == "library")?.Definition ?? "";
+
     protected override async Task OnInitializedAsync()
     {
         var lists = LibraryKinds.All.Select(async kind => (kind.Slug, Rows: await Library.ListAsync<LibraryRow>(kind)));
@@ -22,7 +26,7 @@ public partial class LibraryChooser
     /// <summary>The libraries by what they dress: the ground, the buildings on it, and what grows or lies there.</summary>
     private static readonly (string Group, string[] Slugs)[] Groups =
     [
-        ("Terrain", [LibraryKinds.StylesSlug, LibraryKinds.ThemesSlug, LibraryKinds.BiomesSlug]),
+        ("Ground", [LibraryKinds.StylesSlug, LibraryKinds.ThemesSlug, LibraryKinds.BiomesSlug]),
         ("Buildings", [LibraryKinds.HousesSlug, LibraryKinds.RoofsSlug, LibraryKinds.StoreysSlug, LibraryKinds.PorchesSlug]),
         ("Nature", [LibraryKinds.TreesSlug, LibraryKinds.BouldersSlug]),
     ];

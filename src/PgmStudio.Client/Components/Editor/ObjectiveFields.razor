@@ -1,46 +1,44 @@
 @namespace PgmStudio.Client.Components
 
-@* The settings an objective states beside where it stands: a goal's name and structure, a wool's colour, how a
-   control point is laid and taken. The
+@* The settings an objective states beside where it stands: a monument's or core's name and structure, a wool's
+   colour, how a capture point is laid and taken. The
    sketch's picked piece shows these and writes them under the keys PieceSettings names. Only what differs
    from the default is stated: a field set back to its default writes null. *@
 
 @if (Kind == "controlPoint")
 {
-  <Field Label="Name" Hint="optional, PGM numbers an unnamed one">
+  <Field Label="Name" Note="Auto: PGM numbers it.">
     <ChildContent>
-      <input class="field-input" value="@Values.Name" placeholder="Hill"
+      <input class="field-input" placeholder="Auto" value="@Values.Name"
              @onchange="@(e => SetText(PieceSettings.Name, e.Value?.ToString(), string.Empty))" />
     </ChildContent>
   </Field>
-  <Field Label="Pad">
+  <Field Label="Pad" Note="@PadNote">
     <div class="filter-group-options">
       @foreach (var shape in Vocabulary.ControlPoint.Shapes)
       {
-        <Chip Active="@(PointShape == shape)" OnClick="@(() => SetText(PieceSettings.Shape, shape, Vocabulary.ControlPoint.Shape))"
-              Title="@(shape == "disc" ? "A round pad, held inside a cylinder over it" : "A square pad")">@shape</Chip>
+        <Chip Active="@(PointShape == shape)" OnClick="@(() => SetText(PieceSettings.Shape, shape, Vocabulary.ControlPoint.Shape))">@Word(shape)</Chip>
       }
     </div>
   </Field>
-  <Field Label="Taken by">
+  <Field Label="Taken by" Note="@TakenNote">
     <div class="filter-group-options">
       @foreach (var mode in Vocabulary.ControlPoint.CaptureModes)
       {
-        <Chip Active="@(PointMode == mode)" OnClick="@(() => SetText(PieceSettings.CaptureMode, mode, Vocabulary.ControlPoint.CaptureMode))"
-              Title="@(mode == "touch" ? "Taken the moment a player of another team steps on it" : "Held alone for the capture time")">@mode</Chip>
+        <Chip Active="@(PointMode == mode)" OnClick="@(() => SetText(PieceSettings.CaptureMode, mode, Vocabulary.ControlPoint.CaptureMode))">@Word(mode)</Chip>
       }
     </div>
   </Field>
   @if (PointMode != "touch")
   {
-    <Field Label="Capture time" Hint="seconds">
+    <Field Label="Capture time" Unit="seconds">
       <ChildContent>
         <NumberField Min="1" Max="600" Value="PointSeconds"
                      ValueChanged="@(value => SetNumber(PieceSettings.CaptureTime, (int)value, Vocabulary.ControlPoint.CaptureSeconds))" />
       </ChildContent>
     </Field>
   }
-  <Field Label="Points" Hint="a second, while held">
+  <Field Label="Points per second" Note="Scored while the team holds it.">
     <ChildContent>
       <NumberField Min="1" Max="100" Value="PointPoints"
                    ValueChanged="@(value => SetNumber(PieceSettings.Points, (int)value, Vocabulary.ControlPoint.Points))" />
@@ -49,10 +47,9 @@
 }
 @if (Kind is "destroyable" or "core")
 {
-  <Field Label="Name">
-    <LabelHint>@(Kind == "core" ? "(optional)" : "(optional, defaults to the team's)")</LabelHint>
+  <Field Label="Name" Unit="optional" Note="@GoalNameNote">
     <ChildContent>
-      <input class="field-input" value="@Values.Name" placeholder="@(Kind == "core" ? "Core" : "Red Monument")"
+      <input class="field-input" value="@Values.Name" placeholder="@GoalNamePlaceholder"
              @onchange="@(e => SetText(PieceSettings.Name, e.Value?.ToString(), string.Empty))" />
     </ChildContent>
   </Field>
@@ -80,7 +77,7 @@
     <Select Slim="false" Options="DestroyableMaterialOptions" Value="@DestroyableMaterials"
             ValueChanged="@(value => SetText(PieceSettings.Materials, value, Vocabulary.Destroyable.Materials))" />
   </Field>
-  <Field Label="Float" Hint="air under it">
+  <Field Label="Float" Unit="blocks" Note="Air left under the monument.">
     <ChildContent>
       <NumberField Min="0" Max="64" Value="DestroyableFloat"
                    ValueChanged="@(value => SetNumber(PieceSettings.Float, (int)value, Vocabulary.Destroyable.Float))" />
@@ -91,47 +88,36 @@ else if (Kind == "core")
 {
   @* A core is chosen, not designed: the author states the lava and the casing follows, so a casing with nothing
      in it cannot be typed. The readout is the obsidian those two imply. *@
-  <Field Label="Lava footprint" Hint="width and depth">
+  <Field Label="Lava footprint" Unit="blocks">
     <ChildContent>
       <Select Slim="false" Options="LavaOptions" Value="@CoreLava.ToString()"
               ValueChanged="@(value => SetNumber(PieceSettings.Lava, Num(value, CoreLava), Vocabulary.Core.Lava))" />
     </ChildContent>
   </Field>
-  <Field Label="Lava height" Hint="layers">
+  <Field Label="Lava height" Unit="blocks">
     <ChildContent>
       <Select Slim="false" Options="LavaHeightOptions" Value="@CoreLavaHeight.ToString()"
               ValueChanged="@(value => SetNumber(PieceSettings.LavaHeight, Num(value, CoreLavaHeight), Vocabulary.Core.LavaHeight))" />
     </ChildContent>
   </Field>
-  <Field Label="Casing">
+  <Field Label="Casing" Note="@(CoreOpenTop ? "Lava flush with the rim." : "A lid over the lava.")">
     <div class="filter-group-options">
-      <Chip Active="@(!CoreOpenTop)" OnClick="@(() => Set(PieceSettings.OpenTop, null))"
-            Title="A lid over the lava">capped</Chip>
-      <Chip Active="@CoreOpenTop" OnClick="@(() => Set(PieceSettings.OpenTop, true))"
-            Title="Lava flush with the rim">open</Chip>
+      <Chip Active="@(!CoreOpenTop)" OnClick="@(() => Set(PieceSettings.OpenTop, null))">Capped</Chip>
+      <Chip Active="@CoreOpenTop" OnClick="@(() => Set(PieceSettings.OpenTop, true))">Open</Chip>
     </div>
   </Field>
-  <p class="section-desc">@CoreCasingReadout</p>
-  <Field Label="Float" Hint="air under the casing">
+  <Readout>@CoreCasingReadout</Readout>
+  <Field Label="Float" Unit="blocks" Note="Air left under the casing.">
     <ChildContent>
       <NumberField Min="0" Max="64" Value="CoreFloat"
                    ValueChanged="@(value => SetNumber(PieceSettings.Float, (int)value, Vocabulary.Core.Float))" />
     </ChildContent>
   </Field>
-  <Field Label="Leak" Hint="fall before it counts">
+  <Field Label="Leak" Unit="blocks" Note="How far the lava falls before the core counts as leaked.">
     <ChildContent>
       <NumberField Min="0" Max="64" Value="CoreLeak"
                    ValueChanged="@(value => SetNumber(PieceSettings.Leak, (int)value, Vocabulary.Core.Leak))" />
     </ChildContent>
   </Field>
-  <p class="section-desc">
-    @if (CoreDigDepth > 0)
-    {
-      <text>Leaking it means breaking the casing and digging @CoreDigDepth block@(CoreDigDepth == 1 ? "" : "s") below it.</text>
-    }
-    else
-    {
-      <text>The lava leaks as soon as the casing is broken, with no digging.</text>
-    }
-  </p>
+  <Readout>@CoreDigReadout</Readout>
 }

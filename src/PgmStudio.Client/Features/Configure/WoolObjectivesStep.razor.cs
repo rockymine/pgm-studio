@@ -167,7 +167,7 @@ public partial class WoolObjectivesStep
 
             // include rule: a monument-named colour is an objective; physical-only wool is decorative.
             if (mons.Count > 0) cand.Included = true;
-            else { cand.Included = false; cand.ExcludeReason = "No monument names this wool."; }
+            else { cand.Included = false; cand.ExcludeReason = "No wool monument names this wool."; }
             // a wool sitting in its owner's own spawn can't be captured → decorative
             if (cand.Owner.Length > 0 && protection.TryGetValue(cand.Owner, out var pz) && pz.Covers(cand.X, cand.Z))
             { cand.Included = false; cand.ExcludeReason = "It sits inside its owner's spawn."; }
@@ -320,7 +320,7 @@ public partial class WoolObjectivesStep
             marker = true,
             primary = c.Included,
             color = W.Hex(c.Color),
-            label = $"{c.Color}{(c.Included ? "" : " (excluded)")}",
+            label = $"{W.Name(c.Color)} wool{(c.Included ? "" : ", excluded")}",
             bounds = new { min_x = c.X - 0.5, min_z = c.Z - 0.5, max_x = c.X + 0.5, max_z = c.Z + 0.5 },
         }));
     }

@@ -13,7 +13,7 @@
 @if (OfferToggle)
 {
   <ViewModeToggle ThreeD="View.ThreeD" Disabled="@(View.Unavailable || BuildReason is not null)"
-                  Title="@(View.Unavailable ? View.NoteTitle : BuildReason ?? "3-D preview (read-only)")"
+                  Title="@(View.Unavailable ? View.NoteTitle : BuildReason ?? (View.ThreeD ? "Show the canvas" : "Show the 3-D preview"))"
                   OnClick="View.ToggleAsync" />
 }
 

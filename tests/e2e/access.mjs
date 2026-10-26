@@ -79,7 +79,7 @@ const WRITE_PAGES = [
     if (open) await page.fill("#lib-entry-name", "E2E access palette");
   },
     [["a library editor's save", /^Add to library$/]]],
-  ["/generator", openFirstLayout, [["the generator's Open in Sketch", /^Open in Sketch$/]]],
+  ["/generator", openFirstLayout, [["the generator's Make a map", /^Make a map$/]]],
 ];
 
 async function checkWrites(base, open) {
@@ -115,10 +115,10 @@ checks.add("the 3-D switch is open", openIso?.closed === false, JSON.stringify(o
 
 await visit(BASE, "/admin/users");
 // The page says "Loading…" until it has asked who is signed in, and only then draws the form or the refusal.
-await page.waitForFunction(() => !!document.querySelector('input[placeholder="Minecraft name or uuid"]')
+await page.waitForFunction(() => !!document.querySelector('.player-add-row input[placeholder="Minecraft name"]')
   || /Only admins/.test(document.body.textContent), null, { timeout: 15000 }).catch(() => {});
 const adminPage = await page.evaluate(() => ({
-  add: !!document.querySelector('input[placeholder="Minecraft name or uuid"]'),
+  add: !!document.querySelector('.player-add-row input[placeholder="Minecraft name"]'),
   refused: /Only admins/.test(document.body.textContent),
 }));
 checks.add("the whitelist page answers the local admin", adminPage.add && !adminPage.refused);
@@ -165,8 +165,8 @@ try {
   await visit(invited, "/maps?stage=sketch");
   await page.waitForSelector("button.action-btn--primary", { timeout: 20000 }).catch(() => {});
   const newSketch = await page.evaluate(() =>
-    [...document.querySelectorAll("button")].find(b => /New sketch/.test(b.textContent))?.disabled ?? null);
-  checks.add("New sketch is greyed", newSketch === true, String(newSketch));
+    [...document.querySelectorAll("button")].find(b => /New map/.test(b.textContent))?.disabled ?? null);
+  checks.add("New map is greyed", newSketch === true, String(newSketch));
   await visit(invited, "/maps?stage=configure");
   const importWorld = await settle(/^Import a world$/, true);
   checks.add("Import a world goes nowhere, and says why", importWorld?.closed === true
@@ -244,7 +244,7 @@ try {
   await page.waitForFunction(() => /Only admins|Minecraft name/.test(document.body.textContent), null,
     { timeout: 20000 }).catch(() => {});
   const refused = await page.evaluate(() => /Only admins/.test(document.body.textContent)
-    && !document.querySelector('input[placeholder="Minecraft name or uuid"]'));
+    && !document.querySelector('.player-add-row input[placeholder="Minecraft name"]'));
   checks.add("the whitelist page shows nothing of the list", refused);
 } finally {
   server.kill();

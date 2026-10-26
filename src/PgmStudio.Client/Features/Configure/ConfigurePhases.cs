@@ -10,7 +10,7 @@ public static class ConfigurePhases
     /// The phases on the activity rail, in linear order. Steps mirror the concept sections; a phase with no
     /// steps (Identity) is a single-step form (the flow bar shows just its name).
     /// <para>
-    /// <b>The objective phases are a group, not a choice.</b> A PGM map may carry wools, destroyables,
+    /// <b>The objective phases are a group, not a choice.</b> A PGM map may carry wools, monuments,
     /// cores and flags at once, in any combination, so each objective kind gets its own phase and every one of them is
     /// offered on every map — an author adds a gamemode by filling a phase in, and a map that arrived with
     /// one gamemode is not barred from a second. They share a single completeness gate
@@ -21,10 +21,10 @@ public static class ConfigurePhases
     [
         new("info",   "book-open-text", "Identity",        [],                                                "N00"),
         new("world",  "settings-2",     "World",           ["Scan", "Islands", "Symmetry"],                   "N01"),
-        new("teams",  "users",          "Teams",           ["Teams & islands", "Spawn point", "Protection"],  "N02"),
-        new("build",  "pickaxe",        "Build",           ["Build height", "Buildable layer"],               "N03"),
-        new("wools",  "goal",           "Wools",           ["Objectives", "Spawn", "Monuments", "Room"],      "N04"),
-        new("dtm",    "gem",            "Destroyables",    ["Objectives"],                                    "N12"),
+        new("teams",  "users",          "Teams",           ["Teams and islands", "Spawns", "Protection"],  "N02"),
+        new("build",  "pickaxe",        "Build",           ["Build ceiling", "Build regions"],                "N03"),
+        new("wools",  "goal",           "Wools",           ["Objectives", "Spawn", "Wool monuments", "Wool room"],"N04"),
+        new("dtm",    "gem",            "Monuments",       ["Objectives"],                                    "N12"),
         new("cores",  "flame",          "Cores",           ["Objectives", "Casing"],                          "N12"),
         new("flags",  "flag",           "Flags",           ["Posts"],                                         "TC15"),
         new("score",  "goal",           "Score",           [],                                                "TC19"),

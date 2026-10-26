@@ -39,7 +39,7 @@ checks.add("the inspector names the shape the change moved", said.some((line) =>
   said.slice(0, 3).join(" | "));
 await page.waitForSelector(".change-world", { timeout: 60000 });
 const built = (await page.locator(".change-world").textContent()) ?? "";
-checks.add("and counts the ground it moved", /ground [1-9]/.test(built), built.trim());
+checks.add("and counts the ground it moved", /ground [1-9]/i.test(built), built.trim());
 
 checks.section("putting the board back lands as a new change");
 await page.click('button:has-text("Restore to #")');

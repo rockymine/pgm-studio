@@ -14,7 +14,7 @@
       {
         <Section Title="Details">
           <Field Label="Map name" Required For="sk-name">
-            <input id="sk-name" class="field-input" type="text" placeholder="e.g. Harbour Run"
+            <input id="sk-name" class="field-input" type="text"
                    value="@name" @oninput="e => { name = e.Value?.ToString() ?? string.Empty; Dirty(); }" />
           </Field>
         </Section>

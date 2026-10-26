@@ -18,50 +18,39 @@
   <Fields>
     @if (tree is not null)
     {
-      <Field Label="Which tree">
-        <Help>A <strong>vanilla</strong> tree is a Minecraft species with a drawn canopy. A <strong>copied</strong>
-          tree was built by hand and copied block by block from a world.</Help>
-        <ChildContent>
-          <Select Options="@Select.Words(TreeForms.All, TreeForms.Describe)" Value="@tree.Form"
-                  ValueChanged="SetTreeForm" />
-        </ChildContent>
+      <Field Label="Kind">
+        <Select Options="@Select.Words(TreeForms.All, TreeForms.Name, TreeForms.Describe)" Value="@tree.Form"
+                ValueChanged="SetTreeForm" />
       </Field>
 
       @if (TreeForms.Canonical(tree.Form) == TreeForms.Template)
       {
         <Field Label="Species">
-          <Select Options="@Select.Words(TreeSpeciesNames.All, name => name)" Value="@tree.Species"
+          <Select Options="@(Select.Words(TreeSpeciesNames.All, name => char.ToUpperInvariant(name[0]) + name[1..]))" Value="@tree.Species"
                   ValueChanged="v => Tree(t => t with { Species = v })" />
         </Field>
       }
 
       @if (TreeForms.Canonical(tree.Form) == TreeForms.Copied)
       {
-        <p class="section-desc">
-          @if (tree.Body is { Length: > 0 })
-          {
-            <text>@tree.Body.Length blocks, @tree.Height.ToString("0") courses tall. To change it, copy it from
-              the world again.</text>
-          }
-          else
-          {
-            <text>No blocks yet. Copied trees are imported from a world with
-              <code>tools/seed-trees.cs</code>.</text>
-          }
+        @if (tree.Body is { Length: > 0 })
+        {
+          <Readout>Holds @tree.Body.Length blocks and stands @tree.Height.ToString("0") blocks tall. Copy it from the world again to change it.</Readout>
+        }
+        else
+        {
+          <EmptyState>No blocks yet. A copied tree is cut from a world by the library's seed tool.</EmptyState>
+        }
+        <Field Label="Source" Note="@(tree.Cut is null ? "None is recorded, so it can't be saved as a copied tree." : null)">
           @if (tree.Cut is { } cut)
           {
-            <text> Copied from <code>@cut.World</code> at (@cut.X, @cut.Y, @cut.Z) on @cut.At.ToString("yyyy-MM-dd").</text>
+            <Readout>Copied from @cut.World at @cut.X, @cut.Y, @cut.Z on @cut.At.ToString("yyyy-MM-dd").</Readout>
             @if (cut.Builder is { Length: > 0 } builder)
             {
-              <text> Built by <strong>@builder</strong>, who is credited as a contributor on maps that use
-                it.</text>
+              <Readout>Built by @builder, credited as a contributor on maps that use it.</Readout>
             }
           }
-          else
-          {
-            <text> No source is recorded, so it can't be saved as a copied tree.</text>
-          }
-        </p>
+        </Field>
       }
       else
       {
@@ -73,19 +62,21 @@
     else if (boulder is not null)
     {
       <Field Label="Shape">
-        <Select Options="@Select.Words(BoulderForms.All, BoulderForms.Describe)" Value="@boulder.Form"
+        <Select Options="@Select.Words(BoulderForms.All, BoulderForms.Name, BoulderForms.Describe)" Value="@boulder.Form"
                 ValueChanged="v => Boulder(b => b with { Form = v })" />
       </Field>
       <Field Label="Size"><LabelEnd><strong>@($"{boulder.Size:0.0} blocks")</strong></LabelEnd>
         <ChildContent><RangeField Min="20" Max="100" Value="@((int)(boulder.Size * 10))"
                ValueChanged="value => Boulder(b => b with { Size = value / 10 })" /></ChildContent></Field>
-      <Field Label="Moss">
-        <Chip Active="boulder.Mossy" OnClick="() => Boulder(b => b with { Mossy = !b.Mossy })">
-          @(boulder.Mossy ? "On faces open to the sky" : "Bare rock")
-        </Chip>
+      <Field Label="Moss" Note="@(boulder.Mossy ? "Moss grows on the faces open to the sky." : null)">
+        <div class="chip-row">
+          <Chip Active="@(!boulder.Mossy)" OnClick="() => Boulder(b => b with { Mossy = false })">Bare</Chip>
+          <Chip Active="boulder.Mossy" OnClick="() => Boulder(b => b with { Mossy = true })">Mossy</Chip>
+        </div>
       </Field>
-      <div class="section-header section-header--ruled"><h2 class="section-title">Material</h2></div>
-      <MaterialEditor Blocks="blocks" Styles="styles" Node="rock" OnChanged="RockChanged" />
+      <Section Title="Material" Term="material">
+        <MaterialEditor Blocks="blocks" Styles="styles" Node="rock" OnChanged="RockChanged" />
+      </Section>
     }
   </Fields>
   <Actions>

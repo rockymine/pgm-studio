@@ -70,12 +70,20 @@ public static class RimEdgeModes
     /// <summary>The modes narrowest first — how many edges each one calls a rim.</summary>
     public static readonly string[] All = [Void, Drop, Boundary];
 
-    /// <summary>What each mode caps, in the words an authoring surface offers it in.</summary>
-    public static string LabelOf(string mode) => mode switch
+    /// <summary>The name an authoring surface offers each mode under.</summary>
+    public static string Name(string? mode) => Canonical(mode) switch
     {
-        Void => "Only where the ground meets the void",
-        Boundary => "Every plateau boundary",
-        _ => "Wherever the ground drops",
+        Void => "Void edges",
+        Boundary => "Every boundary",
+        _ => "Every drop",
+    };
+
+    /// <summary>What each mode caps, in one sentence under its name.</summary>
+    public static string Describe(string? mode) => Canonical(mode) switch
+    {
+        Void => "Only where the ground meets the void.",
+        Boundary => "Every plateau boundary, faces against structures included.",
+        _ => "Wherever the ground drops away.",
     };
 
     /// <summary>Fold an unknown or absent mode down to the default, so a hand-edited theme shows a rim rather
@@ -196,10 +204,14 @@ public static class TreeForms
 
     public static readonly string[] All = [Template, Copied];
 
+    /// <summary>The name a picker offers each form under.</summary>
+    public static string Name(string? form) => Canonical(form) == Copied ? "Copied tree" : "Species";
+
+    /// <summary>What each form is, in one sentence under its name.</summary>
     public static string Describe(string? form) => Canonical(form) switch
     {
-        Copied => "Copied block by block from a tree an author built",
-        _ => "A vanilla tree of a named species",
+        Copied => "Cut block for block from a tree an author built.",
+        _ => "A Minecraft tree of a named species.",
     };
 
     public static string Canonical(string? form) => All.Contains(form) ? form! : Template;
@@ -232,12 +244,22 @@ public static class BoulderForms
 
     public static readonly string[] All = [Round, Angular, Outcrop, Cairn];
 
+    /// <summary>The name a picker offers each form under.</summary>
+    public static string Name(string? form) => Canonical(form) switch
+    {
+        Angular => "Angular",
+        Outcrop => "Outcrop",
+        Cairn => "Cairn",
+        _ => "Round",
+    };
+
+    /// <summary>What each form looks like, in one sentence under its name.</summary>
     public static string Describe(string? form) => Canonical(form) switch
     {
-        Angular => "Broken up and heavily weathered",
-        Outcrop => "Wide flat lobes, half in the ground",
-        Cairn => "Three shrinking lobes stacked",
-        _ => "One rounded mass, broadly facetted",
+        Angular => "Broken up and heavily weathered.",
+        Outcrop => "Wide flat lobes, half in the ground.",
+        Cairn => "Three shrinking lobes stacked up.",
+        _ => "One rounded mass, broadly facetted.",
     };
 
     public static string Canonical(string? form) => All.Contains(form) ? form! : Round;
@@ -275,21 +297,31 @@ public static class BandAxes
     /// ground a stack can be read along instead.</summary>
     public static readonly string[] All = [Depth, Inward, Height, Slope];
 
-    /// <summary>What each reads along, in the words the picker offers it in.</summary>
-    public static string Describe(string? axis) => Canonical(axis) switch
+    /// <summary>The name the picker offers each axis under.</summary>
+    public static string Name(string? axis) => Canonical(axis) switch
     {
-        Inward => "In from the edge — rings round the shape",
-        Height => "Up from a world height",
-        Slope => "By steepness — flat, sloping, sheer",
-        _ => "Down the column from the top",
+        Inward => "Inward",
+        Height => "Height",
+        Slope => "Slope",
+        _ => "Depth",
     };
 
-    /// <summary>What one band claims, along that axis — the caption its number wants.</summary>
+    /// <summary>What each reads along, in one sentence under its name.</summary>
+    public static string Describe(string? axis) => Canonical(axis) switch
+    {
+        Inward => "In from the edge, as rings round the shape.",
+        Height => "Up from a world height.",
+        Slope => "By steepness, from flat through sloping to sheer.",
+        _ => "Down the column from the top of the ground.",
+    };
+
+    /// <summary>What one band claims, along that axis — the caption its number wants. A course is one block,
+    /// so a depth or a height is counted in blocks.</summary>
     public static string Extent(string? axis) => Canonical(axis) switch
     {
         Inward => "Rings",
         Slope => "Degrees",
-        _ => "Courses",
+        _ => "Blocks",
     };
 
     public static string Canonical(string? axis) => All.Contains(axis) ? axis! : Depth;
@@ -313,11 +345,20 @@ public static class BandEndings
 
     public static readonly string[] All = [Hold, HandOver, Cycle];
 
+    /// <summary>The name the picker offers each ending under.</summary>
+    public static string Name(string? ending) => Canonical(ending) switch
+    {
+        HandOver => "Hand over",
+        Cycle => "Cycle",
+        _ => "Hold",
+    };
+
+    /// <summary>What each ending does, in one sentence under its name.</summary>
     public static string Describe(string? ending) => Canonical(ending) switch
     {
-        HandOver => "Nothing more is claimed",
-        Cycle => "The bands cycle",
-        _ => "The last band holds",
+        HandOver => "Nothing more is claimed, so what lies under shows.",
+        Cycle => "The bands cycle again from the first.",
+        _ => "The last band holds past the end.",
     };
 
     public static string Canonical(string? ending) => All.Contains(ending) ? ending! : Hold;
@@ -340,15 +381,26 @@ public static class RoofForms
     /// shed, which <c>HS14</c> complains of on a house, a wing and a porch alike.</summary>
     public static readonly string[] Offered = [.. All.Where(form => form != Shed)];
 
-    /// <summary>What each looks like, in the words the picker offers it in.</summary>
+    /// <summary>The name the picker offers each form under: the glossary's own word for it.</summary>
+    public static string Name(string? form) => Canonical(form) switch
+    {
+        Gable => "Gable",
+        Hip => "Hip",
+        Shed => "Shed",
+        Gambrel => "Gambrel",
+        Saltbox => "Saltbox",
+        _ => "Flat",
+    };
+
+    /// <summary>What each looks like, in one sentence under its name.</summary>
     public static string Describe(string? form) => Canonical(form) switch
     {
-        Gable => "Two slopes to a ridge",
-        Hip => "Four slopes, one off every wall",
-        Shed => "One plane, leaning off the front",
-        Gambrel => "A barn: steep, then shallow",
-        Saltbox => "A gable with its ridge off centre",
-        _ => "A flat lid",
+        Gable => "Two slopes meeting at a ridge.",
+        Hip => "Four slopes, one off every wall.",
+        Shed => "One plane leaning off the front.",
+        Gambrel => "Steep then shallow, like a barn.",
+        Saltbox => "A gable with its ridge off centre.",
+        _ => "A flat lid.",
     };
 
     /// <summary>Fold an unknown or absent form down to the flat lid, so a hand-edited row still stamps.</summary>
@@ -369,13 +421,24 @@ public static class PorchEdges
 
     public static readonly string[] All = [Front, NegZ, PosZ, NegX, PosX];
 
+    /// <summary>The name the picker offers each edge under: the compass side, negative z being north.</summary>
+    public static string Name(string? edge) => Canonical(edge) switch
+    {
+        NegZ => "North wall",
+        PosZ => "South wall",
+        NegX => "West wall",
+        PosX => "East wall",
+        _ => "Door wall",
+    };
+
+    /// <summary>Which wall each edge is, in one sentence under its name.</summary>
     public static string Describe(string? edge) => Canonical(edge) switch
     {
-        NegZ => "The −z wall",
-        PosZ => "The +z wall",
-        NegX => "The −x wall",
-        PosX => "The +x wall",
-        _ => "Whichever wall the door is on",
+        NegZ => "The wall facing north.",
+        PosZ => "The wall facing south.",
+        NegX => "The wall facing west.",
+        PosX => "The wall facing east.",
+        _ => "Whichever wall the door is cut through.",
     };
 
     public static string Canonical(string? edge) => All.Contains(edge) ? edge! : Front;
@@ -400,14 +463,26 @@ public static class WindowForms
 
     public static readonly string[] All = [None, StairLattice, SlabBanded, Pane, Open, Arched];
 
+    /// <summary>The name the picker offers each form under.</summary>
+    public static string Name(string? form) => Canonical(form) switch
+    {
+        StairLattice => "Stair lattice",
+        SlabBanded => "Slab band",
+        Pane => "Panes",
+        Open => "Open",
+        Arched => "Arched",
+        _ => "No windows",
+    };
+
+    /// <summary>What each form is, in one sentence under its name.</summary>
     public static string Describe(string? form) => Canonical(form) switch
     {
-        StairLattice => "2×2 of stairs, open in the middle",
-        SlabBanded => "A band between a slab sill and lintel",
-        Pane => "Panes, glazed",
-        Open => "An opening, nothing in it",
-        Arched => "An opening, its top corners rounded",
-        _ => "No windows",
+        StairLattice => "Four stairs in a square, open in the middle.",
+        SlabBanded => "A gap between a slab below and a slab above.",
+        Pane => "Glazed panes fill the opening.",
+        Open => "An opening with nothing in it.",
+        Arched => "An opening with its top corners rounded.",
+        _ => "The wall is left whole.",
     };
 
     public static string Canonical(string? form) => All.Contains(form) ? form! : None;
@@ -423,7 +498,7 @@ public static class DoorHeadForms
     public static readonly (string Id, string Name)[] All =
     [
         (None, "Square"),
-        (Arched, "Arched — stairs in the corners"),
+        (Arched, "Arched"),
     ];
 
     public static string Canonical(string? form) => All.Any(entry => entry.Id == form) ? form! : None;
@@ -438,7 +513,7 @@ public static class DoorHeadFills
     public static readonly (string Id, string Name)[] All =
     [
         (UpperSlab, "Upside-down slab"),
-        (Solid, "A whole block"),
+        (Solid, "Whole block"),
     ];
 
     public static string Canonical(string? fill) => All.Any(entry => entry.Id == fill) ? fill! : UpperSlab;

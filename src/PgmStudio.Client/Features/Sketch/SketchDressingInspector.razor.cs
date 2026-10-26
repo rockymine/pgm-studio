@@ -324,7 +324,7 @@ public partial class SketchDressingInspector
     /// literal.</summary>
     private static readonly (string Key, string Label)[] Sides =
     [
-        ("negZ", "−z"), ("posZ", "+z"), ("negX", "−x"), ("posX", "+x"),
+        ("negZ", "North"), ("posZ", "South"), ("negX", "West"), ("posX", "East"),
     ];
 
     /// <summary>One of the prop's materials as a query parameter, so a shape card is drawn in the material the
@@ -550,6 +550,18 @@ public partial class SketchDressingInspector
     }
 
     private PropKindNames.Names Info => PropKindNames.Of(kind);
+
+    /// <summary>What a house picked from the library becomes, said wherever one is picked.</summary>
+    internal const string HouseCopyNote = "Picking one copies it here, and later edits in the library do not change it.";
+
+    /// <summary>What a change does: to the picked prop and the next one placed, or, with one in hand, how the
+    /// next is placed.</summary>
+    private string HeadLine => editingSelection
+        ? $"Changes apply to this {Info.One.ToLowerInvariant()} and carry to the next one placed."
+        : $"{Info.Gesture} Hold Shift to place several.";
+
+    private static string Capitalised(string word) =>
+        word.Length == 0 ? word : char.ToUpperInvariant(word[0]) + word[1..];
 
     /// <summary>The recipe an unnamed tree placement builds: <c>TreeStyle</c>'s own defaults.</summary>
     private const string DefaultSpecies = "oak";

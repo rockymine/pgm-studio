@@ -40,7 +40,7 @@ public sealed class SketchNotes(HttpClient http, StudioAccess access, string slu
             Handoff = await http.GetFromJsonAsync<NoteHandoffDto>("api/notes/handoff");
             LoadError = null;
         }
-        catch { LoadError = "Couldn't load notes. Check your connection and reload."; }
+        catch { LoadError = "Couldn't load the notes. Reload the page to try again."; }
         Changed?.Invoke();
     }
 }

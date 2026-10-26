@@ -4,7 +4,7 @@ using Microsoft.JSInterop;
 
 namespace PgmStudio.Client.Features.Sketch;
 
-/// <summary>The board's paint rules (<c>docs/world-export/terrain-painting.md</c>, TP28) as the bridge announces
+/// <summary>The layout's paint rules (<c>docs/world-export/terrain-painting.md</c>, TP28) as the bridge announces
 /// them, and every edit to them: the Palette phase's list orders and switches them, its inspector edits one, and
 /// both send the whole list to the bridge's <c>setPaint</c>, so each change is one undo step.</summary>
 public static class SketchPaintRuleSet

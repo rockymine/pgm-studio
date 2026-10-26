@@ -13,8 +13,8 @@ import { ModifierController, opOfTool }
 const SQUARE = [[0, 0], [10, 0], [10, 10], [0, 10]];
 
 test("a fresh modifier's id is unique in the stack", () => {
-  const stack = [{ id: "hill" }, { id: "hill-2" }];
-  assert.equal(freshModifierId(stack, "mound"), "hill-3");
+  const stack = [{ id: "mound" }, { id: "mound-2" }];
+  assert.equal(freshModifierId(stack, "mound"), "mound-3");
   assert.equal(freshModifierId([], "crater"), "hollow");
 });
 

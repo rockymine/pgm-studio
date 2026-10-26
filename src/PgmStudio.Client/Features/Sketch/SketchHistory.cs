@@ -57,7 +57,7 @@ public sealed class SketchHistory(
     {
         ChangesError = null;
         try { Changes = await http.GetFromJsonAsync<MapChangesDto>($"api/map/{slug}/changes"); }
-        catch { ChangesError = "Couldn't load the change history. Check your connection and try again."; }
+        catch { ChangesError = "Couldn't load the change history. Reload the page to try again."; }
         Changed?.Invoke();
     }
 
@@ -92,7 +92,7 @@ public sealed class SketchHistory(
             before = from == 0 ? null : (await http.GetFromJsonAsync<MapChangeDocumentsDto>($"api/map/{slug}/changes/{from}"))?.Layout;
             after = (await http.GetFromJsonAsync<MapChangeDocumentsDto>($"api/map/{slug}/changes/{to}"))?.Layout;
         }
-        catch { SpanWorldError = "Couldn't load this change. Check your connection and try again."; }
+        catch { SpanWorldError = "Couldn't load the change. Reload the page to try again."; }
         if (round != spanRound) return;
         SpanDiff = diff;
         (spanBefore, spanAfter) = (before, after);
@@ -115,7 +115,7 @@ public sealed class SketchHistory(
         catch
         {
             if (round != spanRound) return;
-            SpanWorldError = "Couldn't build both versions.";
+            SpanWorldError = "Couldn't build both versions. Try again.";
         }
         Changed?.Invoke();
     }
@@ -142,14 +142,14 @@ public sealed class SketchHistory(
             if (!answer.IsSuccessStatusCode)
             {
                 var refusal = await answer.Content.ReadFromJsonAsync<RefusalDto>();
-                RestoreError = refusal?.Message is { Length: > 0 } why ? $"Couldn't restore. {why}" : $"Couldn't restore (HTTP {(int)answer.StatusCode}). Try again.";
+                RestoreError = refusal?.Message is { Length: > 0 } why ? $"Couldn't restore the change. {why}" : "Couldn't restore the change. Try again.";
                 return;
             }
             await reloadBoard();
             await LoadChangesAsync();
             if (LatestChange > 0) await PickChange(LatestChange);
         }
-        catch { RestoreError = "Couldn't restore. Check your connection and try again."; }
+        catch { RestoreError = "Couldn't restore the change. Try again."; }
         finally
         {
             Restoring = false;

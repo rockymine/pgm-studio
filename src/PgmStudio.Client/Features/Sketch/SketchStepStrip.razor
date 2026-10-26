@@ -5,7 +5,7 @@
    did and where the one being tuned sits among the rest. It sets which ground the contours and the 3-D
    picture are read from; nothing it does is saved, and the last step is the whole stack. Short of the last, the
    strip is marked and offers Show all. The thumb moves
-   the label as it goes and the reads wait for its release, because each is a build of the board. *@
+   the label as it goes and the reads wait for its release, because each is a build of the layout. *@
 
 @if (State.Running.Count > 0)
 {
@@ -16,7 +16,7 @@
     <output class="canvas-step-strip-name">@Says((int)Shown)</output>
     @if (Short)
     {
-      <Button Title="The modifiers after this step are not on the board" OnClick="() => OnStep.InvokeAsync(null)">Show all</Button>
+      <Button OnClick="() => OnStep.InvokeAsync(null)">Show all</Button>
     }
   </div>
 }

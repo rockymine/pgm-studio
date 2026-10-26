@@ -7,7 +7,7 @@
   <div class="lib-strip">
     <label class="lib-search">
       <i data-lucide="search" @key="@("lib-search")"></i>
-      <input class="lib-search-input" type="search" placeholder="@($"Search {Kind.Title.ToLowerInvariant()} by name…")"
+      <input class="lib-search-input" type="search" placeholder="@($"Search {Kind.Title.ToLowerInvariant()}")"
              value="@search" @oninput="OnSearch" />
     </label>
     @Filters
@@ -18,14 +18,13 @@
 
   <div class="lib-scroll">
     <PageHeading Title="@Kind.Title"><Lead>@Kind.Blurb</Lead></PageHeading>
-    @if (Loading) { <p class="lib-status">Loading…</p> }
+    @if (Loading) { <StatusLine /> }
     else
     {
       <div class="lib-grid @(Wide ? "lib-grid--wide" : null)">
         @foreach (var row in Shown)
         {
-          <PictureCard @key="row.Id" Svg="@row.Preview" Name="@row.Name" Href="@($"/library/{Kind.Slug}/{row.Id}")"
-                       Title="@($"Open {row.Name}")">
+          <PictureCard @key="row.Id" Svg="@row.Preview" Name="@row.Name" Href="@($"/library/{Kind.Slug}/{row.Id}")">
             @if (Badge is not null)
             {
               <div class="lib-card-badges"><span class="lib-badge">@Badge(row)</span></div>
@@ -36,16 +35,14 @@
 
       @if (Shown.Count == 0)
       {
-        <p class="lib-status">
-          @if (Rows.Count == 0)
-          {
-            @($"No {Kind.Title.ToLowerInvariant()} yet. Create one with New {Kind.One}.")
-          }
-          else
-          {
-            @($"No matches.")
-          }
-        </p>
+        @if (Rows.Count == 0)
+        {
+          <EmptyState>No @Kind.Title.ToLowerInvariant() yet. Create one with New @(Kind.One).</EmptyState>
+        }
+        else
+        {
+          <EmptyState>No @Kind.Title.ToLowerInvariant() match this search.</EmptyState>
+        }
       }
     }
   </div>

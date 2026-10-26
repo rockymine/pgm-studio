@@ -8,16 +8,17 @@
 
 @if (show)
 {
-  <div class="field">
-    <div class="slice-head">
-      <label class="field-label">@(editable ? "Side view (drag the line to set Y)" : "Side view")</label>
+  <Field Label="Side view" Note="@(editable ? "Drag the line to set its height." : null)">
+    <LabelEnd>
       <div class="slice-axis">
         <button class="draw-tool-btn @(axis == "nz" ? "draw-tool-btn--active" : null)" title="View from −Z" @onclick='() => SetAxis("nz")'>Z−</button>
         <button class="draw-tool-btn @(axis == "pz" ? "draw-tool-btn--active" : null)" title="View from +Z" @onclick='() => SetAxis("pz")'>Z+</button>
         <button class="draw-tool-btn @(axis == "nx" ? "draw-tool-btn--active" : null)" title="View from −X" @onclick='() => SetAxis("nx")'>X−</button>
         <button class="draw-tool-btn @(axis == "px" ? "draw-tool-btn--active" : null)" title="View from +X" @onclick='() => SetAxis("px")'>X+</button>
       </div>
-    </div>
-    <div class="slice-view"><canvas @ref="canvasRef" class="slice-canvas"></canvas></div>
-  </div>
+    </LabelEnd>
+    <ChildContent>
+      <div class="slice-view"><canvas @ref="canvasRef" class="slice-canvas"></canvas></div>
+    </ChildContent>
+  </Field>
 }

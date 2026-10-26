@@ -48,7 +48,7 @@ public partial class PropRecipeEditor
     private bool IsTree => Kind.Slug == LibraryKinds.TreesSlug;
 
     private IReadOnlyList<EditorPart> Outline =>
-        [new(KnobsPart, IsTree ? "Tree" : "Rock", IsTree ? "trees" : "mountain")];
+        [new(KnobsPart, IsTree ? "Tree" : "Boulder", IsTree ? "trees" : "mountain")];
 
     protected override async Task OnParametersSetAsync()
     {
@@ -84,7 +84,7 @@ public partial class PropRecipeEditor
         {
             if (await Library.GetAsync<TreeStyleDetail>(Kind, id) is not { } detail)
             {
-                note = "Couldn't load this recipe. Reload the page to try again.";
+                note = "Couldn't load the recipe. Reload the page to try again.";
                 return;
             }
             (editingId, draftName) = (detail.Id, detail.Name);
@@ -96,7 +96,7 @@ public partial class PropRecipeEditor
 
         if (await Library.GetAsync<BoulderStyleDetail>(Kind, id) is not { } rockDetail)
         {
-            note = "Couldn't load this recipe. Reload the page to try again.";
+            note = "Couldn't load the recipe. Reload the page to try again.";
             return;
         }
         (editingId, draftName) = (rockDetail.Id, rockDetail.Name);
@@ -152,11 +152,11 @@ public partial class PropRecipeEditor
     private async Task Save()
     {
         if (string.IsNullOrWhiteSpace(draftName)) return;
-        if (Draft(draftName.Trim()) is not { } request) { note = "Couldn't save this recipe. Try again."; return; }
+        if (Draft(draftName.Trim()) is not { } request) { note = "Couldn't save the recipe. Try again."; return; }
         var saved = editingId is { } id
             ? await Library.UpdateAsync<RecipeSaved>(Kind, id, request)
             : await Library.CreateAsync<RecipeSaved>(Kind, request);
-        if (saved is null) { note = "Couldn't save this recipe. Try again."; return; }
+        if (saved is null) { note = "Couldn't save the recipe. Try again."; return; }
         note = editingId is null ? "Added to the library." : "Saved.";
         await OnSaved.InvokeAsync("saved");
         if (editingId is null) Nav.NavigateTo($"/library/{Kind.Slug}/{saved.Id}");
@@ -168,7 +168,7 @@ public partial class PropRecipeEditor
         if (Draft($"{draftName.Trim()} copy") is not { } request) return;
         if (await Library.CreateAsync<RecipeSaved>(Kind, request) is not { } saved)
         {
-            note = "Couldn't save a copy of this recipe. Try again.";
+            note = "Couldn't save a copy of the recipe. Try again.";
             return;
         }
         await OnSaved.InvokeAsync("copied");
@@ -184,7 +184,7 @@ public partial class PropRecipeEditor
     private async Task Delete()
     {
         if (editingId is not { } id) return;
-        if (await Library.DeleteAsync(Kind, id) is { Deleted: false }) { note = "Couldn't delete this recipe. Try again."; return; }
+        if (await Library.DeleteAsync(Kind, id) is { Deleted: false }) { note = "Couldn't delete the recipe. Try again."; return; }
         Nav.NavigateTo($"/library/{Kind.Slug}");
     }
 }

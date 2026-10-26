@@ -6,11 +6,9 @@
 <Workspace>
 
   <Sidebar>
-      <Section Title="Casings">
-        <p class="section-desc">The casing comes from the game settings or from the imported world. This step changes
-          only the <code>map.xml</code>, never the blocks.</p>
+      <Section Title="Casings" Description="The casing comes from the game settings or the imported world. This step sets only the leak, in the map.xml.">
         <div class="panel-list">
-          @if (cores.Count == 0) { <div class="list-empty">No cores yet. Add one in the Objectives step first.</div> }
+          @if (cores.Count == 0) { <EmptyState>No cores yet. Add one in the Objectives step first.</EmptyState> }
           @for (var i = 0; i < cores.Count; i++)
           {
             var index = i;
@@ -18,7 +16,7 @@
             <ListRow Compact Selected="selected == index" @key="index" OnClick="() => Select(index)">
               <span class="geo-type-icon" style="--icon-tint: @TeamHex(core.Owner)"><i data-lucide="flame"></i></span>
               <span class="list-label">@(string.IsNullOrEmpty(core.Name) ? "Core" : core.Name)</span>
-              <Badge Kind="dim">@core.Size×@core.Height</Badge>
+              <Badge Kind="dim">@core.Size × @core.Height</Badge>
             </ListRow>
           }
         </div>
@@ -41,22 +39,20 @@
           </DetailHeader>
           <div class="section-body">
 
-            <Field Label="Casing">
-              <LabelHint>(read-only)</LabelHint>
+            <Field Label="Casing" Note="@(sel.OpenTop ? "Lava flush with the rim." : "A lid over the lava.")">
               <ChildContent>
-                <div class="field-value">
-                  @sel.Size×@sel.Size×@sel.Height of obsidian around @sel.Lava×@sel.Lava×@sel.LavaHeight of lava.
-                  @(sel.OpenTop ? "Open at the top." : "Closed at the top.")
-                  Floats @sel.Float block@(sel.Float == 1 ? "" : "s") above the ground.
-                </div>
+                <div class="field-value">@sel.Size×@sel.Size×@sel.Height of obsidian around @sel.Lava×@sel.Lava×@sel.LavaHeight of lava.</div>
               </ChildContent>
+            </Field>
+            <Field Label="Float" Unit="blocks" Note="Air left under the casing.">
+              <div class="field-value">@sel.Float</div>
             </Field>
 
             <Field Label="Region">
               <ChildContent>
                 @if (sel.Volume is { } vol)
                 {
-                  <div class="field-value list-label--mono">@vol.MinX, @vol.MinY, @vol.MinZ → @vol.MaxX, @vol.MaxY, @vol.MaxZ</div>
+                  <div class="field-value list-label--mono">@vol.MinX, @vol.MinY, @vol.MinZ to @vol.MaxX, @vol.MaxY, @vol.MaxZ</div>
                 }
                 else
                 {
@@ -65,24 +61,10 @@
               </ChildContent>
             </Field>
 
-            <Field Label="Leak">
-              <LabelHint>(blocks the lava must fall)</LabelHint>
-              <ChildContent>
-                <NumberField Min="0" Max="64" Value="sel.Leak" ValueChanged="@(value => SetLeak(sel, (int)value))" />
-              </ChildContent>
+            <Field Label="Leak" Unit="blocks" Note="How far the lava falls before the core counts as leaked.">
+              <NumberField Min="0" Max="64" Value="sel.Leak" ValueChanged="@(value => SetLeak(sel, (int)value))" />
             </Field>
-            <p class="section-desc">
-              @if (sel.DigDepth > 0)
-              {
-                <text>Leaking it means breaking the casing <strong>and</strong> digging @sel.DigDepth block@(sel.DigDepth == 1 ? "" : "s") out of the ground below it.</text>
-              }
-              else
-              {
-                <text>The lava leaks as soon as the casing is broken. No digging is needed.</text>
-              }
-            </p>
-            <p class="section-desc">This step can't change the casing's size, walls, top, or height. On a map made from a plan,
-              edit the core in the <strong>plan</strong>.</p>
+            <Readout>@DigReadout(sel)</Readout>
 
           </div>
         </Section>
@@ -91,7 +73,7 @@
       {
         <Section>
           <DetailHeader Icon="flame" IconMuted Label="Casing" />
-          <p class="section-desc">Select a core to see its casing and set how far its lava must fall.</p>
+          <EmptyState>No core selected. Pick one to see its casing and set its leak.</EmptyState>
         </Section>
       }
   </Inspector>

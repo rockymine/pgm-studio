@@ -50,8 +50,8 @@ const NEW_SHAPE_HEIGHT = 9;
 
 function dimLabel(s) {
   const kind = footprintOf(s);
-  if (kind === "rectangle") return `${s.max_x - s.min_x}×${s.max_z - s.min_z}`;
-  if (kind === "circle")    return `r=${s.radius}`;
+  if (kind === "rectangle") return `${s.max_x - s.min_x} × ${s.max_z - s.min_z}`;
+  if (kind === "circle")    return `radius ${s.radius}`;
   // A path reads as how wide it is, not how many points it took to draw — the width is the knob an author
   // reaches for, and the point count is already visible as handles on the canvas.
   if (kind === "polyline")      return `${(s.radius ?? 0) * 2} wide`;
@@ -336,7 +336,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       }
     } catch {
       canvas.restoreStructural(putBack);
-      fire("OnStructuralNote", "Couldn't reach the studio, so the piece wasn't moved. Try again.");
+      fire("OnStructuralNote", "Couldn't move the piece. Try again.");
       return;
     }
     fire("OnStructuralNote", null);
@@ -361,7 +361,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       }
     } catch {
       canvas.restoreStructural(putBack);
-      fire("OnStructuralNote", "Couldn't reach the studio, so the wall wasn't changed. Try again.");
+      fire("OnStructuralNote", "Couldn't change the wall. Try again.");
       return;
     }
     fire("OnStructuralNote", null);
@@ -385,7 +385,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         });
       if (!res.ok) { fire("OnStructuralNote", await refusalText(res)); return; }
     } catch {
-      fire("OnStructuralNote", "Couldn't reach the studio, so the piece wasn't turned. Try again.");
+      fire("OnStructuralNote", "Couldn't turn the piece. Try again.");
       return;
     }
     fire("OnStructuralNote", null);
@@ -447,7 +447,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (!res.ok) { fire("OnStructuralNote", await refusalText(res)); return; }
       id = (await res.json()).id;
     } catch {
-      fire("OnStructuralNote", "Couldn't reach the studio, so the piece wasn't placed. Try again.");
+      fire("OnStructuralNote", "Couldn't place the piece. Try again.");
       return;
     }
     if (ROOM_KINDS.has(kind) && !canvas.groundAt((minX + maxX) / 2, (minZ + maxZ) / 2))
@@ -512,7 +512,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (!res.ok) fire("OnStructuralNote", await refusalText(res));
       else fire("OnStructuralNote", null);
     } catch {
-      fire("OnStructuralNote", "Couldn't reach the studio, so the house wasn't changed. Try again.");
+      fire("OnStructuralNote", "Couldn't change the house. Try again.");
     }
     await refreshRooms();
     await refreshPieces();
@@ -540,7 +540,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (!res.ok) fire("OnStructuralNote", await refusalText(res));
       else fire("OnStructuralNote", null);
     } catch {
-      fire("OnStructuralNote", "Couldn't reach the studio, so the doors weren't changed. Try again.");
+      fire("OnStructuralNote", "Couldn't change the doors. Try again.");
     }
     iso.drop();
     await loadDoors(room);
@@ -566,7 +566,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         `/api/map/${encodeURIComponent(slug)}/intent/pieces/${encodeURIComponent(piece.id)}`, { method: "DELETE" });
       if (!res.ok) { fire("OnStructuralNote", await refusalText(res)); return; }
     } catch {
-      fire("OnStructuralNote", "Couldn't reach the studio, so the piece wasn't deleted. Try again.");
+      fire("OnStructuralNote", "Couldn't delete the piece. Try again.");
       return;
     }
     selectStructural(null);
@@ -977,7 +977,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       });
       if (!res.ok) { fire("OnStructuralNote", await refusalText(res)); return false; }
     } catch {
-      fire("OnStructuralNote", "Couldn't reach the studio, so the step wasn't taken. Try again.");
+      fire("OnStructuralNote", "Couldn't save the game settings. Try again.");
       return false;
     }
     fire("OnStructuralNote", null);

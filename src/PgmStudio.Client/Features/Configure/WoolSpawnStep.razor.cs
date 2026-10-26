@@ -149,7 +149,7 @@ public partial class WoolSpawnStep
             marker = true,
             primary = w.Color == selectedColor,
             color = W.Hex(w.Color),
-            label = $"{w.Color} wool",
+            label = $"{W.Name(w.Color)} wool",
             bounds = new { min_x = w.SpawnX - 0.5, min_z = w.SpawnZ - 0.5, max_x = w.SpawnX + 0.5, max_z = w.SpawnZ + 0.5 },
         }));
     }

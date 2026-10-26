@@ -64,7 +64,7 @@ try {
   };
 
   checks.section("a spawn and a wool room are placed on a board stating no teams");
-  await pick("Pieces", "Spawn piece");
+  await pick("Pieces", "Spawn room");
   await drag({ x: -55, z: -6 }, { x: -45, z: 6 });
   const spawns = await byKind("spawn");
   checks.add("the spawn is stored with its image", spawns.length === 2, JSON.stringify(spawns.map(p => p.id)));
@@ -189,7 +189,7 @@ try {
   const centre = at((held.minX + held.maxX) / 2, (held.minZ + held.maxZ) / 2);
   await page.mouse.click(centre.x, centre.y);
   await page.waitForTimeout(300);
-  checks.add("a press on the room's marker picks the room", /spawn region/i.test(await pickedTitle()), await pickedTitle());
+  checks.add("a press on the room's marker picks the room", /spawn room/i.test(await pickedTitle()), await pickedTitle());
   const named = await page.$$eval(".svg-area svg text", (els, id) => els.some(el => el.textContent === id), room.id);
   checks.add("the picked room is named by its id above it", named);
   const height = page.locator(".workspace-inspector input[type=number]").first();
@@ -198,7 +198,7 @@ try {
     await height.inputValue());
   await page.mouse.click(centre.x, centre.y);
   await page.waitForTimeout(300);
-  checks.add("and the press after it picks the marker", /spawn point|marker/i.test(await pickedTitle()), await pickedTitle());
+  checks.add("and the press after it picks the marker", /spawn(?! room)|marker/i.test(await pickedTitle()), await pickedTitle());
   await page.keyboard.press("Escape");
   await page.mouse.click(centre.x, centre.y);
   await page.waitForTimeout(300);
@@ -211,7 +211,7 @@ try {
 
   checks.section("a control point is put down with a click and laid round from its rail");
   await page.keyboard.press("Escape"); await page.keyboard.press("Escape");
-  await pick("Markers", "Control point");
+  await pick("Markers", "Capture point");
   const hill = at(20.5, 20.5);
   await page.mouse.click(hill.x, hill.y);
   await page.waitForLoadState("networkidle");
@@ -219,7 +219,7 @@ try {
   const points = await byKind("controlPoint");
   checks.add("the point is stored with its image, a 7-block square", points.length === 2
     && points.every(point => point.maxX - point.minX === 7 && point.shape === "square"), JSON.stringify(points));
-  checks.add("and the rail names it", /control point/i.test(await pickedTitle()), await pickedTitle());
+  checks.add("and the rail names it", /capture point/i.test(await pickedTitle()), await pickedTitle());
   await page.locator(".workspace-inspector button:has-text('disc')").first().click();
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(600);
@@ -280,14 +280,14 @@ try {
   checks.add("the panel lists the spawn room by its id", (await row.count()) === 1);
   await row.click();
   await page.waitForTimeout(300);
-  checks.add("choosing it picks the room", /spawn region/i.test(await pickedTitle()), await pickedTitle());
+  checks.add("choosing it picks the room", /spawn room/i.test(await pickedTitle()), await pickedTitle());
   checks.add("and its row is lit", /list-row--selected/.test(await row.getAttribute("class") ?? ""));
   const imageRow = rail.locator(".list-row.list-row--muted").first();
   checks.add("an orbit's image is listed and muted", (await imageRow.count()) === 1);
   // The row takes no pointer, so the click is sent to it directly: what is checked is that the list refuses it.
   await imageRow.dispatchEvent("click");
   await page.waitForTimeout(300);
-  checks.add("and choosing it leaves the pick where it was", /spawn region/i.test(await pickedTitle()), await pickedTitle());
+  checks.add("and choosing it leaves the pick where it was", /spawn room/i.test(await pickedTitle()), await pickedTitle());
   await page.keyboard.press("Escape");
   await page.click(".flow-step >> text=Ground");
   await page.locator(".flow-step--active", { hasText: "Ground" }).waitFor({ timeout: 30000 });

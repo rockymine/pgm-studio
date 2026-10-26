@@ -7,7 +7,7 @@ namespace PgmStudio.Vocabulary;
 /// </summary>
 public static class ModifierOps
 {
-    /// <summary>A Hill: the ground raised inside the mask, highest where the mask is deepest and falling to
+    /// <summary>A Mound: the ground raised inside the mask, highest where the mask is deepest and falling to
     /// nothing at its rim.</summary>
     public const string Mound = "mound";
 
@@ -86,7 +86,7 @@ public static class ModifierOps
     /// <summary>What the screen calls an operation.</summary>
     public static string Label(string? op) => op switch
     {
-        Mound => "Hill",
+        Mound => "Mound",
         Crater => "Hollow",
         Level => "Level",
         Noise => "Roughness",
@@ -117,7 +117,7 @@ public static class ModifierModes
     /// <summary>Only what raises the ground is kept.</summary>
     public const string Lift = "lift";
 
-    /// <summary>Only what lowers the ground is kept: a Hill with a negative rise is then a dish of its own shape.</summary>
+    /// <summary>Only what lowers the ground is kept: a Mound with a negative rise is then a dish of its own shape.</summary>
     public const string Cut = "cut";
 
     public static readonly string[] All = [Lift, Cut];

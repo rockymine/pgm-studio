@@ -7,43 +7,35 @@
 <Workspace>
 
   <Sidebar>
-      <Section Title="Buildable layer">
-        <p class="section-desc">Use the <strong>rectangle tool</strong> to mark where players may build over the
-          void, such as bridges and platforms. Island ground is already buildable. Switch to
-          <strong>Hole</strong> to cut out areas where building is not allowed. The map's symmetry copies each
-          one.</p>
+      <Section Title="Build regions" Description="Draw where players may build over the void, such as bridges. Island ground is already buildable. Every other team gets a symmetry copy.">
         <div class="panel-list">
-          @if (boxes.Count == 0) { <div class="list-empty">Nothing drawn yet. Pick a tool and drag a rectangle.</div> }
+          @if (boxes.Count == 0) { <EmptyState>No build regions yet. Drag a rectangle with the rectangle tool.</EmptyState> }
           @foreach (var b in Rows)
           {
             <ListRow Compact Selected="selectedId == b.Id"
                  @key="b.Id" OnClick="() => SelectBox(b.Id)">
               <span class="list-swatch" style="--swatch: @(b.Hole ? HoleColor : AreaColor)"></span>
               <span class="geo-type-icon"><i data-lucide="rectangle-horizontal"></i></span>
-              <span class="list-label list-label--mono">@Label(b)</span>
+              <span class="list-label">@Label(b)</span>
               <Badge Class="@(b.Authored ? "badge--success" : "badge--dim")">@(b.Authored ? "Main" : "Copy")</Badge>
             </ListRow>
           }
         </div>
         @if (boxes.Any(x => x.Hole) && !boxes.Any(x => !x.Hole))
         {
-          <p class="section-desc">A hole only cuts into a bridge. Add a bridge for it to take effect.</p>
+          <div class="panel-warning">A hole only cuts into a bridge. Add a bridge for it to take effect.</div>
         }
       </Section>
 
       @if (overlayOn)
       {
-      <Section Title="Edit zones">
-        <p class="section-desc"><strong>Editable</strong> colours the map by where players can place or break
-          blocks.</p>
+      <Section Title="Buildable key" Description="Buildable colours the map by where players may place or break blocks. Bridge any red void between islands. Colours update on save.">
         <div class="panel-list">
-          <ListRow Compact><span class="list-swatch" style="--swatch: @EditZone.Colors[EditZone.BuildZone]"></span><span class="list-label">Build zone</span><Badge Kind="dim">A rectangle you drew</Badge></ListRow>
-          <ListRow Compact><span class="list-swatch" style="--swatch: @EditZone.Colors[EditZone.Ground]"></span><span class="list-label">Ground</span><Badge Kind="dim">Terrain at y=0</Badge></ListRow>
+          <ListRow Compact><span class="list-swatch" style="--swatch: @EditZone.Colors[EditZone.BuildZone]"></span><span class="list-label">Build region</span><Badge Kind="dim">A bridge you drew</Badge></ListRow>
+          <ListRow Compact><span class="list-swatch" style="--swatch: @EditZone.Colors[EditZone.Ground]"></span><span class="list-label">Ground</span><Badge Kind="dim">Island ground</Badge></ListRow>
           <ListRow Compact><span class="list-swatch" style="--swatch: @EditZone.Colors[EditZone.Filtered]"></span><span class="list-label">Behind a filter</span><Badge Kind="dim">A spawn or wool room</Badge></ListRow>
-          <ListRow Compact><span class="list-swatch" style="--swatch: @EditZone.Colors[EditZone.Sealed]"></span><span class="list-label">Nobody</span><Badge Kind="dim">Draw a bridge</Badge></ListRow>
+          <ListRow Compact><span class="list-swatch" style="--swatch: @EditZone.Colors[EditZone.Sealed]"></span><span class="list-label">Nobody</span><Badge Kind="dim">Void</Badge></ListRow>
         </div>
-        <p class="section-desc">Draw a bridge across red void to connect your islands. The colours update
-          when the step is saved.</p>
       </Section>
       }
   </Sidebar>
@@ -69,10 +61,13 @@
   <Inspector>
       @if (Selected is { } sel)
       {
-        <Section @key="sel.Id">
-          <DetailHeader Icon="rectangle-horizontal" IconMuted Mono Label="@Label(sel)">
-            <Badge Class="@(sel.Authored ? "badge--success" : "badge--dim")">@(sel.Authored ? "Main" : "Copy")</Badge>
-          </DetailHeader>
+        <Section @key="sel.Id" Description="@(sel.Source is null ? "Drag the handles on the canvas to resize it." : null)">
+          <Header>
+            <DetailHeader Icon="rectangle-horizontal" IconMuted Label="@Label(sel)">
+              <Badge Class="@(sel.Authored ? "badge--success" : "badge--dim")">@(sel.Authored ? "Main" : "Copy")</Badge>
+            </DetailHeader>
+          </Header>
+          <ChildContent>
           <div class="section-body">
             <Field Label="Min">
               <div class="ctrl-row">
@@ -88,24 +83,21 @@
             </Field>
             @if (sel.Source is { } source)
             {
-              <p class="section-desc">Copied by symmetry from the main <strong>@Label(source)</strong>. Edit that
-                one to change it.</p>
-            }
-            else
-            {
-              <p class="section-desc">Drag the handles on the canvas to resize it.</p>
-              <div class="section-footer section-footer--separated">
-                <Button Writes Variant="danger" Fill OnClick="() => Remove(sel.Id)">Remove @(sel.Hole ? "hole" : "bridge")</Button>
-              </div>
+              <Readout>@(AuthoringContext.CopyOf(Label(source)))</Readout>
             }
           </div>
+          </ChildContent>
         </Section>
+        @if (sel.Source is null)
+        {
+          <InspectorDelete Title="@(sel.Hole ? "Delete this hole" : "Delete this bridge")" OnClick="() => Remove(sel.Id)" />
+        }
       }
       else
       {
         <Section>
-          <DetailHeader Icon="rectangle-horizontal" IconMuted Label="Buildable layer" />
-          <p class="section-desc">Draw a bridge or hole, or select one to resize it.</p>
+          <DetailHeader Icon="rectangle-horizontal" IconMuted Label="Build regions" />
+          <EmptyState>No bridge or hole selected. Draw one, or pick one to resize it.</EmptyState>
         </Section>
       }
   </Inspector>

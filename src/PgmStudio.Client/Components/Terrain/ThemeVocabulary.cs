@@ -211,10 +211,10 @@ public static class ThemeFields
 /// </summary>
 /// <param name="Id">The bucket's wire id (<see cref="ThemeBuckets"/>).</param>
 /// <param name="Title">Its heading.</param>
-/// <param name="Blurb">What it claims, in one sentence.</param>
+/// <param name="Term">The glossary term whose definition its heading's "?" shows.</param>
 /// <param name="FallsTo">Where its blocks go when it is switched off.</param>
 /// <param name="CanDisable">Whether it may be switched off at all — the fill is the base and never can be.</param>
-public sealed record ThemeBucketInfo(string Id, string Title, string Blurb, string FallsTo, bool CanDisable)
+public sealed record ThemeBucketInfo(string Id, string Title, string Term, string FallsTo, bool CanDisable)
 {
     /// <summary>Whether the bucket claims a configurable number of top courses.</summary>
     public bool HasDepth => ThemeBuckets.HasDepth(Id);
@@ -223,18 +223,10 @@ public sealed record ThemeBucketInfo(string Id, string Title, string Blurb, stri
     /// the riser it sits on, then the body everything else falls to.</summary>
     public static readonly IReadOnlyList<ThemeBucketInfo> All =
     [
-        new(ThemeBuckets.Rim, "Rim",
-            "The top block of every edge column. It is what players see from across the void.",
-            "the surface", CanDisable: true),
-        new(ThemeBuckets.Surface, "Surface",
-            "The top layers of the ground away from the edges, such as grass over two dirt.",
-            "the fill", CanDisable: true),
-        new(ThemeBuckets.Wall, "Wall",
-            "The exposed side under the rim. A team colour here marks the ground as that team's.",
-            "the fill", CanDisable: true),
-        new(ThemeBuckets.Fill, "Fill",
-            "Every block no other part claims: the body of the terrain under the surface and behind the wall.",
-            "nothing", CanDisable: false),
+        new(ThemeBuckets.Rim, "Rim", "rim", "the surface", CanDisable: true),
+        new(ThemeBuckets.Surface, "Surface", "palette part", "the fill", CanDisable: true),
+        new(ThemeBuckets.Wall, "Wall", "palette part", "the fill", CanDisable: true),
+        new(ThemeBuckets.Fill, "Fill", "palette part", "nothing", CanDisable: false),
     ];
 
     public static ThemeBucketInfo Of(string bucket) => All.First(info => info.Id == bucket);
@@ -343,11 +335,14 @@ public static class JsonEdit
 /// <see cref="ThemeBucketInfo"/> for the room-style composer.
 /// </summary>
 /// <param name="Id">The part's wire id (<see cref="RoomParts"/>).</param>
-/// <param name="Title">Its heading.</param>
-/// <param name="Blurb">What it is and which way its stack is read, in one sentence.</param>
+/// <param name="Title">Its heading, and the label of the picker that fills it.</param>
+/// <param name="Help">What the part is and, for a stack, which way it is read — where no glossary term says it.</param>
+/// <param name="Term">The glossary term the title names, whose definition its "?" shows in place of help.</param>
+/// <param name="Note">What the part takes while nothing is set, or what setting it commits to.</param>
 /// <param name="ExtentLabel">What that part's extent means — a floor's depth is not a wall's height — or null
 /// for a part that takes one material rather than a stack, and so has no extent to state.</param>
-public sealed record RoomPartInfo(string Id, string Title, string Blurb, string? ExtentLabel = null)
+public sealed record RoomPartInfo(
+    string Id, string Title, string? Help = null, string? Term = null, string? Note = null, string? ExtentLabel = null)
 {
     /// <summary>Whether the part is a stack of courses with a depth of its own, as against one material read
     /// straight through. A post is a post all the way up, and so is a sill, a verge and each zone of the
@@ -364,13 +359,13 @@ public sealed record RoomPartInfo(string Id, string Title, string Blurb, string?
     public static readonly IReadOnlyList<RoomPartInfo> All =
     [
         new(RoomParts.Floor, "Floor",
-            "Counted down from the course players stand on, so a deeper floor digs into the ground. The wool pad is placed on top.",
-            "Courses deep"),
+            Help: "Counted down from the course players stand on, so a deeper floor digs into the ground. The wool pad sits on top.",
+            ExtentLabel: "Floor depth"),
         new(RoomParts.Wall, "Walls",
-            "Counted up from the floor, and the last course holds to the top. A coloured course takes the room's colour, and an air course leaves a light slit.",
-            "Courses tall"),
+            Help: "Counted up from the floor, and the last course holds to the top. A coloured course takes the room's colour, and an air course leaves a light slit.",
+            ExtentLabel: "Wall height"),
         new(RoomParts.Roof, "Roof",
-            "One material over the walls, as deep at each point as the slope needs."),
+            Help: "One material over the walls, as deep at each point as the slope needs."),
     ];
 
     /// <summary>The floor's top course divided across the room. These are zones rather than courses because
@@ -380,11 +375,11 @@ public sealed record RoomPartInfo(string Id, string Title, string Blurb, string?
     public static readonly IReadOnlyList<RoomPartInfo> FloorZones =
     [
         new(RoomParts.Field, "Field",
-            "The open floor between the border and the inlay. With no pattern set, the floor's top course shows."),
-        new(RoomParts.Border, "Border",
-            "A ring along the walls, as wide as the border width below."),
+            Help: "The open floor between the edge and the inlay."),
+        new(RoomParts.Border, "Edge",
+            Help: "A ring of floor along the walls, as wide as the edge width."),
         new(RoomParts.Inlay, "Inlay",
-            "A plate in the middle of the room, such as a hearth, a rug, or a patch in the room's colour."),
+            Help: "A panel in the centre of the room, such as a hearth, a rug or a patch in the room's colour."),
     ];
 
     /// <summary>What a house has that a plain shell does not: framed corners, a footing, and trim along the
@@ -393,21 +388,21 @@ public sealed record RoomPartInfo(string Id, string Title, string Blurb, string?
     public static readonly IReadOnlyList<RoomPartInfo> Trim =
     [
         new(RoomParts.Post, "Corner posts",
-            "The four corner columns. With no pattern set, the corners match the walls."),
+            Help: "The four corner columns of the walls.", Note: "Unset, the corners match the walls."),
         new(RoomParts.Sill, "Footing",
-            "A course one block out from the walls. Houses should not have one, because it looks like a rim. Clear it."),
+            Term: "footing", Note: "Houses should not have one, because it reads as a rim. Clear it."),
         new(RoomParts.Verge, "Verge",
-            "The roof's edge: its eaves, its sloped ends, and the ridge cap if it has one. With no pattern set, it uses the roof's material."),
-        new(RoomParts.Gable, "Gable face",
-            "The triangle of wall at each end of a sloped roof. With no pattern set, the wall's top course continues up."),
+            Term: "verge", Note: "Unset, the verge matches the roof."),
+        new(RoomParts.Gable, "Gable",
+            Term: "gable", Note: "Unset, the wall's top course continues up."),
         new(RoomParts.Deck, "Deck",
-            "The floor this storey stands on. With no pattern set, it uses the house floor's top material. Its border, field, and inlay belong to this storey."),
+            Term: "deck", Note: "Unset, the deck takes the house floor's top material."),
     ];
 
     /// <summary>The porch's own roof material, offered with the porch rather than with the trim because only a
     /// building with a porch has a canopy.</summary>
-    public static readonly RoomPartInfo Canopy = new(RoomParts.Canopy, "Canopy laid in",
-        "The porch roof over the deck, in one block. With no pattern set, it uses the house roof's material.");
+    public static readonly RoomPartInfo Canopy = new(RoomParts.Canopy, "Canopy",
+        Help: "The porch roof over the deck, laid in one block.");
 
     public static RoomPartInfo Of(string part)
         => All.Concat(FloorZones).Concat(Trim).Append(Canopy).First(info => info.Id == part);
@@ -428,19 +423,19 @@ public sealed record PartKindInfo(
         // counts upward from its part's own base, which a wall has and a roof does not: a slope's depth at a
         // cell is however many courses close the step down to its neighbour, so there is no second course for
         // a stack to name. The body is one pass, the verge is one, the gable face is one.
-        new(LibraryKinds.Roofs, "Shape",
+        new(LibraryKinds.Roofs, "Roof form",
             "Shown on the smallest wall that can carry its eave.",
             [],
             [RoomPartInfo.Of(RoomParts.Roof), RoomPartInfo.Of(RoomParts.Verge), RoomPartInfo.Of(RoomParts.Gable)]),
 
-        new(LibraryKinds.Storeys, "Room",
+        new(LibraryKinds.Storeys, "Storey",
             "Shown as a one-storey building, or as two storeys if it has a deck.",
             [RoomPartInfo.Of(RoomParts.Wall)],
             [RoomPartInfo.Of(RoomParts.Post), RoomPartInfo.Of(RoomParts.Deck),
              RoomPartInfo.Of(RoomParts.Field), RoomPartInfo.Of(RoomParts.Border),
              RoomPartInfo.Of(RoomParts.Inlay)]),
 
-        new(LibraryKinds.Porches, "Deck",
+        new(LibraryKinds.Porches, "Porch",
             "Shown in front of a plain gabled building.",
             [], []),
     ];
@@ -464,7 +459,7 @@ public static class MaterialTree
     /// editing. A field with no word here is offered under its own name.</summary>
     public static string ChildLabel(string field) => field switch
     {
-        ThemeFields.Neutral => "Neutral land",
+        ThemeFields.Neutral => "Neutral ground",
         ThemeFields.Even => "Light square",
         ThemeFields.Odd => "Dark square",
         ThemeFields.Edge => "Frame",
@@ -474,11 +469,11 @@ public static class MaterialTree
     };
 
     /// <summary>What one entry of a list is called, by where it sits. A voronoi band is named for what it
-    /// does — the first draws the grid, the last takes the middle — and every other list counts.</summary>
+    /// does — the first draws the grid, the last takes the centre — and every other list counts.</summary>
     public static string EntryLabel(string field, int index, int count) => field switch
     {
         ThemeFields.Bands when index == 0 => "Grid line",
-        ThemeFields.Bands when index == count - 1 => "Middle",
+        ThemeFields.Bands when index == count - 1 => "Centre",
         ThemeFields.Bands => $"Band {index}",
         ThemeFields.StackBands => $"Band {index + 1}",
         ThemeFields.Runs => $"Stripe {index + 1}",

@@ -14,9 +14,9 @@
       <span class="detail-header-badges">
         @* On and off is the list row's eye, and the same eye here. *@
         <Button Variant="icon" Icon="eye" Writes Class="@(IsOff(rule) ? "modifier-eye--off" : null)"
-                Title="@(IsOff(rule) ? "Switched off: switch on" : "Switch off, keeping its conditions")"
+                Title="@(IsOff(rule) ? "Switch on" : "Switch off")"
                 OnClick="() => Edit(edited => SetOrRemove(edited, Off, IsOff(rule) ? null : true))" />
-        <Button Variant="icon" Icon="x" Title="Done" OnClick="() => OnClose.InvokeAsync()" />
+        <Button Variant="icon" Icon="x" Title="Close" OnClick="() => OnClose.InvokeAsync()" />
       </span>
     </DetailHeader>
 
@@ -31,50 +31,45 @@
       </Field>
     </Section>
 
-    @* Where and how the material is laid: every condition narrows where it goes, and the depth and coverage say
-       how much of it goes there. *@
-    <Section Title="Mask" HelpTitle="How the mask works">
-      <Help>The rule paints a column only where every condition it states holds; a condition left empty does not
-        narrow it, and reads Any. Depth is how many blocks down from the top it lays. Coverage below 100% lays it in patches of the
-        given size, leaving the rest of the masked ground as its palette paints it.</Help>
-      <ChildContent>
+    @* Where and how the material is laid: every condition narrows where it goes, and the thickness and coverage
+       say how much of it goes there. The glossary's "mask" is behind the heading; an empty condition reads Any. *@
+    <Section Title="Mask" Term="mask">
       <div class="field-grid">
-        <Field Label="Steeper than" Hint="°" Half>
+        <Field Label="Steeper than" Unit="°" Half>
           <NumberField Value="@Pair(rule, Slope, 0)" placeholder="Any" Min="0" Max="89" ValueChanged="v => SetPair(Slope, 0, v)" OnCleared="() => SetPair(Slope, 0, null)" />
         </Field>
-        <Field Label="At most" Hint="°" Half>
+        <Field Label="At most" Unit="°" Half>
           <NumberField Value="@Pair(rule, Slope, 1)" placeholder="Any" Min="0" Max="89" ValueChanged="v => SetPair(Slope, 1, v)" OnCleared="() => SetPair(Slope, 1, null)" />
         </Field>
-        <Field Label="From" Hint="y" Half>
+        <Field Label="From" Unit="world y" Half>
           <NumberField Value="@Pair(rule, Height, 0)" placeholder="Any" ValueChanged="v => SetPair(Height, 0, v)" OnCleared="() => SetPair(Height, 0, null)" />
         </Field>
-        <Field Label="To" Hint="y" Half>
+        <Field Label="To" Unit="world y" Half>
           <NumberField Value="@Pair(rule, Height, 1)" placeholder="Any" ValueChanged="v => SetPair(Height, 1, v)" OnCleared="() => SetPair(Height, 1, null)" />
         </Field>
         <Field Label="Near" Half>
-          <Select Options="NearOptions" Value="@(rule[Near]?[Modifier]?.GetValue<string>() ?? "")" Placeholder="Anywhere"
+          <Select Options="NearOptions" Value="@(rule[Near]?[Modifier]?.GetValue<string>() ?? "")" Placeholder="Any"
                   ValueChanged="SetNear" />
         </Field>
         @if (rule[Near] is not null)
         {
-          <Field Label="Within" Hint="blocks" Half>
+          <Field Label="Within" Unit="blocks" Half>
             <NumberField Value="@(Number(rule[Near], Width) ?? 3)" Min="0" ValueChanged="v => Edit(edited => edited[Near]![Width] = v)" />
           </Field>
         }
-        <Field Label="Depth" Hint="blocks" Half>
+        <Field Label="Thickness" Unit="blocks" Half>
           <NumberField Value="@(Number(rule, Depth) ?? 1)" Min="1" Max="8" ValueChanged="v => Edit(edited => SetOrRemove(edited, Depth, (int)v == 1 ? null : (int)v))" />
         </Field>
-        <Field Label="Coverage" Hint="%" Half>
+        <Field Label="Coverage" Unit="%" Term="coverage" Half>
           <NumberField Value="@Coverage(rule)" Min="5" Max="100" Step="5" ValueChanged="SetCoverage" />
         </Field>
         @if (rule[Noise] is not null)
         {
-          <Field Label="Patch size" Hint="blocks" Half>
+          <Field Label="Patch size" Unit="blocks" Half>
             <NumberField Value="@(Number(rule[Noise], Cell) ?? 8)" Min="1" ValueChanged="v => Edit(edited => edited[Noise]![Cell] = v)" />
           </Field>
         }
       </div>
-      </ChildContent>
     </Section>
     @if (error is not null) { <p class="field-error">@error</p> }
     <InspectorDelete Title="Delete this rule" OnClick="Remove" />
@@ -85,7 +80,7 @@
     [Parameter] public IJSObjectReference? Handle { get; set; }
     [Parameter] public string PaintJson { get; set; } = "[]";
     [Parameter] public string RuleId { get; set; } = "";
-    /// <summary>The board's modifier ids, which a rule may be laid near.</summary>
+    /// <summary>The layout's modifier ids, which a rule may be laid near.</summary>
     [Parameter] public IReadOnlyList<string> ModifierIds { get; set; } = [];
     [Parameter] public EventCallback OnClose { get; set; }
     [Inject] public TerrainLibraryClient Library { get; set; } = default!;
