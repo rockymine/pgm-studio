@@ -19,8 +19,8 @@ into the studio one phase at a time, each proven against a pgmvox fixture, until
 reaches the ceiling a pgmvox board does. Phase 0 has shipped, Phase 1 has closed with its two agent-facing
 entries parked, and Phase 2 has shipped: shapes, eighteen ground operations in the modifier stack, and the water
 they make. Phase 3 has shipped too: soil by slope, paint rules, beds that dip, fold and cycle, a water's own bed
-and its fall off the edge, and a layer's underside. Phase 4, space in three dimensions, is open, and its entries
-run in the order below.
+and its fall off the edge, and a layer's underside. Phase 4, space in three dimensions, is open with one entry
+left, and Phase 5, stamps and uploaded worlds, runs beside it on the author's call.
 
 ### Phase 4 — space in three dimensions
 
@@ -33,3 +33,28 @@ the relief over it (`docs/pgmvox-port.md`, *The shape it lands in*). Each entry 
   wedge, cylinder, sphere or torus with the form already chosen (`SketchTool.razor`, `asSolid` in
   `geometry/shape.js`, `addShape` in `sketch-bridge.js`), and inspector rows for an arch's rock `thick`, its easing
   powers and its `camber`, stated over the API today (`docs/tools/sketch.md`, *Solids*).
+
+### Phase 5 — stamps and uploaded worlds
+
+A pgmvox board becomes playable with the studio's markers and outlines on it: the pieces it needs are placed in
+Layout, every stamp can be switched off where the world already carries its own, and a world built elsewhere
+arrives with its `map.xml` (`docs/pgmvox-port.md`, *Phase 5*).
+
+- [ ] **TS213 — A control point placed in Layout, square or disc.** Markers gains a control point, put down with
+  a click and resized from its edges like a build area, its rail choosing **Square** or **Disc** beside the
+  name, size, points, capture time and mode `ControlPointIntent` already states. The disc is a new `shape` on
+  the intent: `ControlPointStamper` lays a round pad, and `ControlPointGenerator` writes a cylinder capture and
+  progress region over it. Lands in `PlayPieces.Of`, `PlayPieceAdd`, `PlayPieceMove`, `PlayPieceSettings` and
+  the Layout dock (`docs/tools/sketch.md`, `docs/pgm/control-points.md`).
+- [ ] **TS214 — A wall bends.** A wall states a polyline (`points`, two or more corners on block corners) in
+  place of its two ends, stamped two thick along every leg, its corners dragged in Layout as its ends are and a
+  shift-press on a leg adding one; a migration carries each stored `x1,z1,x2,z2` into two points. Lands in
+  `WallStructure`, `PlayPieces.Wall`, `WallEndController` and the wall stamper (`docs/tools/sketch.md`).
+- [ ] **WE174 — Every stamp switched per piece.** A piece states which of its stamps run, all on by default: a
+  goal's marker and float check, a build area's outline, a wool room's loot, a destroyable's kit pairing, and
+  whether a wall is stamped at all. The switches sit on the piece's rail and the build reads them in
+  `WorldBuilder` (`docs/world-export/structures.md`).
+- [ ] **TC23 — A world uploaded with its `map.xml`.** `POST /map/upload` takes a zip of a world's `region/` and
+  its `map.xml` from any member, refused over a size cap, scanned as `import-url` scans; the stamps run over it
+  on export. **Open, the author's:** whether the `map.xml` is read into an intent, which `docs/tools/flow.md`
+  rules out today, or kept as the map's document as a corpus map's is (`docs/tools/configure.md`).

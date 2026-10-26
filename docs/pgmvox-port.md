@@ -363,11 +363,14 @@ time. Shipped to the live studio with no beta (decision D3).
 
 ### Phase 5 — stamps and uploaded worlds
 
-- A control point and a wall as play pieces of any shape, beside the ones Phase 1 places.
+- A control point and a wall as play pieces of any shape, beside the ones Phase 1 places: a control point is
+  a square or a disc, placed and sized in Layout (`TS213`), and a wall a polyline that bends at its corners
+  (`TS214`), on the author's ruling.
 - Stamps as the last stage, each switchable per piece: goal marker, build-zone outline, defence wall, wool-room
-  loot, kit pairing, float check.
+  loot, kit pairing, float check (`WE174`).
 - A world built elsewhere uploaded with its `map.xml`, read into the intent, with the stamps run over it on
-  export. `POST /map/import-folder` reads a server-side folder today; an upload route is what is missing.
+  export (`TC23`). `POST /map/import-folder` reads a server-side folder today; an upload route is what is
+  missing, and any member may use it, under a size cap.
 
 **What the author notices:** every pgmvox board playable with the studio's markers and outlines on it.
 
