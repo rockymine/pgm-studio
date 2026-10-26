@@ -221,8 +221,10 @@ tall box never leaves a short button hanging beside it.
 apart (`--space-3`) and sections a larger one (`--space-6`); a field placed straight in the inspector's column takes
 the section gap and reads as a section of its own. Short fields — a number, a short select, a two-chip state — go
 in a `field-grid` and say so with `Half`, two to a row; a field that needs the width spans both, and a short one
-with no partner takes the row. A name is never short: it takes the width. Controls in a row meet on one line
-whatever their labels carry. A thing's on/off is its eye — in its list row and in its inspector's header — never a
+with no partner takes the row — short fields pair within each run between full-width ones, so a full-width field
+in the middle of a grid does not shift the pairs after it. A name is never short: it takes the width. Controls in
+a row meet on one line whatever their labels carry, and a label too long for its column breaks after its name,
+keeping its unit and `?` together. A thing's on/off is its eye — in its list row and in its inspector's header — never a
 second control in the form.
 
 **One thing, one control.** A seed is `SeedField` everywhere: the number and *Reroll*, under *Seed*. What an
@@ -345,6 +347,12 @@ fields shows names and units and keeps its sentences a press away. A definition 
 porch is, what a biome tints — is a `Help` on the field or the `Section`, never a paragraph open above the
 controls. A select's unset value names what it stands for (*Plains*, *Stone*, *Bedrock box*, *Bare floor*),
 not `None (…)`, and a select that cannot be used until something is chosen prompts for it (*Choose a material*).
+
+**An empty number states what it stands for.** A number with a default shows the default, never an empty box. A
+number the system works out when it is not stated reads *Auto* as its placeholder (*Any* for a condition that
+does not narrow anything), takes its own row, and says under the box what it takes while empty — *Auto: the
+median ground plus 12* — and, once stated, what clearing it returns to. An empty box that says nothing leaves its
+value to be guessed, and a reader guesses zero.
 
 **What survives as prose is a keymap, an empty state, or a fact with nowhere else to live.** *Move: arrow keys ·
 Shift+arrow = 16 blocks* is a keymap. *Nothing is terraformed yet* is an empty state. *Turns with the building at

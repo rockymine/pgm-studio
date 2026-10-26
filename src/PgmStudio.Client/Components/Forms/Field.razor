@@ -12,7 +12,7 @@
         <label class="@LabelCls" for="@For">
             @* The hint is spaced and muted here rather than at each call site — see .field-hint for why the
                separator is a margin and not a space. *@
-            <span>@Label @if (Required) { <span class="field-required">*</span> }@if (LabelHint is not null) { <span class="field-hint">@LabelHint</span> }@if (InlineHint is { } inline) { <span class="field-hint">(@inline)</span> }@if (HasHelp) { <HelpMark Open="helpOpen" Title="@(HelpTitle ?? $"About {Label}")" OnClick="() => helpOpen = !helpOpen" /> }</span>
+            <span>@Label @if (Required) { <span class="field-required">*</span> }@if (LabelHint is not null) { <span class="field-hint">@LabelHint</span> }@if (InlineHint is not null || HasHelp) { <span class="field-label-tail">@if (InlineHint is { } inline) { <span class="field-hint">(@inline)</span> }@if (HasHelp) { <HelpMark Open="helpOpen" Title="@(HelpTitle ?? $"About {Label}")" OnClick="() => helpOpen = !helpOpen" /> }</span> }</span>
             @if (LabelEnd is not null) { @LabelEnd }
         </label>
     }

@@ -1221,7 +1221,11 @@ the bridge's `setReliefScope`, so it is one undo step and the contours answer it
 
 **Below it, the stack is in the order it runs.** A row picks its modifier; its own buttons move it earlier or
 later and switch it off, which keeps its numbers and leaves it out of the build. The inspector says what the
-operation does and edits its name, its numbers two to a row with its mode and soft rim, and its seed; the eye
+operation does and edits its name, its numbers two to a row with its mode and soft rim, and its seed. A number the
+operation works out for itself when it is not stated — a Level's height, a Butte's or Spire's top, a Lake's or
+Sea's level, a floor, a heading — takes its own row, reads *Auto* while empty and says under the box what it takes
+then (*Auto: the median ground plus 12*); once stated, the same line says what clearing it returns to. *Soft rim*
+is a number with a default, 0, a hard edge, never an empty box. The eye
 in its header is the row's eye, the one switch. Its *Area* section says where it acts in what was traced —
 *Acts along one line, in a band 110 blocks wide* — with *Mirrored* for whether the map's symmetry fans it, and the
 board draws the picked modifier's area in its own colour over a halo while the others fall back. A field's hint reads after its label when it is a few words;
@@ -1466,7 +1470,7 @@ picked; *+* adds a rule at the end and opens it, and how a column reads the list
 the `?` beside its heading. Picking a rule closes any group or shape and opens the rule's inspector
 (`SketchPaintRuleInspector`): its *Name*, with the eye in its header; its *Material*, a block or a library
 pattern, reading *Choose a material* until one is picked; and its *Mask*, which says where and how the material is
-laid — *Steeper than* and *At most* in degrees, *From* and *To* in world y, *Near* one of the board's modifiers
+laid — *Steeper than* and *At most* in degrees, *From* and *To* in world y, each reading *Any* while empty, *Near* one of the board's modifiers
 *Within* so many blocks of its area, a *Depth* in blocks down from the top, and a *Coverage*: at 100% the material
 takes all the masked ground, and below it lays in patches a *Patch size* wide over that share of it (a noise
 `above` of one less the share). Delete is at the inspector's foot. Both write through `SketchPaintRuleSet`, so every edit replaces the list in one

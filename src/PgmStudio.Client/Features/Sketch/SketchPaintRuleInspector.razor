@@ -35,21 +35,21 @@
        how much of it goes there. *@
     <Section Title="Mask" HelpTitle="How the mask works">
       <Help>The rule paints a column only where every condition it states holds; a condition left empty does not
-        narrow it. Depth is how many blocks down from the top it lays. Coverage below 100% lays it in patches of the
+        narrow it, and reads Any. Depth is how many blocks down from the top it lays. Coverage below 100% lays it in patches of the
         given size, leaving the rest of the masked ground as its palette paints it.</Help>
       <ChildContent>
       <div class="field-grid">
         <Field Label="Steeper than" Hint="°" Half>
-          <NumberField Value="@Pair(rule, Slope, 0)" Min="0" Max="89" ValueChanged="v => SetPair(Slope, 0, v)" OnCleared="() => SetPair(Slope, 0, null)" />
+          <NumberField Value="@Pair(rule, Slope, 0)" placeholder="Any" Min="0" Max="89" ValueChanged="v => SetPair(Slope, 0, v)" OnCleared="() => SetPair(Slope, 0, null)" />
         </Field>
         <Field Label="At most" Hint="°" Half>
-          <NumberField Value="@Pair(rule, Slope, 1)" Min="0" Max="89" ValueChanged="v => SetPair(Slope, 1, v)" OnCleared="() => SetPair(Slope, 1, null)" />
+          <NumberField Value="@Pair(rule, Slope, 1)" placeholder="Any" Min="0" Max="89" ValueChanged="v => SetPair(Slope, 1, v)" OnCleared="() => SetPair(Slope, 1, null)" />
         </Field>
         <Field Label="From" Hint="y" Half>
-          <NumberField Value="@Pair(rule, Height, 0)" ValueChanged="v => SetPair(Height, 0, v)" OnCleared="() => SetPair(Height, 0, null)" />
+          <NumberField Value="@Pair(rule, Height, 0)" placeholder="Any" ValueChanged="v => SetPair(Height, 0, v)" OnCleared="() => SetPair(Height, 0, null)" />
         </Field>
         <Field Label="To" Hint="y" Half>
-          <NumberField Value="@Pair(rule, Height, 1)" ValueChanged="v => SetPair(Height, 1, v)" OnCleared="() => SetPair(Height, 1, null)" />
+          <NumberField Value="@Pair(rule, Height, 1)" placeholder="Any" ValueChanged="v => SetPair(Height, 1, v)" OnCleared="() => SetPair(Height, 1, null)" />
         </Field>
         <Field Label="Near" Half>
           <Select Options="NearOptions" Value="@(rule[Near]?[Modifier]?.GetValue<string>() ?? "")" Placeholder="Anywhere"
