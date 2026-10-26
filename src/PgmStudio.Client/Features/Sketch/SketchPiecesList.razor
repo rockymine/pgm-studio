@@ -7,7 +7,7 @@
 @if (Pieces.Count == 0)
 {
   <Section Title="Pieces">
-    <p class="section-desc">Nothing is placed yet. Place a piece from the toolbar above the canvas.</p>
+    <p class="section-desc">Nothing is placed yet. Place a piece from the dock below the board: <em>Pieces</em>, <em>Zones</em> and <em>Markers</em>.</p>
   </Section>
 }
 @foreach (var kind in Kinds.Where(kind => Pieces.Any(piece => piece.Role == kind)))

@@ -10895,6 +10895,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   destroyable's or core's kit pairing and float check, each a box in the rail's *Stamps* section. The float check
   is pgmvox's, asked of the built world on export: every monument and core has its float of air under each column
   (`OB37`) and a block at y 0 (`OB38`). `docs/world-export/sketch-world-export.md` §5a.
+- **The Placed list is grouped, counted and named (`TS215`).** Decoration's sidebar sets each kind under a
+  heading that counts it and folds away; a row names what its prop is — *Spruce · 17*, *Round boulder · 3*,
+  *Worn path · 6 wide*, a building by its shell — with its x, z, length or footprint beside it. A prop picked on
+  the canvas opens its heading and scrolls its row into view, a row under the pointer or focus rings its prop on
+  the board, and Tab and Enter reach and pick rows (`SketchDressingList`, `PropKindNames`, `hoverProp`).
+- **What the screen was not saying, it says (`TS216`).** The bar shows *Saving…* / *Saved* in every phase, not
+  only Info. The Ground-after strip turns warning-coloured short of the last step, reads *N of M*, offers **Show
+  all**, and returns to the whole stack when a modifier past the step is edited. The Decoration inspector's
+  header is pinned, banded while a tool is in hand, and says what a change does: the next click places this,
+  Shift places several; or the change applies to this prop and carries to the next one placed.
+- **The shell names what it shows (`TS217`).** Every left rail carries each button's name under its glyph
+  (`NavButton`). Sketch's Next names where it goes (*Next: Ground*, *Next: Terraform*). The in-hand header says
+  each kind's gesture — a click, a drag along the board, a ring, a rectangle — and a building in hand raises no
+  refusal before its rectangle is down. Layout's empty state points at the dock below the board and its three
+  groups.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the

@@ -206,7 +206,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // A modifier's mask follows the same three rules, for the same reasons.
     getModifiers:       () => modifiers,
     onModifierTraced:   edit((op, points) => traced(op, points)),
-    onModifiersChanged: edit((next) => { modifiers = next; afterModifierChange(); }),
+    onModifiersChanged: edit((next) => { modifiers = next; afterModifierChange(pickedModifier); }),
     onModifiersPreview: (next) => { modifiers = next; paintMasks(); },
     onModifierSelected: (id) => { pickedModifier = id; fire("OnModifiers", modifierState()); paintMasks(); },
     onModifierPlaced:   () => { dropTool(); },
@@ -1199,6 +1199,14 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     if (groundStep !== null && groundStep >= modifiersOn()) groundStep = null;
   }
 
+  /** An edit to a modifier the step does not reach would change nothing on show, so it returns the view to
+   *  the whole stack; an edit at or before the step keeps it. */
+  function revealEdited(id) {
+    if (groundStep === null || !id) return;
+    const at = modifiers.filter(modifier => !modifier.off).findIndex(modifier => modifier.id === id);
+    if (at >= groundStep) groundStep = null;
+  }
+
   // The modifier a trace adds an outline to rather than starting a new one, or null.
   let addingTo = null;
 
@@ -1219,10 +1227,12 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     modifiers = into ? modifiers.map(modifier => modifier.id === made.id ? made : modifier) : [...modifiers, made];
     pickedModifier = made.id;
     canvas.modifierTools?.select(made.id, made.mask.areas.length - 1);
-    afterModifierChange();
+    afterModifierChange(made.id);
   }
 
-  function afterModifierChange() {
+  /** `edited` is the modifier the change was made to, where there is one. */
+  function afterModifierChange(edited) {
+    revealEdited(edited);
     clampStep();
     markDirty();
     fire("OnModifiers", modifierState());
@@ -1616,6 +1626,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (dressingMode) fire("OnDressing", dressingState());
     },
     selectProp(id) { canvas.dressingTools?.select(id || null); },
+    /** Ring a prop on the board while its row in the Placed list is under the pointer; null lets go. */
+    hoverProp(id) { canvas.dressingTools?.hover(id || null); },
     deleteProp() { if (canvas.dressingTools?.deleteSelected()) afterDressingChange(); },
     /** Write a room's house whole — its wings and its style — as the Layout inspector states it, and pick wing
      *  `pick` of it. */
@@ -1698,7 +1710,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     updateModifier(id, patchJson) {
       let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "This isn't valid JSON."; }
       modifiers = patchModifier(modifiers, id, patch);
-      afterModifierChange(); return null;
+      afterModifierChange(id); return null;
     },
     deleteModifier(id) {
       modifiers = modifiers.filter(modifier => modifier.id !== id);

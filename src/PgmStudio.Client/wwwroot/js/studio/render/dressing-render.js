@@ -126,6 +126,14 @@ export function paintMarkerGhost(painter, kind, x, z, reach, valid = true) {
   });
 }
 
+/** The ring round a prop its row in the Placed list is hovered over: the prop's own outline in the accent colour,
+ *  a little wider than a selection's, so the row and the thing it names are seen together. */
+export function paintPropHover(painter, prop, styles = {}) {
+  for (const ring of footprints(prop, 0, null, styles)) {
+    if (ring.length >= 2) painter.ring(ring, { stroke: "var(--accent)", width: SELECTED_WIDTH + 1, dash: [4, 3] });
+  }
+}
+
 /** Every ring one image of a prop draws — more than one only for a building of several wings. */
 function footprints(prop, image, mirrorPoint, styles) {
   const mirror = (x, z) => (image === 0 || !mirrorPoint ? [x, z] : mirrorPoint(x, z, image));

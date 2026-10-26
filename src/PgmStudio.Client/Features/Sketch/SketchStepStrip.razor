@@ -3,16 +3,21 @@
 @* The ground at each point of the modifier stack, as canvas chrome at the canvas foot. Step 0 is the shapes
    alone, and each step after it adds the next modifier that is on, so scrubbing it shows what every modifier
    did and where the one being tuned sits among the rest. It sets which ground the contours and the 3-D
-   picture are read from; nothing it does is saved, and the last step is the whole stack. The thumb moves
+   picture are read from; nothing it does is saved, and the last step is the whole stack. Short of the last, the
+   strip is marked and offers Show all. The thumb moves
    the label as it goes and the reads wait for its release, because each is a build of the board. *@
 
 @if (State.Running.Count > 0)
 {
-  <div class="canvas-step-strip" role="group" aria-label="Ground after">
+  <div class="canvas-step-strip@(Short ? " canvas-step-strip--short" : null)" role="group" aria-label="Ground after">
     <span class="canvas-step-strip-label">Ground after</span>
     <RangeField Min="0" Max="@State.Running.Count" Value="@Shown" KeepKeys aria-label="Step"
                 ValueChanged="Scrub" OnCommit="Commit" />
-    <output class="canvas-step-strip-name">@State.StepName((int)Shown)</output>
+    <output class="canvas-step-strip-name">@((int)Shown) of @State.Running.Count · @State.StepName((int)Shown)</output>
+    @if (Short)
+    {
+      <Button Title="The modifiers after this step are not on the board" OnClick="() => OnStep.InvokeAsync(null)">Show all</Button>
+    }
   </div>
 }
 
@@ -26,6 +31,10 @@
     private double? held;
 
     private double Shown => held ?? State.StepAt;
+
+    /// <summary>Whether the board shows the ground part-way up the stack, so a modifier after the step changes
+    /// nothing on show.</summary>
+    private bool Short => (int)Math.Round(Shown) < State.Running.Count;
 
     private void Scrub(double value) => held = value;
 

@@ -547,6 +547,53 @@ is the standard the copy is held to.
 
 ## User Experience
 
+**What the UX review of a recorded build found open.** Each entry was read off the recording and checked against
+the client source.
+
+- [ ] **TS218 — A paint rule says how much ground it takes.** Palette's rule cards show no result: nothing tells one
+  rule's columns from the ground before it, or says an earlier rule shadows it. Answer a count per rule from the
+  paint read (`sketch/paint`) and show it in each card's header — *claims 1,240 columns*, or *claims none: an earlier
+  rule wins* in the warning colour — and tint that rule's columns while its card is hovered. `docs/tools/sketch.md`.
+
+- [ ] **TS219 — A paint rule card folds to one line.** Five rules take about 1,700 px; unset conditions weigh as much
+  as set ones, an empty field looks like 0, and nothing says every condition must hold. Fold a card to a sentence
+  built from what it sets (*Snow Block · slope ≤ 34° · y 26–28 · in patches*), offer *+ Add condition* for the rest,
+  say "all conditions must hold" once, and state Bare share in percent like Paved share. `SketchPaintRules`.
+  `docs/tools/sketch.md`.
+
+- [ ] **TS220 — Every modifier row says its type, and the list scrolls to its pick.** Terraform's list names a type
+  only on renamed rows, and lumps, roughness and warp share one wavy glyph. From about seventeen rows the picked one
+  is cut off. Show a muted type word on every row, give the list its own scroll region, and scroll the pick into
+  view as the Placed list does. `SketchModifierList`. `docs/tools/sketch.md`.
+
+- [ ] **TS221 — Deleting a modifier is not beside Close, and says how to undo.** The inspector header puts Delete
+  32 px from Close with no confirmation; undo exists but only as the top bar's arrows and Ctrl+Z. Move Delete to the
+  inspector's foot and show *ridge-2 deleted · Undo* after it. `SketchModifierInspector`. `docs/tools/sketch.md`.
+
+- [ ] **TS222 — The tree picker searches.** About 94 cards in library order with no search, height or family;
+  selected and hover share one border (`design.css` `.prop-card--active`). Add a search box and Species and Size chips
+  over the grid, a height under each generated card, and a check mark on the selected one.
+  `SketchDressingInspector`. `docs/tools/sketch.md`.
+
+- [ ] **TS223 — A block is picked by name, not typed as id:data.** Paint rules and stroke paving take numeric id and
+  data (`3:1`, `60:7`) and truncate names in the 280 px Palette column. Reuse the searchable `BlockPicker` with id:data
+  as a caption, and widen Palette's inspector to Decoration's. `docs/tools/sketch.md`.
+
+- [ ] **TS224 — Ground cover shows its density before a field is drawn.** Ten sliders move while the swatch stays a
+  flat square, and four plants (cacti, dead bushes, mushrooms, lily pads) offer sliders on boards with no ground they
+  grow on. Draw the swatch from the sliders, show the live three first with *More plants*, and give Patch size its
+  unit. `docs/tools/sketch.md`.
+
+- [ ] **TS225 — Review and the map.xml are reached by name from where a map is finished.** Decoration's way out is
+  an icon-only rail glyph and an icon-only Download; the XML is read only in Configure. Add labelled *Preview as
+  player* and *View map.xml* beside Download, and a legend under the eye picture naming monuments (which float by
+  design), cores and the build area. `docs/tools/sketch.md`.
+
+- [ ] **C107 — Drawing the land shows its fill and its mirror while it is drawn.** A lasso trails 8 px squares with
+  no fill, the mirrored half appears only once the ring closes, and the close target is a 7 px square. Draw a
+  translucent fill and the symmetry copy at 40% while tracing, and a 14 px close ring that grows on hover.
+  `docs/client/canvas-interaction.md`.
+
 - [ ] **TG5 — Player bands are counted and combined.** The Generator's band chips (`SizeBands`) carry no counts
   and only one can be on, because `GET /api/compose` serves one band per request and its feed returns no
   per-band totals. Accept several bands and answer a count per band, then give the chips counts and multi-select

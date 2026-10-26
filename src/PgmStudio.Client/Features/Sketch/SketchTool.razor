@@ -17,7 +17,7 @@
                BackEnabled="true" NextLabel="@move.NextLabel" NextEnabled="true"
                OnStep="move.OnStep" OnBack="move.OnBack" OnNext="move.OnNext">
       <State>
-        @if (InfoActive && infoSave is not null) { <span>@infoSave</span> }
+        @if (SaveState is { } saveState) { <span role="status">@saveState</span> }
         @if (ProblemsShown)
         {
           <span class="problems-pop-host">

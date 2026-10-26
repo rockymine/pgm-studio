@@ -262,6 +262,19 @@
 /* Plan beside section. The section crops to what the recipe grew, so its height carries meaning — a meadow
    is a few courses and a forest is thirty. `start` lets each figure keep its own height instead of both
    stretching to the taller one, which would sit a thin strip in the middle of an empty box. */
+/* The inspector's header stays in view while the pickers scroll under it, and in hand reads apart from selected
+   by a band as well as its badge. */
+.dressing-head {
+  position: sticky; top: 0; z-index: 2; background: var(--bg-panel);
+  display: flex; flex-direction: column; gap: var(--space-1);
+  padding-bottom: var(--space-2); border-bottom: 1px solid var(--border);
+}
+.dressing-head--in-hand { box-shadow: inset 3px 0 0 var(--accent); padding-left: var(--space-2); }
+.dressing-head-says { margin: 0; }
+.dressing-head-says kbd {
+  font: inherit; font-size: 0.92em; padding: 0 4px; border-radius: 3px;
+  border: 1px solid var(--border); background: var(--bg-deep);
+}
 .dressing-views { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); align-items: start; }
 .dressing-views .theme-section-figure { margin: 0; }
 .dressing-views svg { max-width: 100%; }

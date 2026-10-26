@@ -23,7 +23,7 @@
  * above the painted surface, where a fixed pixel size and a cursor are worth having.
  */
 
-import { paintDressingPreview, paintMarkerGhost } from "../render/dressing-render.js";
+import { paintDressingPreview, paintMarkerGhost, paintPropHover } from "../render/dressing-render.js";
 import { buildingsOverlap, defaultProp, isMarker, isRect, propAnchor, propReach, rectFootprint, rectsJoinUp,
          onLayer, translateProp, wingCorners, wingRects, withCorners } from "../dressing/dressing-doc.js";
 import { MIN_FOOTPRINT_SPAN, wallNear, wingOffWall } from "../shared/building.js";
@@ -67,6 +67,7 @@ export class DressingController {
   #pointDrag = null;      // reshaping one: { id, idx } or { id, wing, grip, from } — idx -1 is a marker's own anchor, and a
                           // building's wing is resized by a `grip` of its box from `from`, the rect it stood at
   #selectedId = null;
+  #hoveredId = null;      // the prop whose row the Placed list has the pointer on
   #selectedWing = 0;      // which wing of a picked building its settings are edited for
   #wall = null;           // the free wall of the picked building the pointer is near, where a press adds a wing
   #wallGhost = null;
@@ -420,8 +421,19 @@ export class DressingController {
     });
   }
 
-  /** Draw whatever is in flight — the traced stroke, or the ghost of a marker about to drop. */
+  /** Ring the prop whose list row is under the pointer, or none. A view, not a selection: nothing is picked. */
+  hover(id) {
+    const live = id && this.#doc.byId(id) ? id : null;
+    if (live === this.#hoveredId) return;
+    this.#hoveredId = live;
+    this.#callbacks.onPreviewChanged?.();
+  }
+
+  /** Draw whatever is in flight — the traced stroke, or the ghost of a marker about to drop — and the ring round
+   *  a prop hovered in the list. */
   paint(painter) {
+    const hovered = this.#hoveredId ? this.#doc.byId(this.#hoveredId) : null;
+    if (hovered) paintPropHover(painter, hovered, this.#doc.styles);
     if (this.#trace) {
       const radius = this.#settings[this.#trace.kind]?.radius ?? 3;
       paintDressingPreview(painter, this.#trace.kind, this.#trace.points, radius);

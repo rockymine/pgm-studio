@@ -147,8 +147,12 @@ try {
     && spots.every(spot => spot.x > box.x && spot.x < box.x + box.width && spot.y > box.y && spot.y < box.y + box.height),
     `${spots.length} found`);
   const placeAt = spot => page.mouse.click(spot.x, spot.y);
-  const placedRows = () => page.locator(".geo-label").allInnerTexts();
+  // A placement's row, not the heading over its kind: a row names what the prop is, then what sets it apart.
+  // Rows sit under a heading per kind, each kind in the order its props were placed.
+  const placedRows = kind => page.locator(`.workspace-sidebar .geo-row${kind ? `[data-kind="${kind}"]` : ":not(.geo-row--group)"} .geo-label`).allInnerTexts();
+  const what = label => label.split(" · ")[0];
   const before = await placedRows();
+  const treesBefore = (await placedRows("tree")).length;
   await page.click(`button[aria-label^="${DRIVEN.tree}"]`);
   await placeAt(spots[0]);
   await page.waitForTimeout(1500);
@@ -187,13 +191,24 @@ try {
   await page.waitForTimeout(800);
   checks.add("arming the tool again shows the next placement, not the last one",
     /in hand/.test(await panel()), (await panel()).match(/selected|in hand/)?.[0] ?? "(no badge)");
+  checks.add("and says that Shift keeps placing", /Hold\s+Shift\s+to place several/.test(await panel()),
+    (await panel()).match(/next click[^.]*\.[^.]*\./)?.[0] ?? "(no hint)");
   await page.locator('.prop-card[title="spruce"]').click();
   await page.waitForTimeout(1500);
   await placeAt(spots[1]);
   await page.waitForTimeout(1500);
-  const placed = (await placedRows()).slice(before.length);
+  const placed = (await placedRows("tree")).slice(treesBefore);
   checks.add("so the pick lands on the new tree and leaves the old one as it was",
-    placed.join(",") === "oak,spruce", placed.join(","));
+    placed.map(what).join(",") === "Oak,Spruce", placed.join(","));
+  // The list heads each kind with how many it holds, and a row names a generated tree by species and height.
+  const heading = await page.locator(".workspace-sidebar .geo-row--group", { hasText: "Trees" }).innerText().catch(() => "");
+  checks.add("the trees sit under a heading that counts them",
+    Number(heading.match(/Trees\s+(\d+)/)?.[1] ?? 0) >= 2 && placed.every(label => /^\w[\w ]* · \d+$/.test(label)), `${heading.replace(/\s+/g, " ")} · ${placed.join(",")}`);
+  await page.locator(".workspace-sidebar .geo-row:not(.geo-row--group)", { hasText: "Spruce" }).last().click();
+  await page.waitForTimeout(1200);
+  checks.add("a placed tree picked from the list says an edit carries to the next one",
+    /selected/.test(await panel()) && /carry to the next one placed/.test(await panel()),
+    (await panel()).match(/Changes apply[^.]*\./)?.[0] ?? "(no sentence)");
 
   // Shift held as a tree lands keeps the tool in hand: two clicks are two trees, and the dock still shows
   // the tree tool pressed afterwards.
@@ -223,8 +238,8 @@ try {
   await page.waitForTimeout(1500);
   await placeAt(spots[4]);
   await page.waitForTimeout(1500);
-  const rock = (await placedRows()).at(-1);
-  checks.add("a shape picked with the boulder in hand is the next boulder's", rock === "outcrop", rock ?? "(nothing placed)");
+  const rock = (await placedRows("boulder")).at(-1);
+  checks.add("a shape picked with the boulder in hand is the next boulder's", /^Outcrop boulder/.test(rock ?? ""), rock ?? "(nothing placed)");
   await page.keyboard.press("Escape");
   await page.waitForTimeout(400);
 

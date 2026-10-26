@@ -119,6 +119,9 @@ public partial class SketchTool
 
     private static readonly Func<int, Task> NoStep = _ => Task.CompletedTask;
 
+    /// <summary>Next names where it goes: the step after this one, or the phase after the last step.</summary>
+    private static string NextTo(string where) => $"Next: {where}";
+
     private BarPhase BarMove
     {
         get
@@ -126,21 +129,23 @@ public partial class SketchTool
             if (InfoActive)
             {
                 var last = SketchInfoPhase.Steps.Count - 1;
-                return new("book-open-text", "Info", SketchInfoPhase.Steps, infoStep, infoStep == last ? "Continue" : "Next",
+                return new("book-open-text", "Info", SketchInfoPhase.Steps, infoStep,
+                    NextTo(infoStep == last ? "Draw" : SketchInfoPhase.Steps[infoStep + 1]),
                     () => { infoStep = 0; return Task.CompletedTask; },
                     () => { if (infoStep < last) { infoStep++; return Task.CompletedTask; } return OpenDraw(); },
                     step => { infoStep = step; return Task.CompletedTask; });
             }
-            if (ThemeActive) return new("palette", "Palette", [], 0, "Next", GoRelief, GoDressing, NoStep);
-            if (DressingActive) return new("trees", "Decoration", [], 0, "Next", GoTheme, GoReview, NoStep);
-            if (ReliefActive) return new("mountain", "Terraform", [], 0, "Next", GoDraw, GoTheme, NoStep);
+            if (ThemeActive) return new("palette", "Palette", [], 0, NextTo("Decoration"), GoRelief, GoDressing, NoStep);
+            if (DressingActive) return new("trees", "Decoration", [], 0, NextTo("Review"), GoTheme, GoReview, NoStep);
+            if (ReliefActive) return new("mountain", "Terraform", [], 0, NextTo("Palette"), GoDraw, GoTheme, NoStep);
             if (HistoryActive) return new("history", "History", [], 0, "Draw", GoReview, GoDraw, NoStep);
-            if (CamerasActive) return new("eye", "Review", ReviewSteps, 0, "Next", GoDressing, ShowNotes, StepReview);
-            if (NotesActive) return new("eye", "Review", ReviewSteps, 1, "Next", ShowCameras, GoHistory, StepReview);
+            if (CamerasActive) return new("eye", "Review", ReviewSteps, 0, NextTo(ReviewSteps[1]), GoDressing, ShowNotes, StepReview);
+            if (NotesActive) return new("eye", "Review", ReviewSteps, 1, NextTo("History"), ShowCameras, GoHistory, StepReview);
             // A step's index is into the names this render draws, so the offset that maps it back is the one they
             // were drawn with: the Places step can arrive between a render and the click on it.
             var first = FirstDrawStep;
-            return new("pencil-ruler", "Draw", DrawStepNames, drawStep - first, "Next",
+            return new("pencil-ruler", "Draw", DrawStepNames, drawStep - first,
+                NextTo(drawStep == LayoutStep ? "Terraform" : DrawStepNames[drawStep - first + 1]),
                 drawStep == first ? GoInfo : () => StepDraw(drawStep - 1),
                 drawStep == LayoutStep ? GoRelief : () => StepDraw(drawStep + 1), step => StepDraw(step + first));
         }
@@ -993,6 +998,15 @@ public partial class SketchTool
     /// <summary>Where Info's identity save stands, shown in the tool bar while Info is up.</summary>
     private string? infoSave;
 
+    /// <summary>What the bar says about saving, in every phase: Info's identity save while Info is up, and the
+    /// drawing's elsewhere — Saving… while an edit waits for its debounced write, Saved once every edit has
+    /// landed. A refused save says nothing here, because the Problems button already says it cannot save, and a
+    /// view-only map says nothing at all.</summary>
+    private string? SaveState
+        => InfoActive ? infoSave
+         : writeClosed || saveError is not null ? null
+         : edits != savedEdits ? "Saving…" : "Saved";
+
     /// <summary>The write of the stored layout, which states the revision this tab's drawing stands on: a tab
     /// holding an older board than the studio's is refused (<c>RQ13</c>, 409) instead of writing it back over
     /// the newer one, and is then superseded until the layout is read again.</summary>
@@ -1011,7 +1025,7 @@ public partial class SketchTool
     private async Task SaveAsync(CancellationToken token)
     {
         if (handle is not { } bridge || writeClosed) return;
-        var was = (saveError, saveFindings);
+        var was = (saveError, saveFindings, savedEdits);
         var carrying = 0;
         var outcome = await Document.PutAsync($"api/map/{Slug}/sketch",
             async () =>
@@ -1025,7 +1039,7 @@ public partial class SketchTool
             case SaveStatus.Landed: savedEdits = carrying; saveError = null; saveFindings = outcome.Raised; break;
             case SaveStatus.Refused: saveError = outcome.Message; saveFindings = outcome.Raised; break;
         }
-        if ((saveError, saveFindings) == was) return;
+        if ((saveError, saveFindings, savedEdits) == was) return;
         Recheck();
         await InvokeAsync(StateHasChanged);
     }

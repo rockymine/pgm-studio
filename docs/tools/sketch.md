@@ -46,10 +46,12 @@ The editor bar (`EditorBar`, `docs/client/routing-and-ia.md`) is the same in eve
 *Maps › the map's name* — the name Info states, and the slug until one is saved — followed by the stage switcher,
 whose menu opens the map's Plan and Configure where it holds them; the phase and its steps are in the middle. At
 the right it carries the save state, the *View only* tag and the Problems button, then one group of icon buttons
-— **Undo**, **Redo**, **Download** — a divider, and Back and Next, which is the only filled button. The number of
+— **Undo**, **Redo**, **Download** — a divider, and Back and Next, which is the only filled button and names where
+it goes: the step after this one, or the phase after the last step (*Next: Ground*, *Next: Terraform*). The number of
 groups on the board is not in the bar: the Groups list in the sidebar is that count. The tool saves
 continuously — every change schedules a debounced write 800 ms later, and Ctrl+S flushes it at
-once. The finished map leaves by **Download** (an icon-only button titled *Download map: its world and map.xml,
+once. The save state reads *Saving…* while an edit waits for that write and *Saved* once every edit has landed;
+in Info it is the identity's own save, and a refused save leaves it to the Problems button's *Can't save*. The finished map leaves by **Download** (an icon-only button titled *Download map: its world and map.xml,
 ready for a server*, which pulses while it builds) on every phase: it flushes the layout, builds
 the world the first time (the finish below, `POST …/sketch/finish`, which rasterizes the layout and moves the
 map to `stage=configure`), and saves the export — the world ZIP with its `map.xml`. A board built from a plan
@@ -1229,7 +1231,10 @@ bridge adds `?step=N` to the contour overlay's read (`sketch/relief?heights=true
 (`sketch/columns`), so both show the ground after the first N modifiers that are on. The last step is the whole
 stack and sends no `step`. The step is a view, not an edit: it is not saved and not an undo step, a switched-off
 modifier or a deleted one that leaves it past the end returns it to the whole stack, and leaving Terraform does the
-same.
+same. So does an edit to a modifier the step does not reach — a new one traced, an outline added, a number
+changed — since it would change nothing on show; an edit at or before the step keeps it. Short of the last step
+the strip is drawn in the warning colour, its label reads *N of M* beside the name, and **Show all** returns it to
+the whole stack.
 
 **What the stack built is on the board as a shaded height map under contours**, on by default in this phase
 and offered as the *Contours* chip in every other. `POST …/sketch/relief?heights=true` returns each group's
@@ -1522,6 +1527,25 @@ which is what the Decoration phase's building prop stamps too.
 One step, because dressing has nothing to define up front: every part of it is a thing put somewhere. The
 sidebar is the list of what is placed, and the inspector edits either the selection or — with nothing selected
 — the settings the next prop of that kind will start from.
+
+**The Placed list is grouped by kind, and a row says what its prop is.** Each kind sits under a heading that
+counts it — *Paths and paint*, *Channels*, *Buildings*, *Trees*, *Boulders*, *Ground cover*, *Chests*, in that
+order — with the total beside the section's title, and a heading folds its rows away. Inside a heading the rows
+keep the order they were placed in. A generated tree reads as its species and height (*Spruce · 17*), a hand-built
+one as the library name it was pulled under and the courses it stands, a boulder as its form and size (*Round
+boulder · 3*), a stroke as its style, whether it is a path or paint, and its width, and a building as its shell;
+the tag beside a marker is its x, z, beside a line its length, beside a building its footprint
+(`SketchDressingList`, naming each kind from `PropKindNames`). A prop picked on the canvas opens its heading and
+scrolls its row into view, and a row under the pointer or the keyboard's focus rings its prop on the board in the
+accent colour (`hoverProp`); Tab reaches the rows and Enter picks one.
+
+**The inspector's header says which of the two it is editing, and stays in view.** It is pinned above the
+pickers as they scroll. With a tool in hand it is banded in the accent colour and says how the board places what
+it shows — a click for a tree, a boulder or a chest, a drag along the board for a stroke or a channel, a ring for
+ground cover, a rectangle for a building's footprint — and that holding Shift places several; a building in hand
+asks for no picture and raises no refusal until its rectangle is down. With a placed prop selected it says a change
+applies to that prop and carries to the next one of its kind placed — `updateSelected` keeps the patch as the
+kind's starting values, the storey aside.
 
 **Dressing is authored, not sprinkled, and that is the whole design.** A tree is cover and a boulder is a
 wall, so *where* each one stands is a decision about how the map plays and belongs to the person making the

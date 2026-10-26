@@ -16,12 +16,25 @@
     }
     else
     {
-      <DetailHeader Icon="@Info.Icon" Label="@Info.Title">
-        <span class="detail-header-badges">
-          @if (editingSelection) { <Badge Kind="neutral">selected</Badge> }
-          else { <Badge Kind="accent">in hand</Badge> }
-        </span>
-      </DetailHeader>
+      @* Pinned while the form scrolls: which of the two the form is editing decides what a change does. *@
+      <div class="dressing-head@(editingSelection ? null : " dressing-head--in-hand")">
+        <DetailHeader Icon="@Info.Icon" Label="@Info.One">
+          <span class="detail-header-badges">
+            @if (editingSelection) { <Badge Kind="neutral">selected</Badge> }
+            else { <Badge Kind="accent">in hand</Badge> }
+          </span>
+        </DetailHeader>
+        <p class="section-desc dressing-head-says" role="status">
+          @if (editingSelection)
+          {
+            <text>Changes apply to this @Info.One.ToLowerInvariant() and carry to the next one placed.</text>
+          }
+          else
+          {
+            <text>@Info.Gesture Hold <kbd>Shift</kbd> to place several.</text>
+          }
+        </p>
+      </div>
 
       @* ── what the last canvas operation did, or would not do ─────────────────────────────────── *@
       @if (note is not null)

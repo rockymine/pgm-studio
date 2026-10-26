@@ -138,7 +138,8 @@ try {
     && group.titles[0] === "Undo" && group.titles[1] === "Redo" && group.titles[2].startsWith("Download map"), group.titles.join(" | "));
   checks.add("Download has no text and says what it does", group.downloadText === ""
     && group.downloadLabel === "Download map: its world and map.xml, ready for a server", group.downloadLabel);
-  checks.add("Download is not the primary action; Next is", !group.downloadPrimary && group.primaries.join() === "Next", group.primaries.join());
+  checks.add("Download is not the primary action; Next is, naming where it goes",
+    !group.downloadPrimary && group.primaries.length === 1 && /^Next: \w/.test(group.primaries[0]), group.primaries.join());
   checks.add("the buttons of the group sit together", group.gapInside < 8, `${group.gapInside}px`);
   checks.add("a divider with room either side separates the group from Back", group.dividerBetween && group.gapToBack >= 24
     && group.dividerHeight >= 20, `${group.gapToBack}px, divider ${group.dividerHeight}px tall`);

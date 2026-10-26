@@ -348,12 +348,17 @@ public partial class SketchDressingInspector
         if (Handle is not null) await Handle.InvokeVoidAsync("updateWing", change.Wing, change.Spec.ToJsonString());
     }
 
+    /// <summary>A building in hand before its rectangle is dragged has no wing to draw, so it asks for no picture
+    /// and raises no refusal: the header says how to place it.</summary>
+    private bool UnplacedBuilding
+        => !editingSelection && kind == PropKinds.House && prop?["wings"] is not JsonArray { Count: > 0 };
+
     /// <summary>Redraw the picture when the prop changed, one request at a time. The preview is a round trip
     /// that runs the real pass and a dragged slider changes the prop faster than that, so a change made while
     /// one is out is drawn when it lands — only the newest, never every step in between.</summary>
     private async Task RefreshPreview()
     {
-        if (prop is null) { preview = null; previewedFor = ""; return; }
+        if (prop is null || UnplacedBuilding) { preview = null; refusal = null; refused = []; previewedFor = ""; return; }
         // The prop plus the recipes it names: the preview reads a registry of one off the prop itself, which
         // is how a placement is drawn without the document it belongs to.
         var asked = (JsonObject)prop.DeepClone();
@@ -553,20 +558,7 @@ public partial class SketchDressingInspector
         await Push(patch);
     }
 
-    private static readonly IReadOnlyDictionary<string, (string Icon, string Title)> KindInfo =
-        new Dictionary<string, (string, string)>
-        {
-            [PropKinds.Stroke] = ("spline", "Stroke"),
-            [PropKinds.Fluid] = ("waves", "Fluid"),
-            [PropKinds.Flora] = ("flower", "Ground cover"),
-            [PropKinds.Tree] = ("trees", "Tree"),
-            [PropKinds.Boulder] = ("mountain", "Boulder"),
-            [PropKinds.House] = ("home", "Building"),
-            [PropKinds.Chest] = ("box", "Chest"),
-        };
-
-    private (string Icon, string Title) Info
-        => KindInfo.TryGetValue(kind, out var info) ? info : ("shapes", "Decoration");
+    private PropKindNames.Names Info => PropKindNames.Of(kind);
 
     /// <summary>The recipe an unnamed tree placement builds: <c>TreeStyle</c>'s own defaults.</summary>
     private const string DefaultSpecies = "oak";
