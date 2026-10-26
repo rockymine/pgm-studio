@@ -176,8 +176,8 @@ try {
     && await page.locator(".prop-card--active").count() === 1);
   // A generated tree is tuned where it stands: its height is a slider on the placement, not a library row.
   checks.add("a generated tree offers its height, and its seed",
-    /height \(blocks\)/i.test(await panel()) && /seed/i.test(await panel()),
-    (await panel()).match(/height \(blocks\)|seed/gi)?.join(",") ?? "(neither)");
+    /height\s*\(blocks\)/i.test(await panel()) && /seed/i.test(await panel()),
+    (await panel()).match(/height\s*\(blocks\)|seed/gi)?.join(",") ?? "(neither)");
   await shot("dressing-tree-spruce.png");
   await page.locator('.prop-card[data-name="oak"]').click();
   await page.waitForTimeout(2000);

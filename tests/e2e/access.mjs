@@ -89,7 +89,7 @@ async function checkWrites(base, open) {
     for (const [name, pattern] of controls) {
       const state = await settle(pattern, !open);
       if (open) checks.add(`${name} is open`, state?.closed === false, JSON.stringify(state));
-      else checks.add(`${name} is closed, and says why`, state?.closed === true && /not signed in/.test(state.title),
+      else checks.add(`${name} is closed, and says why`, state?.closed === true && /Sign in to/.test(state.title),
         JSON.stringify(state));
     }
   }
@@ -150,7 +150,7 @@ try {
     if (canvas) await page.waitForSelector(".canvas-dock", { timeout: 20000 }).catch(() => {});
     await page.waitForSelector("fieldset.readonly-fieldset", { timeout: 10000 }).catch(() => {});
     state = await readState();
-    checks.add("the editor bar says view only, and why", /not signed in/.test(state.banner ?? ""), state.banner ?? "no tag");
+    checks.add("the editor bar says view only, and why", /Sign in to/.test(state.banner ?? ""), state.banner ?? "no tag");
     checks.add("the studio bar offers the sign-in", state.signIn);
     checks.add("the panels are greyed", state.greyed > 0,
       `${state.greyed} disabled fieldset(s) over ${state.inspector} panel(s)`);
@@ -194,7 +194,7 @@ try {
     return input ? { disabled: input.matches(":disabled"), title: input.closest("fieldset")?.getAttribute("title") ?? "" } : null;
   });
   checks.add("the layer's name is greyed in the sidebar, and says why", layerName?.disabled === true
-    && /not signed in/.test(layerName.title), JSON.stringify(layerName));
+    && /Sign in to/.test(layerName.title), JSON.stringify(layerName));
 
   // Pick a group from the sidebar, then drag it on the canvas with the select tool, from a point inside it. The
   // canvas and its chrome are compared with the pointer resting where the drag ends both times, so a hover
