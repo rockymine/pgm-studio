@@ -106,26 +106,28 @@ public partial class SketchModifierInspector
     private static string ChangedLine(int columns) =>
         $"Changed {columns} column{(columns == 1 ? "" : "s")}.";
 
-    /// <summary>What the mask holds, and how it is changed: on the board, as every outline is.</summary>
+    /// <summary>Where the modifier acts, said in what an author traced: inside outlines, or along lines in a band
+    /// of their width — and that the board is where they are changed.</summary>
     private string AreaLine
     {
         get
         {
-            var lines = Areas.Count(SketchModifierState.IsLine);
-            var outlines = Areas.Count - lines;
-            if (lines == 0 && outlines == 0) return "No outline: it works on the whole board.";
+            var lines = Areas.Where(SketchModifierState.IsLine).ToList();
+            var outlines = Areas.Count - lines.Count;
+            if (lines.Count == 0 && outlines == 0) return "No area traced: it acts on the whole board.";
             var parts = new List<string>();
-            if (outlines > 0) parts.Add(outlines == 1 ? "one outline" : $"{outlines} outlines");
-            if (lines > 0) parts.Add(lines == 1 ? "one line" : $"{lines} lines");
-            var held = string.Join(" and ", parts);
-            return $"{char.ToUpperInvariant(held[0])}{held[1..]}. Drag {(Areas.Count == 1 ? "it or its" : "them or their")} points on the board.";
+            if (outlines > 0) parts.Add(outlines == 1 ? "inside one outline" : $"inside {outlines} outlines");
+            if (lines.Count == 1)
+                parts.Add($"along one line, in a band {Number(lines[0], Width) ?? DefaultLineWidth:0} blocks wide");
+            else if (lines.Count > 1) parts.Add($"along {lines.Count} lines, each in its band");
+            return $"Acts {string.Join(" and ", parts)}. Drag {(Areas.Count == 1 ? "it or its" : "them or their")} points on the board.";
         }
     }
 
     private string LineWidthLabel(int index)
     {
         var lines = Areas.Take(index + 1).Count(SketchModifierState.IsLine);
-        return Areas.Count(SketchModifierState.IsLine) > 1 ? $"Line {lines} width" : "Line width";
+        return Areas.Count(SketchModifierState.IsLine) > 1 ? $"Band {lines} width" : "Band width";
     }
 
     /// <summary>What a shape is called in the list of what the modifier may leave out: its kind and size, and the

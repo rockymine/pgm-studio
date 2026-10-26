@@ -138,19 +138,25 @@ export function paintPlaces(painter, places, selectedId = null) {
 /** The modifiers' masks: every outline thin, the picked modifier's bold with its images under the symmetry
  *  dashed, and a switched-off modifier's faint. A line is stroked open with its band beside it. */
 export function paintMasks(painter, masks) {
+  // The picked mask is drawn over a halo in its own colour, and while one is picked the others fall back, so the
+  // area being tuned is the one thing on the board that reads at a glance.
+  const anyPicked = (masks ?? []).some(mask => mask.picked && !mask.image);
   for (const mask of masks ?? []) {
     const strong = mask.picked && !mask.image;
-    const strokeAlpha = mask.off ? 0.3 : strong ? 0.95 : 0.6;
+    const colour = mask.picked ? "var(--canvas-pick)" : "var(--accent)";
+    const strokeAlpha = mask.off ? 0.3 : strong ? 1 : mask.picked ? 0.7 : anyPicked ? 0.25 : 0.6;
     const dash = mask.image || mask.off ? [5, 4] : null;
     if (mask.line) {
-      painter.polyline(mask.points, { stroke: "var(--accent)", strokeAlpha: strong ? 0.18 : mask.picked ? 0.08 : 0.05,
+      painter.polyline(mask.points, { stroke: colour, strokeAlpha: strong ? 0.22 : mask.picked ? 0.1 : 0.04,
                                       width: (mask.width ?? 0) / painter.screenPx(1), cap: "round", join: "round" });
-      painter.polyline(mask.points, { stroke: "var(--accent)", strokeAlpha, width: strong ? 2 : 1.5, dash, cap: "round", join: "round" });
+      if (strong) painter.polyline(mask.points, { stroke: "var(--bg-panel)", strokeAlpha: 0.9, width: 5, cap: "round", join: "round" });
+      painter.polyline(mask.points, { stroke: colour, strokeAlpha, width: strong ? 2.5 : 1.5, dash, cap: "round", join: "round" });
       continue;
     }
+    if (strong) painter.ring(mask.points, { stroke: "var(--bg-panel)", strokeAlpha: 0.9, width: 5 });
     painter.ring(mask.points, {
-      fill: "var(--accent)", fillAlpha: strong ? 0.1 : mask.picked ? 0.04 : 0.02, stroke: "var(--accent)",
-      strokeAlpha, width: strong ? 2 : 1.5, dash,
+      fill: colour, fillAlpha: strong ? 0.14 : mask.picked ? 0.05 : 0.02, stroke: colour,
+      strokeAlpha, width: strong ? 2.5 : 1.5, dash,
     });
   }
 }

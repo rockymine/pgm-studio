@@ -22,8 +22,12 @@
 
 /* Short fields two to a row: a number, a short select. A field that needs the width spans both, and a field opts
    into the half with `field--half`, so a form states which of its fields are short rather than the grid guessing. */
-.field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); align-items: start; }
+.field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); align-items: end; }
 .field-grid > :not(.field--half) { grid-column: 1 / -1; }
+/* A short field with no partner takes the row: half a row beside nothing reads as a field cut short. A grid lists
+   its short fields first, so an odd one followed by a full-width field, or by nothing, is the one alone. */
+.field-grid > .field--half:nth-child(odd):last-child,
+.field-grid > .field--half:nth-child(odd):has(+ :not(.field--half)) { grid-column: 1 / -1; }
 /* Split label row — label text left, a live value readout right (a RangeField's value, counters). */
 .field-label--split { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
 .field-label--split strong { color: var(--text-bright); }

@@ -7,6 +7,10 @@
 <Inspector>
   <DetailHeader Icon="@SketchModifierState.Icon(Op)" Label="@ModifierOps.Label(Op)">
     <span class="detail-header-badges">
+      @* On and off is the list row's eye, and the same eye here: one switch, wherever the modifier is seen. *@
+      <Button Variant="icon" Icon="eye" Writes Class="@(SketchModifierState.Off(Modifier) ? "modifier-eye--off" : null)"
+              Title="@(SketchModifierState.Off(Modifier) ? "Switched off: switch on" : "Switch off, keeping its numbers")"
+              OnClick="() => SetBool(Off, !SketchModifierState.Off(Modifier))" />
       <Button Variant="icon" Icon="x" Title="Done: show the terraform marks" OnClick="Close" />
     </span>
   </DetailHeader>
@@ -16,19 +20,10 @@
     {
       <p class="inspector-readout">@ChangedLine(columns)</p>
     }
-    <div class="field-grid">
-      <Field Label="Name" Half>
-        <input class="field-input" value="@(Modifier["name"]?.GetValue<string>() ?? "")" placeholder="@Id"
-               @onchange="e => SetText(Name, e.Value?.ToString())" />
-      </Field>
-      <Field Label="State" Half>
-        <div class="filter-group-options">
-          <Chip Active="@(!SketchModifierState.Off(Modifier))" OnClick="() => SetBool(Off, false)" Title="It changes the ground">On</Chip>
-          <Chip Active="@SketchModifierState.Off(Modifier)" OnClick="() => SetBool(Off, true)"
-                Title="It keeps its numbers and changes nothing">Off</Chip>
-        </div>
-      </Field>
-    </div>
+    <Field Label="Name">
+      <input class="field-input" value="@(Modifier["name"]?.GetValue<string>() ?? "")" placeholder="@Id"
+             @onchange="e => SetText(Name, e.Value?.ToString())" />
+    </Field>
   </Section>
 
   @* The operation's own numbers, two to a row, then the three every operation shares. *@
@@ -214,9 +209,12 @@
   </div>
   </Section>
 
-  <Section Title="Mask">
+  <Section Title="Area" HelpTitle="What the area is">
+    <Help>Where on the board this modifier acts: the outlines and lines traced for it. It changes the ground inside
+      them and nowhere else. Mirrored, the map's symmetry copies the area to every side.</Help>
+    <ChildContent>
     <p class="inspector-readout">@AreaLine</p>
-    <label class="check-row" title="The map's symmetry copies this mask to every side">
+    <label class="check-row" title="The map's symmetry copies this area to every side">
       <input type="checkbox" checked="@Mirrored" @onchange="e => SetMirror(e.Value is true)" />
       Mirrored
     </label>
@@ -235,20 +233,23 @@
       }
     </div>
     <Button Icon="plus" Writes OnClick="AddOutline"
-            Title="@(HasLine ? "Trace another line on the board; it joins this mask" : "Trace another outline on the board; it joins this mask")">@(HasLine ? "Add a line" : "Add an outline")</Button>
+            Title="@(HasLine ? "Trace another line on the board; it joins this area" : "Trace another outline on the board; it joins this area")">@(HasLine ? "Add a line" : "Add an outline")</Button>
+    </ChildContent>
   </Section>
 
   @if (Leavable.Count > 0)
   {
-    <Section Title="Leaves out">
-      <p class="section-desc">Shapes ticked here keep their ground.</p>
-      @foreach (var shape in Leavable)
-      {
-        <label class="check-row" @key="shape.Id">
-          <input type="checkbox" checked="@Leaves.Contains(shape.Id)" @onchange="e => SetLeaves(shape.Id, e.Value is true)" />
-          @ShapeLabel(shape)
-        </label>
-      }
+    <Section Title="Shapes left alone" HelpTitle="What leaving a shape alone does">
+      <Help>A ticked shape keeps its ground: this modifier changes nothing over it, even inside its area.</Help>
+      <ChildContent>
+        @foreach (var shape in Leavable)
+        {
+          <label class="check-row" @key="shape.Id">
+            <input type="checkbox" checked="@Leaves.Contains(shape.Id)" @onchange="e => SetLeaves(shape.Id, e.Value is true)" />
+            @ShapeLabel(shape)
+          </label>
+        }
+      </ChildContent>
     </Section>
   }
   @if (!string.IsNullOrEmpty(error))

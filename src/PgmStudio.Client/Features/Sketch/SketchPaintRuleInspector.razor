@@ -12,32 +12,30 @@
   {
     <DetailHeader Icon="paintbrush" Label="Paint rule">
       <span class="detail-header-badges">
+        @* On and off is the list row's eye, and the same eye here. *@
+        <Button Variant="icon" Icon="eye" Writes Class="@(IsOff(rule) ? "modifier-eye--off" : null)"
+                Title="@(IsOff(rule) ? "Switched off: switch on" : "Switch off, keeping its conditions")"
+                OnClick="() => Edit(edited => SetOrRemove(edited, Off, IsOff(rule) ? null : true))" />
         <Button Variant="icon" Icon="x" Title="Done" OnClick="() => OnClose.InvokeAsync()" />
       </span>
     </DetailHeader>
 
     <Section>
-      <div class="field-grid">
-        <Field Label="Name" Half>
-          <input class="field-input" value="@(Text(rule, Name) ?? "")" placeholder="@IdOf(rule)"
-                 @onchange="e => Edit(edited => SetOrRemove(edited, Name, string.IsNullOrWhiteSpace(e.Value?.ToString()) ? null : e.Value!.ToString()!.Trim()))" />
-        </Field>
-        <Field Label="State" Half>
-          <div class="filter-group-options">
-            <Chip Active="@(!IsOff(rule))" OnClick="() => Edit(edited => SetOrRemove(edited, Off, null))" Title="It paints">On</Chip>
-            <Chip Active="@IsOff(rule)" OnClick="() => Edit(edited => SetOrRemove(edited, Off, true))"
-                  Title="It keeps its conditions and paints nothing">Off</Chip>
-          </div>
-        </Field>
-      </div>
+      <Field Label="Name">
+        <input class="field-input" value="@(Text(rule, Name) ?? "")" placeholder="@IdOf(rule)"
+               @onchange="e => Edit(edited => SetOrRemove(edited, Name, string.IsNullOrWhiteSpace(e.Value?.ToString()) ? null : e.Value!.ToString()!.Trim()))" />
+      </Field>
       <Field Label="Material">
         <SlotSelect Styles="styles" Blocks="blocks" Value="@SlotOf(rule).StyleId" Block="@SlotOf(rule).Block"
                     Unbound="Choose a material" ValueChanged="Fill" />
       </Field>
     </Section>
 
-    @* Each condition narrows where the rule lays; an empty one does not narrow it. *@
-    <Section Title="Where">
+    @* Each condition narrows where the rule paints; an empty one does not narrow it. *@
+    <Section Title="Paints where the ground is" HelpTitle="How conditions combine">
+      <Help>The rule paints a column only where every condition it states holds. A condition left empty does not
+        narrow it.</Help>
+      <ChildContent>
       <div class="field-grid">
         <Field Label="Steeper than" Hint="°" Half>
           <NumberField Value="@Pair(rule, Slope, 0)" Min="0" Max="89" ValueChanged="v => SetPair(Slope, 0, v)" OnCleared="() => SetPair(Slope, 0, null)" />
@@ -62,9 +60,10 @@
           </Field>
         }
       </div>
+      </ChildContent>
     </Section>
 
-    <Section Title="How">
+    <Section Title="Depth and spread">
       <div class="field-grid">
         <Field Label="Courses" Half>
           <NumberField Value="@(Number(rule, Depth) ?? 1)" Min="1" Max="8" ValueChanged="v => Edit(edited => SetOrRemove(edited, Depth, (int)v == 1 ? null : (int)v))" />

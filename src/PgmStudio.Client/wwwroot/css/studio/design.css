@@ -302,8 +302,10 @@
 /* The rest of a long card grid, folded under one button. */
 .prop-cards-more { width: 100%; margin-bottom: var(--space-2); }
 /* A seed and the button that rolls a new one, held on one line at every width. */
-.seed-field { display: flex; flex-wrap: nowrap; gap: var(--space-1); align-items: center; }
-.seed-field .field-input { flex: 0 1 7rem; min-width: 4.5rem; }
+/* A seed takes the row: its number fills it and Reroll stands beside it at the number's height. */
+.seed-field { display: flex; flex-wrap: nowrap; gap: var(--space-2); align-items: stretch; }
+.seed-field .field-input { flex: 1 1 auto; min-width: 4.5rem; }
+.seed-field > .action-btn { height: var(--control-height); }
 
 /* A number whose unit is part of what it means, written inside the box: a floor is a y. */
 .field-affix { position: relative; display: flex; align-items: center; }

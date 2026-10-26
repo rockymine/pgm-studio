@@ -107,6 +107,9 @@
      fifth) carry the label and are the same hue at full strength, so the hierarchy is weight, not colour. */
   --canvas-contour:       rgba(251, 191, 36, 0.45);   /* amber-400 */
   --canvas-contour-index: rgba(251, 191, 36, 0.92);
+  /* The picked thing among many outlines of one kind — a modifier's mask over the others and the contours. A hue
+     no other canvas layer uses, so it reads as picked whatever lies under it. */
+  --canvas-pick: #ec4899;   /* pink-500 */
 
   /* A server-drawn board picture (generator, shape catalog) sits on --board-bg and paints four inks: ground,
      spawn room, wool room and the build zone's outline, each a fill and an edge, plus the iron pip. Ground is a

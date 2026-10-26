@@ -220,7 +220,10 @@ tall box never leaves a short button hanging beside it.
 **Fields sit in sections, short ones two to a row.** An inspector's body is `Section`s, so fields are one gap
 apart (`--space-3`) and sections a larger one (`--space-6`); a field placed straight in the inspector's column takes
 the section gap and reads as a section of its own. Short fields — a number, a short select, a two-chip state — go
-in a `field-grid` and say so with `Half`, two to a row; a field that needs the width spans both.
+in a `field-grid` and say so with `Half`, two to a row; a field that needs the width spans both, and a short one
+with no partner takes the row. A name is never short: it takes the width. Controls in a row meet on one line
+whatever their labels carry. A thing's on/off is its eye — in its list row and in its inspector's header — never a
+second control in the form.
 
 **One thing, one control.** A seed is `SeedField` everywhere: the number and *Reroll*, under *Seed*. What an
 inspector shows is deleted by `InspectorDelete`, the full-width danger button pinned to the inspector's foot —
