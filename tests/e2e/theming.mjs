@@ -68,7 +68,7 @@ try {
   await page.waitForTimeout(1500);
 
   // Enter the Theme phase (the palette nav button). One step, so there is nothing to advance through.
-  await page.click('button[title="Palette"]', { timeout: 8000 });
+  await page.click('.nav-btn:has(.nav-btn-caption:text-is("Palette"))', { timeout: 8000 });
   await page.waitForTimeout(1200);
   await shot("theme-phase.png");
 
@@ -213,7 +213,7 @@ try {
   await page.goto(`${BASE}/maps/${seed.sketchSlug}/sketch`, { waitUntil: "networkidle", timeout: 30000 });
   await page.waitForSelector("canvas", { timeout: 20000 });
   await page.waitForTimeout(1500);
-  await page.click('button[title="Palette"]', { timeout: 8000 });
+  await page.click('.nav-btn:has(.nav-btn-caption:text-is("Palette"))', { timeout: 8000 });
   await page.waitForTimeout(1500);
   const reloaded = page.locator(String.raw`.field:has-text("Wool rooms") .lib-bind select`).first();
   checks.add("the bound shell reads back as its own row after a reload",

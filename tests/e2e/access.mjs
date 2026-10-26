@@ -110,7 +110,7 @@ checks.add("the account menu links the whitelist for an admin", state.users);
 await page.click(".account-scrim");
 const openDownload = await settle(/^Download map/, false);
 checks.add("Download is open", openDownload?.closed === false, JSON.stringify(openDownload));
-const openIso = await settle(/^2D$/, false);
+const openIso = await settle(/^2-D$/, false);
 checks.add("the 3-D switch is open", openIso?.closed === false, JSON.stringify(openIso));
 
 await visit(BASE, "/admin/users");
@@ -180,7 +180,7 @@ try {
   const exported = await fetch(`${invited}/api/map/${seed.sketchSlug}/export`);
   checks.add("the export itself is refused", exported.status === 401, String(exported.status));
   // The 3-D preview is a build too, so the switch is greyed before it is pressed rather than after it fails.
-  const iso = await settle(/^2D$/, true);
+  const iso = await settle(/^2-D$/, true);
   checks.add("the 3-D switch is closed, and says why", iso?.closed === true && /Sign in/.test(iso.title),
     JSON.stringify(iso));
 

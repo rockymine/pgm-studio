@@ -15,7 +15,7 @@ internal static class ClientText
     public enum Channel
     {
         Label, Unit, Help, Term, Note, Readout, Placeholder, Tooltip, SectionTitle, Description, EmptyState,
-        Option, OptionNote, Button, Failure, RawClass,
+        Option, OptionNote, Button, Failure, Reason, RawClass,
     }
 
     /// <summary>One text: where it is written, its channel, what it belongs to (the field's label, the button's
@@ -51,6 +51,9 @@ internal static class ClientText
             var inComponents = name.StartsWith("Components/", StringComparison.Ordinal);
             if (file.EndsWith(".razor", StringComparison.Ordinal)) ReadMarkup(source, name, inComponents, texts);
             ReadCode(source, name, texts);
+            if (name == "Components/Data/StudioAccess.cs")
+                foreach (Match reason in Regex.Matches(source, @"""([A-Z][^""]*\.)"""))
+                    texts.Add(new($"{name}:{Line(source, reason.Index)}", Channel.Reason, "reason", reason.Groups[1].Value, "code"));
         }
         var scripts = Path.Combine(client, "wwwroot", "js");
         foreach (var file in Directory.EnumerateFiles(scripts, "*.js", SearchOption.AllDirectories)

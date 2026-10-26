@@ -35,7 +35,7 @@ shown, never name one.
 | `/library/{kind}` | `LibraryTool` | one library's browse grid; `kind` is `styles\|themes\|roofs\|storeys\|porches\|houses` |
 | `/library/{kind}/{entry}` | `LibraryTool` | one entry's editor; `entry` is a row id or `new` |
 | `/rules` | `Rules` | every rule the studio can cite, filtered and opened one at a time; `?rule=` opens on one (`docs/refusals.md`) |
-| `/glossary` | `Glossary` | every word the studio uses, defined once (`GET /api/glossary`): alphabetical, `?q=` filters by word, other name and definition, and `#hub` opens on a term |
+| `/glossary` | `Glossary` | every word the studio uses, defined once (`GET /api/glossary`): A to Z under a letter bar, every retired name filed as a see entry, `?q=` searches name first, and `#hub` lands on a term through any search |
 | `/tokens` | `Tokens` | the signed-in person's API tokens |
 | `/admin/users` | `Users` | who may sign in, and with which role |
 | `/design` | `Design` | the design system: tokens and every shared component, grouped by role |

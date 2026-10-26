@@ -505,11 +505,11 @@ text-size setting have shipped; what remains is what a sentence cannot fix — a
 up, controls that behave unlike every other tool, and the look itself. `docs/client/writing-for-the-ui.md`
 is the standard the copy is held to.
 
-- [~] **RP99 — The terms defined where they appear.** `/glossary` lists `GET /api/glossary`; what remains is a
-  `Term` component that underlines a word, shows its one-line definition on hover and links to its
-  `/glossary#slug` entry, then the tool pages losing the explanatory paragraphs that stand in for help today. The
-  guide entries in `docs/client/writing-for-the-ui.md` join the glossary as a longer field when a page needs
-  them. `docs/client/`.
+- [~] **RP99 — A term inside a sentence is defined where it stands.** A field or a section naming a glossary term
+  shows its definition behind its `?`; a term inside a description, a note or a readout has no way to. A
+  definition tooltip — the word dotted-underlined, its definition on focus and hover, a link to `/glossary#slug` —
+  closes that, and the guide entries in `docs/client/writing-for-the-ui.md` join the glossary as a longer field
+  when a page needs them. `docs/client/`.
 
 - [ ] **C83 — Clicking the zoom readout resets the view.** The zoom percentage in `CanvasReadout` is
   pointer-transparent; a reader expects clicking it to return to 100% or fit. Make the zoom item a button
@@ -544,6 +544,22 @@ is the standard the copy is held to.
   out like a player profile), each covering the landing page with map pictures and the map list with
   authors, beside the sketch's In-game and change-history panels. The choice decides `tokens.css` and the
   landing and list layouts; the components stay. `docs/client/ui-conventions.md`.
+
+## The studio's own icons: one glyph for one thing
+`docs/client/icon-map.md` is the map: 511 icon assignments, where one picture stands for several things and one
+thing is drawn several ways, and the order the move to the studio's own glyphs takes.
+
+- [ ] **C109 — The studio's own glyph for each thing that collides.** *Parked (author): six decisions first —
+  the prefix scheme, a phase reusing its headline glyph, shared glyphs for chest and house, one point glyph,
+  glyphs on the canvas, and the glossary's* place, point, ridge *and* road. Then draw the first-priority glyphs
+  in `icons/terrain-icons.js` and point every table in `docs/client/icon-map.md`'s collision lists at them; the
+  rule in `docs/client/ui-conventions.md` that names `terrain-*` changes with the prefix.
+- [ ] **C110 — One table per icon set.** The props' icons are stated in `DressingTools.All` and
+  `PropKindNames.All`, and the pieces' in the Layout dock's marker list and `SketchStructuralRow.Icon`; each pair
+  agrees only by hand. Keep one of each and derive the other, before any glyph moves.
+- [ ] **C111 — The vendor scan takes only icon names.** The Lucide subset vendors every kebab-case literal in the
+  client, so 37 of its 152 names are never drawn (*anchor*, *bed*, *road*). Scan only icon positions — `Icon=`,
+  `data-lucide`, the icon tables — and regenerate. `docs/client/icon-map.md`.
 
 ## User Experience
 

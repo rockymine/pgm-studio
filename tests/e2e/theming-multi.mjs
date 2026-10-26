@@ -55,7 +55,7 @@ try {
   await page.waitForSelector("canvas", { timeout: 20000 });
   await page.waitForTimeout(1200);
 
-  await page.click('button[title="Palette"]');
+  await page.click('.nav-btn:has(.nav-btn-caption:text-is("Palette"))');
   await page.waitForTimeout(1200);
 
   // Take a theme in hand from the strip, then click one shape on the board — the whole of applying a theme.
@@ -139,7 +139,7 @@ try {
   await page.waitForTimeout(2000);   // WASM boot + the async block-palette fetch that colours the overlay
   // Into the Theme phase, and settle. The phase opens with Blocks on — the paint is what it acts on — so
   // this only confirms it rather than reaching for the chip.
-  await page.click('button[title="Palette"]');
+  await page.click('.nav-btn:has(.nav-btn-caption:text-is("Palette"))');
   await page.waitForTimeout(2200);
   const blocks = page.locator('button.canvas-chip:has-text("Blocks")');
   const isOn = async () => blocks.evaluate(el => el.classList.contains("canvas-chip--on"));

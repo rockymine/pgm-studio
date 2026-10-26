@@ -10938,6 +10938,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   beside a Reroll of its height. A paint rule is its *Material* and one *Mask* — the conditions, a *Depth* in blocks
   and a *Coverage* whose share below 100% lays in patches — and the sidebar's heading over groups and their shapes
   is *Shapes*.
+- **Every screen text has one channel, one form and a gate (`C108`, `RP99`).** `docs/client/writing-for-the-ui.md`
+  names where each kind of text goes and how it is written, after NN/g, GOV.UK, Carbon, Polaris and Microsoft;
+  `ClientTextTests` holds every text in the client to it, beside `RuleTextTests`, with one form per recurring
+  situation. `Field` takes `Unit`, `Help`, `Term` and `Note`; a term's `?` shows the glossary's own definition and
+  links to it; `Readout`, `EmptyState`, `StatusLine` and `HelpNote` give their channels one mechanism each. The
+  glossary page files every retired name as a see entry under an A to Z bar, ranks a search by name, and lands a
+  deep link on its entry.
 - **An empty number says what it stands for (`TS231`).** A modifier's numbers that are worked out when unstated —
   a Level's height, a Butte's or Spire's top, a Lake's or Sea's level, a floor, a heading — read *Auto* and say
   under the box what they take; Soft rim shows its default, 0, a hard edge; a paint rule's empty conditions read

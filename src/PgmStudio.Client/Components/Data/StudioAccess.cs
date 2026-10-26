@@ -52,13 +52,13 @@ public sealed class StudioAccess(HttpClient http)
         var caller = await MeAsync();
         if (segments[0] == "maps" && segments.Length >= 3)
             return await MayEditMapAsync(segments[1]) ? null
-                : !caller.SignedIn ? "You are not signed in, so this map is read-only."
-                : caller.Role is null ? "You are not on the whitelist, so this map is read-only."
+                : !caller.SignedIn ? "Sign in to change this map."
+                : caller.Role is null ? "Ask an admin for access to change this map."
                 : "Only its owner, its authors or an admin can change this map.";
 
         return caller.Role is not null ? null
-            : !caller.SignedIn ? "You are not signed in, so this page is read-only."
-            : "You are not on the whitelist, so this page is read-only.";
+            : !caller.SignedIn ? "Sign in to change this page."
+            : "Ask an admin for access to change this page.";
     }
 
     /// <summary>
@@ -73,8 +73,8 @@ public sealed class StudioAccess(HttpClient http)
 
         var caller = await MeAsync();
         return caller.Role is not null ? null
-            : !caller.SignedIn ? "You are not signed in, so you can only look."
-            : "You are not on the whitelist, so you can only look.";
+            : !caller.SignedIn ? "Sign in to do this."
+            : "Ask an admin for access to do this.";
     }
 
     /// <summary>
@@ -96,8 +96,8 @@ public sealed class StudioAccess(HttpClient http)
     {
         var caller = await MeAsync();
         return caller.Role is not null ? null
-            : !caller.SignedIn ? "You are not signed in, so the studio cannot build this."
-            : "You are not on the whitelist, so the studio cannot build this.";
+            : !caller.SignedIn ? "Sign in to have the studio build this."
+            : "Ask an admin for access to have the studio build this.";
     }
 
     private static string[] Segments(string path) =>

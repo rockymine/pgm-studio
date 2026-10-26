@@ -106,9 +106,11 @@ action on every screen: `x` is *Close*, `trash-2` is *Delete this …*, `eye` is
 `chevron-up` and `chevron-down` are *Move up* and *Move down*, `plus` opens *Add*, `hand` is *Pan*, `rotate-cw`
 and `rotate-ccw` are *Turn clockwise* and *Turn counterclockwise*, and `scan` is *Zoom to fit*.
 
-**A reason is a sentence.** Where a control is closed — the caller may not write, a build is running — the
-reason the shell supplies replaces the tooltip, as one sentence with a stop. A reason is the one sentence a
-hover shows, because it answers the question the disabled control raises.
+**A reason says how to open the control.** Where a control is closed — the caller may not write, a build is
+running — the reason `StudioAccess` supplies replaces the tooltip, as one sentence with a stop: *Sign in to change
+this map.*, *Ask an admin for access to do this.*, or, where nothing the reader does opens it, *Only its owner, its
+authors or an admin can change this map.* A reason is the one sentence a hover shows, and a disabled control's
+question is how to enable it, not only why it is off.
 
 **A section title is a noun phrase of at most three words.** Sentence case, no punctuation, no commas, never a
 question and never a sentence: *Mask*, *Area*, *Excluded shapes*, *Paint rules*. NN/g measured that people see
@@ -161,6 +163,7 @@ divergence found on review becomes a row here and an assertion there in the same
 | a placeholder | a name, *Auto*, *Any*, *Choose a …*, *Search …* | a number, an example, an ellipsis |
 | an option | one note for one option label, on every screen | a second note for the same option |
 | drawing a rectangle | *Drag a rectangle …* | *Draw a box …* |
+| a control is closed | *Sign in to …*, *Ask an admin for access to …*, *Only …* | *You are not signed in, so …* |
 | a height counted in courses | *4 blocks of wall*, as the field beside it says | *4 courses of wall* |
 | two labels for one quantity | one label; the other retired in the glossary's *Also called* | *Players per team* beside *Team size* |
 

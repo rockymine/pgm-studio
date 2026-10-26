@@ -60,7 +60,8 @@ public sealed class ClientTextTests
         [Channel.Label, Channel.Unit, Channel.Placeholder, Channel.Tooltip, Channel.SectionTitle, Channel.Option, Channel.Button];
 
     private static readonly Channel[] Sentences =
-        [Channel.Help, Channel.Note, Channel.Readout, Channel.Description, Channel.EmptyState, Channel.OptionNote, Channel.Failure];
+        [Channel.Help, Channel.Note, Channel.Readout, Channel.Description, Channel.EmptyState, Channel.OptionNote, Channel.Failure,
+         Channel.Reason];
 
     private static IEnumerable<Text> Of(params Channel[] channels) => All.Where(text => channels.Contains(text.Channel));
 
@@ -142,7 +143,7 @@ public sealed class ClientTextTests
         var limits = new Dictionary<Channel, int>
         {
             [Channel.Note] = 20, [Channel.Readout] = 25, [Channel.Description] = 25, [Channel.EmptyState] = 20,
-            [Channel.OptionNote] = 12, [Channel.Failure] = 20,
+            [Channel.OptionNote] = 12, [Channel.Failure] = 20, [Channel.Reason] = 20,
         };
         var wrong = new List<string>();
         foreach (var text in Of([.. limits.Keys]))
@@ -359,6 +360,9 @@ public sealed class ClientTextTests
                 wrong.Add($"{text.Where}: '{text.Words}' — a rectangle is dragged: 'Drag a rectangle'");
         foreach (var text in All.Where(text => System.Text.RegularExpressions.Regex.IsMatch(text.Words, @"(\{x\}|\d+) courses?\b")))
             wrong.Add($"{text.Where}: '{text.Words}' — a height is counted in blocks, as its field says");
+        foreach (var text in Of(Channel.Reason).Where(text => !System.Text.RegularExpressions.Regex.IsMatch(text.Words,
+                     @"^(Sign in to |Ask an admin for access to |Only )")))
+            wrong.Add($"{text.Where}: '{text.Words}' — a reason says how to open the control");
         foreach (var option in Of(Channel.OptionNote).Where(text => !text.Words.Contains("{x}")).GroupBy(text => text.Owner))
             if (option.Select(text => text.Words).Distinct().Count() > 1)
                 wrong.Add($"option '{option.Key}' has {option.Select(text => text.Words).Distinct().Count()} notes: "
