@@ -49,7 +49,7 @@ public sealed class SketchSeamCheckTests
         intent with { Build = (intent.Build ?? new BuildIntent()) with { Areas = [.. intent.Build?.Areas ?? [], .. areas] } };
 
     private static MapIntent WithWall(MapIntent intent, int x1, int z1, int x2, int z2) =>
-        intent with { Structures = (intent.Structures ?? new StructureIntent()) with { Walls = [new WallStructure(x1, z1, x2, z2, 12, Id: "wall")] } };
+        intent with { Structures = (intent.Structures ?? new StructureIntent()) with { Walls = [new WallStructure([[x1, z1], [x2, z2]], 12, Id: "wall")] } };
 
     // The rules the seam check raises, each under the id the plan raises it by.
     private static readonly HashSet<string> Seams =

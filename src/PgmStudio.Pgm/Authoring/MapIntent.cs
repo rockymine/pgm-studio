@@ -241,25 +241,35 @@ public readonly record struct RedstoneLine(int X1, int Z1, int X2, int Z2, Stamp
 [method: JsonConstructor]
 public readonly record struct IronCube(int MinX, int MinZ, bool Renew, StampId Stamp = default, string Id = "");
 
-/// <summary>A pre-built bedrock approach wall: a line between two block corners, <see cref="WallLine.Thickness"/>
-/// blocks thick across it at any angle, rising from y=0 up to <see cref="TopY"/> inclusive (ST4). Its columns are
-/// <see cref="WallLine.Cells"/>.</summary>
-/// <param name="X1">One end, east–west, on a block corner.</param>
-/// <param name="Z1">That end, north–south.</param>
-/// <param name="X2">The other end, east–west.</param>
-/// <param name="Z2">That end, north–south.</param>
+/// <summary>A pre-built bedrock approach wall: a line through two or more block corners, <see cref="WallLine.Thickness"/>
+/// blocks thick across every leg at any angle, rising from y=0 up to <see cref="TopY"/> inclusive (ST4). Its columns
+/// are <see cref="WallLine.Cells"/>.</summary>
+/// <param name="Points">Its corners in order, each <c>[x, z]</c> on a block corner: two for a straight wall, one
+/// more for every bend.</param>
 /// <param name="TopY">The height it rises to where the ground under it has nothing to say, inclusive.</param>
 /// <param name="Stamp">Which stamping of the structure this is.</param>
 /// <param name="Id">The piece's id, which the piece route finds it by.</param>
 [method: JsonConstructor]
-public readonly record struct WallStructure(
-    int X1, int Z1, int X2, int Z2, int TopY, StampId Stamp = default, string Id = "")
+public readonly record struct WallStructure(int[][] Points, int TopY, StampId Stamp = default, string Id = "")
 {
+    /// <summary>Its corners, in order.</summary>
+    public IReadOnlyList<(int X, int Z)> Corners() => [.. Points.Select(point => (point[0], point[1]))];
+
+    /// <summary>Its first corner.</summary>
+    [JsonIgnore] public (int X, int Z) Start => (Points[0][0], Points[0][1]);
+
+    /// <summary>Its last corner.</summary>
+    [JsonIgnore] public (int X, int Z) End => (Points[^1][0], Points[^1][1]);
+
     /// <summary>The columns the wall stands in.</summary>
-    public IEnumerable<(int X, int Z)> Cells() => WallLine.Cells(X1, Z1, X2, Z2);
+    public IEnumerable<(int X, int Z)> Cells() => WallLine.Cells(Corners());
 
     /// <summary>The block rectangle those columns span.</summary>
-    public BlockRect Bounds() => WallLine.Bounds(X1, Z1, X2, Z2);
+    public BlockRect Bounds() => WallLine.Bounds(Corners());
+
+    /// <summary>Whether <paramref name="other"/> runs through the same corners, either way along.</summary>
+    public bool SameLine(WallStructure other) =>
+        Corners().SequenceEqual(other.Corners()) || Corners().SequenceEqual(other.Corners().Reverse());
 }
 
 /// <summary>A defence chest standing on the ground at one block, fronting <see cref="Facing"/>: the supply an

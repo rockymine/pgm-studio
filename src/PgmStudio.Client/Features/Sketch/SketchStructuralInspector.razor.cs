@@ -38,7 +38,7 @@ public partial class SketchStructuralInspector
     /// not one, or outside Layout.</summary>
     [Parameter] public RenderFragment? House { get; set; }
 
-    /// <summary>Whether the canvas reshapes the piece here — a wall's ends drag apart, a region, an area or a lane
+    /// <summary>Whether the canvas reshapes the piece here — a wall's corners drag, add and go, a region, an area or a lane
     /// resizes — which is Layout.</summary>
     [Parameter] public bool Reshapes { get; set; }
 

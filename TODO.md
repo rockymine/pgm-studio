@@ -40,10 +40,6 @@ A pgmvox board becomes playable with the studio's markers and outlines on it: th
 Layout, every stamp can be switched off where the world already carries its own, and a world built elsewhere
 arrives with its `map.xml` (`docs/pgmvox-port.md`, *Phase 5*).
 
-- [ ] **TS214 — A wall bends.** A wall states a polyline (`points`, two or more corners on block corners) in
-  place of its two ends, stamped two thick along every leg, its corners dragged in Layout as its ends are and a
-  shift-press on a leg adding one; a migration carries each stored `x1,z1,x2,z2` into two points. Lands in
-  `WallStructure`, `PlayPieces.Wall`, `WallEndController` and the wall stamper (`docs/tools/sketch.md`).
 - [ ] **WE174 — Every stamp switched per piece.** A piece states which of its stamps run, all on by default: a
   goal's marker and float check, a build area's outline, a wool room's loot, a destroyable's kit pairing, and
   whether a wall is stamped at all. The switches sit on the piece's rail and the build reads them in

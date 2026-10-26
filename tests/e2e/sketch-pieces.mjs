@@ -4,7 +4,8 @@
  * The board is a fresh sketch under `rot_180` whose intent states no teams — the map a person starts with. A spawn
  * and a wool room dragged out on it are stored with their images; a wall dragged on the canvas is stored and drawn
  * where it was dropped; a room is drawn with the building it is raised as, and its region and its building resize
- * from an edge, the image following; a control point clicked down is laid round from its rail; and only the
+ * from an edge, the image following; a control point clicked down is laid round from its rail; a wall bends at a
+ * corner a shift-press adds; and only the
  * authored image of an orbit is picked, the image it draws moving with it.
  */
 
@@ -23,7 +24,7 @@ await api(`/map/${slug}/sketch`, {
     ], groups: [] } }],
   },
 });
-const { id: wallId } = await api(`/map/${slug}/intent/pieces`, { method: "POST", body: { kind: "wall", ends: [-40, -10, -40, 10] } });
+const { id: wallId } = await api(`/map/${slug}/intent/pieces`, { method: "POST", body: { kind: "wall", points: [[-40, -10], [-40, 10]] } });
 
 const pieces = () => api(`/map/${slug}/intent/pieces`);
 const byKind = async (kind) => (await pieces()).filter(piece => piece.kind === kind);
@@ -225,6 +226,29 @@ try {
   const round = await byKind("controlPoint");
   checks.add("disc on the rail lays the point and its image round", round.every(point => point.shape === "disc"),
     JSON.stringify(round.map(point => point.shape)));
+
+  checks.section("a wall gains a corner with a shift-press on its leg, and the corner drags out into a bend");
+  await page.keyboard.press("Escape"); await page.keyboard.press("Escape");
+  const straight = (await byKind("wall")).find(piece => !piece.carried);
+  const [[ax, az], [bx, bz]] = straight.line;
+  const onLeg = (t) => at(ax + (bx - ax) * t, az + (bz - az) * t);
+  const pickAt = onLeg(0.25);
+  await page.mouse.click(pickAt.x, pickAt.y);
+  await page.waitForTimeout(300);
+  const addAt = onLeg(0.5);
+  await page.keyboard.down("Shift");
+  await page.mouse.click(addAt.x, addAt.y);
+  await page.keyboard.up("Shift");
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(600);
+  const cornered = await byKind("wall");
+  checks.add("the wall and its image are stored with a third corner", cornered.every(piece => piece.line.length === 3),
+    JSON.stringify(cornered.map(piece => piece.line)));
+  const bend = cornered.find(piece => !piece.carried).line[1];
+  await drag({ x: bend[0], z: bend[1] }, { x: bend[0] + 6, z: bend[1] });
+  const bent = (await byKind("wall")).find(piece => !piece.carried);
+  checks.add("dragging the new corner bends the wall there", bent.line[1][0] === bend[0] + 6 && bent.line.length === 3,
+    JSON.stringify(bent.line));
 
   checks.section("Layout picks the pieces and Ground the ground");
   await page.keyboard.press("Escape"); await page.keyboard.press("Escape");

@@ -65,17 +65,18 @@ public sealed class IntentPieceAddEndpoint(
         var board = await IntentPieceMoveEndpoint.BoardAsync(artifacts, map.Id, ct);
         var rect = new[] { req.MinX, req.MinZ, req.MaxX, req.MaxZ };
         var wall = req.Kind == PlayPieceKinds.Wall;
-        if (wall ? req.Ends is not { Length: 4 } || rect.Any(bound => bound is not null) : rect.Any(bound => bound is null) || req.Ends is not null)
+        var corners = req.Points is { } points && points.All(point => point is { Length: 2 }) ? points : null;
+        if (wall ? corners is not { Length: >= 2 } || rect.Any(bound => bound is not null) : rect.Any(bound => bound is null) || req.Points is not null)
         {
             await Refusals.StopAsync(HttpContext, 400, "the piece cannot be added", Findings.Of(new Finding(
                 RequestRules.Unreadable, wall
-                    ? "a wall states its two `ends` as [x1, z1, x2, z2], and no rectangle"
-                    : "the request states all four bounds of a placed rectangle, and no `ends`",
-                Field: wall ? "ends" : "minX")), ct);
+                    ? "a wall states two or more `points`, each [x, z], and no rectangle"
+                    : "the request states all four bounds of a placed rectangle, and no `points`",
+                Field: wall ? "points" : "minX")), ct);
             return;
         }
         var (added, id, refused) = wall
-            ? PlayPieceAdd.Wall(intent, req.Ends![0], req.Ends[1], req.Ends[2], req.Ends[3], board)
+            ? PlayPieceAdd.Wall(intent, corners!, board)
             : PlayPieceAdd.Apply(intent, req.Kind, new Rect(req.MinX!.Value, req.MinZ!.Value, req.MaxX!.Value, req.MaxZ!.Value),
                                  req.Team, board);
         if (added is null)
@@ -193,6 +194,40 @@ public sealed class IntentPieceDoorsEndpoint(
             var missing = refused.Any(finding => finding.Rule == RequestRules.NoSuchSubject);
             await Refusals.StopAsync(HttpContext, missing ? 404 : 400,
                                      missing ? "no such piece" : "the doors cannot be cut", refused, ct);
+            return;
+        }
+        var applied = await IntentWrite.StoreAndProjectAsync(
+            repo, reader, writer, artifacts, features, players, slug, map.Id,
+            JsonSerializer.Serialize(set, MapArtifactStore.Json), Revisions.Expected(HttpContext), ct);
+        await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
+    }
+}
+
+/// <summary>PUT /api/map/{slug}/intent/pieces/{id}/line — run a wall through its corners, on every image of its unit
+/// unless <c>alone</c>. <see cref="PlayPieceLine"/> holds what it refuses.</summary>
+public sealed class IntentPieceLineEndpoint(
+    MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, FeatureData features,
+    PlayerLookup players)
+    : Endpoint<PieceLineRequest>
+{
+    public override void Configure()
+    {
+        Put("/map/{slug}/intent/pieces/{id}/line");
+        Description(b => b.Produces<AppliedDto>(200, "application/json").Refuses(400, 404, 409, 422));
+    }
+
+    public override async Task HandleAsync(PieceLineRequest req, CancellationToken ct)
+    {
+        var slug = Route<string>("slug")!;
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+        var intent = await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
+        var (set, refused) = PlayPieceLine.Apply(intent, Route<string>("id")!, req.Points ?? [], req.Alone,
+            await IntentPieceMoveEndpoint.BoardAsync(artifacts, map.Id, ct));
+        if (set is null)
+        {
+            var missing = refused.Any(finding => finding.Rule == RequestRules.NoSuchSubject);
+            await Refusals.StopAsync(HttpContext, missing ? 404 : 400,
+                                     missing ? "no such piece" : "the wall cannot run there", refused, ct);
             return;
         }
         var applied = await IntentWrite.StoreAndProjectAsync(

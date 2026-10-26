@@ -10885,6 +10885,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   3 to 15), and the rail sets its name, its pad (`ControlPointShapes`: square or disc), how it is taken, its
   capture time in seconds and its points. A disc is laid round (`ControlPointStamper.Cells`) and captured inside a
   `<cylinder>` (`ObjectiveRegion.EmitCylinder`). `docs/tools/sketch.md` *Draw*, `docs/pgm/control-points.md` §9.
+- **A wall bends (`TS214`).** A wall states `points`, two or more block corners, laid two blocks thick along every
+  leg with the four blocks round each bend filled (`WallLine`). In Layout a picked wall wears a grip on each corner:
+  a drag moves one, a shift-press on a leg adds one and a shift-press on a corner takes it out
+  (`WallCornerController`), each written whole through `PUT …/intent/pieces/{id}/line` (`PlayPieceLine`) and carried
+  to every image. `M0089` carried every stored wall's two ends into two corners; `ST4` amended (60).
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the

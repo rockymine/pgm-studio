@@ -56,7 +56,10 @@
           : "The region under it stays where it is.")
       }
       @if (House is not null) { <text> Drag a corner or an edge to resize a wing, or click the + on a free wall to add one.</text> }
-      else if (Reshapes && Piece.Role == PlayPieceKinds.Wall) { <text> Drag an end to move it alone. It snaps to the edge of a shape.</text> }
+      else if (Reshapes && Piece.Role == PlayPieceKinds.Wall)
+      {
+        <text> Drag a corner to move it alone; it snaps to the edge of a shape. Shift-click a leg to add a corner, or a corner to take it out.</text>
+      }
       else if (Reshapes && Piece.Role == PlayPieceKinds.ControlPoint)
       {
         <text> Drag a corner or an edge to resize it; its longer side is the pad's size.</text>

@@ -75,10 +75,10 @@ export function paintStructural(painter, shapes, selectedId = null) {
     const box = { min_x: s.min_x, min_z: s.min_z, max_x: s.max_x, max_z: s.max_z };
     // The ring goes outside whatever the piece draws for itself, in the selection ink every other picked
     // thing on this canvas wears, so a picked region and a picked island read as the same kind of state.
-    // A wall is the band its line is laid in, at whatever angle the line runs.
-    const band = s.line ? wallBand(s.line) : null;
+    // A wall is the bands its legs are laid in, at whatever angle each runs.
+    const bands = s.line ? wallBands(s.line) : null;
     if (s.id === selectedId) {
-      if (band) painter.ring(band, { stroke: "var(--accent)", strokeAlpha: 1, width: 4 });
+      if (bands) for (const band of bands) painter.ring(band, { stroke: "var(--accent)", strokeAlpha: 1, width: 4 });
       else painter.rect(box, { stroke: "var(--accent)", strokeAlpha: 1, width: 4 });
     }
     // A piece that is not a room is drawn in its kind's colour and carries no label: what it is shows by its
@@ -90,7 +90,7 @@ export function paintStructural(painter, shapes, selectedId = null) {
         fill: look.color, fillAlpha: s.carried ? look.alpha / 2 : look.alpha,
         stroke: look.color, strokeAlpha: 0.95, width: 2, ...(dash ? { dash } : {}),
       };
-      if (band) painter.ring(band, style);
+      if (bands) for (const band of bands) painter.ring(band, style);
       else if (s.shape === "disc") paintShape(painter, "circle", box, style);
       else painter.rect(box, style);
       continue;
@@ -183,6 +183,19 @@ export function placeAt(places, wx, wz, reach) {
         if (near(points[j - 1][0], points[j - 1][1], points[j][0], points[j][1])) return place;
   }
   return null;
+}
+
+/** The bands a wall through `points` stands in, one per leg: each two blocks across, square at its ends, and run a
+ *  block past a bend so the legs meet without a notch. */
+export function wallBands(points) {
+  return points.slice(1).map((to, at) => {
+    const from = points[at];
+    const [dx, dz] = [to[0] - from[0], to[1] - from[1]];
+    const length = Math.hypot(dx, dz) || 1;
+    const before = at > 0 ? 1 : 0, after = at < points.length - 2 ? 1 : 0;
+    return wallBand([from[0] - dx / length * before, from[1] - dz / length * before,
+                     to[0] + dx / length * after, to[1] + dz / length * after]);
+  });
 }
 
 /** The four corners of the band a wall from (x1, z1) to (x2, z2) stands in: two blocks across, square at the ends. */

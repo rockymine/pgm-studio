@@ -61,7 +61,7 @@ public partial class SketchTool
         StateHasChanged();
     }
 
-    /// <summary>Let the canvas shape a picked room's house and drag a picked wall's ends in Layout alone, and read
+    /// <summary>Let the canvas shape a picked room's house and change a picked wall's corners in Layout alone, and read
     /// the house for the step.</summary>
     private async Task PushLayoutEditingAsync()
     {

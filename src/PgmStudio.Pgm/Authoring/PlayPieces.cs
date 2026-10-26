@@ -13,10 +13,10 @@ namespace PgmStudio.Pgm.Authoring;
 /// <param name="Carried">True where the piece is not picked on its own: an image the symmetry draws and the
 /// intent does not store, an image of an orbit other than its authored one, which moves with it, or an iron cube
 /// seated in a room.</param>
-/// <param name="Line">A wall's two ends, <c>[x1, z1, x2, z2]</c> on block corners; null for every other piece.</param>
+/// <param name="Line">A wall's corners in order, each <c>[x, z]</c> on a block corner; null for every other piece.</param>
 /// <param name="Shape">A control point's pad (<see cref="ControlPointShapes"/>); null for every other piece.</param>
 public readonly record struct PlayPiece(
-    string Id, string Kind, string Color, Rect Rect, bool Carried, int[]? Line = null, string? Shape = null);
+    string Id, string Kind, string Color, Rect Rect, bool Carried, int[][]? Line = null, string? Shape = null);
 
 /// <summary>
 /// Every play piece of an intent as the sketch draws it, each at the rectangle the piece route reads it as
@@ -68,7 +68,7 @@ public static class PlayPieces
         foreach (var cube in expanded.Structures?.IronCubes ?? [])
             yield return Piece(cube.Id, PlayPieceKinds.IronCube, "", Iron(cube.MinX, cube.MinZ), cube.Stamp);
         foreach (var wall in expanded.Structures?.Walls ?? [])
-            yield return Piece(wall.Id, PlayPieceKinds.Wall, "", Wall(wall), wall.Stamp) with { Line = [wall.X1, wall.Z1, wall.X2, wall.Z2] };
+            yield return Piece(wall.Id, PlayPieceKinds.Wall, "", Wall(wall), wall.Stamp) with { Line = wall.Points };
         foreach (var chest in expanded.Structures?.Chests ?? [])
             yield return Piece(chest.Id, PlayPieceKinds.Chest, "", Chest(chest), chest.Stamp);
         if (expanded.Observer is { } observer)

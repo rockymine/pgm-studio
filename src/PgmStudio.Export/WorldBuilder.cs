@@ -617,7 +617,7 @@ public static class WorldBuilder
             var proud = StructureStamper.WallCoursesProud(surface, cells, top);
             if (proud > RoomFrames.WallCoursesMax)
                 said.Add(new Finding(LayoutRules.WallHeight,
-                    $"approach wall '{w.Stamp.Unit}' from ({w.X1}, {w.Z1}) to ({w.X2}, {w.Z2}) "
+                    $"approach wall '{w.Stamp.Unit}' from ({w.Start.X}, {w.Start.Z}) to ({w.End.X}, {w.End.Z}) "
                     + $"stands {proud} blocks above the ground at its lowest column, "
                     + $"more than {RoomFrames.WallCoursesMax} blocks",
                     Severity.Complaint, Subjects: [w.Stamp.Unit]));

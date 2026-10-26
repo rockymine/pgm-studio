@@ -497,8 +497,8 @@ public sealed class PlayPieceMoveTests
         {
             IronCubes = [new IronCube(5, 5, true, new StampId("ironcube", "0", 0), "iron-1"),
                          new IronCube(92, 5, true, new StampId("ironcube", "0", 1), "iron-2")],
-            Walls = [new WallStructure(41, 10, 41, 18, 20, Stamp: new StampId("wall", "0", 0), Id: "wall-1"),
-                     new WallStructure(59, 10, 59, 18, 20, Stamp: new StampId("wall", "0", 1), Id: "wall-2")],
+            Walls = [new WallStructure([[41, 10], [41, 18]], 20, Stamp: new StampId("wall", "0", 0), Id: "wall-1"),
+                     new WallStructure([[59, 10], [59, 18]], 20, Stamp: new StampId("wall", "0", 1), Id: "wall-2")],
         },
         Observer = new ObserverIntent { Point = new Pt(50.5, 30, 50.5) },
     };
@@ -541,42 +541,12 @@ public sealed class PlayPieceMoveTests
             .IsEquivalentTo(new[] { (6, 7), (91, 7) });
 
         var (walls, _) = PlayPieceMove.Apply(Fanned(), "wall-1", null, new Rect(41, 12, 43, 20), board: MirrorX);
-        await Assert.That(walls!.Structures!.Walls[1]).IsEqualTo(Fanned().Structures!.Walls[1] with
-        {
-            X1 = 58, Z1 = 12, X2 = 58, Z2 = 20,
-        });
+        await Assert.That(walls!.Structures!.Walls[1].Corners()).IsEquivalentTo(new[] { (58, 12), (58, 20) });
     }
 
     [Test]
-    public async Task A_walls_end_moves_alone_and_the_matching_end_of_its_image_follows()
+    public async Task A_wall_is_moved_whole_and_its_corners_by_their_line()
     {
-        var (moved, refused) = PlayPieceMove.Apply(Fanned(), "wall-1", PieceParts.End, new Rect(44, 22, 44, 22), board: MirrorX);
-
-        await Assert.That(refused.Count).IsEqualTo(0);
-        await Assert.That(moved!.Structures!.Walls[0]).IsEqualTo(Fanned().Structures!.Walls[0] with { X2 = 44, Z2 = 22 });
-        await Assert.That(moved.Structures.Walls[1]).IsEqualTo(Fanned().Structures!.Walls[1] with { X2 = 56, Z2 = 22 })
-            .Because("the mirror image's end at (59, 18) is the image of the moved one, and moves the reflected way");
-
-        var (start, _) = PlayPieceMove.Apply(Fanned(), "wall-2", PieceParts.Start, new Rect(62, 8, 62, 8), board: MirrorX);
-        await Assert.That(start!.Structures!.Walls[0]).IsEqualTo(Fanned().Structures!.Walls[0] with { X1 = 38, Z1 = 8 });
-
-        var (alone, _) = PlayPieceMove.Apply(Fanned(), "wall-1", PieceParts.End, new Rect(44, 22, 44, 22), alone: true, board: MirrorX);
-        await Assert.That(alone!.Structures!.Walls[1]).IsEqualTo(Fanned().Structures!.Walls[1]);
-    }
-
-    [Test]
-    public async Task A_walls_end_is_one_block_corner_apart_from_the_other()
-    {
-        var (spanned, why) = PlayPieceMove.Apply(Fanned(), "wall-1", PieceParts.End, new Rect(44, 22, 45, 23));
-        await Assert.That(spanned).IsNull();
-        await Assert.That(why.Single().Field).IsEqualTo("placed");
-
-        var (offGrid, _) = PlayPieceMove.Apply(Fanned(), "wall-1", PieceParts.End, new Rect(44.5, 22, 44.5, 22));
-        await Assert.That(offGrid).IsNull();
-
-        var (collapsed, _) = PlayPieceMove.Apply(Fanned(), "wall-1", PieceParts.End, new Rect(41, 10, 41, 10));
-        await Assert.That(collapsed).IsNull();
-
         var (building, part) = PlayPieceMove.Apply(Fanned(), "wall-1", StructuralRoles.Building, new Rect(41, 12, 43, 20));
         await Assert.That(building).IsNull();
         await Assert.That(part.Single().Field).IsEqualTo("part");

@@ -691,8 +691,8 @@ disagree with the one that runs.
   the same rule, whether it stands beside a spawn room or alone on a piece that carries none: the
   cube fits inside the piece it rides or the marker resolves unplaceable (`WX9`) and nothing is
   stamped for it.
-- **ST4 [corpus; amendments 43, 58]** *Pre-built wall*: a line between two block corners, **2 blocks thick**
-  across it at any angle, **three courses of bedrock** over the ground it crosses — measured from the surface
+- **ST4 [corpus; amendments 43, 58, 60]** *Pre-built wall*: a line through two or more block corners, **2 blocks
+  thick** across every leg at any angle, **three courses of bedrock** over the ground it crosses — measured from the surface
   the **built terrain**, not the surface the plan drew the approach at — over solid bedrock down to y=0, and
   nothing over the bedrock. The top is **one level across the whole run**, taken from the **highest** ground
   the wall crosses: a top that followed the ground per column would step with it and read as a curved wall,
@@ -1350,3 +1350,7 @@ same commit.
     most ground meets, the side facing the middle on a tie, and an author places the rest. A door whose
     doorstep is void is a complaint. On a sketched board `WL11` asks the step only at the sides a door opens
     through.
+60. **`ST4`: a wall bends at its corners (2026-10-26).** Author's call. A wall runs through two or more block
+    corners, laid two blocks thick along every leg with the blocks round each bend filled, so one wall can follow
+    a shore or turn round a corner of a lane. Its height rule and the four-course cap are unchanged, and the seam
+    rules (`PL17`, `ST8`, `ST11`) ask a bent wall as the line between its ends, which is the approach it bars.

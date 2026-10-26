@@ -156,7 +156,7 @@ public sealed class PlanStructuresTests
         // not the defence side 'mid' (surface 11 → would be 13).
         await Assert.That(s.Walls.Any(w => w.TopY == 13)).IsFalse();
         // Along the z-seam at z=10, which puts its two columns at z 9 and 10.
-        await Assert.That(s.Walls.Any(w => w.Z1 == 10 && w.Z2 == 10)).IsTrue();
+        await Assert.That(s.Walls.Any(w => w.Start.Z == 10 && w.End.Z == 10)).IsTrue();
     }
 
     [Test]

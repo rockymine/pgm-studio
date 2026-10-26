@@ -191,7 +191,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     onRoomDoorsEdited: (room, doors) => pieceStep(() => writeDoors(room, doors)),
     onRoomHouseRefused: (sentence) => fire("OnStructuralNote", sentence),
     // A wall's end dragged to a corner is asked of the intent the way a whole-wall drag is.
-    onWallEndMoved: (piece, part, x, z, putBack) => pieceStep(() => moveWallEnd(piece, part, x, z, putBack)),
+    onWallLineEdited: (piece, points, putBack) => pieceStep(() => setWallLine(piece, points, putBack)),
     // Placing, moving and picking a prop all happen on the canvas; the bridge only has to relay the result.
     onDressingChanged: edit(() => afterDressingChange()),
     onPropSelected:    () => fire("OnDressing", dressingState()),
@@ -345,14 +345,14 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     selectStructural(piece.id);
   }
 
-  /** The release of a drag on one end of a picked wall: the end, `start` or `end`, asked to stand on the block
-   *  corner (x, z), the wall put back where it stood on a refusal. */
-  async function moveWallEnd(piece, part, x, z, putBack) {
+  /** A picked wall's corners changed — one dragged, added or taken out — asked to run through `points`, the wall
+   *  put back where it stood on a refusal. */
+  async function setWallLine(piece, points, putBack) {
     if (!slug) { canvas.restoreStructural(putBack); return; }
     try {
-      const res = await fetch(`/api/map/${encodeURIComponent(slug)}/intent/pieces/${encodeURIComponent(piece.id)}`, {
-        method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ part, minX: x, minZ: z, maxX: x, maxZ: z }),
+      const res = await fetch(`/api/map/${encodeURIComponent(slug)}/intent/pieces/${encodeURIComponent(piece.id)}/line`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ points }),
       });
       if (!res.ok) {
         canvas.restoreStructural(putBack);
@@ -423,7 +423,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     const ends = (a, b) => b > a ? [a, b + 1] : b < a ? [a + 1, b] : [a, a];
     const [x1, x2] = ends(from[0], to[0]);
     const [z1, z2] = ends(from[1], to[1]);
-    return [x1, z1, x2, z2];
+    return [[x1, z1], [x2, z2]];
   }
 
   /**
@@ -436,7 +436,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     if (POINT_KINDS.has(kind)) [maxX, maxZ] = [minX + 1, minZ + 1];
     if (!slug) return;
     const body = kind === "wall"
-      ? { kind, ends: wallEnds(partial.from ?? [minX, minZ], partial.to ?? [maxX - 1, maxZ - 1]) }
+      ? { kind, points: wallEnds(partial.from ?? [minX, minZ], partial.to ?? [maxX - 1, maxZ - 1]) }
       : { kind, minX, minZ, maxX, maxZ };
     let id;
     try {

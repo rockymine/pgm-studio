@@ -88,10 +88,10 @@ public static class SketchSeamCheck
             // The entrance it stands before: the nearest entry parallel to it and joined to it by unbroken ground
             // across the span they share; a wall barring a side approach defends a flank. Only the near half of
             // the seat is asked, since a wool takes a wall per approach and one farther out guards its own.
-            var alongX = Math.Abs(wall.X2 - wall.X1) >= Math.Abs(wall.Z2 - wall.Z1);
+            var alongX = Math.Abs(wall.End.X - wall.Start.X) >= Math.Abs(wall.End.Z - wall.Start.Z);
             var defended = entries
                 .Where(entry => entry.Side.Edge.AlongX() == alongX && Joined(wall, entry.Side, alongX, ground))
-                .Select(entry => (entry.Wool, Gap: PlanValidator.SegmentGap(wall.X1, wall.Z1, wall.X2, wall.Z2,
+                .Select(entry => (entry.Wool, Gap: PlanValidator.SegmentGap(wall.Start.X, wall.Start.Z, wall.End.X, wall.End.Z,
                     entry.Side.X1, entry.Side.Z1, entry.Side.X2, entry.Side.Z2)))
                 .OrderBy(entry => entry.Gap)
                 .FirstOrDefault();
@@ -177,10 +177,10 @@ public static class SketchSeamCheck
     private static bool Joined(WallStructure wall, Side side, bool alongX, BoardGround ground)
     {
         var (lo, hi) = alongX
-            ? (Math.Max(Math.Min(wall.X1, wall.X2), side.X1), Math.Min(Math.Max(wall.X1, wall.X2), side.X2))
-            : (Math.Max(Math.Min(wall.Z1, wall.Z2), side.Z1), Math.Min(Math.Max(wall.Z1, wall.Z2), side.Z2));
+            ? (Math.Max(Math.Min(wall.Start.X, wall.End.X), side.X1), Math.Min(Math.Max(wall.Start.X, wall.End.X), side.X2))
+            : (Math.Max(Math.Min(wall.Start.Z, wall.End.Z), side.Z1), Math.Min(Math.Max(wall.Start.Z, wall.End.Z), side.Z2));
         if (hi <= lo) return false;
-        var (from, to) = alongX ? (Math.Min(wall.Z1, side.Z1), Math.Max(wall.Z1, side.Z1)) : (Math.Min(wall.X1, side.X1), Math.Max(wall.X1, side.X1));
+        var (from, to) = alongX ? (Math.Min(wall.Start.Z, side.Z1), Math.Max(wall.Start.Z, side.Z1)) : (Math.Min(wall.Start.X, side.X1), Math.Max(wall.Start.X, side.X1));
         for (var along = lo; along < hi; along++)
             for (var across = from; across < to; across++)
                 if (!ground.Filled.ContainsKey(alongX ? (along, across) : (across, along))) return false;
@@ -258,10 +258,11 @@ public static class SketchSeamCheck
         return ahead;
     }
 
-    /// <summary>A wall's line, sampled in blocks along it and half a block out on each face.</summary>
+    /// <summary>The line between a wall's ends, sampled in blocks along it and half a block out on each face. A wall
+    /// that bends bars the approach its ends span, so that line is what the seam is asked of.</summary>
     private readonly struct Line(WallStructure wall)
     {
-        private readonly double x1 = wall.X1, z1 = wall.Z1, dx = wall.X2 - wall.X1, dz = wall.Z2 - wall.Z1;
+        private readonly double x1 = wall.Start.X, z1 = wall.Start.Z, dx = wall.End.X - wall.Start.X, dz = wall.End.Z - wall.Start.Z;
 
         public double Length => Math.Sqrt(dx * dx + dz * dz);
 
