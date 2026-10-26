@@ -268,8 +268,8 @@ public sealed record PieceMoveRequest(
     int Wing = 0);
 
 /// <summary>One play piece where the sketch draws it — the answer of <c>GET /map/{slug}/intent/pieces</c>, one
-/// per spawn, wool room, destroyable, core, build area, water lane, iron cube, approach wall and the observer,
-/// the images the map's symmetry draws included.</summary>
+/// per spawn, wool room, destroyable, core, control point, build area, water lane, iron cube, approach wall and the
+/// observer, the images the map's symmetry draws included.</summary>
 /// <param name="Id">The piece's id, which <c>PATCH …/intent/pieces/{id}</c> moves it by.</param>
 /// <param name="Kind">What the piece is.</param>
 /// <param name="Color">The team or dye colour it is drawn in, or empty for a piece that belongs to no team.</param>
@@ -281,6 +281,7 @@ public sealed record PieceMoveRequest(
 /// that the intent does not store, an image of an orbit other than its authored one, or an iron cube seated in a
 /// spawn room. A move of an image still names its id and moves the whole orbit.</param>
 /// <param name="Line">A wall's two ends, <c>[x1, z1, x2, z2]</c> on block corners; absent for every other piece.</param>
+/// <param name="Shape">A control point's pad, a square or a disc; absent for every other piece.</param>
 public sealed record PlayPieceDto(
     string Id,
     [property: WordSet(typeof(PlayPieceKinds))] string Kind,
@@ -290,14 +291,15 @@ public sealed record PlayPieceDto(
     [property: JsonPropertyName("maxX")] double MaxX,
     [property: JsonPropertyName("maxZ")] double MaxZ,
     bool Carried,
-    int[]? Line = null);
+    int[]? Line = null,
+    [property: WordSet(typeof(ControlPointShapes))] string? Shape = null);
 
 /// <summary>A play piece to add — the body of <c>POST /map/{slug}/intent/pieces</c>. The piece arrives with every
 /// image the map's symmetry draws of it.</summary>
 /// <param name="Kind">What to add.</param>
 /// <param name="MinX">The placed rectangle's west edge, in world blocks: a room's region or an area for a spawn, a
-/// wool room, a build area and a water lane; the block clicked for a destroyable, a core, an iron cube, a defence
-/// chest and the observer, which stand centred on it.</param>
+/// wool room, a build area and a water lane; the block clicked for a destroyable, a core, a control point, an iron
+/// cube, a defence chest and the observer, which stand centred on it.</param>
 /// <param name="MinZ">Its north edge.</param>
 /// <param name="MaxX">Its east edge.</param>
 /// <param name="MaxZ">Its south edge.</param>

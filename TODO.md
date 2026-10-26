@@ -40,12 +40,6 @@ A pgmvox board becomes playable with the studio's markers and outlines on it: th
 Layout, every stamp can be switched off where the world already carries its own, and a world built elsewhere
 arrives with its `map.xml` (`docs/pgmvox-port.md`, *Phase 5*).
 
-- [ ] **TS213 — A control point placed in Layout, square or disc.** Markers gains a control point, put down with
-  a click and resized from its edges like a build area, its rail choosing **Square** or **Disc** beside the
-  name, size, points, capture time and mode `ControlPointIntent` already states. The disc is a new `shape` on
-  the intent: `ControlPointStamper` lays a round pad, and `ControlPointGenerator` writes a cylinder capture and
-  progress region over it. Lands in `PlayPieces.Of`, `PlayPieceAdd`, `PlayPieceMove`, `PlayPieceSettings` and
-  the Layout dock (`docs/tools/sketch.md`, `docs/pgm/control-points.md`).
 - [ ] **TS214 — A wall bends.** A wall states a polyline (`points`, two or more corners on block corners) in
   place of its two ends, stamped two thick along every leg, its corners dragged in Layout as its ends are and a
   shift-press on a leg adding one; a migration carries each stored `x1,z1,x2,z2` into two points. Lands in

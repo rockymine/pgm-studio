@@ -31,6 +31,7 @@ export const opColors = (operation) => (operation === "subtract" ? OP_COLORS.sub
 export const OBJECTIVE_COLORS = {
   spawn: "var(--canvas-objective-spawn)", wool: "var(--canvas-objective-wool)", iron: "var(--canvas-objective-iron)",
   destroyable: "var(--canvas-objective-destroyable)", core: "var(--canvas-objective-core)",
+  controlPoint: "var(--canvas-objective-control-point)",
 };
 
 /** What a building is drawn in, wherever it came from. A room's footprint is the single-wing case of the

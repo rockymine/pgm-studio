@@ -14,8 +14,10 @@ namespace PgmStudio.Pgm.Authoring;
 /// turn and delete together. A build area or a water lane carries no stamp, and its images are the areas the
 /// symmetry carries it onto.</para>
 ///
-/// <para><b>A room or an area is the rectangle drawn; a goal, a cube, a chest and the observer are a point, and a
-/// wall is a line between two ends (<see cref="Wall"/>).</b> A chest fronts away from a wall beside it. A spawn
+/// <para><b>A room or an area is the rectangle drawn; a goal, a control point, a cube, a chest and the observer are
+/// a point, and a wall is a line between two ends (<see cref="Wall"/>).</b> A control point is a square pad of the
+/// default size centred on the block clicked, nobody's, and its images are the pads the symmetry carries it onto
+/// that do not overlap it. A chest fronts away from a wall beside it. A spawn
 /// faces the middle of the board and opens its door on that side; a team's first wool takes its colour and
 /// every later one the next dye no wool on the board has; a goal takes the default structure, centred on the
 /// block the point is in. The symmetry is the intent's, or where it states none the board's, and a map stating no
@@ -107,6 +109,18 @@ public static class PlayPieceAdd
                 added = intent with { Cores = [.. intent.Cores ?? [], .. Orbit(new MapIntent { Cores = [authored] }).Cores ?? []] };
                 break;
             }
+            case PlayPieceKinds.ControlPoint:
+            {
+                var points = intent.ControlPoints ?? [];
+                stamp = new StampId("controlpoint", Unit(points.Select(point => point.Stamp), "controlpoint"), 0);
+                var authored = new ControlPointIntent
+                {
+                    Stamp = stamp, Anchor = new Pt(Math.Floor(cx), 0, Math.Floor(cz)),
+                };
+                var images = symmetry is null ? [authored] : SymmetryExpander.FillControlPoints([authored], symmetry)!;
+                added = intent with { ControlPoints = [.. points, .. images] };
+                return Named(added, named => named.ControlPoints!.First(point => point.Stamp == stamp).Id);
+            }
             case PlayPieceKinds.BuildArea:
             {
                 var build = intent.Build ?? new BuildIntent();
@@ -192,6 +206,9 @@ public static class PlayPieceAdd
             return (intent with { Destroyables = Without(intent.Destroyables, goal => goal.Id, goal => goal.Stamp) }, Findings.None);
         if (intent.Cores?.Any(core => core.Id == id) is true)
             return (intent with { Cores = Without(intent.Cores, core => core.Id, core => core.Stamp) }, Findings.None);
+        if (intent.ControlPoints?.Any(point => point.Id == id) is true)
+            return (intent with { ControlPoints = Without(intent.ControlPoints, point => point.Id, point => point.Stamp) },
+                    Findings.None);
         if (intent.Build is { } build && build.Areas.Any(area => area.Id == id))
             return (intent with { Build = build with { Areas = WithoutArea(build.Areas) } }, Findings.None);
         if (intent.WaterLanes is { } lanes && lanes.Rects.Any(lane => lane.Id == id))

@@ -1,5 +1,6 @@
 /**
- * piece-resize-controller.js — a picked room region, build area or water lane, resized on the Layout canvas.
+ * piece-resize-controller.js — a picked room region, control point, build area or water lane, resized on the
+ * Layout canvas.
  *
  * A picked one wears the transform box every rectangle in the studio wears: a grip on each corner and on the
  * middle of each edge. Dragging one moves that side or corner by whole blocks, the opposite side held, down to
@@ -16,11 +17,12 @@ export const MIN_ROOM_SPAN = 4;
 
 const GRIP_HALF = 4;
 
-/** Whether a structural shape is one this resizes: a room's region, a build area or a water lane, authored. */
+/** Whether a structural shape is one this resizes: a room's region, a control point, a build area or a water
+ *  lane, authored. A control point takes the longer side it is dragged to as its size. */
 export function resizable(piece) {
   if (!piece || piece.carried) return false;
   return (!piece.piece && (piece.role === "spawn" || piece.role === "woolRoom"))
-    || (piece.piece === true && (piece.role === "buildArea" || piece.role === "waterLane"));
+    || (piece.piece === true && (piece.role === "controlPoint" || piece.role === "buildArea" || piece.role === "waterLane"));
 }
 
 /** The rectangle `orig` with the side or corner `grip` names dragged to (wx, wz): whole blocks, the opposite

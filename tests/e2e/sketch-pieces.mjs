@@ -4,8 +4,8 @@
  * The board is a fresh sketch under `rot_180` whose intent states no teams — the map a person starts with. A spawn
  * and a wool room dragged out on it are stored with their images; a wall dragged on the canvas is stored and drawn
  * where it was dropped; a room is drawn with the building it is raised as, and its region and its building resize
- * from an edge, the image following; and only the authored image of an orbit is picked, the image it draws moving
- * with it.
+ * from an edge, the image following; a control point clicked down is laid round from its rail; and only the
+ * authored image of an orbit is picked, the image it draws moving with it.
  */
 
 import { openBrowser, newPage, clearFaults, Checks, api, worldAimer, BASE } from "./lib/harness.mjs";
@@ -207,6 +207,24 @@ try {
   const stored = (await api(`/map/${slug}/sketch`)).layers[0].layout.shapes.find(shape => shape.id === room.id);
   checks.add("a height given to it is stored with hold", stored?.base_height === 14 && stored?.relief_scope === "hold"
     && stored?.height_authored === true, JSON.stringify({ h: stored?.base_height, scope: stored?.relief_scope }));
+
+  checks.section("a control point is put down with a click and laid round from its rail");
+  await page.keyboard.press("Escape"); await page.keyboard.press("Escape");
+  await pick("Markers", "Control point");
+  const hill = at(20.5, 20.5);
+  await page.mouse.click(hill.x, hill.y);
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(600);
+  const points = await byKind("controlPoint");
+  checks.add("the point is stored with its image, a 7-block square", points.length === 2
+    && points.every(point => point.maxX - point.minX === 7 && point.shape === "square"), JSON.stringify(points));
+  checks.add("and the rail names it", /control point/i.test(await pickedTitle()), await pickedTitle());
+  await page.locator(".workspace-inspector button:has-text('disc')").first().click();
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(600);
+  const round = await byKind("controlPoint");
+  checks.add("disc on the rail lays the point and its image round", round.every(point => point.shape === "disc"),
+    JSON.stringify(round.map(point => point.shape)));
 
   checks.section("Layout picks the pieces and Ground the ground");
   await page.keyboard.press("Escape"); await page.keyboard.press("Escape");

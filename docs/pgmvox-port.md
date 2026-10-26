@@ -365,7 +365,7 @@ time. Shipped to the live studio with no beta (decision D3).
 
 - A control point and a wall as play pieces of any shape, beside the ones Phase 1 places: a control point is
   a square or a disc, placed and sized in Layout (`TS213`), and a wall a polyline that bends at its corners
-  (`TS214`), on the author's ruling.
+  (`TS214`), on the author's ruling. The control point shipped as `TS213`.
 - Stamps as the last stage, each switchable per piece: goal marker, build-zone outline, defence wall, wool-room
   loot, kit pairing, float check (`WE174`).
 - A world built elsewhere uploaded with its `map.xml`, read into the intent, with the stamps run over it on

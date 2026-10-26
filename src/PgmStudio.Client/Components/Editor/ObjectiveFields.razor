@@ -1,9 +1,55 @@
 @namespace PgmStudio.Client.Components
 
-@* The settings an objective states beside where it stands: a goal's name and structure, a wool's colour. The
+@* The settings an objective states beside where it stands: a goal's name and structure, a wool's colour, how a
+   control point is laid and taken. The
    sketch's picked piece shows these and writes them under the keys PieceSettings names. Only what differs
    from the default is stated: a field set back to its default writes null. *@
 
+@if (Kind == "controlPoint")
+{
+  <Field Label="Name">
+    <LabelHint>(optional, PGM numbers an unnamed one)</LabelHint>
+    <ChildContent>
+      <input class="field-input" value="@Values.Name" placeholder="Hill"
+             @onchange="@(e => SetText(PieceSettings.Name, e.Value?.ToString(), string.Empty))" />
+    </ChildContent>
+  </Field>
+  <Field Label="Pad">
+    <div class="filter-group-options">
+      @foreach (var shape in Vocabulary.ControlPoint.Shapes)
+      {
+        <Chip Active="@(PointShape == shape)" OnClick="@(() => SetText(PieceSettings.Shape, shape, Vocabulary.ControlPoint.Shape))"
+              Title="@(shape == "disc" ? "A round pad, held inside a cylinder over it" : "A square pad")">@shape</Chip>
+      }
+    </div>
+  </Field>
+  <Field Label="Taken by">
+    <div class="filter-group-options">
+      @foreach (var mode in Vocabulary.ControlPoint.CaptureModes)
+      {
+        <Chip Active="@(PointMode == mode)" OnClick="@(() => SetText(PieceSettings.CaptureMode, mode, Vocabulary.ControlPoint.CaptureMode))"
+              Title="@(mode == "touch" ? "Taken the moment a player of another team steps on it" : "Held alone for the capture time")">@mode</Chip>
+      }
+    </div>
+  </Field>
+  @if (PointMode != "touch")
+  {
+    <Field Label="Capture time">
+      <LabelHint>(seconds)</LabelHint>
+      <ChildContent>
+        <NumberField Min="1" Max="600" Value="PointSeconds"
+                     ValueChanged="@(value => SetNumber(PieceSettings.CaptureTime, (int)value, Vocabulary.ControlPoint.CaptureSeconds))" />
+      </ChildContent>
+    </Field>
+  }
+  <Field Label="Points">
+    <LabelHint>(a second, while held)</LabelHint>
+    <ChildContent>
+      <NumberField Min="1" Max="100" Value="PointPoints"
+                   ValueChanged="@(value => SetNumber(PieceSettings.Points, (int)value, Vocabulary.ControlPoint.Points))" />
+    </ChildContent>
+  </Field>
+}
 @if (Kind is "destroyable" or "core")
 {
   <Field Label="Name">

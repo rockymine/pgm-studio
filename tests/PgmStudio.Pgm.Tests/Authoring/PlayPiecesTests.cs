@@ -29,6 +29,7 @@ public sealed class PlayPiecesTests
         ],
         Destroyables = [new DestroyableIntent { Id = "destroyable-red", Owner = "red", Style = "cube-3", Anchor = new Pt(40, 12, 5) }],
         Cores = [new CoreIntent { Id = "core-red", Owner = "red", Anchor = new Pt(60, 12, 5) }],
+        ControlPoints = [new ControlPointIntent { Id = "point-1", Anchor = new Pt(50, 0, 40) }],
         Build = new BuildIntent { Areas = [new PieceArea(0, 20, 10, 30, "build-1")] },
         WaterLanes = new WaterLaneIntent { Rects = [new PieceArea(20, 20, 24, 30, "water-lane-1")] },
         Structures = new StructureIntent

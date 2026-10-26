@@ -872,7 +872,7 @@ public sealed record CoreIntent
 }
 
 /// <summary>
-/// One capture point (CP/KotH): a square pad of ground a team owns by standing on it, paying out score for
+/// One capture point (CP/KotH): a pad of ground, square or round, a team owns by standing on it, paying out score for
 /// as long as it holds. <c>docs/pgm/control-points.md</c> is the contract; what a board should look like is
 /// the author's and is in <c>docs/gameplay/approaches.md</c>.
 ///
@@ -881,14 +881,18 @@ public sealed record CoreIntent
 /// fanned by <em>position</em>. A point standing at the board's centre of symmetry is its own orbit image
 /// and stays one point; one off the centre becomes as many as the symmetry has images.</para>
 ///
-/// <para>Only the four fields above <see cref="Anchor"/> are knobs. The rest of what PGM will read off the
-/// point — that it is not <c>required</c>, that it keeps partial progress, passes through a neutral state,
-/// shows its progress and gives a crowd no bonus — is the studio's one convention, written the same on every
-/// board by <see cref="ControlPointGenerator"/>. <c>required</c> especially is not a knob: PGM defaults it to
-/// true, and a point that keeps that default ends the match for whoever first captures it.</para>
+/// <para>The name, the anchor, the size, the shape, the points, the capture time and the capture mode are the
+/// knobs. The rest of what PGM will read off the point — that it is not <c>required</c>, that it keeps partial
+/// progress, passes through a neutral state, shows its progress and gives a crowd no bonus — is the studio's
+/// one convention, written the same on every board by <see cref="ControlPointGenerator"/>. <c>required</c>
+/// especially is not a knob: PGM defaults it to true, and a point that keeps that default ends the match for
+/// whoever first captures it.</para>
 /// </summary>
 public sealed record ControlPointIntent
 {
+    /// <summary>The piece's id, which the piece route finds it by.</summary>
+    public string Id { get; init; } = "";
+
     /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
     /// per layer, and a thing stated for a hall lands on the deck roofing it unless it says which layer it
     /// meant.</summary>
@@ -907,9 +911,14 @@ public sealed record ControlPointIntent
     /// build solves under it, so its height is the terrain's answer rather than the author's.</summary>
     public Pt Anchor { get; init; }
 
-    /// <summary>The pad's side, in blocks — square by the author's ruling, and bounded by
+    /// <summary>The pad's side, or a disc's diameter, in blocks, and bounded by
     /// <see cref="ObjectiveDefaults.MinControlPointSize"/>/<see cref="ObjectiveDefaults.MaxControlPointSize"/>.</summary>
     public int Size { get; init; } = ObjectiveDefaults.ControlPointSize;
+
+    /// <summary>What the pad is laid as (<see cref="ControlPointShapes"/>): a square of <see cref="Size"/> a side,
+    /// or a disc of that diameter, captured inside a cylinder over it.</summary>
+    [WordSet(typeof(ControlPointShapes))]
+    public string Shape { get; init; } = ControlPointShapes.Square;
 
     /// <summary>What holding it pays its owner, per second.</summary>
     public double Points { get; init; } = ObjectiveDefaults.ControlPointPoints;

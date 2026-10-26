@@ -8,7 +8,7 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Client.Features.Sketch;
 
 /// <summary>What a picked piece states beside where it stands — a goal's name and structure, a wool's colour, a
-/// spawn's facing — read from the intent by the piece's id and written back one setting at a time.</summary>
+/// spawn's facing, how a control point is laid and taken — read from the intent by the piece's id and written back one setting at a time.</summary>
 public partial class SketchTool
 {
     private ObjectiveVocabularyDto? objectiveWords;
@@ -21,7 +21,8 @@ public partial class SketchTool
         pieceSettings = null;
         spawnYaw = null;
         if (selectedStructural is not { } piece
-            || piece.Role is not (PlayPieceKinds.Spawn or PlayPieceKinds.WoolRoom or PlayPieceKinds.Destroyable or PlayPieceKinds.Core))
+            || piece.Role is not (PlayPieceKinds.Spawn or PlayPieceKinds.WoolRoom or PlayPieceKinds.Destroyable
+                or PlayPieceKinds.Core or PlayPieceKinds.ControlPoint))
             return;
         try
         {
@@ -32,6 +33,7 @@ public partial class SketchTool
                 PlayPieceKinds.Spawn => "spawns",
                 PlayPieceKinds.WoolRoom => "wools",
                 PlayPieceKinds.Destroyable => "destroyables",
+                PlayPieceKinds.ControlPoint => "controlPoints",
                 _ => "cores",
             };
             // A pick made while this read was out is the one the inspector shows.
@@ -47,7 +49,8 @@ public partial class SketchTool
                         Text(entry, "name"), Text(entry, "color"), Text(entry, "style"), Text(entry, "materials"),
                         Number(entry, "float"), Number(entry, "lava"), Number(entry, "lavaHeight"),
                         entry.TryGetProperty("openTop", out var open) && open.ValueKind == JsonValueKind.True,
-                        Number(entry, "leak"));
+                        Number(entry, "leak"), Text(entry, "shape"), Number(entry, "points"),
+                        Seconds(Text(entry, "captureTime")), Text(entry, "captureMode"));
             }
         }
         catch (HttpRequestException) { }
@@ -59,7 +62,13 @@ public partial class SketchTool
         && value.GetString() is { Length: > 0 } text ? text : null;
 
     private static int? Number(JsonElement entry, string key) =>
-        entry.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.Number ? value.GetInt32() : null;
+        entry.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.Number
+            ? (int)Math.Round(value.GetDouble()) : null;
+
+    /// <summary>A PGM duration in whole seconds, as the rail states one, or null where it is not one.</summary>
+    private static int? Seconds(string? duration) =>
+        duration is { Length: > 1 } && duration.EndsWith('s')
+        && int.TryParse(duration[..^1], System.Globalization.CultureInfo.InvariantCulture, out var seconds) ? seconds : null;
 
     /// <summary>Write one setting of the picked piece, and read the board back where it changed a footprint.</summary>
     private async Task SetPieceSettingAsync(string key, object? value)

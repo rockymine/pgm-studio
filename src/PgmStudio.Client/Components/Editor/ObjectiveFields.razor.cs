@@ -7,7 +7,8 @@ namespace PgmStudio.Client.Components;
 /// <summary>What an objective states, each null where it states nothing and takes the default.</summary>
 public sealed record ObjectiveFieldValues(
     string? Name = null, string? Color = null, string? Style = null, string? Materials = null, int? Float = null,
-    int? Lava = null, int? LavaHeight = null, bool? OpenTop = null, int? Leak = null);
+    int? Lava = null, int? LavaHeight = null, bool? OpenTop = null, int? Leak = null, string? Shape = null,
+    int? Points = null, int? CaptureSeconds = null, string? CaptureMode = null);
 
 /// <summary>One setting an author changed: its <see cref="PieceSettings"/> key, and the value, null where it goes
 /// back to its default.</summary>
@@ -15,7 +16,7 @@ public readonly record struct ObjectiveFieldChange(string Key, object? Value);
 
 public partial class ObjectiveFields
 {
-    /// <summary>What the objective is: <c>destroyable</c>, <c>core</c> or <c>wool</c>.</summary>
+    /// <summary>What the objective is: <c>destroyable</c>, <c>core</c>, <c>wool</c> or <c>controlPoint</c>.</summary>
     [Parameter, EditorRequired] public string Kind { get; set; } = "";
 
     [Parameter, EditorRequired] public ObjectiveFieldValues Values { get; set; } = new();
@@ -41,6 +42,11 @@ public partial class ObjectiveFields
     private string DestroyableStyle => Values.Style ?? Vocabulary.Destroyable.Style;
     private string DestroyableMaterials => Values.Materials ?? Vocabulary.Destroyable.Materials;
     private int DestroyableFloat => Values.Float ?? Vocabulary.Destroyable.Float;
+
+    private string PointShape => Values.Shape ?? Vocabulary.ControlPoint.Shape;
+    private int PointPoints => Values.Points ?? Vocabulary.ControlPoint.Points;
+    private int PointSeconds => Values.CaptureSeconds ?? Vocabulary.ControlPoint.CaptureSeconds;
+    private string PointMode => Values.CaptureMode ?? Vocabulary.ControlPoint.CaptureMode;
 
     private int CoreLava => Values.Lava ?? Vocabulary.Core.Lava;
     private int CoreLavaHeight => Values.LavaHeight ?? Vocabulary.Core.LavaHeight;

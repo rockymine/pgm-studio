@@ -21,7 +21,8 @@ namespace PgmStudio.Api.Tests;
 public sealed class WordSetSchemaTests
 {
     /// <summary>The word sets the wire carries: <c>MapStage</c>, the nine in <c>TerrainVocabulary</c>,
-    /// <c>EditZone</c>, <c>WoolColors</c>, the world-export sets and <c>SizeBands</c>. A set added to that project and never marked on a field is a set the document
+    /// <c>EditZone</c>, <c>WoolColors</c>, the world-export sets, <c>SizeBands</c> and a control point's shapes and
+    /// capture modes. A set added to that project and never marked on a field is a set the document
     /// says nothing about, so it is named here rather than counted.</summary>
     private static readonly Type[] Sets =
     [
@@ -33,6 +34,7 @@ public sealed class WordSetSchemaTests
         typeof(SizeBands), typeof(AccessModes), typeof(StudioRoles),
         typeof(NoteStatuses), typeof(NoteAnchors), typeof(MapDocuments), typeof(SymmetryModes),
         typeof(RuleLevels), typeof(RuleLevelSources), typeof(FlagCarriers), typeof(PlayPieceKinds), typeof(PieceSettings), typeof(PlaceShapes), typeof(PlanVerdicts),
+        typeof(ControlPointShapes), typeof(CaptureModes),
     ];
 
     /// <summary>The fields marked today. Nothing in the compiler can say a field <em>ought</em> to be
@@ -44,7 +46,7 @@ public sealed class WordSetSchemaTests
     /// fields carries the mark once, on the base, and publishes it through <c>allOf</c> — so consolidating
     /// two records into one lowers this while the wire gains nothing and loses nothing. Lower it only for
     /// that reason, and never because a mark went missing.</para></summary>
-    private const int Published = 32;
+    private const int Published = 37;
 
     /// <summary>Every marked field publishes exactly the words its class declares, in that order — so a word
     /// added to a set reaches the document with no second edit, and one removed cannot linger there.</summary>

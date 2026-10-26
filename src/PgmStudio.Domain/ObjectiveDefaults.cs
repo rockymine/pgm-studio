@@ -76,7 +76,8 @@ public static class ObjectiveDefaults
     /// <summary>What a point pays its owner per second, and how long a team must hold it to take it. The
     /// corpus is emphatic on both — 151 of 316 points score 1, and 193 of 316 capture in 5 seconds.</summary>
     public const double ControlPointPoints = 1;
-    public const string ControlPointCaptureTime = "5s";
+    public const int ControlPointCaptureSeconds = 5;
+    public static readonly string ControlPointCaptureTime = $"{ControlPointCaptureSeconds}s";
 
     /// <summary>How long a touch point takes to change hands: the shortest a capture can be, so a step onto it
     /// is enough (pgmvox's <c>TouchPoint</c>).</summary>

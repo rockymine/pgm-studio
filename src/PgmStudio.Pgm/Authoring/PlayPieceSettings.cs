@@ -4,11 +4,13 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Pgm.Authoring;
 
 /// <summary>
-/// Set one of a play piece's settings by its id: a goal's name or structure, a wool's colour, a spawn's facing.
+/// Set one of a play piece's settings by its id: a goal's name or structure, a wool's colour, a spawn's facing, a
+/// control point's shape and how it is taken.
 ///
 /// <para><b>What a unit shares, every image takes.</b> A goal's design, material, lava, float and leak are the
 /// same goal for every team, so setting one sets it on every image of the unit unless <c>alone</c>; a name and a
-/// colour belong to the team the image is for, so they are set on the named image only. A spawn's facing turns
+/// colour belong to the team the image is for, so they are set on the named image only. A control point's shape,
+/// points, capture time and capture mode are the point's on every image, and its name the named image's. A spawn's facing turns
 /// every image as a turn does. A value stating nothing puts the setting back to its default.</para>
 /// </summary>
 /// <summary>What a setting becomes: text for a name, a colour, a design or a material, a whole number for the
@@ -93,6 +95,39 @@ public static class PlayPieceSettings
                     ? Unreadable(key, key == PieceSettings.OpenTop ? "true or false" : "a number in its range")
                     : NotOf(key, "a core");
             return (intent with { Cores = Unit(cores, coreAt, core => core.Stamp, alone, set) }, Findings.None);
+        }
+
+        if ((intent.ControlPoints ?? []).FindIndex(point => point.Id == id) is var pointAt and >= 0)
+        {
+            var points = intent.ControlPoints!;
+            if (key == PieceSettings.Name)
+                return (intent with { ControlPoints = Named(points, pointAt, points[pointAt] with { Name = Text(stated) }) },
+                        Findings.None);
+            Func<ControlPointIntent, ControlPointIntent>? set = key switch
+            {
+                PieceSettings.Shape when stated is null => point => point with { Shape = ControlPointShapes.Square },
+                PieceSettings.Shape when ControlPointShapes.All.Contains(Text(stated)) =>
+                    point => point with { Shape = Text(stated) },
+                PieceSettings.Points when Ranged(stated, (int)ObjectiveDefaults.ControlPointPoints, 1, 100) is { } paid =>
+                    point => point with { Points = paid },
+                PieceSettings.CaptureTime when stated is null => point => point with { CaptureTime = ObjectiveDefaults.ControlPointCaptureTime },
+                PieceSettings.CaptureTime when Ranged(stated, 0, 1, 600) is { } seconds =>
+                    point => point with { CaptureTime = $"{seconds}s" },
+                PieceSettings.CaptureMode when stated is null => point => point with { CaptureMode = CaptureModes.Hold },
+                PieceSettings.CaptureMode when CaptureModes.All.Contains(Text(stated)) =>
+                    point => point with { CaptureMode = Text(stated) },
+                _ => null,
+            };
+            if (set is null)
+                return key switch
+                {
+                    PieceSettings.Shape => Unreadable(key, "'square' or 'disc'"),
+                    PieceSettings.Points => Unreadable(key, "a whole number of points from 1 to 100"),
+                    PieceSettings.CaptureTime => Unreadable(key, "a whole number of seconds from 1 to 600"),
+                    PieceSettings.CaptureMode => Unreadable(key, "'hold' or 'touch'"),
+                    _ => NotOf(key, "a control point"),
+                };
+            return (intent with { ControlPoints = Unit(points, pointAt, point => point.Stamp, alone, set) }, Findings.None);
         }
 
         if (PlayPieces.Of(intent).Any(piece => piece.Id == id)) return NotOf(key, "this kind of piece");

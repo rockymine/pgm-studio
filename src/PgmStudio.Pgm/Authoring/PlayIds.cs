@@ -4,14 +4,14 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Pgm.Authoring;
 
 /// <summary>
-/// The id every play piece of an intent carries: a spawn, a wool, a destroyable, a core, a build area, a water
-/// lane, an iron cube, an approach wall and a defence chest. A piece is
+/// The id every play piece of an intent carries: a spawn, a wool, a destroyable, a core, a control point, a build
+/// area, a water lane, an iron cube, an approach wall and a defence chest. A piece is
 /// addressed by it wherever one piece is meant — a sketch selection, a move, a place that holds it — so it is
 /// stated once and kept through every edit.
 ///
 /// <para>A piece stored without one is given one from what names it: <c>spawn-{team}</c>,
 /// <c>wool-{owner}-{colour}</c>, <c>destroyable-{owner}</c>, <c>core-{owner}</c>, the same words the sketch
-/// names a room's shape by, and <c>build-{n}</c>, <c>water-lane-{n}</c>, <c>iron-{n}</c>, <c>wall-{n}</c>, <c>chest-{n}</c> by
+/// names a room's shape by, and <c>point-{n}</c>, <c>build-{n}</c>, <c>water-lane-{n}</c>, <c>iron-{n}</c>, <c>wall-{n}</c>, <c>chest-{n}</c> by
 /// position in their list, with <c>-2</c>, <c>-3</c>… where two pieces would share one. An id the intent
 /// already states is kept as stated. The observer is the one piece of its kind and is <see cref="Observer"/>, and a
 /// room's marker is the room's id with <c>-marker</c> after it.</para>
@@ -55,6 +55,7 @@ public static class PlayIds
                 Id = Mint(goal.Id, $"destroyable-{goal.Owner}"),
             }).ToList(),
             Cores = intent.Cores?.Select(core => core with { Id = Mint(core.Id, $"core-{core.Owner}") }).ToList(),
+            ControlPoints = intent.ControlPoints?.Select((point, at) => point with { Id = Mint(point.Id, $"point-{at + 1}") }).ToList(),
             Build = intent.Build is { } build
                 ? build with { Areas = [.. build.Areas.Select((area, at) => area with { Id = Mint(area.Id, $"build-{at + 1}") })] }
                 : null,
@@ -99,6 +100,8 @@ public static class PlayIds
         for (var at = 0; at < (intent.Destroyables?.Count ?? 0); at++)
             yield return (intent.Destroyables![at].Id, $"destroyables[{at}].id");
         for (var at = 0; at < (intent.Cores?.Count ?? 0); at++) yield return (intent.Cores![at].Id, $"cores[{at}].id");
+        for (var at = 0; at < (intent.ControlPoints?.Count ?? 0); at++)
+            yield return (intent.ControlPoints![at].Id, $"controlPoints[{at}].id");
         for (var at = 0; at < (intent.Build?.Areas.Count ?? 0); at++)
             yield return (intent.Build!.Areas[at].Id, $"build.areas[{at}].id");
         for (var at = 0; at < (intent.WaterLanes?.Rects.Count ?? 0); at++)

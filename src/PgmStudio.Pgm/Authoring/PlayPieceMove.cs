@@ -5,11 +5,12 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Pgm.Authoring;
 
 /// <summary>
-/// Move one play piece — a spawn, a wool, a destroyable, a core, a build area, a water lane, an iron cube, an
-/// approach wall, a defence chest or the observer — by its id, and every orbit image of it with it. The sketch draws the pieces out of the intent, so a drag on the canvas arrives here or the picture
+/// Move one play piece — a spawn, a wool, a destroyable, a core, a control point, a build area, a water lane, an
+/// iron cube, an approach wall, a defence chest or the observer — by its id, and every orbit image of it with it. The sketch draws the pieces out of the intent, so a drag on the canvas arrives here or the picture
 /// and the world build answer differently.
 ///
-/// <para><b>A room's region, a build area and a water lane also resize.</b> A placed rectangle of another span
+/// <para><b>A room's region, a control point, a build area and a water lane also resize.</b> A control point takes
+/// the longer side of the placed rectangle as its size, centred on the rectangle's middle, from 3 to 15 blocks. A placed rectangle of another span
 /// is the piece's new size: a room keeps everything on its region — the marker, the building, the iron, the
 /// doors — at the same fraction across it, and is refused under <see cref="RoomFrames.MinFootprintSpan"/> blocks
 /// across (<c>WX2</c>) or over a room region's 20×30 (<c>ST10</c>). Every image takes the image of the new
@@ -142,6 +143,30 @@ public static class PlayPieceMove
             var moved = Orbit(cores, coreAt, entry => entry.Stamp, mode, alone, dx, dz,
                 (entry, x, z) => entry with { Anchor = Slide(entry.Anchor, x, z), Box = null });
             return (intent with { Cores = moved }, Findings.None);
+        }
+
+        var points = intent.ControlPoints ?? [];
+        if (points.FindIndex(point => point.Id == id) is var pointAt and >= 0)
+        {
+            if (Unpartable(part, null) is { } unpartable) return (null, unpartable);
+            var standing = PlayPieces.ControlPoint(points[pointAt]);
+            var size = points[pointAt].Size;
+            if (OffGrid(placed) is { } offGrid) return (null, offGrid);
+            if (SpanOf(standing) != SpanOf(placed))
+            {
+                size = (int)Math.Max(placed.MaxX - placed.MinX, placed.MaxZ - placed.MinZ);
+                if (size < ObjectiveDefaults.MinControlPointSize || size > ObjectiveDefaults.MaxControlPointSize)
+                    return Refuse(RequestRules.Unreadable, "placed",
+                        $"a control point is {ObjectiveDefaults.MinControlPointSize} to {ObjectiveDefaults.MaxControlPointSize} blocks across, and the request's `placed` is {size}", id);
+            }
+            var (fromX, fromZ) = ObjectiveFootprint.AnchorCell(points[pointAt].Anchor.X, points[pointAt].Anchor.Z);
+            var (toX, toZ) = (PadCell(placed.MinX, placed.MaxX, size), PadCell(placed.MinZ, placed.MaxZ, size));
+            var moved = Orbit(points, pointAt, entry => entry.Stamp, mode, alone, toX - fromX, toZ - fromZ,
+                (entry, x, z) => entry with
+                {
+                    Anchor = Slide(entry.Anchor, x, z), Size = size, PadBox = null, CaptureBox = null, MarkerBox = null,
+                });
+            return (intent with { ControlPoints = moved }, Findings.None);
         }
 
         if (intent.Build is { } build && build.Areas.FindIndex(area => area.Id == id) is var areaAt and >= 0)
@@ -347,7 +372,8 @@ public static class PlayPieceMove
                     Findings.None);
         }
 
-        if ((intent.Destroyables ?? []).Any(goal => goal.Id == id) || (intent.Cores ?? []).Any(core => core.Id == id))
+        if ((intent.Destroyables ?? []).Any(goal => goal.Id == id) || (intent.Cores ?? []).Any(core => core.Id == id)
+            || (intent.ControlPoints ?? []).Any(point => point.Id == id))
             return Refuse(RequestRules.Unreadable, "turn", $"'{id}' is an objective, which states no facing to turn");
         if (PlayIds.RoomOfMarker(id) is { } room
             && (intent.Spawns.Any(spawn => spawn.Id == room) || (intent.Wools ?? []).Any(wool => wool.Id == room)))
@@ -751,6 +777,12 @@ public static class PlayPieceMove
     /// <summary>A point on the moved ground. Its Y is the nominal surface it was stated at and is left alone:
     /// what it stands on is measured by the world build against the terrain it laid.</summary>
     private static Pt Slide(Pt p, double dx, double dz) => p with { X = p.X + dx, Z = p.Z + dz };
+
+    /// <summary>The block a pad <paramref name="size"/> across is centred on to stand in the middle of the span
+    /// from <paramref name="min"/> to <paramref name="max"/>: the pad's middle is half a block past its centre
+    /// block at an odd size and a whole block past it at an even one.</summary>
+    private static int PadCell(double min, double max, int size) =>
+        (int)Math.Floor((min + max) / 2 - (size / 2.0 - (size - 1) / 2) + 0.5);
 
     private static (double X, double Z) SpanOf(Rect r) => (r.MaxX - r.MinX, r.MaxZ - r.MinZ);
     private static string Span(Rect r) => $"{r.MaxX - r.MinX:0.#} by {r.MaxZ - r.MinZ:0.#}";

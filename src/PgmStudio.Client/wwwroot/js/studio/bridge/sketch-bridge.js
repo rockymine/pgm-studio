@@ -404,7 +404,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   });
 
   // The pieces a click places, centred on the block clicked; every other kind is the rectangle dragged out.
-  const POINT_KINDS = new Set(["destroyable", "core", "ironCube", "chest", "observer"]);
+  const POINT_KINDS = new Set(["destroyable", "core", "controlPoint", "ironCube", "chest", "observer"]);
   const ROOM_KINDS = new Set(["spawn", "woolRoom"]);
 
   /** Arm the rectangle tool to place `kind` rather than draw a shape, or `null` to put it back to drawing. */
@@ -604,6 +604,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       .map(p => ({
         id: p.id, type: "rectangle", role: p.kind, color: p.color || null, piece: true, carried: p.carried === true,
         min_x: p.minX, min_z: p.minZ, max_x: p.maxX, max_z: p.maxZ, ...(p.line ? { line: p.line } : {}),
+        ...(p.shape ? { shape: p.shape } : {}),
       }));
     showStructural();
   }

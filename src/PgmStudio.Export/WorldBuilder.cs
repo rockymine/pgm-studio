@@ -753,11 +753,12 @@ public static class WorldBuilder
             var (ax, az) = ObjectiveFootprint.AnchorCell(point.Anchor.X, point.Anchor.Z);
             var size = Math.Clamp(point.Size, ObjectiveDefaults.MinControlPointSize, ObjectiveDefaults.MaxControlPointSize);
 
+            var round = point.Shape == ControlPointShapes.Disc;
             var pad = ControlPointStamper.PadBox(surface, ax, az, size);
             var capture = ControlPointStamper.CaptureBox(pad);
             ControlPointStamper.StampPad(world, pad, surface, Blocks.StainedClay,
-                                         BlockColors.BlockDamage(ObjectiveDefaults.ControlPointColor));
-            ControlPointStamper.ClearCaptureVolume(world, capture);
+                                         BlockColors.BlockDamage(ObjectiveDefaults.ControlPointColor), round);
+            ControlPointStamper.ClearCaptureVolume(world, capture, round);
             provenance.ClaimRect(pad.MinX, pad.MinZ, pad.MaxX, pad.MaxZ, ProvenancePass.Structure, point.Stamp);
 
             resolved.Add(point with { Size = size, PadBox = pad, CaptureBox = capture });

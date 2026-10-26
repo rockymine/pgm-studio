@@ -57,6 +57,10 @@
       }
       @if (House is not null) { <text> Drag a corner or an edge to resize a wing, or click the + on a free wall to add one.</text> }
       else if (Reshapes && Piece.Role == PlayPieceKinds.Wall) { <text> Drag an end to move it alone. It snaps to the edge of a shape.</text> }
+      else if (Reshapes && Piece.Role == PlayPieceKinds.ControlPoint)
+      {
+        <text> Drag a corner or an edge to resize it; its longer side is the pad's size.</text>
+      }
       else if (Reshapes && (Piece.IsRegion || Piece.Role is PlayPieceKinds.BuildArea or PlayPieceKinds.WaterLane))
       {
         <text> Drag a corner or an edge to resize it@(Piece.IsRegion ? "; what stands on it keeps its place across it" : "").</text>

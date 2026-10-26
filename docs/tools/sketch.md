@@ -966,14 +966,15 @@ a click here picks a place and nothing under it.
 
 **Layout's dock has three families.** *Pieces* places a spawn piece or a wool room, *Zones* a
 build area or a water lane — each dragged out as a rectangle, the size it is drawn at — and *Markers* puts down
-an iron marker, a destroyable, a core or a defence chest with a click, centred on the block clicked, or drags out a
+an iron marker, a destroyable, a core, a control point or a defence chest with a click, centred on the block
+clicked, or drags out a
 wall along the line from the block the drag starts at to the one it ends at, two blocks thick at whatever angle
 that runs. A chest placed beside a wall fronts away from it, and its rail turns it a quarter at a time. A
-destroyable and a core are offered at two teams only.
+destroyable and a core are offered at two teams only; a control point belongs to nobody and is offered at any.
 Each writes through `POST /map/{slug}/intent/pieces`, which places the piece and every image the symmetry draws
 of it (`PlayPieceAdd`): a spawn goes to the first team that has none and faces the middle of the board, a team's
 first wool takes its colour and every later one the next dye no wool on the board has, and a goal takes the
-default structure. A map stating no teams takes the ones its symmetry gives — red and blue at two — with the first
+default structure and a control point a 7-block square pad. A map stating no teams takes the ones its symmetry gives — red and blue at two — with the first
 piece placed, so every piece names a team the map has. **Only an orbit's authored image is picked**: the images
 the symmetry draws of it are drawn dashed and fainter, a click on one picks nothing, and each moves, turns and goes
 with its authored image. **A spawn or wool room placed where no ground lies also draws a rectangle of ground the size
@@ -984,22 +985,31 @@ ground a room brought stays, as the shape it is. Placing ends the tool unless Sh
 **A picked piece's rail carries its settings**:
 a spawn's **Facing** with a turn, a destroyable's or core's **Name**, a destroyable's **Design**, **Material** and
 **Float**, a core's **Lava footprint**, **Lava height**, **Casing**, **Float** and **Leak** with the casing and
-the dig they imply, and a wool's **Colour** (`ObjectiveFields`, the one body both tools show). Each is read from
-the intent by the piece's id and written through `PATCH /map/{slug}/intent/pieces/{id}/settings` one setting at a
-time (`PlayPieceSettings`). What a unit shares every image takes — a goal's structure is the same goal for every
-team — while a name and a colour are set on the named image alone, and a spawn's facing turns its images the way
-a turn does; a field put back to its default writes null. A destroyable made of gold for every team:
+the dig they imply, a wool's **Colour**, and a control point's **Name**, **Pad** (square or disc), **Taken by**
+(hold or touch), **Capture time** in whole seconds and **Points** (`ObjectiveFields`, the one body both tools
+show). Each is read from the intent by the piece's id and written through `PATCH
+/map/{slug}/intent/pieces/{id}/settings` one setting at a time (`PlayPieceSettings`). What a unit shares every
+image takes — a goal's structure is the same goal for every team, a control point's pad and capture the same
+point on every image — while a name and a colour are set on the named image alone, and a spawn's facing turns its
+images the way a turn does; a field put back to its default writes null. A destroyable made of gold for every
+team, and a control point laid round:
 
 ```json PATCH /api/map/{slug}/intent/pieces/{id}/settings
 { "key": "materials", "text": "gold block" }
 ```
 
+```json PATCH /api/map/{slug}/intent/pieces/{id}/settings
+{ "key": "shape", "text": "disc" }
+```
+
 **A room is picked whole before what stands on it.** A press on a room's building or its marker picks the room's
 region the first time, as a click on a group picks the group before its member, and the wing or the marker under
-the pointer once the room or something else standing on it is picked (`structuralAt`). A picked region, build area or water lane wears the transform box
-every rectangle wears, and dragging a corner or an edge resizes it by whole blocks, the opposite side held
-(`PieceResizeController`); the release asks the piece route, which keeps what stands on a region at the same
-fraction across it (below).
+the pointer once the room or something else standing on it is picked (`structuralAt`). A picked region, control
+point, build area or water lane wears the transform box every rectangle wears, and dragging a corner or an edge
+resizes it by whole blocks, the opposite side held (`PieceResizeController`); the release asks the piece route,
+which keeps what stands on a region at the same fraction across it (below), and makes the longer side of a
+control point's rectangle its size, from 3 to 15 blocks, centred where the rectangle is. A disc is drawn round
+inside its box.
 
 **A room's house is shaped where the room is placed.** Picking a wing of a room's building in Layout shows the
 transform box on that wing and the round insert marker on its free walls, the gestures a dressed house takes in
@@ -2605,9 +2615,9 @@ Every endpoint is rooted at `/api`; a read is open to anyone and a write needs s
 |---|---|---|---|
 | `POST /sketch` | `{name?, width?, depth?, mode?, centerX?, centerZ?}` | `{slug}` — a `map` row at `stage=sketch`, whose layout is a **ground layer** at `base_y` 0 under the id `ground`. A frame seeds the `setup` beside it, and `mode` is any `SymmetryModes` word, `none` included, with anything else read as `rot_180`; without a frame the editor uses its 120×80 `rot_180` default. A board is a stack and a flat one is a stack of one, so the ground is written here rather than invented by whichever surface draws on the board first | — |
 | `GET /map/{slug}/sketch` | — | the stored layout with the map's rooms drawn in from the intent, or `{}`. The `ETag` is the revision to state on the next write | 404 |
-| `GET /map/{slug}/intent/pieces` | — | `[{id, kind, color, minX, minZ, maxX, maxZ, carried, line?}]` — every play piece where the sketch draws it, at the rectangle `PATCH …/intent/pieces/{id}` reads it as standing on; `carried` marks an image the intent does not store and an iron cube seated in a spawn room; a room's point is `{room}-marker`; a wall's rectangle spans its columns and `line` is its two ends `[x1, z1, x2, z2]` | 404 |
-| `POST /map/{slug}/intent/pieces` | `{kind, minX, minZ, maxX, maxZ, team?}` — a room's or an area's rectangle, or the block a goal, a cube, a chest or the observer stands on; a wall states `{kind, ends: [x1, z1, x2, z2]}`, its two ends on block corners, in place of the rectangle | `{id}` — the authored image's id; the piece is stored with every image the symmetry draws of it | **400 `RQ1`** an unknown kind, a rectangle with no area, a wall stating a rectangle or two ends at one point, a team the map lacks or that has a spawn, a spawn where every team has one, a second observer · 404 · **409 `RQ5`** a stale `If-Match` or a region the map already names · 422 |
-| `PATCH /map/{slug}/intent/pieces/{id}/settings` | `{key, text?, number?, flag?, alone?}` — `key` one of `name`, `color`, `style`, `materials`, `float`, `lava`, `lavaHeight`, `openTop`, `leak`, `facing`; `text` for a name, colour, design or material, `number` for the rest and for a facing's quarter turns clockwise, `flag` for `openTop`; none of the three puts it back to its default | `{}` — the setting stored, on every image of the unit for what a unit shares | **400 `RQ1`** a setting the piece's kind lacks, or a value it cannot take · **404 `RQ4`** the id names no piece · 409 · 422 |
+| `GET /map/{slug}/intent/pieces` | — | `[{id, kind, color, minX, minZ, maxX, maxZ, carried, line?, shape?}]` — every play piece where the sketch draws it, at the rectangle `PATCH …/intent/pieces/{id}` reads it as standing on; `carried` marks an image the intent does not store and an iron cube seated in a spawn room; a room's point is `{room}-marker`; a wall's rectangle spans its columns and `line` is its two ends `[x1, z1, x2, z2]`; a control point's rectangle is its pad and `shape` is `square` or `disc` | 404 |
+| `POST /map/{slug}/intent/pieces` | `{kind, minX, minZ, maxX, maxZ, team?}` — a room's or an area's rectangle, or the block a goal, a control point, a cube, a chest or the observer stands on; a wall states `{kind, ends: [x1, z1, x2, z2]}`, its two ends on block corners, in place of the rectangle | `{id}` — the authored image's id; the piece is stored with every image the symmetry draws of it | **400 `RQ1`** an unknown kind, a rectangle with no area, a wall stating a rectangle or two ends at one point, a team the map lacks or that has a spawn, a spawn where every team has one, a second observer · 404 · **409 `RQ5`** a stale `If-Match` or a region the map already names · 422 |
+| `PATCH /map/{slug}/intent/pieces/{id}/settings` | `{key, text?, number?, flag?, alone?}` — `key` one of `name`, `color`, `style`, `materials`, `float`, `lava`, `lavaHeight`, `openTop`, `leak`, `facing`, `shape`, `points`, `captureTime`, `captureMode`; `text` for a name, colour, design, material, a control point's `square` or `disc` and its `hold` or `touch`, `number` for the rest, for a capture time's whole seconds from 1 to 600 and for a facing's quarter turns clockwise, `flag` for `openTop`; none of the three puts it back to its default | `{}` — the setting stored, on every image of the unit for what a unit shares | **400 `RQ1`** a setting the piece's kind lacks, or a value it cannot take · **404 `RQ4`** the id names no piece · 409 · 422 |
 | `DELETE /map/{slug}/intent/pieces/{id}` | `?alone=true` to keep the other images | `{}` — the piece and every image of its unit taken out of the intent | **400 `RQ1`** a room's point, which goes with its room · **404 `RQ4`** the id names no piece · 409 · 422 |
 | `GET /map/{slug}/places` | — | the places as stored, or `{}`; the `ETag` is the revision to state on the next write | 404 |
 | `PUT /map/{slug}/places` | `{places: [{id, name, shape, points, holds?}], area?, verdict?}`; `?note=` kept on the change | `{}` — stored verbatim as one change in the map's history | **400 `RQ1`** a place with no id, a shape that is not `point`, `box`, `ring` or `line` or carries the wrong number of points, a point that is not `[x, z]`, an `area` whose max is not past its min, a `verdict` that is not `proposed`, `changes` or `approved` · **400 `RQ5`** two places stating one id · **400 `RQ4`** a place holding a play piece the map has none of · **403 `RQ8`** a caller who is neither an admin nor a token carrying the notes permission · **409 `RQ13`** a stale `If-Match` · 404 |

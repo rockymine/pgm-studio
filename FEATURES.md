@@ -10880,6 +10880,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   block inward, 26 and 1.2 beside a sheer side, and rests it on the terrain below where under 4 blocks would stay
   clear (`Underside`, `SketchRasterizer.Hang`). The Draw phase's layer panel carries the toggle and the numbers.
   `docs/tools/sketch.md` *A layer's underside*. (`TS211`)
+- **A control point placed in Layout, square or disc (`TS213`).** *Markers* puts one down with a click at any number
+  of teams, its images with it under one stamp; a drag moves the orbit, an edge drag resizes it (the longer side,
+  3 to 15), and the rail sets its name, its pad (`ControlPointShapes`: square or disc), how it is taken, its
+  capture time in seconds and its points. A disc is laid round (`ControlPointStamper.Cells`) and captured inside a
+  `<cylinder>` (`ObjectiveRegion.EmitCylinder`). `docs/tools/sketch.md` *Draw*, `docs/pgm/control-points.md` §9.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the

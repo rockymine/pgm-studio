@@ -6,9 +6,8 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Api.Endpoints;
 
 /// <summary>GET /api/objectives/vocabulary — the destroyable designs (<see cref="DestroyableStyles"/>), the
-/// wool dyes (<see cref="WoolColors"/>) and what each optional field is worth unauthored
-/// (<see cref="ObjectiveDefaults"/>), served rather than copied
-/// onto the client because the client cannot reach <c>PgmStudio.Domain</c>. Shape and reasoning:
+/// wool dyes (<see cref="WoolColors"/>), a control point's pads and capture modes, and what each optional field
+/// is worth unauthored (<see cref="ObjectiveDefaults"/>), served rather than copied onto the client because the client cannot reach <c>PgmStudio.Domain</c>. Shape and reasoning:
 /// <see cref="ObjectiveVocabularyDto"/>.</summary>
 public sealed class ObjectiveVocabularyEndpoint : EndpointWithoutRequest<ObjectiveVocabularyDto>
 {
@@ -28,5 +27,11 @@ public sealed class ObjectiveVocabularyEndpoint : EndpointWithoutRequest<Objecti
             ObjectiveDefaults.CoreFloat, ObjectiveDefaults.CoreLeak, OpenTop: false),
         new WoolVocabularyDto(
             [.. WoolColors.All.Select(c => new WoolColorDto(c, WoolColors.Label(c), WoolColors.Swatch[c]))],
-            Auto: "auto")), ct);
+            Auto: "auto"),
+        new ControlPointVocabularyDto(
+            ControlPointShapes.All, CaptureModes.All, ControlPointShapes.Square,
+            ObjectiveDefaults.ControlPointSize, ObjectiveDefaults.MinControlPointSize,
+            ObjectiveDefaults.MaxControlPointSize, (int)ObjectiveDefaults.ControlPointPoints,
+            ObjectiveDefaults.ControlPointCaptureSeconds,
+            CaptureModes.Hold)), ct);
 }

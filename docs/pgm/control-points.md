@@ -442,8 +442,8 @@ An agent authors a capture board by adding one array to the intent it already po
 ]
 ```
 
-Four fields are knobs — `name`, `anchor`, `size` and `points`, plus `captureTime` and `captureMode` — and
-everything else PGM will read off the point is §7's convention, written the same on every board. `scoreLimit`
+The knobs are `name`, `anchor`, `size`, `shape`, `points`, `captureTime` and `captureMode`, and everything else
+PGM will read off the point is §7's convention, written the same on every board. `scoreLimit`
 sits beside them on the intent and defaults to 750 on a board carrying a point that pays.
 
 **`captureMode` is how a point is taken, `hold` or `touch`** (`CaptureModes`). `hold`, the default, is §7's hill: a
@@ -454,10 +454,24 @@ until another team does. The generator writes it as a capture time of `0.1s` —
 `not(objective)` on the point's own id, so the holders standing on it count for nothing and one step by anyone
 else is enough. It is one point with a different capture, not another kind of objective.
 
+**`shape` is the pad's, `square` or `disc`** (`ControlPointShapes`). A square is the default, as the author ruled
+(`docs/gameplay/approaches.md`); a disc is laid round, its diameter the point's `size`, over the columns whose
+middle falls inside the circle inscribed in the square, so its corners stay ground. A disc is captured inside a
+`<cylinder>` standing on the pad, its base the pad's middle at the pad course and its radius half the size, so a
+player on one of those corners is not on the point; its progress region is still the pad course's box, and PGM
+picks the clay out of it.
+
+**A sketch places one in its Layout step.** *Markers* offers a control point at any number of teams, put down
+with a click as a square of the default size centred on the block clicked, and the symmetry's images with it
+under one stamp (`PlayPieceAdd`); a drag moves the orbit and a drag of an edge resizes it, the longer side of the
+rectangle becoming the size, 3 to 15 blocks (`PlayPieceMove`). The rail sets the name, the pad, how it is taken,
+the capture time in whole seconds and the points (`PlayPieceSettings`), so a point placed on a sketch reaches
+the same intent an agent's array does (`docs/tools/sketch.md`, *Draw*).
+
 **The pad is cut into the ground rather than raised over it**, and that is the one way the stamper differs
 from every other objective's. A destroyable and a core float — the gap is what a raid climbs and what a core's
-lava falls through — but a hill is ground: `ControlPointStamper` replaces the terrain's top course over a
-square footprint with white stained clay, and the capture volume is the three blocks of air starting at that
+lava falls through — but a hill is ground: `ControlPointStamper` replaces the terrain's top course over its
+square or round footprint with white stained clay, and the capture volume is the three blocks of air starting at that
 course. A pad that floated would be a hill nobody could stand on.
 
 **The marker over it is the board's one changing signal.** Every goal the studio stamps carries a small
@@ -473,7 +487,7 @@ are disjoint, so the `InverseFilter(progress)` PGM applies over the owner region
 A point therefore exports with three regions and the score beside them:
 
 ```xml
-<region id="middle-capture" type="cuboid" …/>   <!-- the pad course + the air a player stands in -->
+<region id="middle-capture" type="cuboid" …/>   <!-- the pad course + the air a player stands in; a cylinder for a disc -->
 <region id="middle-pad"     type="cuboid" …/>   <!-- the pad course alone: the progress pie -->
 <region id="middle-marker"  type="cuboid" …/>   <!-- the 3×3×3 over the build ceiling: the owner display -->
 ```
@@ -491,7 +505,8 @@ display region is the sky marker's box.
 **What is not built** is on the board in `TODO.md` under *"The hill: a goal owned by standing on it"*.
 Each sentence becomes false when its task ships:
 
-- **`TC7`** — the configure tool has no step for placing one; the API and a plan's own count are the ways in.
+- **`TC7`** — the configure tool has no step for placing one on an imported map; a sketch's Layout, the API and
+  a plan's own count are the ways in.
 
 What a board should *be* is not on that list. It is the author's rather than the corpus's, it has been ruled,
 and it is written down in `docs/gameplay/approaches.md`: square pads; two or three points on two teams and

@@ -6,8 +6,8 @@ using PgmStudio.Minecraft.Palette;
 namespace PgmStudio.Minecraft.Stamping;
 
 /// <summary>
-/// Stamps the CP/KotH objective: a flat square pad of coloured clay, level, set into the terrain rather
-/// than standing over it.
+/// Stamps the CP/KotH objective: a flat pad of coloured clay, square or round, level, set into the terrain
+/// rather than standing over it.
 ///
 /// <para><b>The one rule that separates it from every other objective stamper.</b> A destroyable and a core
 /// <em>float</em> — the gap is what a raid has to climb and what a core's lava falls through. A hill is the
@@ -63,10 +63,9 @@ public static class ControlPointStamper
     /// </summary>
     public static void StampPad(
         VoxelWorld world, BlockBox pad, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
-        int material = Blocks.StainedClay, int color = 0)
+        int material = Blocks.StainedClay, int color = 0, bool round = false)
     {
-        for (var x = pad.MinX; x <= pad.MaxX; x++)
-        for (var z = pad.MinZ; z <= pad.MaxZ; z++)
+        foreach (var (x, z) in Cells(pad, round))
         {
             world.SetBlock(x, pad.MinY, z, material, color);
 
@@ -83,11 +82,24 @@ public static class ControlPointStamper
     /// still a place a player can stand. The pad course itself is left alone — it is the floor, not the
     /// volume.
     /// </summary>
-    public static void ClearCaptureVolume(VoxelWorld world, BlockBox capture)
+    public static void ClearCaptureVolume(VoxelWorld world, BlockBox capture, bool round = false)
     {
-        for (var x = capture.MinX; x <= capture.MaxX; x++)
-        for (var z = capture.MinZ; z <= capture.MaxZ; z++)
+        foreach (var (x, z) in Cells(capture, round))
         for (var y = capture.MinY + 1; y <= capture.MaxY; y++)
             world.SetBlock(x, y, z, Blocks.Air);
+    }
+
+    /// <summary>The columns a pad over <paramref name="box"/> covers: every one of its footprint, or where
+    /// <paramref name="round"/> the ones whose middle lies within the disc inscribed in it.</summary>
+    public static IEnumerable<(int X, int Z)> Cells(BlockBox box, bool round)
+    {
+        double cx = (box.MinX + box.MaxX + 1) / 2.0, cz = (box.MinZ + box.MaxZ + 1) / 2.0;
+        var radius = (box.MaxX - box.MinX + 1) / 2.0;
+        for (var x = box.MinX; x <= box.MaxX; x++)
+        for (var z = box.MinZ; z <= box.MaxZ; z++)
+        {
+            double dx = x + 0.5 - cx, dz = z + 0.5 - cz;
+            if (!round || dx * dx + dz * dz <= radius * radius) yield return (x, z);
+        }
     }
 }

@@ -47,6 +47,7 @@ const ROLE_FILL = { spawn: "var(--canvas-role-spawn)", woolRoom: "var(--canvas-r
 const PIECE_FILL = {
   destroyable: { color: OBJECTIVE_COLORS.destroyable, alpha: 0.85 },
   core:        { color: OBJECTIVE_COLORS.core, alpha: 0.85 },
+  controlPoint: { color: OBJECTIVE_COLORS.controlPoint, alpha: 0.45 },
   ironCube:    { color: OBJECTIVE_COLORS.iron, alpha: 0.85 },
   observer:    { color: OBJECTIVE_COLORS.spawn, alpha: 0.85 },
   spawnPoint:  { color: OBJECTIVE_COLORS.spawn, alpha: 0.95 },
@@ -90,6 +91,7 @@ export function paintStructural(painter, shapes, selectedId = null) {
         stroke: look.color, strokeAlpha: 0.95, width: 2, ...(dash ? { dash } : {}),
       };
       if (band) painter.ring(band, style);
+      else if (s.shape === "disc") paintShape(painter, "circle", box, style);
       else painter.rect(box, style);
       continue;
     }

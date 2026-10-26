@@ -175,6 +175,7 @@
   --canvas-objective-iron:        #9aa7b4;
   --canvas-objective-destroyable: #6b4f9e;
   --canvas-objective-core:        #d4622a;
+  --canvas-objective-control-point: #2a9d8f;
   --canvas-objective-outline:     #222222;   /* dark in both themes: it outlines the marker, not the canvas */
 
   /* Buildings — a dressed house and a room's shell are one ink. */

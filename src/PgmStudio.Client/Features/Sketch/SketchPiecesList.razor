@@ -43,7 +43,7 @@
     [
         PlayPieceKinds.Spawn, PlayPieceKinds.SpawnPoint, PlayPieceKinds.WoolRoom, PlayPieceKinds.WoolSpawn,
         PlayPieceKinds.BuildArea, PlayPieceKinds.WaterLane, PlayPieceKinds.IronCube, PlayPieceKinds.Destroyable,
-        PlayPieceKinds.Core, PlayPieceKinds.Wall, PlayPieceKinds.Chest, PlayPieceKinds.Observer,
+        PlayPieceKinds.Core, PlayPieceKinds.ControlPoint, PlayPieceKinds.Wall, PlayPieceKinds.Chest, PlayPieceKinds.Observer,
     ];
 
     private Task Pick(SketchStructuralRow piece) => piece.Carried ? Task.CompletedTask : OnSelect.InvokeAsync(piece.Id);

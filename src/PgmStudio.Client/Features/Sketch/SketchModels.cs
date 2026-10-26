@@ -111,6 +111,7 @@ public sealed record SketchStructuralRow(
     {
         PlayPieceKinds.Destroyable => "gem",
         PlayPieceKinds.Core => "flame",
+        PlayPieceKinds.ControlPoint => "flag",
         PlayPieceKinds.IronCube => "pickaxe",
         PlayPieceKinds.Wall => "brick-wall",
         PlayPieceKinds.Chest => "box",
@@ -128,6 +129,7 @@ public sealed record SketchStructuralRow(
         StructuralRoles.Building => "Building",
         PlayPieceKinds.Destroyable => "Destroyable",
         PlayPieceKinds.Core => "Core",
+        PlayPieceKinds.ControlPoint => "Control point",
         PlayPieceKinds.BuildArea => "Build area",
         PlayPieceKinds.WaterLane => "Water lane",
         PlayPieceKinds.IronCube => "Iron marker",

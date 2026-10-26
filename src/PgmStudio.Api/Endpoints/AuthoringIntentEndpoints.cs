@@ -40,7 +40,7 @@ public sealed class IntentPiecesEndpoint(MapRepository repo, MapArtifactStore ar
         var intent = await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
         await Send.OkAsync([.. PlayPieces.Of(intent).Select(piece => new PlayPieceDto(
             piece.Id, piece.Kind, piece.Color, piece.Rect.MinX, piece.Rect.MinZ, piece.Rect.MaxX, piece.Rect.MaxZ,
-            piece.Carried, piece.Line))], ct);
+            piece.Carried, piece.Line, piece.Shape))], ct);
     }
 }
 

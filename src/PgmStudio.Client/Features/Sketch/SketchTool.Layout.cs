@@ -44,7 +44,8 @@ public partial class SketchTool
         new(PlayPieceKinds.WaterLane, "Water lane", SwatchClass: "canvas-dock-swatch--water-lane"),
     ];
 
-    /// <summary>The markers a board may place. A destroyable and a core are offered at two teams only (OB14).</summary>
+    /// <summary>The markers a board may place. A destroyable and a core are offered at two teams only (OB14); a
+    /// control point belongs to nobody and is offered at any.</summary>
     private DockItem[] MarkerItems =>
     [
         new(PlayPieceKinds.IronCube, "Iron marker", Icon: "pickaxe"),
@@ -55,6 +56,7 @@ public partial class SketchTool
                 new(PlayPieceKinds.Core, "Core", Icon: "flame"),
             }
             : [],
+        new(PlayPieceKinds.ControlPoint, "Control point", Icon: "flag"),
         new(PlayPieceKinds.Wall, "Wall", Icon: "brick-wall"),
         new(PlayPieceKinds.Chest, "Defence chest", Icon: "box"),
     ];
