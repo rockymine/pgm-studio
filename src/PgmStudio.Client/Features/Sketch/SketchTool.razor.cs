@@ -380,8 +380,9 @@ public partial class SketchTool
         await handle.InvokeVoidAsync("setPaintPreview", phase is "theme" or "dressing" or "review");
         await handle.InvokeVoidAsync("setDressingMode", phase == "dressing");
         // Entering Terraform turns the contour overlay on with it: the phase shows the stack and the ground it
-        // made at once, which is the only way a modifier can be tuned by eye. Leaving does not turn it off
-        // again — the chip is the author's, and a contour view they asked for should survive a phase change.
+        // made at once, which is the only way a modifier can be tuned by eye. Leaving does not switch the chip
+        // off — it is the author's, and Draw shows the contours again — but a phase without the chip does not
+        // draw them (PushPhaseOverlays).
         await handle.InvokeVoidAsync("setReliefMode", phase == "relief");
         // What a plain click picks. A group is the unit in Draw, where a landmass is what moves. In Theme the
         // job is naming one shape, so a click picks the shape and the group is reached with Alt or from the tree.
@@ -443,6 +444,10 @@ public partial class SketchTool
         var on = OverlaysOf(phase).On;
         if (on.Contains(ChipShapes) && !shapesOn) { shapesOn = true; await handle.InvokeVoidAsync("setShapesVisible", true); }
         if (on.Contains(ChipBlocks) && !blocksOn) { blocksOn = true; await handle.InvokeVoidAsync("setBlocksVisible", true); }
+        // A phase that does not offer the contours does not draw them: the chip is not there to turn them off,
+        // and the blocks it shows carry the height already. The author's setting waits for the next phase that
+        // offers the chip.
+        await handle.InvokeVoidAsync("setReliefVisible", reliefOn && OverlaysOf(phase).Offered.Contains(ChipRelief));
     }
 
     // Layout pushed from the bridge (OnLayout) + the current selection (OnShapeSelected/OnGroupSelected).

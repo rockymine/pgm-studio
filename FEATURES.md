@@ -10910,6 +10910,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   each kind's gesture — a click, a drag along the board, a ring, a rectangle — and a building in hand raises no
   refusal before its rectangle is down. Layout's empty state points at the dock below the board and its three
   groups.
+- **Blocks shows stone, and every layer reads the same on both halves (`TS226`).** Draw's Blocks overlay draws the
+  board's cells as one pixel per block in stone (`stoneBitmap`), every image of a mirroring group included
+  (`rasterizeBoard`). Over the blocks or the height map, groups and shapes are drawn as outlines, so the drawn
+  half is no longer tinted against its images. A phase that does not offer the Contours chip does not draw the
+  contours.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the

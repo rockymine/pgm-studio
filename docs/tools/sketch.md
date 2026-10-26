@@ -1122,7 +1122,16 @@ aimed plane from three — rounding to blocks, so a slope reads as the neat stra
 
 Six overlays sit above the canvas: **Shapes** (the draw primitives over the fused groups), **Mirror** (the
 symmetry copies), **Chunks** (the 16-block grid), **Blocks** (the rasterized footprint — the exact cells an
-export would fill), **Contours** (the height contours of the ground every group builds) and **Snap**. A
+export would fill), **Contours** (the height contours of the ground every group builds) and **Snap**.
+
+**Blocks draws the footprint as stone until a phase paints it.** In Draw the browser rasterizes the board the
+way `SketchRasterizer` does — every shape's cells, and each image of a group that mirrors, its shapes turned onto
+that image and rasterized (`rasterizeBoard`) — and draws the cells as one pixel per block in vanilla stone's grey,
+each block a fixed shade apart from its neighbours so the grid reads at any zoom with no line between blocks
+(`stoneBitmap`). The finishing phases draw the server's paint in its place. Over the blocks or the height map a
+group and a shape are drawn as outlines only, since a fill would tint the drawn half and leave its images
+untinted beside it. An overlay a phase does not offer is not drawn in it: the Contours chip is kept as the author
+set it and the contours come back in the next phase that offers the chip. A
 read-only isometric preview draws **the world the export builds**: entering it posts the live layout to
 `sketch/columns`, which runs the real build and answers every column's solid runs, and the browser meshes
 those into triangles. So the picture carries the terrain's own materials, the ground the modifiers left,

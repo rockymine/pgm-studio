@@ -45,10 +45,10 @@ import { paintDiff } from "../render/diff-render.js";
 import { orbitAxes, applySymmetry } from "../geometry/symmetry.js";
 import { SketchEditController } from "../controllers/sketch-edit-controller.js";
 import {
-  paintSketchShape, paintGroups, paintMirror, paintBbox, paintChunkGrid, paintAxis, paintGhostGroups, paintRaster, paintStructural, paintPlaces, paintMasks, placeAt, wallBands,
+  paintSketchShape, paintGroups, paintMirror, paintBbox, paintChunkGrid, paintAxis, paintGhostGroups, stoneBitmap, paintStructural, paintPlaces, paintMasks, placeAt, wallBands,
   paintContours, paintHeightMap, heightMapBitmap,
 } from "../render/sketch-render.js";
-import { rasterizeShapes, cellRuns } from "../geometry/rasterize.js";
+import { rasterizeBoard } from "../geometry/rasterize.js";
 import { loadBlockImage, blockImageBounds } from "../render/block-render.js";
 import { viewportWorldRect, snapOut, gridStep, paintWorkArea, renderScaleBar, renderDimensionPill, renderSelectionMarks, renderTransformBox, gripSideX, gripSideZ } from "../render/canvas-chrome.js";
 import { labelPx } from "../shared/ui-scale.js";
@@ -137,7 +137,7 @@ export class SketchCanvas extends CanvasBase {
   #mirrorVisible = true;
   #chunkVisible  = true;
   #blocksVisible = false;
-  #rasterRuns    = null;   // cached rasterized cell runs; recomputed on shape change while blocks are shown
+  #stone         = null;   // the footprint as a stone bitmap; rebuilt on a shape, group or symmetry change while blocks are shown
   #paintData     = null;   // the server's block-pixel payload for the terrain paint (terrain-painting.md TP10)
   #paintImage    = null;   // that payload decoded — a canvas blits a bitmap, not a data URL
   #relief        = null;   // the server's traced contours for the relief the layout carries
@@ -201,8 +201,8 @@ export class SketchCanvas extends CanvasBase {
   // The frame is not author-set — the grid auto-grows to the content. setBbox exists for the
   // bridge's load path but its value is ignored; the bounds come from the drawn shapes + mirror.
   setBbox()            { this.#renderSetup(); }
-  setCenter(cx, cz)    { this.#center = { cx, cz }; this.#renderSetup(); this.#refreshCenter(); }
-  setMode(mode)        { this.#mode = mode; this.#renderSetup(); }
+  setCenter(cx, cz)    { this.#center = { cx, cz }; this.#rebuildRaster(); this.#renderSetup(); this.#refreshCenter(); }
+  setMode(mode)        { this.#mode = mode; this.#rebuildRaster(); this.#renderSetup(); }
   setOperation(op)     { this.#draw?.setOperation(op); }
 
   // Frame the working area, with a margin of grid visible around it. Deferred when the wrap has no layout
@@ -393,7 +393,7 @@ export class SketchCanvas extends CanvasBase {
     return best?.top ?? null;
   }
 
-  setGroups(groups)        { this.#groups = groups ?? []; this.#paintWorld(); this.#renderTransformChrome(); }
+  setGroups(groups)        { this.#groups = groups ?? []; this.#rebuildRaster(); this.#paintWorld(); this.#renderTransformChrome(); }
   setGhostGroups(polys)     { this.#ghostPolys = polys ?? []; this.#paintWorld(); }
   setMirrorPolygons(polys)   { this.#mirrorPolys = polys ?? []; this.#renderSetup(); }
   /** Layout's canvas: on, a click picks play pieces and nothing else, and a picked room's house is shaped and a
@@ -437,12 +437,13 @@ export class SketchCanvas extends CanvasBase {
   setChunkVisible(v)  { this.#chunkVisible = v; this.#paintWorld(); }
   setBlocksVisible(v) { this.#blocksVisible = v; this.#rebuildRaster(); this.#paintWorld(); }
 
-  // Rasterize the drawn shapes into the block cells they voxelize into (the WYSIWYG preview), merged
-  // into horizontal runs so the fill is a few hundred rects, not one per block. Cached — recomputed only on
-  // a shape change while the Blocks layer is on, not per frame. (Only the primary footprint; the mirror
-  // copies already read as smooth polygons on their own layer.)
+  // Rasterize the board into the block cells it voxelizes into — the drawn shapes and every image of a group
+  // that mirrors — and keep it as a stone bitmap, one pixel per block. Cached: rebuilt on a shape, group or
+  // symmetry change while the Blocks layer is on, not per frame.
   #rebuildRaster() {
-    this.#rasterRuns = this.#blocksVisible ? cellRuns(rasterizeShapes([...this.#shapes.values()])) : null;
+    this.#stone = this.#blocksVisible
+      ? stoneBitmap(rasterizeBoard([...this.#shapes.values()], this.#groups, this.#mode, this.#center.cx, this.#center.cz))
+      : null;
   }
 
   /**
@@ -960,13 +961,13 @@ export class SketchCanvas extends CanvasBase {
     painter.layer("raster",    () => {
       if (!this.#blocksVisible) return;
       if (painted) painter.image(this.#paintImage, blockImageBounds(this.#paintData));
-      else paintRaster(painter, this.#rasterRuns);
+      else if (this.#stone) painter.image(this.#stone.image, this.#stone.bounds);
     });
-    // The group fill would tint every painted block towards the result purple, so under the paint the
-    // group contributes its outline only. The height map is the same case: its whole reading is a lightness,
-    // and a fill under it shifts every cell by the same amount in the same direction.
+    // The group fill would tint every block towards the result purple, so over the Blocks layer — paint or
+    // stone — the group contributes its outline only. The height map is the same case: its whole reading is a
+    // lightness, and a fill under it shifts every cell by the same amount in the same direction.
     const shaded = this.#relief !== null && this.#reliefShading.size > 0;
-    painter.layer("group",    () => paintGroups(painter, this.#groups, { filled: !painted && !shaded }));
+    painter.layer("group",    () => paintGroups(painter, this.#groups, { filled: !this.#blocksVisible && !shaded }));
     // Contours sit over the blocks and the group fill and under everything drawn or selected: they describe
     // the ground, so they belong on it, but an author's own shapes have to stay legible across them.
     painter.layer("relief",    () => {
@@ -974,7 +975,9 @@ export class SketchCanvas extends CanvasBase {
       paintHeightMap(painter, this.#relief, this.#reliefShading);
       paintContours(painter, this.#relief);
     });
-    painter.layer("shapes",    () => this.#paintShapes());
+    // Over a reading of the ground — the blocks or the height map — a shape is its outline, for the reason the
+    // group is: a fill would tint the drawn half and leave its symmetry images untinted beside it.
+    painter.layer("shapes",    () => this.#paintShapes({ filled: !this.#blocksVisible && !shaded }));
     // Structural pieces are locked plan context, not drawn primitives — always shown (like the group
     // outlines), not behind the Shapes toggle, so they stay visible while a plan is refined.
     painter.layer("structural", () => {
@@ -1004,10 +1007,10 @@ export class SketchCanvas extends CanvasBase {
    * in still draws its own — a group shows what it is made of once it is being worked in, which is how a
    * member becomes reachable without hunting for a toggle first.
    */
-  #paintShapes() {
+  #paintShapes({ filled = true } = {}) {
     if (this.#shapesVisible) {
       for (const shape of this.#shapes.values())
-        paintSketchShape(this.#painter, shape, { selected: shape.id === this.#selectedId });
+        paintSketchShape(this.#painter, shape, { selected: shape.id === this.#selectedId, filled });
       return;
     }
     const context = this.#scopeGroupId ?? this.#selectedGroupId;
@@ -1018,7 +1021,7 @@ export class SketchCanvas extends CanvasBase {
       // Faint where the group is merely selected, plain where it has been entered: entering is the act
       // that says the members are what is being worked on.
       if (shape) paintSketchShape(this.#painter, shape, {
-        selected: shape.id === this.#selectedId, alpha: this.#scopeGroupId ? 0.85 : 0.4,
+        selected: shape.id === this.#selectedId, alpha: this.#scopeGroupId ? 0.85 : 0.4, filled,
       });
     }
   }

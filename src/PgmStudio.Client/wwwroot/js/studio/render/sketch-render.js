@@ -18,8 +18,8 @@ function shapeStyle(shape, selected) {
 }
 
 /** One draw primitive: add/subtract coloured, dashed when it overrides the normal boolean order. */
-export function paintSketchShape(painter, shape, { selected = false, alpha = 1 } = {}) {
-  const style = { ...shapeStyle(shape, selected), alpha };
+export function paintSketchShape(painter, shape, { selected = false, alpha = 1, filled = true } = {}) {
+  const style = { ...shapeStyle(shape, selected), alpha, ...(filled ? {} : { fill: null }) };
   const kind = footprintOf(shape);
   if (kind === "rectangle" && shape.turn) {
     painter.ring(toRing(shape), { ...style, fillRule: "evenodd" });
@@ -241,21 +241,45 @@ export function paintMirror(painter, polys) {
   }
 }
 
+/** The grey a sketch's ground is built from before any paint: vanilla stone's top. */
+const STONE = 125;
+/** How far one block's grey strays from the next, either way — enough that neighbouring blocks read apart at
+ *  any zoom with no line drawn between them, little enough that the whole still reads as one stone. */
+const STONE_SPREAD = 9;
+
+/** One block's shade of stone, fixed by its cell so a redraw never shimmers. */
+export function stoneShade(x, z) {
+  let hash = Math.imul(x, 73856093) ^ Math.imul(z, 19349663);
+  hash = Math.imul(hash ^ (hash >>> 13), 1274126177);
+  return STONE + ((hash >>> 0) % (2 * STONE_SPREAD + 1)) - STONE_SPREAD;
+}
+
 /**
- * The rasterized block footprint — the exact cells the shapes voxelize into, as merged horizontal
- * runs `{ x, z, w }` (see geometry/rasterize.cellRuns). Painted as a faint stone fill beneath the smooth
- * group outline, so a curve visibly reads as the blocky cells it becomes on export. This is the geometry
- * preview only; the *paint* those cells receive is the block bitmap the canvas blits over it.
+ * The block footprint as a picture: one pixel per block, in stone, over the box the cells span — what the
+ * export lays before any paint, drawn the way the paint layer is drawn so the two read alike. `cells` is a
+ * Set of `"x,z"` keys (`rasterizeBoard`). Answers `{ image, bounds }`, or null for no cells.
  */
-export function paintRaster(painter, runs) {
-  // A faint fill plus a hairline round each run — the run edges are exactly the stair-stepped cell
-  // boundaries, so the voxelization reads as blocks — in the neutral stone a sketch is built from.
-  const stone = "var(--canvas-result-stroke)";
-  const line = painter.screenPx(1);
-  for (const { x, z, w } of runs ?? []) {
-    painter.rect({ min_x: x, max_x: x + w, min_z: z, max_z: z + 1 },
-      { fill: stone, fillAlpha: 0.20, stroke: stone, strokeAlpha: 0.55, width: line });
+export function stoneBitmap(cells) {
+  if (!cells?.size) return null;
+  const points = [...cells].map(cell => cell.split(",").map(Number));
+  let minX = Infinity, minZ = Infinity, maxX = -Infinity, maxZ = -Infinity;
+  for (const [x, z] of points) {
+    if (x < minX) minX = x; if (x > maxX) maxX = x;
+    if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
   }
+  const width = maxX - minX + 1, depth = maxZ - minZ + 1;
+  const image = new ImageData(width, depth);
+  for (const [x, z] of points) {
+    const at = ((z - minZ) * width + (x - minX)) * 4;
+    const shade = stoneShade(x, z);
+    image.data[at] = image.data[at + 1] = image.data[at + 2] = shade;
+    image.data[at + 3] = 255;
+  }
+  const surface = document.createElement("canvas");
+  surface.width = width;
+  surface.height = depth;
+  surface.getContext("2d").putImageData(image, 0, 0);
+  return { image: surface, bounds: { min_x: minX, min_z: minZ, max_x: maxX + 1, max_z: maxZ + 1 } };
 }
 
 /**
