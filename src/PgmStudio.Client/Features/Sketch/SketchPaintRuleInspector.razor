@@ -1,0 +1,155 @@
+@namespace PgmStudio.Client.Features.Sketch
+@using System.Text.Json.Nodes
+@using PgmStudio.Client.Components
+@using PgmStudio.Contracts
+@using static PgmStudio.Client.Features.Sketch.SketchPaintRuleSet
+
+@* One paint rule, picked in the Palette phase's list: what it lays and where. Every field writes the whole list
+   through the bridge, so each edit is one undo step and the Blocks overlay repaints. *@
+
+<Inspector>
+  @if (Rule is { } rule)
+  {
+    <DetailHeader Icon="paintbrush" Label="Paint rule">
+      <span class="detail-header-badges">
+        <Button Variant="icon" Icon="x" Title="Done" OnClick="() => OnClose.InvokeAsync()" />
+      </span>
+    </DetailHeader>
+
+    <Section>
+      <div class="field-grid">
+        <Field Label="Name" Half>
+          <input class="field-input" value="@(Text(rule, Name) ?? "")" placeholder="@IdOf(rule)"
+                 @onchange="e => Edit(edited => SetOrRemove(edited, Name, string.IsNullOrWhiteSpace(e.Value?.ToString()) ? null : e.Value!.ToString()!.Trim()))" />
+        </Field>
+        <Field Label="State" Half>
+          <div class="filter-group-options">
+            <Chip Active="@(!IsOff(rule))" OnClick="() => Edit(edited => SetOrRemove(edited, Off, null))" Title="It paints">On</Chip>
+            <Chip Active="@IsOff(rule)" OnClick="() => Edit(edited => SetOrRemove(edited, Off, true))"
+                  Title="It keeps its conditions and paints nothing">Off</Chip>
+          </div>
+        </Field>
+      </div>
+      <Field Label="Material">
+        <SlotSelect Styles="styles" Blocks="blocks" Value="@SlotOf(rule).StyleId" Block="@SlotOf(rule).Block"
+                    Unbound="Choose a material" ValueChanged="Fill" />
+      </Field>
+    </Section>
+
+    @* Each condition narrows where the rule lays; an empty one does not narrow it. *@
+    <Section Title="Where">
+      <div class="field-grid">
+        <Field Label="Steeper than" Hint="°" Half>
+          <NumberField Value="@Pair(rule, Slope, 0)" Min="0" Max="89" ValueChanged="v => SetPair(Slope, 0, v)" OnCleared="() => SetPair(Slope, 0, null)" />
+        </Field>
+        <Field Label="At most" Hint="°" Half>
+          <NumberField Value="@Pair(rule, Slope, 1)" Min="0" Max="89" ValueChanged="v => SetPair(Slope, 1, v)" OnCleared="() => SetPair(Slope, 1, null)" />
+        </Field>
+        <Field Label="From" Hint="y" Half>
+          <NumberField Value="@Pair(rule, Height, 0)" ValueChanged="v => SetPair(Height, 0, v)" OnCleared="() => SetPair(Height, 0, null)" />
+        </Field>
+        <Field Label="To" Hint="y" Half>
+          <NumberField Value="@Pair(rule, Height, 1)" ValueChanged="v => SetPair(Height, 1, v)" OnCleared="() => SetPair(Height, 1, null)" />
+        </Field>
+        <Field Label="Near" Half>
+          <Select Options="NearOptions" Value="@(rule[Near]?[Modifier]?.GetValue<string>() ?? "")" Placeholder="Anywhere"
+                  ValueChanged="SetNear" />
+        </Field>
+        @if (rule[Near] is not null)
+        {
+          <Field Label="Within" Hint="blocks" Half>
+            <NumberField Value="@(Number(rule[Near], Width) ?? 3)" Min="0" ValueChanged="v => Edit(edited => edited[Near]![Width] = v)" />
+          </Field>
+        }
+      </div>
+    </Section>
+
+    <Section Title="How">
+      <div class="field-grid">
+        <Field Label="Courses" Half>
+          <NumberField Value="@(Number(rule, Depth) ?? 1)" Min="1" Max="8" ValueChanged="v => Edit(edited => SetOrRemove(edited, Depth, (int)v == 1 ? null : (int)v))" />
+        </Field>
+        <Field Label="Spread">
+          <div class="filter-group-options">
+            <Chip Active="@(rule[Noise] is null)" OnClick="() => SetPatches(false)" Title="Everywhere the conditions hold">Whole</Chip>
+            <Chip Active="@(rule[Noise] is not null)" OnClick="() => SetPatches(true)" Title="In noise patches, leaving some ground bare">Patches</Chip>
+          </div>
+        </Field>
+        @if (rule[Noise] is not null)
+        {
+          <Field Label="Patch size" Hint="blocks" Half>
+            <NumberField Value="@(Number(rule[Noise], Cell) ?? 8)" Min="1" ValueChanged="v => Edit(edited => edited[Noise]![Cell] = v)" />
+          </Field>
+          <Field Label="Left bare" Hint="%" Half>
+            <NumberField Value="@Math.Round((Number(rule[Noise], Above) ?? 0.5) * 100)" Min="0" Max="100" Step="5"
+                         ValueChanged="v => Edit(edited => edited[Noise]![Above] = v / 100)" />
+          </Field>
+        }
+      </div>
+    </Section>
+    @if (error is not null) { <p class="field-error">@error</p> }
+    <InspectorDelete Title="Delete this rule" OnClick="Remove" />
+  }
+</Inspector>
+
+@code {
+    [Parameter] public IJSObjectReference? Handle { get; set; }
+    [Parameter] public string PaintJson { get; set; } = "[]";
+    [Parameter] public string RuleId { get; set; } = "";
+    /// <summary>The board's modifier ids, which a rule may be laid near.</summary>
+    [Parameter] public IReadOnlyList<string> ModifierIds { get; set; } = [];
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Inject] public TerrainLibraryClient Library { get; set; } = default!;
+
+    private IReadOnlyList<StyleDto> styles = [];
+    private IReadOnlyList<PaintBlockDto> blocks = [];
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var stylesRead = Library.ListAsync<StyleDto>(LibraryKinds.Styles);
+        var blocksRead = Library.BlocksAsync();
+        await Task.WhenAll(stylesRead, blocksRead);
+        (styles, blocks) = (stylesRead.Result, blocksRead.Result);
+    }
+
+    private JsonObject? Rule => Parse(PaintJson).FirstOrDefault(rule => IdOf(rule) == RuleId);
+
+    private IReadOnlyList<SelectOption> NearOptions => [.. ModifierIds.Select(id => new SelectOption(id, id))];
+
+    private static double? Number(JsonNode? node, string field) =>
+        node?[field] is JsonValue value && value.TryGetValue<double>(out var number) ? number : null;
+
+    private static double? Pair(JsonObject rule, string field, int end) =>
+        rule[field] is JsonArray pair && pair.Count > end && pair[end] is JsonValue value
+        && value.TryGetValue<double>(out var number) ? number : null;
+
+    private SlotFill SlotOf(JsonObject rule) => SlotFill.Of(rule[Material] as JsonObject, styles);
+
+    private async Task Edit(Action<JsonObject> edit) => error = await EditAsync(Handle, PaintJson, RuleId, edit);
+
+    private Task Fill(SlotFill fill) => Edit(rule => SetOrRemove(rule, Material, fill.ToMaterial(styles)));
+
+    private Task SetPair(string field, int end, double? value) => Edit(rule =>
+    {
+        var pair = rule[field] as JsonArray;
+        JsonNode? first = pair is { Count: > 0 } ? pair[0]?.DeepClone() : null;
+        JsonNode? second = pair is { Count: > 1 } ? pair[1]?.DeepClone() : null;
+        if (end == 0) first = value is { } low ? JsonValue.Create((int)low) : null;
+        else second = value is { } high ? JsonValue.Create((int)high) : null;
+        SetOrRemove(rule, field, first is null && second is null ? null : new JsonArray(first, second));
+    });
+
+    private Task SetNear(string modifier) => Edit(rule =>
+        SetOrRemove(rule, Near, string.IsNullOrEmpty(modifier) ? null
+            : new JsonObject { [Modifier] = modifier, [Width] = Number(rule[Near], Width) ?? 3 }));
+
+    private Task SetPatches(bool on) => Edit(rule =>
+        SetOrRemove(rule, Noise, on ? rule[Noise]?.DeepClone() ?? new JsonObject { [Cell] = 8, [Above] = 0.5, ["seed"] = 1 } : null));
+
+    private async Task Remove()
+    {
+        error = await RemoveAsync(Handle, PaintJson, RuleId);
+        if (error is null) await OnClose.InvokeAsync();
+    }
+}

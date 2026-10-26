@@ -17,7 +17,7 @@
     else
     {
       @* Pinned while the form scrolls: which of the two the form is editing decides what a change does. *@
-      <div class="dressing-head@(editingSelection ? null : " dressing-head--in-hand")">
+      <div class="dressing-head">
         <DetailHeader Icon="@Info.Icon" Label="@Info.One">
           <span class="detail-header-badges">
             @if (editingSelection) { <Badge Kind="neutral">selected</Badge> }
@@ -52,14 +52,8 @@
         <p class="section-desc dressing-refusal">@refusal.Message</p>
       }
 
-      @* ── what it makes ───────────────────────────────────────────────────────────────────────── *@
-      @if (preview is not null)
-      {
-        <div class="dressing-views">
-          <figure class="theme-section-figure">@((MarkupString)preview.Plan)</figure>
-          <figure class="theme-section-figure">@((MarkupString)preview.Section)</figure>
-        </div>
-      }
+      @* No picture of the prop: every kind is picked from cards that are pictures of the thing itself, and the
+         card in use is what the inspector shows. *@
 
       @* ── the knobs, by kind ──────────────────────────────────────────────────────────────────── *@
       @if (kind == PropKinds.Stroke)
@@ -159,42 +153,26 @@
       }
       else if (kind == PropKinds.Flora)
       {
-        <Field Label="Coverage"><LabelEnd><strong>@($"{Spec(SpecFields.Coverage, 0.45) * 100:0}%")</strong></LabelEnd>
-          <ChildContent><RangeField Min="0" Max="100" Value="@((int)(Spec(SpecFields.Coverage, 0.45) * 100))"
-                 ValueChanged="value => DraftSpec(SpecFields.Coverage, JsonValue.Create(Share(value)))" OnCommit="Commit" /></ChildContent></Field>
-        <Field Label="Patch size" Hint="how big the thicker and thinner patches are"><LabelEnd><strong>@($"{Spec(SpecFields.Scale, 12):0}")</strong></LabelEnd>
-          <ChildContent><RangeField Min="4" Max="30" Value="@((int)Spec(SpecFields.Scale, 12))"
-                 ValueChanged="value => DraftSpec(SpecFields.Scale, JsonValue.Create(value))" OnCommit="Commit" /></ChildContent></Field>
-        <Field Label="Fern share"><LabelEnd><strong>@($"{Spec(SpecFields.FernShare, 0.25) * 100:0}%")</strong></LabelEnd>
-          <ChildContent><RangeField Min="0" Max="100" Value="@((int)(Spec(SpecFields.FernShare, 0.25) * 100))"
-                 ValueChanged="value => DraftSpec(SpecFields.FernShare, JsonValue.Create(Share(value)))" OnCommit="Commit" /></ChildContent></Field>
-        <Field Label="Flower fields"><LabelEnd><strong>@($"{Spec(SpecFields.FlowerShare, 0.18) * 100:0}%")</strong></LabelEnd>
-          <ChildContent><RangeField Min="0" Max="100" Value="@((int)(Spec(SpecFields.FlowerShare, 0.18) * 100))"
-                 ValueChanged="value => DraftSpec(SpecFields.FlowerShare, JsonValue.Create(Share(value)))" OnCommit="Commit" /></ChildContent></Field>
-        <Field Label="Tall grass">
-          <LabelEnd><strong>@($"{Spec(SpecFields.TallShare, 0) * 100:0}%")</strong></LabelEnd>
-          <ChildContent><RangeField Min="0" Max="100" Value="@((int)(Spec(SpecFields.TallShare, 0) * 100))"
-                 ValueChanged="value => DraftSpec(SpecFields.TallShare, JsonValue.Create(Share(value)))" OnCommit="Commit" /></ChildContent></Field>
-        <Field Label="Dead bushes" Hint="on sand and clay, and some on dirt">
-          <LabelEnd><strong>@($"{Spec(SpecFields.DeadBushShare, 0) * 100:0}%")</strong></LabelEnd>
-          <ChildContent><RangeField Min="0" Max="100" Value="@((int)(Spec(SpecFields.DeadBushShare, 0) * 100))"
-                 ValueChanged="value => DraftSpec(SpecFields.DeadBushShare, JsonValue.Create(Share(value)))" OnCommit="Commit" /></ChildContent></Field>
-        <Field Label="Cacti" Hint="on sand only, one to four blocks tall">
-          <LabelEnd><strong>@($"{Spec(SpecFields.CactusShare, 0) * 100:0}%")</strong></LabelEnd>
-          <ChildContent><RangeField Min="0" Max="100" Value="@((int)(Spec(SpecFields.CactusShare, 0) * 100))"
-                 ValueChanged="value => DraftSpec(SpecFields.CactusShare, JsonValue.Create(Share(value)))" OnCommit="Commit" /></ChildContent></Field>
-        <Field Label="Mushrooms" Hint="on podzol and mycelium only">
-          <LabelEnd><strong>@($"{Spec(SpecFields.MushroomShare, 0) * 100:0}%")</strong></LabelEnd>
-          <ChildContent><RangeField Min="0" Max="100" Value="@((int)(Spec(SpecFields.MushroomShare, 0) * 100))"
-                 ValueChanged="value => DraftSpec(SpecFields.MushroomShare, JsonValue.Create(Share(value)))" OnCommit="Commit" /></ChildContent></Field>
-        <Field Label="Lily pads" Hint="on still water, in clusters where coverage is high">
-          <LabelEnd><strong>@($"{Spec(SpecFields.LilyShare, 0) * 100:0}%")</strong></LabelEnd>
-          <ChildContent><RangeField Min="0" Max="100" Value="@((int)(Spec(SpecFields.LilyShare, 0) * 100))"
-                 ValueChanged="value => DraftSpec(SpecFields.LilyShare, JsonValue.Create(Share(value)))" OnCommit="Commit" /></ChildContent></Field>
-        <Field Label="Crops" Hint="on farmland only, one crop per plot">
-          <LabelEnd><strong>@($"{Spec(SpecFields.CropShare, 0) * 100:0}%")</strong></LabelEnd>
-          <ChildContent><RangeField Min="0" Max="100" Value="@((int)(Spec(SpecFields.CropShare, 0) * 100))"
-                 ValueChanged="value => DraftSpec(SpecFields.CropShare, JsonValue.Create(Share(value)))" OnCommit="Commit" /></ChildContent></Field>
+        @* How much grows, then what: each plant a share of what grows, two to a row. *@
+        <div class="field-grid">
+          @ShareRow("Coverage", SpecFields.Coverage, 0.45)
+          <Field Label="Patch size" Hint="how big the thicker and thinner patches are" Half>
+            <LabelEnd><strong>@($"{Spec(SpecFields.Scale, 12):0}")</strong></LabelEnd>
+            <ChildContent><RangeField Min="4" Max="30" Value="@((int)Spec(SpecFields.Scale, 12))"
+                   ValueChanged="value => DraftSpec(SpecFields.Scale, JsonValue.Create(value))" OnCommit="Commit" /></ChildContent>
+          </Field>
+        </div>
+        <div class="section-header section-header--ruled"><h2 class="section-title">What grows</h2></div>
+        <div class="field-grid">
+          @ShareRow("Ferns", SpecFields.FernShare, 0.25)
+          @ShareRow("Flowers", SpecFields.FlowerShare, 0.18)
+          @ShareRow("Tall grass", SpecFields.TallShare, 0)
+          @ShareRow("Dead bushes", SpecFields.DeadBushShare, 0, "on sand and clay, and some on dirt")
+          @ShareRow("Cacti", SpecFields.CactusShare, 0, "on sand only, one to four blocks tall")
+          @ShareRow("Mushrooms", SpecFields.MushroomShare, 0, "on podzol and mycelium only")
+          @ShareRow("Lily pads", SpecFields.LilyShare, 0, "on still water, in clusters where coverage is high")
+          @ShareRow("Crops", SpecFields.CropShare, 0, "on farmland only, one crop per plot")
+        </div>
         @if (Spec(SpecFields.CropShare, 0) > 0)
         {
           <Field Label="Sown"><ChildContent><div class="chip-row">
@@ -203,10 +181,7 @@
               <Chip Active="Crops().Contains(crop)" @key="crop" OnClick="() => ToggleCrop(crop)">@crop</Chip>
             }
           </div></ChildContent></Field>
-          <Field Label="Ripeness" Hint="from just sown to ready, varying a little per plot">
-            <LabelEnd><strong>@($"{Spec(SpecFields.Ripeness, 1) * 100:0}%")</strong></LabelEnd>
-            <ChildContent><RangeField Min="0" Max="100" Value="@((int)(Spec(SpecFields.Ripeness, 1) * 100))"
-                   ValueChanged="value => DraftSpec(SpecFields.Ripeness, JsonValue.Create(Share(value)))" OnCommit="Commit" /></ChildContent></Field>
+          @ShareRow("Ripeness", SpecFields.Ripeness, 1, "from just sown to ready, varying a little per plot", half: false)
         }
       }
       else if (kind == PropKinds.Chest)
@@ -256,6 +231,13 @@
         {
           <p class="section-desc">Built by <strong>@builder</strong>, credited on maps that use it.</p>
         }
+        @* The tree this one is, first and on its own, so the pick reads without a separate picture and without
+           scrolling to find its card in the grids below. *@
+        <div class="section-header section-header--ruled"><h2 class="section-title">In use</h2></div>
+        <div class="prop-cards prop-cards--tall">
+          @if (WornTree is { } worn) { @TreeCard(worn, inUse: true) }
+          else { <span class="prop-card prop-card--empty">Nothing picked</span> }
+        </div>
         <div class="section-header section-header--ruled"><h2 class="section-title">Generated</h2></div>
         <div class="prop-cards prop-cards--tall">
           @foreach (var tree in GeneratedTrees) { @TreeCard(tree) }
@@ -370,27 +352,35 @@
       }
       @if (SeedMatters)
       {
-        <Field Label="Seed">
-          <div class="seed-field">
-            <NumberField Slim Value="Num(PropFields.Seed)" ValueChanged="v => Set(PropFields.Seed, JsonValue.Create((int)v))" Min="0" />
-            <Button Writes OnClick="Reroll" Title="Roll a new seed"><i data-lucide="refresh-cw"></i> Reroll</Button>
-          </div>
-        </Field>
-      }
-      @if (editingSelection)
-      {
-        <Button Full Variant="danger" Writes OnClick="Delete"><i data-lucide="trash-2"></i> Delete</Button>
+        <SeedField Value="@((int)Num(PropFields.Seed))" ValueChanged="seed => Set(PropFields.Seed, JsonValue.Create(seed))" />
       }
     }
   </Section>
+  @if (prop is not null && editingSelection)
+  {
+    <InspectorDelete Title="@($"Delete this {Info.One.ToLowerInvariant()}")" OnClick="Delete" />
+  }
 
 </Inspector>
 
 @code {
-    private RenderFragment TreeCard(TreeStyleSummary tree) => __builder =>
+    /// <summary>One share of the ground cover: its label, its percentage, and a slider that previews while dragged
+    /// and writes on release.</summary>
+    private RenderFragment ShareRow(string label, string field, double fallback, string? hint = null, bool half = true) => __builder =>
     {
-        <button class="prop-card @(tree == WornTree ? "prop-card--active" : null)"
-                title="@tree.Name" @key="tree.Id" @onclick="() => PickTree(tree)">
+        <Field Label="@label" Hint="@hint" Half="half">
+          <LabelEnd><strong>@($"{Spec(field, fallback) * 100:0}%")</strong></LabelEnd>
+          <ChildContent><RangeField Min="0" Max="100" Value="@((int)(Spec(field, fallback) * 100))"
+                 ValueChanged="value => DraftSpec(field, JsonValue.Create(Share(value)))" OnCommit="Commit" /></ChildContent>
+        </Field>
+    };
+
+    /// <summary>A tree's card in the picker, marked where the prop wears it; the <paramref name="inUse"/> copy at
+    /// the picker's head shows the tree rather than marking a pick, so the grid holds the one mark.</summary>
+    private RenderFragment TreeCard(TreeStyleSummary tree, bool inUse = false) => __builder =>
+    {
+        <button class="prop-card @(inUse ? "prop-card--in-use" : tree == WornTree ? "prop-card--active" : null)"
+                title="@tree.Name" @key="@(inUse ? $"in-use-{tree.Id}" : tree.Id.ToString())" @onclick="() => PickTree(tree)">
           <span class="prop-card-art">@((MarkupString)tree.Preview)</span>
           <span class="prop-card-label">@tree.Name</span>
         </button>

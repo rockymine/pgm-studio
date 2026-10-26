@@ -264,23 +264,20 @@
 /* Plan beside section. The section crops to what the recipe grew, so its height carries meaning — a meadow
    is a few courses and a forest is thirty. `start` lets each figure keep its own height instead of both
    stretching to the taller one, which would sit a thin strip in the middle of an empty box. */
-/* The inspector's header stays in view while the pickers scroll under it, and in hand reads apart from selected
-   by a band as well as its badge. */
+/* The inspector's header stays in view while the pickers scroll under it; its badge says in hand or selected. */
 .dressing-head {
   position: sticky; top: 0; z-index: 2; background: var(--bg-panel);
   display: flex; flex-direction: column; gap: var(--space-1);
   padding-bottom: var(--space-2); border-bottom: 1px solid var(--border);
 }
-.dressing-head--in-hand { box-shadow: inset 3px 0 0 var(--accent); padding-left: var(--space-2); }
+.prop-card--in-use { border-color: var(--accent); cursor: default; }
+/* The empty "In use" card: the pick's place held, so a tree with none reads as unpicked rather than as missing. */
+.prop-card--empty { display: grid; place-items: center; min-height: 6rem; border-style: dashed; color: var(--text-muted); font-size: var(--font-sm); cursor: default; }
 .dressing-head-says { margin: 0; }
 .dressing-head-says kbd {
   font: inherit; font-size: 0.92em; padding: 0 4px; border-radius: 3px;
   border: 1px solid var(--border); background: var(--bg-deep);
 }
-.dressing-views { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); align-items: start; }
-.dressing-views .theme-section-figure { margin: 0; }
-.dressing-views svg { max-width: 100%; }
-@media (max-width: 720px) { .dressing-views { grid-template-columns: 1fr; } }
 
 /* ── a prop picker's drawn options (decoration.md) ─────────────────────────────────────────────────
    Every option is a picture the pass itself produced, so the card is mostly art with a small label under it.

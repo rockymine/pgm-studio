@@ -154,11 +154,7 @@
           </Field>
           @if (Shape.StrokeEdge == "rough")
           {
-            <Field Label="Edge seed" Hint="same seed, same edge on every export">
-              <ChildContent>
-                <NumberField Value="Shape.StrokeSeed" ValueChanged="SeedChanged" Min="0" />
-              </ChildContent>
-            </Field>
+            <SeedField Label="Edge seed" Value="Shape.StrokeSeed" ValueChanged="seed => SeedChanged(seed)" />
           }
         }
         @if (Shape.Type == "polygon" || Shape.Type == "lasso")
@@ -192,9 +188,7 @@
             <p class="section-desc">Click a vertex to set its height, or shift-click 2–3 vertices to tilt the surface.</p>
           }
         }
-        <Button Full Variant="danger" Writes OnClick="() => OnDeleteShape.InvokeAsync(Shape.Id)">
-          <i data-lucide="trash-2"></i> Delete
-        </Button>
+        <InspectorDelete Title="Delete this shape" OnClick="() => OnDeleteShape.InvokeAsync(Shape.Id)" />
       }
       else if (Group is not null)
       {

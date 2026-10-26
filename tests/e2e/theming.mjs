@@ -226,5 +226,30 @@ try {
 checks.add("room shells drove without error", bound, page.faults.slice(0, 3).join(" | "));
 checks.add("sketch tool is clean under the room shells", page.faults.length === 0, page.faults.slice(0, 3).join(" | "));
 
+// ── 5. paint rules are a list beside the groups, and the picked one is the inspector ─────────────────────
+checks.section("paint rules: the sidebar lists them, the inspector edits one");
+clearFaults(page);
+let ruled = false;
+try {
+  const rows = () => page.locator(".workspace-sidebar .modifier-row");
+  const before = await rows().count();
+  await page.click('.workspace-sidebar button[title="Add a rule"]');
+  await page.waitForTimeout(1500);
+  checks.add("adding a rule lists it in the sidebar and opens it", await rows().count() === before + 1
+    && await page.locator(".workspace-inspector", { hasText: "Paint rule" }).count() === 1,
+    `${before} → ${await rows().count()} rows`);
+  checks.add("its fields sit two to a row, and Delete is at the inspector's foot",
+    await page.locator(".workspace-inspector .field-grid .field--half").count() >= 4
+    && await page.locator(".workspace-inspector .inspector-delete button").count() === 1);
+  await page.click(".workspace-inspector .inspector-delete button");
+  await page.waitForTimeout(1500);
+  checks.add("Delete takes the rule off the list and back to the board's defaults", await rows().count() === before
+    && await page.locator(".workspace-inspector", { hasText: "Map defaults" }).count() === 1, `${await rows().count()} rows`);
+  ruled = true;
+} catch (e) {
+  page.faults.push(`paint rules: ${String(e).split("\n")[0]}`);
+}
+checks.add("paint rules drove without error", ruled, page.faults.slice(0, 3).join(" | "));
+
 checks.finish();
 await browser.close();

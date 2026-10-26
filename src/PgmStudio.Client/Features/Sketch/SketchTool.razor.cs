@@ -791,7 +791,7 @@ public partial class SketchTool
 
     /// <summary>A shape was selected on the canvas/panel (null = deselected).</summary>
     [JSInvokable]
-    public void OnShapeSelected(string? id) { selectedShapeId = id; selectedVertexIdx = -1; slopeControls = []; StateHasChanged(); }
+    public void OnShapeSelected(string? id) { selectedShapeId = id; if (id is not null) paintRuleId = null; selectedVertexIdx = -1; slopeControls = []; StateHasChanged(); }
 
     /// <summary>One of the plan's own pieces was picked on the canvas (null = let go). It arrives whole
     /// rather than as an id: the bridge holds the structural pieces apart from the drawn shapes, so there is
@@ -859,7 +859,23 @@ public partial class SketchTool
 
     /// <summary>A group was selected in the panel (null = deselected).</summary>
     [JSInvokable]
-    public void OnGroupSelected(string? id) { selectedGroupId = id; StateHasChanged(); }
+    public void OnGroupSelected(string? id) { selectedGroupId = id; if (id is not null) paintRuleId = null; StateHasChanged(); }
+
+    /// <summary>The paint rule open in the Palette phase's inspector, by id; picking a group or a shape closes
+    /// it, since the inspector shows one thing.</summary>
+    private string? paintRuleId;
+
+    /// <summary>Open a rule in the inspector, letting go of the board's selection: the inspector shows one thing.</summary>
+    private async Task SelectPaintRule(string id)
+    {
+        if (selectedShapeId is not null || selectedGroupId is not null)
+            await (handle?.InvokeVoidAsync("selectShape", (string?)null).AsTask() ?? Task.CompletedTask);
+        paintRuleId = id;
+    }
+
+    /// <summary>Whether the picked rule is still on the board — an undo can take it away.</summary>
+    private bool PaintRuleOpen => paintRuleId is { } id
+        && SketchPaintRuleSet.Parse(themes.PaintJson).Any(rule => SketchPaintRuleSet.IdOf(rule) == id);
 
     /// <summary>The board's finish changed on the bridge — a theme, an assignment, a room shell, the biome, or a
     /// whole document loaded or stepped back.</summary>

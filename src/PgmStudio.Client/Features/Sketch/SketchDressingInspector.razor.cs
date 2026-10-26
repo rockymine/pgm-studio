@@ -47,7 +47,6 @@ public partial class SketchDressingInspector
     private int pickedWing;                   // which wing of a picked building the wing settings are for
     private string kind = "";
 
-    private DressingPreviewDto? preview;
     private RefusalDto? refusal;              // why the gate would not take this prop, in its own findings
     private List<Problem> refused = [];       // those findings as the list shows them
     private string? note;                     // what the last canvas operation did, or would not do
@@ -353,12 +352,12 @@ public partial class SketchDressingInspector
     private bool UnplacedBuilding
         => !editingSelection && kind == PropKinds.House && prop?["wings"] is not JsonArray { Count: > 0 };
 
-    /// <summary>Redraw the picture when the prop changed, one request at a time. The preview is a round trip
-    /// that runs the real pass and a dragged slider changes the prop faster than that, so a change made while
-    /// one is out is drawn when it lands — only the newest, never every step in between.</summary>
+    /// <summary>Ask the pass whether it takes the prop as it now stands, one request at a time: the answer's refusal
+    /// is what the inspector shows. The request runs the real pass and a dragged slider changes the prop faster than
+    /// that, so a change made while one is out is asked when it lands — only the newest, never every step.</summary>
     private async Task RefreshPreview()
     {
-        if (prop is null || UnplacedBuilding) { preview = null; refusal = null; refused = []; previewedFor = ""; return; }
+        if (prop is null || UnplacedBuilding) { refusal = null; refused = []; previewedFor = ""; return; }
         // The prop plus the recipes it names: the preview reads a registry of one off the prop itself, which
         // is how a placement is drawn without the document it belongs to.
         var asked = (JsonObject)prop.DeepClone();
@@ -376,7 +375,6 @@ public partial class SketchDressingInspector
                 drawn = previewedFor;
                 var answered = await Library.PropPreviewAsync(drawn, themeJson);
                 if (previewedFor.Length == 0) return;
-                preview = answered.Pictures;
                 refusal = answered.Refusal;
                 refused = Problem.Of(refusal?.Findings ?? []);
                 StateHasChanged();
@@ -516,13 +514,6 @@ public partial class SketchDressingInspector
         }
         return list;
     }
-
-    /// <summary>A new seed for the same knobs — the one control that changes the result without changing the
-    /// recipe, so an author who likes the shape but not this particular rock can roll again.</summary>
-    private Task Reroll() => Set(PropFields.Seed, JsonValue.Create(Number(prop) + 1));
-
-    private static int Number(JsonObject? prop)
-        => prop?["seed"]?.GetValue<int>() ?? 0;
 
     // ── reading ────────────────────────────────────────────────────────────────
     private double Num(string field, double fallback = 0)

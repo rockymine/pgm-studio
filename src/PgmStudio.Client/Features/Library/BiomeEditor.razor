@@ -40,9 +40,7 @@
     }
     else
     {
-      <Field Label="Seed">
-        <NumberField Value="Number(SeedField)" ValueChanged="v => SetNumber(SeedField, (int)v)" Min="0" />
-      </Field>
+      <SeedField Value="@((int)Number(SeedField))" ValueChanged="seed => SetNumber(SeedField, seed)" />
 
       @if (Kinds == BiomeKinds.Cell)
       {

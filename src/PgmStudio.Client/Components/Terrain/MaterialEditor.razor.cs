@@ -263,7 +263,11 @@ public partial class MaterialEditor
         return Changed();
     }
 
-    private Task SetSeed(ChangeEventArgs e) => SetScalar(ThemeFields.Seed, e, 0, 0);
+    private Task SetSeedTo(int seed)
+    {
+        JsonEdit.Set(Node, ThemeFields.Seed, Math.Max(0, seed));
+        return Changed();
+    }
     private Task SetCellSize(ChangeEventArgs e) => SetScalar(ThemeFields.CellSize, e, 10, 1);
     private Task SetWarp(ChangeEventArgs e) => SetScalar(ThemeFields.Warp, e, 4, 0);
     private Task SetScale(ChangeEventArgs e) => SetScalar(ThemeFields.Scale, e, 16, 1);

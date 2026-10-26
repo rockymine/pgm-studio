@@ -1,0 +1,19 @@
+@namespace PgmStudio.Client.Components
+
+@* A seed, wherever one is stated: the number, and a Reroll that takes the next one. A seed has no meaning to read
+   off its value — it only picks which noise a thing draws — so every one is the same control under the same
+   label, and the way to a different result is the button rather than a typed number. *@
+
+<Field Label="@Label">
+  <div class="seed-field">
+    <NumberField Slim Value="Value" Min="Min" ValueChanged="v => ValueChanged.InvokeAsync((int)v)" />
+    <Button Writes OnClick="() => ValueChanged.InvokeAsync(Value + 1)" Title="Roll a new seed"><i data-lucide="refresh-cw"></i> Reroll</Button>
+  </div>
+</Field>
+
+@code {
+    [Parameter] public string Label { get; set; } = "Seed";
+    [Parameter] public int Value { get; set; }
+    [Parameter] public EventCallback<int> ValueChanged { get; set; }
+    [Parameter] public double Min { get; set; }
+}

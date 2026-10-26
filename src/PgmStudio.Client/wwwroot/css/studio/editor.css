@@ -290,6 +290,13 @@
    at; the resize handle still takes it anywhere in [MIN_WIDTH, MAX_WIDTH]. */
 .workspace-inspector--wide { width: calc(420px * var(--ui-scale)); }
 
+/* The inspector's Delete (InspectorDelete), pinned to its foot while the form scrolls: margin-top auto sends it to
+   the foot of a short form, and sticky keeps it there over a long one. */
+.inspector-delete {
+  position: sticky; bottom: calc(-1 * var(--space-4)); z-index: 2; margin-top: auto;
+  padding: var(--space-3) 0 var(--space-4); background: var(--bg-panel);
+}
+
 /* Scrollable inner content area of a sidebar — holds .panel-section blocks */
 .workspace-scroll {
   flex: 1;

@@ -109,19 +109,14 @@ public partial class SketchThemeInspector
         var themesRead = Library.ListAsync<ThemeSummary>(LibraryKinds.Themes);
         var roomsRead = Library.ListAsync<RoomStyleSummary>(LibraryKinds.Houses);
         var biomesRead = Library.ListAsync<BiomePatternSummary>(LibraryKinds.Biomes);
-        var blocksRead = Library.BlocksAsync();
-        var stylesRead = Library.ListAsync<StyleDto>(LibraryKinds.Styles);
-        await Task.WhenAll(themesRead, roomsRead, biomesRead, blocksRead, stylesRead);
-        (libraryThemes, rooms, biomePatterns, paintBlocks, paintStyles) =
-            (themesRead.Result, roomsRead.Result, biomesRead.Result, blocksRead.Result, stylesRead.Result);
+        await Task.WhenAll(themesRead, roomsRead, biomesRead);
+        (libraryThemes, rooms, biomePatterns) = (themesRead.Result, roomsRead.Result, biomesRead.Result);
         roomOfSnapshot.Clear();
         loaded = true;
     }
 
     private const string Loading = "Loading…";
 
-    private IReadOnlyList<PaintBlockDto> paintBlocks = [];
-    private IReadOnlyList<StyleDto> paintStyles = [];
 
     /// <summary>The material document of the theme in hand, or null where none is held or the board no longer
     /// has it.</summary>

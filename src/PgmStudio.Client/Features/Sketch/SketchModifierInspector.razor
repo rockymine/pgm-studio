@@ -8,27 +8,32 @@
   <DetailHeader Icon="@SketchModifierState.Icon(Op)" Label="@ModifierOps.Label(Op)">
     <span class="detail-header-badges">
       <Button Variant="icon" Icon="x" Title="Done: show the terraform marks" OnClick="Close" />
-      <Button Variant="icon" Icon="trash-2" Writes Title="Delete this modifier" OnClick="Delete" />
     </span>
   </DetailHeader>
-  <p class="section-desc">@SketchModifierState.Blurb(Op)</p>
-  @if (Changed is { } columns && !ModifierOps.Carves(Op))
-  {
-    <p class="inspector-readout">@ChangedLine(columns)</p>
-  }
-
-  <Field Label="Name">
-    <input class="field-input" value="@(Modifier["name"]?.GetValue<string>() ?? "")" placeholder="@Id"
-           @onchange="e => SetText(Name, e.Value?.ToString())" />
-  </Field>
-  <Field Label="State">
-    <div class="filter-group-options">
-      <Chip Active="@(!SketchModifierState.Off(Modifier))" OnClick="() => SetBool(Off, false)" Title="It changes the ground">On</Chip>
-      <Chip Active="@SketchModifierState.Off(Modifier)" OnClick="() => SetBool(Off, true)"
-            Title="It keeps its numbers and changes nothing">Off</Chip>
+  <Section>
+    <p class="section-desc">@SketchModifierState.Blurb(Op)</p>
+    @if (Changed is { } columns && !ModifierOps.Carves(Op))
+    {
+      <p class="inspector-readout">@ChangedLine(columns)</p>
+    }
+    <div class="field-grid">
+      <Field Label="Name" Half>
+        <input class="field-input" value="@(Modifier["name"]?.GetValue<string>() ?? "")" placeholder="@Id"
+               @onchange="e => SetText(Name, e.Value?.ToString())" />
+      </Field>
+      <Field Label="State" Half>
+        <div class="filter-group-options">
+          <Chip Active="@(!SketchModifierState.Off(Modifier))" OnClick="() => SetBool(Off, false)" Title="It changes the ground">On</Chip>
+          <Chip Active="@SketchModifierState.Off(Modifier)" OnClick="() => SetBool(Off, true)"
+                Title="It keeps its numbers and changes nothing">Off</Chip>
+        </div>
+      </Field>
     </div>
-  </Field>
+  </Section>
 
+  @* The operation's own numbers, two to a row, then the three every operation shares. *@
+  <Section Title="Shape">
+  <div class="field-grid">
   @switch (Op)
   {
     case ModifierOps.Mound:
@@ -198,52 +203,59 @@
       break;
   }
 
-  @NumberRow("Seed", Seed, 1, "which noise it reads", min: 1)
   @NumberRow("Soft rim", Soft, null, "share of the mask over which the change fades in; empty is none", min: 0, max: 1, step: "0.05")
   @if (Op != ModifierOps.Level)
   {
-    <Field Label="Mode">
+    <Field Label="Mode" Half>
       <Select Slim="false" Options="Modes" Value="@(Modifier[Mode]?.GetValue<string>() ?? "")" ValueChanged="v => SetText(Mode, v)" />
     </Field>
   }
+  <SeedField Value="@((int)(Number(Modifier, Seed) ?? 1))" Min="1" ValueChanged="v => SetNumber(Seed, v)" />
+  </div>
+  </Section>
 
-  <div class="section-header section-header--ruled"><h2 class="section-title">Mask</h2></div>
-  <label class="check-row">
-    <input type="checkbox" checked="@Mirrored" @onchange="e => SetMirror(e.Value is true)" />
-    Mirrored by the map's symmetry
-  </label>
-  <p class="inspector-readout">@AreaLine</p>
-  @for (var index = 0; index < Areas.Count; index++)
-  {
-    @if (SketchModifierState.IsLine(Areas[index]))
-    {
-      var at = index;
-      <Field Label="@LineWidthLabel(at)" Hint="blocks, the band either side of the line is half">
-        <ChildContent>
-          <NumberField Value="Number(Areas[at], Width) ?? DefaultLineWidth" ValueChanged="v => SetLineWidth(at, v)" Min="1" />
-        </ChildContent>
-      </Field>
-    }
-  }
-  <Button Icon="plus" Writes OnClick="AddOutline"
-          Title="@(HasLine ? "Trace another line on the board; it joins this mask" : "Trace another outline on the board; it joins this mask")">@(HasLine ? "Add a line" : "Add an outline")</Button>
+  <Section Title="Mask">
+    <p class="inspector-readout">@AreaLine</p>
+    <label class="check-row" title="The map's symmetry copies this mask to every side">
+      <input type="checkbox" checked="@Mirrored" @onchange="e => SetMirror(e.Value is true)" />
+      Mirrored
+    </label>
+    <div class="field-grid">
+      @for (var index = 0; index < Areas.Count; index++)
+      {
+        @if (SketchModifierState.IsLine(Areas[index]))
+        {
+          var at = index;
+          <Field Label="@LineWidthLabel(at)" Hint="blocks" Half>
+            <ChildContent>
+              <NumberField Value="Number(Areas[at], Width) ?? DefaultLineWidth" ValueChanged="v => SetLineWidth(at, v)" Min="1" />
+            </ChildContent>
+          </Field>
+        }
+      }
+    </div>
+    <Button Icon="plus" Writes OnClick="AddOutline"
+            Title="@(HasLine ? "Trace another line on the board; it joins this mask" : "Trace another outline on the board; it joins this mask")">@(HasLine ? "Add a line" : "Add an outline")</Button>
+  </Section>
 
   @if (Leavable.Count > 0)
   {
-    <div class="section-header section-header--ruled"><h2 class="section-title">Leaves out</h2></div>
-    <p class="section-desc">Shapes ticked here keep their ground: this modifier does not touch their columns.</p>
-    @foreach (var shape in Leavable)
-    {
-      <label class="check-row" @key="shape.Id">
-        <input type="checkbox" checked="@Leaves.Contains(shape.Id)" @onchange="e => SetLeaves(shape.Id, e.Value is true)" />
-        @ShapeLabel(shape)
-      </label>
-    }
+    <Section Title="Leaves out">
+      <p class="section-desc">Shapes ticked here keep their ground.</p>
+      @foreach (var shape in Leavable)
+      {
+        <label class="check-row" @key="shape.Id">
+          <input type="checkbox" checked="@Leaves.Contains(shape.Id)" @onchange="e => SetLeaves(shape.Id, e.Value is true)" />
+          @ShapeLabel(shape)
+        </label>
+      }
+    </Section>
   }
   @if (!string.IsNullOrEmpty(error))
   {
     <p class="field-error">@error</p>
   }
+  <InspectorDelete Title="Delete this modifier" OnClick="Delete" />
 </Inspector>
 
 @code {
@@ -283,7 +295,7 @@
     private RenderFragment NumberRow(string label, string field, double? fallback, string hint,
                                      double? min = null, double? max = null, string step = "1") => __builder =>
     {
-        <Field Label="@label" Hint="@hint">
+        <Field Label="@label" Hint="@hint" Half>
           <ChildContent>
             <NumberField Value="@(Number(Modifier, field) ?? fallback)" ValueChanged="v => SetNumber(field, v)"
                          OnCleared="() => Clear(field)" Min="min" Max="max" Step="@step" />

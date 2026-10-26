@@ -579,15 +579,21 @@ the client source.
   data (`3:1`, `60:7`) and truncate names in the 280 px Palette column. Reuse the searchable `BlockPicker` with id:data
   as a caption, and widen Palette's inspector to Decoration's. `docs/tools/sketch.md`.
 
-- [ ] **TS224 — Ground cover shows its density before a field is drawn.** Ten sliders move while the swatch stays a
-  flat square, and four plants (cacti, dead bushes, mushrooms, lily pads) offer sliders on boards with no ground they
-  grow on. Draw the swatch from the sliders, show the live three first with *More plants*, and give Patch size its
-  unit. `docs/tools/sketch.md`.
+- [ ] **TS224 — Ground cover shows its density before a field is drawn.** The inspector draws no picture of a
+  ground cover, because the plan view the pass rendered read as a flat green square, and four plants (cacti, dead
+  bushes, mushrooms, lily pads) offer sliders on boards with no ground they grow on. Draw a density swatch from the
+  sliders that reads at a glance, and show the plants the board can grow first. `docs/tools/sketch.md`.
 
 - [ ] **TS225 — Review and the map.xml are reached by name from where a map is finished.** Decoration's way out is
   an icon-only rail glyph and an icon-only Download; the XML is read only in Configure. Add labelled *Preview as
   player* and *View map.xml* beside Download, and a legend under the eye picture naming monuments (which float by
   design), cores and the build area. `docs/tools/sketch.md`.
+
+- [ ] **TS228 — Each modifier parameter shows what it does, as a short animation.** A `?` on a modifier field
+  explains a parameter in words; a Ridge's *Wander* or a Butte's *Apron* reads better as the ground moving while
+  the number sweeps. Render one looping vector animation per parameter from the build itself — the section
+  through a sample patch at a few values — and open it in the field's help. `SketchModifierInspector`,
+  `docs/tools/sketch.md`.
 
 - [ ] **C107 — Drawing the land shows its fill and its mirror while it is drawn.** A lasso trails 8 px squares with
   no fill, the mirrored half appears only once the ring closes, and the close target is a 7 px square. Draw a

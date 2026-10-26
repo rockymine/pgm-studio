@@ -10923,6 +10923,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   palettes as pills with a *default* badge, the strips' labels are sentence case, the step strip reads *Modifiers
   shown · 14 of 20 · up to lumps-2*, and a modifier's and a paint rule's on/off are the On/Off chips and the eye.
   `Select` marks its chosen option, so a value set before its options load no longer shows the first.
+- **One control, one place, across the inspectors (`TS229`).** Fields sit in sections a gap apart, short ones two
+  to a row (`field-grid`, `Field Half`), and a half-width field keeps only its unit inline. A seed is `SeedField`
+  everywhere, with *Reroll*. Delete is `InspectorDelete`, pinned to the inspector's foot, for a shape, a piece, a
+  prop, a modifier, a place and a paint rule. Paint rules are a sidebar list beside the groups, rows like the
+  modifier list's, and the picked rule is the inspector (`SketchPaintRuleList`, `SketchPaintRuleInspector`,
+  `SketchPaintRuleSet`). The `?` sits a gap after its label on its centre line. Decoration draws no picture of a
+  prop: a tree's picker opens on its *In use* card, and ground cover's sliders are two groups, two to a row.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the

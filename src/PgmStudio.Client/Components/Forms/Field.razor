@@ -38,8 +38,9 @@
     /// column of fields shows its names and units and keeps its sentences a press away.</summary>
     [Parameter] public string? Hint { get; set; }
 
-    /// <summary>The most words a hint may run to and still read after the label.</summary>
-    private const int InlineWords = 5;
+    /// <summary>The most words a hint may run to and still read after the label: a few on a full-width field, and
+    /// one — a unit — on a half one, where a longer hint wraps and pushes its control below its neighbour's.</summary>
+    private int InlineWords => Half ? 1 : 5;
 
     private bool LongHint => Hint is not null && Hint.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length > InlineWords;
     private bool HasHelp => Help is not null || LongHint;
@@ -56,6 +57,9 @@
 
     private bool helpOpen;
 
-    private string Cls => string.Join(' ', new[] { "field", Class }.Where(c => !string.IsNullOrEmpty(c)));
+    /// <summary>A short field — a number, a short select — that takes half a row inside a <c>field-grid</c>.</summary>
+    [Parameter] public bool Half { get; set; }
+
+    private string Cls => string.Join(' ', new[] { "field", Half ? "field--half" : null, Class }.Where(c => !string.IsNullOrEmpty(c)));
     private string LabelCls => LabelEnd is null ? "field-label" : "field-label field-label--split";
 }

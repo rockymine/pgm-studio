@@ -1,0 +1,16 @@
+@namespace PgmStudio.Client.Components
+
+@* Deleting what an inspector shows: one full-width danger button at the inspector's foot, pinned there while the
+   form scrolls. Every selection deletes the same way and from the same place — a shape, a piece, a prop, a
+   modifier, a place, a paint rule — so the button is found where it was last time and never sits beside a
+   close. *@
+
+<div class="inspector-delete">
+  <Button Full Variant="danger" Icon="trash-2" Writes Title="@Title" OnClick="OnClick">@Label</Button>
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = "Delete";
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+}

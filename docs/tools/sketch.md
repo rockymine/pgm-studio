@@ -1457,14 +1457,17 @@ describing what the board falls back to is a list of bindings rather than a gall
 it is bound to. The order is the order a column is built: the paint under everything, the tint over it, then
 the finish stamped where a room stands.
 
-**The paint rules follow the bindings, because they are the board's own and no library row's.** *Paint rules*
-lists the board's `paint[]` in the order a column meets them: each with its on toggle (the eye the modifier list
-uses), its name, the arrows that move it earlier or later and its removal; its *Material*, a block or a library
-pattern, reading *Choose a material* until one is picked; *Steeper than* and *At
-most* in degrees; *From y* and *To y*; *Near* one of the board's modifiers *Within* so many blocks of its mask;
-how many *Courses* it lays; and *In patches*, a noise *Patch size* wide that leaves a *Bare share* of the ground.
-How a column reads the list is the section's help, behind the `?` beside its heading rather than open above it.
-Every edit replaces the list in one undo step and the Blocks overlay repaints. A rule naming a modifier is how a
+**The paint rules are a list in the sidebar, under the groups, and the picked one is the inspector.** The list
+(`SketchPaintRuleList`) holds the board's `paint[]` in the order a column meets them, each row a rule's name with
+the same tools a modifier row carries — earlier, later and the eye that switches it — shown on hover or when
+picked; *+* adds a rule at the end and opens it, and how a column reads the list is the section's help, behind
+the `?` beside its heading. Picking a rule closes any group or shape and opens the rule's inspector
+(`SketchPaintRuleInspector`): its *Name* and *State*; its *Material*, a block or a library pattern, reading
+*Choose a material* until one is picked; *Where* — *Steeper than* and *At most* in degrees, *From* and *To* in
+world y, *Near* one of the board's modifiers *Within* so many blocks of its mask; and *How* — how many *Courses* it
+lays, and a *Spread* of *Whole* or *Patches*, the latter a noise *Patch size* wide leaving a share *Left bare*.
+Delete is at the inspector's foot. Both write through `SketchPaintRuleSet`, so every edit replaces the list in one
+undo step and the Blocks overlay repaints. A rule naming a modifier is how a
 River's bank becomes sand: `docs/world-export/terrain-painting.md`, TP28, is the rule itself.
 
 **The map default is the board's; the built-in is stone.** Every bucket of `TerrainTheme.Default` is stone —
@@ -1678,8 +1681,14 @@ coverage is tufts across the whole ring rather than one shrinking patch; `scale`
 that gathers it into thicker and thinner patches (**Patch size**), and the cover is split by `fernShare`,
 `flowerShare` (with its own `flowerScale`) and `tallShare` (`docs/world-export/decoration.md` §3).
 
-**A slider moves the picture and waits to move the board.** While a knob is dragged the readout and the
-preview follow it — one `prop-preview` in flight at a time, the newest value drawn when it lands — and the
+**The inspector draws no picture of the prop.** Every kind is picked from cards that are pictures of the thing
+itself — a tree's, a boulder's form, a stroke's style in the author's paving, a channel's form, a building's shell —
+so the inspector shows the card in use instead: a tree's picker opens on an *In use* card, or an empty *Nothing
+picked* one. Ground cover's knobs are two groups: *Coverage* and *Patch size*, then *What grows*, each plant's share
+two to a row. The inspector still asks `prop-preview` about the prop as it changes — one request in flight, the
+newest asked when it lands — because its answer carries the refusal the build would raise.
+
+**A slider moves its readout and waits to move the board.** While a knob is dragged its readout follows it, and the
 canvas takes the value once, on release, as one patch. A push re-renders the whole tool and marks the board
 for saving, which is why it waits for the release rather than following every step.
 

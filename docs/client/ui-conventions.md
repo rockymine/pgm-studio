@@ -217,6 +217,20 @@ size itself from its own padding. A composer is the other way up: the text box t
 buttons sit in a footer under it, what the thing can be closed as on the left and **Send** on the right, so a
 tall box never leaves a short button hanging beside it.
 
+**Fields sit in sections, short ones two to a row.** An inspector's body is `Section`s, so fields are one gap
+apart (`--space-3`) and sections a larger one (`--space-6`); a field placed straight in the inspector's column takes
+the section gap and reads as a section of its own. Short fields — a number, a short select, a two-chip state — go
+in a `field-grid` and say so with `Half`, two to a row; a field that needs the width spans both.
+
+**One thing, one control.** A seed is `SeedField` everywhere: the number and *Reroll*, under *Seed*. What an
+inspector shows is deleted by `InspectorDelete`, the full-width danger button pinned to the inspector's foot —
+never an icon in the header beside the close, so Delete is found where it was last time. A row in a sidebar list
+is its glyph and name first, then the tools that act on it in place — earlier, later, the eye that switches it —
+on the right, shown on hover or when picked; the modifier list and the paint-rule list are one row.
+
+**A `?` means there is an explanation the label and its unit do not give.** It sits after the label, a gap from
+it on the label's centre line, and only there: never for a unit, which reads after the label in parentheses.
+
 **A list row's name is the part that keeps its width.** Where a row carries a name and facts about it — a
 badge, a time, a coordinate — the name takes the first line and the facts go on a second line under it
 (`list-row--two-line`, `list-row__text`, `list-row__meta`), so the name is never what is cut short to make room

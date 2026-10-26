@@ -1,0 +1,74 @@
+@namespace PgmStudio.Client.Features.Sketch
+@using System.Text.Json.Nodes
+
+@* The board's paint rules as a list in the order a column meets them — the same row Terraform's modifiers are:
+   a name, then the order and the switch, shown on hover or when picked. Picking one opens it in the inspector;
+   the list itself edits only the order and the switch. *@
+
+<Section Title="Paint rules" HelpTitle="How paint rules are read">
+  <Actions>
+    <Button Variant="icon" Icon="plus" Writes Title="Add a rule" OnClick="Add" />
+  </Actions>
+  <Help>A column takes the first rule, top to bottom, whose conditions its ground meets; a column no rule meets
+    keeps its palette. A condition left empty does not narrow the rule.</Help>
+  <ChildContent>
+    @if (Rules.Count == 0)
+    {
+      <p class="section-desc">No rules: every column keeps its palette.</p>
+    }
+    else
+    {
+      <div class="region-tree" role="listbox" aria-label="Paint rules, in the order a column meets them">
+        @for (var index = 0; index < Rules.Count; index++)
+        {
+          var rule = Rules[index];
+          var id = SketchPaintRuleSet.IdOf(rule);
+          var off = SketchPaintRuleSet.IsOff(rule);
+          var at = index;
+          <div class="geo-row modifier-row @(id == SelectedId ? "geo-row--selected" : null) @(off ? "modifier-row--off" : null)"
+               @key="id" role="option" aria-selected="@(id == SelectedId)" @onclick="() => OnSelect.InvokeAsync(id)">
+            <span class="geo-type-icon"><i data-lucide="paintbrush"></i></span>
+            <span class="geo-label">@SketchPaintRuleSet.NameOf(rule)</span>
+            <span class="modifier-row-tools" @onclick:stopPropagation>
+              <Button Variant="icon" Icon="chevron-up" Writes Title="Read it earlier" Disabled="@(at == 0)" OnClick="() => Move(id, -1)" />
+              <Button Variant="icon" Icon="chevron-down" Writes Title="Read it later" Disabled="@(at == Rules.Count - 1)" OnClick="() => Move(id, 1)" />
+              <Button Variant="icon" Icon="eye" Writes Class="@(off ? "modifier-eye--off" : null)"
+                      Title="@(off ? "Switched off: switch on" : "Switch off, keeping its conditions")" OnClick="() => Toggle(id, !off)" />
+            </span>
+          </div>
+        }
+      </div>
+    }
+    @if (error is not null) { <p class="field-error">@error</p> }
+  </ChildContent>
+</Section>
+
+@code {
+    [Parameter] public IJSObjectReference? Handle { get; set; }
+    /// <summary>The rules as the bridge last announced them, JSON array text.</summary>
+    [Parameter] public string PaintJson { get; set; } = "[]";
+    /// <summary>The rule open in the inspector, by id.</summary>
+    [Parameter] public string? SelectedId { get; set; }
+    [Parameter] public EventCallback<string> OnSelect { get; set; }
+    [Inject] public IJSRuntime JS { get; set; } = default!;
+
+    private string? error;
+
+    private List<JsonObject> Rules => SketchPaintRuleSet.Parse(PaintJson);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
+
+    /// <summary>A new rule goes on the end and opens, since a rule with no material and no condition does
+    /// nothing until it is filled in.</summary>
+    private async Task Add()
+    {
+        var (id, refused) = await SketchPaintRuleSet.AddAsync(Handle, PaintJson);
+        error = refused;
+        if (refused is null) await OnSelect.InvokeAsync(id);
+    }
+
+    private async Task Move(string id, int by) => error = await SketchPaintRuleSet.MoveAsync(Handle, PaintJson, id, by);
+
+    private async Task Toggle(string id, bool off) => error = await SketchPaintRuleSet.EditAsync(Handle, PaintJson, id,
+        rule => SketchPaintRuleSet.SetOrRemove(rule, SketchPaintRuleSet.Off, off ? true : null));
+}

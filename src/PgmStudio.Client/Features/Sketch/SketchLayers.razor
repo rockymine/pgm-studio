@@ -29,9 +29,7 @@
       <Field Label="Roughness (blocks)">
         <NumberField Value="underside.Rough" Min="0" Max="16" Step="0.5" ValueChanged="v => SetUnderside(underside with { Rough = v })" />
       </Field>
-      <Field Label="Seed">
-        <NumberField Value="underside.Seed" Min="0" ValueChanged="v => SetUnderside(underside with { Seed = (int)v })" />
-      </Field>
+      <SeedField Value="underside.Seed" ValueChanged="seed => SetUnderside(underside with { Seed = seed })" />
     }
   }
 </Section>

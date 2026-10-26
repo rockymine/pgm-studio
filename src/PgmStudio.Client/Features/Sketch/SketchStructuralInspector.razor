@@ -106,11 +106,9 @@
     {
       <p class="field-error">@Note</p>
     }
-    @if (OnDelete is not null && Piece.Role != StructuralRoles.Building && !Piece.IsPoint)
-    {
-      <Button Full Variant="danger" Writes OnClick="OnDelete">
-        <i data-lucide="trash-2"></i> Delete
-      </Button>
-    }
   </Section>
+  @if (OnDelete is not null && Piece.Role != StructuralRoles.Building && !Piece.IsPoint)
+  {
+    <InspectorDelete Title="Delete this piece" OnClick="OnDelete" />
+  }
 </Inspector>

@@ -92,6 +92,8 @@
                inspector, so the column stays the one list a phase can always show. *@
             <SketchPanel Groups="groups" Shapes="shapes" SelectedShapeId="@selectedShapeId" SelectedGroupId="@selectedGroupId"
                          OnSelectShape="SelectShape" OnSelectGroup="SelectGroup" />
+            <SketchPaintRuleList Handle="handle" PaintJson="@themes.PaintJson" SelectedId="@paintRuleId"
+                                 OnSelect="SelectPaintRule" />
           }
           else if (HistoryActive)
           {
@@ -375,6 +377,12 @@
               <p class="section-desc">Pick a modifier in the dock and drag its outline on the board, or click an outline to edit it.</p>
             </Inspector>
           }
+        }
+        else if (ThemeActive && PaintRuleOpen)
+        {
+          <div class="sidebar-handle"></div>
+          <SketchPaintRuleInspector Handle="handle" PaintJson="@themes.PaintJson" RuleId="@(paintRuleId ?? "")"
+                                    ModifierIds="@(themes.ModifierIds ?? [])" OnClose="() => paintRuleId = null" />
         }
         else if (ThemeActive)
         {
