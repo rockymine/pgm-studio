@@ -20,7 +20,7 @@ reaches the ceiling a pgmvox board does. Phase 0 has shipped, Phase 1 has closed
 entries parked, and Phase 2 has shipped: shapes, eighteen ground operations in the modifier stack, and the water
 they make. Phase 3 has shipped too: soil by slope, paint rules, beds that dip, fold and cycle, a water's own bed
 and its fall off the edge, and a layer's underside. Phase 4, space in three dimensions, is open with one entry
-left, and Phase 5, stamps and uploaded worlds, runs beside it on the author's call.
+left. Phase 5 has shipped its pieces and stamps; its upload (`TC23`) is parked.
 
 ### Phase 4 — space in three dimensions
 
@@ -33,15 +33,3 @@ the relief over it (`docs/pgmvox-port.md`, *The shape it lands in*). Each entry 
   wedge, cylinder, sphere or torus with the form already chosen (`SketchTool.razor`, `asSolid` in
   `geometry/shape.js`, `addShape` in `sketch-bridge.js`), and inspector rows for an arch's rock `thick`, its easing
   powers and its `camber`, stated over the API today (`docs/tools/sketch.md`, *Solids*).
-
-### Phase 5 — stamps and uploaded worlds
-
-A pgmvox board becomes playable with the studio's markers and outlines on it: the pieces it needs are placed in
-Layout, every stamp can be switched off where the world already carries its own, and a world built elsewhere
-arrives with its `map.xml` (`docs/pgmvox-port.md`, *Phase 5*).
-
-- [ ] **TC23 — A world uploaded with its `map.xml`.** `POST /map/upload` takes a zip of a world's `region/` and
-  its `map.xml` from any member, refused over a size cap, scanned as `import-url` scans; the stamps run over it
-  on export. The `map.xml` is read into an intent, on the author's call: teams, spawns, wools, monuments, cores,
-  control points and build regions become pieces placed in Layout, and what the studio cannot state is refused by
-  name (`docs/tools/configure.md`, `docs/tools/flow.md`).

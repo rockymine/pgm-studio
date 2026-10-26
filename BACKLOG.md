@@ -22,6 +22,12 @@ about which section the entry sits in — the retired prefixes still on entries 
 
 ## Parked from the programme
 
+- [ ] **TC23 — A world uploaded with its `map.xml`.** *Parked (author): skipped for the time being.* `POST /map/upload` takes a zip of a world's `region/` and
+  its `map.xml` from any member, refused over a size cap, scanned as `import-url` scans; the stamps run over it
+  on export. The `map.xml` is read into an intent, on the author's call: teams, spawns, wools, monuments, cores,
+  control points and build regions become intent pieces, configured in Configure as a world read from a scan is
+  (D13), and what the studio cannot state is refused by name (`docs/tools/configure.md`, `docs/tools/flow.md`).
+
 - [ ] **TS190 — A place states the numbers it is held to.** *Parked (author): agent-facing, and the rule measures already band a distance.* A place carries targets — a value and the band it
   must fall in — and each is measured off the sketch's ground and shown beside its band, a miss as a complaint,
   as pgmvox's checker prints one line per number (`freeform/lib/AGENT-GUIDE.md` § the plan). The walks the

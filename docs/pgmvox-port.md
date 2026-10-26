@@ -372,7 +372,7 @@ time. Shipped to the live studio with no beta (decision D3).
 - A world built elsewhere uploaded with its `map.xml`, read into the intent, with the stamps run over it on
   export (`TC23`). `POST /map/import-folder` reads a server-side folder today; an upload route is what is
   missing, and any member may use it, under a size cap. The `map.xml` is read into an intent rather than kept as a
-  document, on the author's call, so an uploaded board's pieces are placed in Layout like any other.
+  document, on the author's call. The upload is parked for the time being.
 
 **What the author notices:** every pgmvox board playable with the studio's markers and outlines on it.
 
