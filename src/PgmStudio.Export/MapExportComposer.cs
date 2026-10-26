@@ -5,6 +5,7 @@ using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Dressing;
+using PgmStudio.Minecraft.Palette;
 using PgmStudio.Minecraft.Stamping;
 using PgmStudio.Pgm;
 using PgmStudio.Pgm.Authoring;
@@ -157,6 +158,9 @@ public static class MapExportComposer
         // begun in Sketch never passes the compile gate at all, so this is the only place every export is
         // checked.
         if (RefuseObjectivePlacement(columns, goals, built.Shells) is { } placementRefusal) return placementRefusal;
+
+        // OB37, OB38 — every monument and core floats over the world just built, and stands over ground at y 0.
+        if (CheckGoalsFloat(built.World, goals) is { Count: > 0 } floating) return Refuse("objectives do not float", [.. floating]);
 
         IntentGenerator.Apply(doc, goals);
         decorate?.Invoke(doc);
@@ -638,6 +642,49 @@ public static class MapExportComposer
                         Subjects: [wool.Owner]));
 
         findings.AddRange(GoalsSharingGround(goals));
+        return findings;
+    }
+
+    /// <summary><b><c>OB37</c>, <c>OB38</c> — every monument and core floats over the ground under it.</b> A goal on
+    /// the floor is trivially covered and a core on it cannot leak, so under each column of its structure there is at
+    /// least its <c>float</c> of air before whatever stands below; and every one of those columns has a block at y 0,
+    /// or PGM's void rule refuses breaking the goal's block and placing the lava it lets out. Asked of the world as
+    /// built, so a tree, a house or a wall standing under a goal is seen, and skipped for a goal switching its
+    /// <c>floatCheck</c> off. The defence chest the build stands on the ground under every goal is the goal's own
+    /// supply, reached through the gap, so it counts as the gap.</summary>
+    public static Findings CheckGoalsFloat(VoxelWorld world, MapIntent goals)
+    {
+        var findings = new List<Finding>();
+        void Ask(string kind, string name, BlockBox? structure, int floats, string[]? off)
+        {
+            if (structure is not { } box || !StampSwitches.On(off, StampSwitches.FloatCheck)) return;
+            var shortest = int.MaxValue;
+            var bare = new List<(int X, int Z)>();
+            for (var x = box.MinX; x <= box.MaxX; x++)
+            for (var z = box.MinZ; z <= box.MaxZ; z++)
+            {
+                var lowest = Enumerable.Range(box.MinY, box.MaxY - box.MinY + 1)
+                    .Where(y => world.GetBlock(x, y, z).Id != Blocks.Air).DefaultIfEmpty(-1).Min();
+                if (lowest < 0) continue;
+                var air = 0;
+                for (var y = lowest - 1; y > 0 && Clear(world.GetBlock(x, y, z).Id); y--) air++;
+                shortest = Math.Min(shortest, air);
+                if (world.GetBlock(x, 0, z).Id == Blocks.Air) bare.Add((x, z));
+            }
+            if (shortest < floats)
+                findings.Add(new Finding(ObjectiveRules.FloatShort,
+                    $"{kind} '{name}' at ({box.MinX}, {box.MinY}, {box.MinZ}) has {shortest} blocks of air under it, "
+                    + $"less than its float of {floats}", Subjects: [name], Measured: new Measurement(shortest, Low: floats)));
+            if (bare.Count > 0)
+                findings.Add(new Finding(ObjectiveRules.VoidUnderGoal,
+                    $"{kind} '{name}' has {bare.Count} of its columns with nothing at y 0, first at ({bare[0].X}, 0, {bare[0].Z})",
+                    Subjects: [name]));
+        }
+        static bool Clear(int block) => block is Blocks.Air or Blocks.Chest;
+        foreach (var goal in goals.Destroyables ?? [])
+            Ask("monument", goal.Id.Length > 0 ? goal.Id : goal.Name, goal.Box, goal.Float, goal.StampsOff);
+        foreach (var core in goals.Cores ?? [])
+            Ask("core", core.Id.Length > 0 ? core.Id : core.Name, core.Box, core.Float, core.StampsOff);
         return findings;
     }
 

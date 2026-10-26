@@ -409,7 +409,7 @@ public static class PlayPieceMove
     /// <summary>The list with <paramref name="change"/> applied to the area at <paramref name="at"/> (step 0)
     /// and, unless <paramref name="alone"/>, to each area whose bounds are its image under a step of the
     /// symmetry, read before any of them changed.</summary>
-    private static List<PieceArea> AreaImages(
+    internal static List<PieceArea> AreaImages(
         List<PieceArea> areas, int at, SymmetryIntent? symmetry, bool alone, Func<PieceArea, int, PieceArea> change)
     {
         var changed = new List<PieceArea>(areas) { [at] = change(areas[at], 0) };

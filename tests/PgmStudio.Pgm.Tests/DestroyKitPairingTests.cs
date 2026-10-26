@@ -1,4 +1,5 @@
 using PgmStudio.Pgm.Authoring;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Tests;
 
@@ -32,6 +33,17 @@ public sealed class DestroyKitPairingTests
     public async Task A_gold_or_emerald_destroyable_needs_only_iron()
     {
         var intent = new MapIntent { Destroyables = [Destroyable("gold block")] };
+        await Assert.That(DestroyKitPairing.RequiredPickaxe(intent)).IsEqualTo("iron pickaxe");
+    }
+
+    [Test]
+    public async Task A_goal_with_its_kit_pairing_off_has_no_say_in_the_pickaxe()
+    {
+        var intent = new MapIntent
+        {
+            Destroyables = [Destroyable("obsidian") with { StampsOff = [StampSwitches.KitPairing] }],
+            Cores = [Core() with { StampsOff = [StampSwitches.KitPairing] }],
+        };
         await Assert.That(DestroyKitPairing.RequiredPickaxe(intent)).IsEqualTo("iron pickaxe");
     }
 

@@ -40,11 +40,8 @@ A pgmvox board becomes playable with the studio's markers and outlines on it: th
 Layout, every stamp can be switched off where the world already carries its own, and a world built elsewhere
 arrives with its `map.xml` (`docs/pgmvox-port.md`, *Phase 5*).
 
-- [ ] **WE174 — Every stamp switched per piece.** A piece states which of its stamps run, all on by default: a
-  goal's marker and float check, a build area's outline, a wool room's loot, a destroyable's kit pairing, and
-  whether a wall is stamped at all. The switches sit on the piece's rail and the build reads them in
-  `WorldBuilder` (`docs/world-export/structures.md`).
 - [ ] **TC23 — A world uploaded with its `map.xml`.** `POST /map/upload` takes a zip of a world's `region/` and
   its `map.xml` from any member, refused over a size cap, scanned as `import-url` scans; the stamps run over it
-  on export. **Open, the author's:** whether the `map.xml` is read into an intent, which `docs/tools/flow.md`
-  rules out today, or kept as the map's document as a corpus map's is (`docs/tools/configure.md`).
+  on export. The `map.xml` is read into an intent, on the author's call: teams, spawns, wools, monuments, cores,
+  control points and build regions become pieces placed in Layout, and what the studio cannot state is refused by
+  name (`docs/tools/configure.md`, `docs/tools/flow.md`).

@@ -78,6 +78,18 @@ public static class ObjectiveRules
     [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.World)]
     public const string FlagWithoutBanner = "OB36";
 
+    /// <summary>The air under a column of a monument or core is less than its float.</summary>
+    /// <remarks>Either move what stands under the monument or core in <c>dressing.props</c>, or add
+    /// <c>floatCheck</c> to the <c>stampsOff</c> of the monument or core.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.World)]
+    public const string FloatShort = "OB37";
+
+    /// <summary>A column under a monument or core has no block at y 0.</summary>
+    /// <remarks>Either move the monument or core until every column under it has ground at y 0, or add
+    /// <c>floatCheck</c> to the <c>stampsOff</c> of the monument or core.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.Terrain)]
+    public const string VoidUnderGoal = "OB38";
+
     /// <summary>A wool monument has no ground under it.</summary>
     /// <remarks>Move the room piece of the spawn in <c>pieces</c> until the monument stands on ground.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.Terrain)]

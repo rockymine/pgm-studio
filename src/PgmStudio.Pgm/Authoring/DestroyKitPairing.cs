@@ -1,4 +1,5 @@
 using PgmStudio.Domain;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Authoring;
 
@@ -20,14 +21,16 @@ public static class DestroyKitPairing
     private const string DefaultTier = "iron";
 
     /// <summary>The pickaxe material (e.g. <c>"diamond pickaxe"</c>) the standard spawn kit should carry: the
-    /// corpus default, upgraded to whatever the map's own destroyables/cores need.</summary>
+    /// corpus default, upgraded to whatever the map's own destroyables/cores need, a goal with its kit pairing
+    /// switched off having no say.</summary>
     public static string RequiredPickaxe(MapIntent intent)
     {
         var tier = DefaultTier;
-        foreach (var destroyable in intent.Destroyables ?? [])
+        foreach (var destroyable in (intent.Destroyables ?? []).Where(goal => StampSwitches.On(goal.StampsOff, StampSwitches.KitPairing)))
             if (MiningTiers.Required(destroyable.Materials) is { } needed)
                 tier = MiningTiers.Higher(tier, needed);
-        if (intent.Cores is { Count: > 0 }) tier = MiningTiers.Higher(tier, "diamond");
+        if ((intent.Cores ?? []).Any(core => StampSwitches.On(core.StampsOff, StampSwitches.KitPairing)))
+            tier = MiningTiers.Higher(tier, "diamond");
         return $"{tier} pickaxe";
     }
 }

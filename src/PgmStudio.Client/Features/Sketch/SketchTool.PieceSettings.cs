@@ -15,33 +15,48 @@ public partial class SketchTool
     private ObjectiveFieldValues? pieceSettings;
     private double? spawnYaw;
 
-    /// <summary>Read the picked piece's settings, or forget them where the piece states none.</summary>
+    /// <summary>The stamps the picked piece has switched off; null for a piece with no stamp to switch.</summary>
+    private string[]? stampsOff;
+
+    /// <summary>Read the picked piece's settings and which of its stamps are off, or forget them where the piece
+    /// states none.</summary>
     private async Task LoadPieceSettingsAsync()
     {
         pieceSettings = null;
         spawnYaw = null;
-        if (selectedStructural is not { } piece
-            || piece.Role is not (PlayPieceKinds.Spawn or PlayPieceKinds.WoolRoom or PlayPieceKinds.Destroyable
-                or PlayPieceKinds.Core or PlayPieceKinds.ControlPoint))
-            return;
+        stampsOff = null;
+        if (selectedStructural is not { } piece) return;
+        var settled = piece.Role is PlayPieceKinds.Spawn or PlayPieceKinds.WoolRoom or PlayPieceKinds.Destroyable
+            or PlayPieceKinds.Core or PlayPieceKinds.ControlPoint;
+        if (!settled && StampSwitches.Of(piece.Role).Length == 0) return;
         try
         {
             objectiveWords ??= await Http.GetFromJsonAsync<ObjectiveVocabularyDto>("api/objectives/vocabulary");
             var intent = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/intent");
-            var list = piece.Role switch
+            var (holder, list) = piece.Role switch
             {
-                PlayPieceKinds.Spawn => "spawns",
-                PlayPieceKinds.WoolRoom => "wools",
-                PlayPieceKinds.Destroyable => "destroyables",
-                PlayPieceKinds.ControlPoint => "controlPoints",
-                _ => "cores",
+                PlayPieceKinds.Spawn => ("", "spawns"),
+                PlayPieceKinds.WoolRoom => ("", "wools"),
+                PlayPieceKinds.Destroyable => ("", "destroyables"),
+                PlayPieceKinds.ControlPoint => ("", "controlPoints"),
+                PlayPieceKinds.BuildArea => ("build", "areas"),
+                PlayPieceKinds.Wall => ("structures", "walls"),
+                _ => ("", "cores"),
             };
             // A pick made while this read was out is the one the inspector shows.
             if (selectedStructural?.Id != piece.Id) return;
-            if (!intent.TryGetProperty(list, out var entries) || entries.ValueKind != JsonValueKind.Array) return;
+            var parent = intent;
+            if (holder.Length > 0 && !intent.TryGetProperty(holder, out parent)) return;
+            if (parent.ValueKind != JsonValueKind.Object || !parent.TryGetProperty(list, out var entries)
+                || entries.ValueKind != JsonValueKind.Array) return;
             foreach (var entry in entries.EnumerateArray())
             {
                 if (!entry.TryGetProperty("id", out var id) || id.GetString() != piece.Id) continue;
+                if (StampSwitches.Of(piece.Role).Length > 0)
+                    stampsOff = entry.TryGetProperty("stampsOff", out var off) && off.ValueKind == JsonValueKind.Array
+                        ? [.. off.EnumerateArray().Select(word => word.GetString() ?? "")]
+                        : [];
+                if (!settled) continue;
                 if (piece.Role == PlayPieceKinds.Spawn)
                     spawnYaw = entry.TryGetProperty("yaw", out var yaw) ? yaw.GetDouble() : 0;
                 else
@@ -56,6 +71,9 @@ public partial class SketchTool
         catch (HttpRequestException) { }
         StateHasChanged();
     }
+
+    /// <summary>Switch one of the picked piece's stamps on or off.</summary>
+    private Task SwitchStamp(string word, bool on) => SetPieceSettingAsync(word, on);
 
     private static string? Text(JsonElement entry, string key) =>
         entry.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.String

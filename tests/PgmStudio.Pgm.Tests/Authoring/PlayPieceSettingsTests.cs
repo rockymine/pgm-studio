@@ -93,4 +93,27 @@ public sealed class PlayPieceSettingsTests
         await Assert.That(missing).IsNull();
         await Assert.That(none.Single().Rule).IsEqualTo(RequestRules.NoSuchSubject);
     }
+
+    [Test]
+    public async Task A_stamp_switched_off_is_off_on_every_image_and_back_on_leaves_nothing_listed()
+    {
+        var (off, refused) = PlayPieceSettings.Apply(Board(), "destroyable-red", StampSwitches.Marker, new PieceValue(Flag: false));
+        var (on, _) = PlayPieceSettings.Apply(off!, "destroyable-red", StampSwitches.Marker, new PieceValue(Flag: true));
+
+        await Assert.That(refused.Count).IsEqualTo(0);
+        await Assert.That(off!.Destroyables!.All(goal => goal.StampsOff!.SequenceEqual([StampSwitches.Marker]))).IsTrue();
+        await Assert.That(on!.Destroyables!.All(goal => goal.StampsOff is null)).IsTrue();
+    }
+
+    [Test]
+    public async Task A_stamp_a_piece_does_not_have_is_refused()
+    {
+        var (looted, why) = PlayPieceSettings.Apply(Board(), "destroyable-red", StampSwitches.Loot, new PieceValue(Flag: false));
+        var (worded, unread) = PlayPieceSettings.Apply(Board(), "wool-red", StampSwitches.Loot, new PieceValue(Text: "off"));
+
+        await Assert.That(looted).IsNull();
+        await Assert.That(why.Single().Field).IsEqualTo("key");
+        await Assert.That(worded).IsNull();
+        await Assert.That(unread.Single().Field).IsEqualTo("value");
+    }
 }

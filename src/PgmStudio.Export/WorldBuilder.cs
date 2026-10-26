@@ -193,6 +193,7 @@ public static class WorldBuilder
             WoolStructureStamper.Stamp(world, new WoolStructure
             {
                 Frame = frame, FloorY = fy, WoolSlug = slug, Ground = woolGround, Shell = shell, Wings = wings,
+                Chests = StampSwitches.On(w.StampsOff, StampSwitches.Loot),
             });
             Raise(plinths, StructureStamper.FoundationTops(
                 woolGround, frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ));
@@ -210,8 +211,9 @@ public static class WorldBuilder
                              ProvenancePass.Structure, w.Stamp);
             // One marker per wool room — the room is already one entry per orbit image (PlanCompiler fans
             // team-outer), so no orbit math is needed here to keep a mirrored board's markers matching.
-            pendingMarkers.Add(((frame.MinX + frame.MaxX) / 2, (frame.MinZ + frame.MaxZ) / 2,
-                BlockColors.BlockDamage(slug), GoalMarkerShape.Cube));
+            if (StampSwitches.On(w.StampsOff, StampSwitches.Marker))
+                pendingMarkers.Add(((frame.MinX + frame.MaxX) / 2, (frame.MinZ + frame.MaxZ) / 2,
+                    BlockColors.BlockDamage(slug), GoalMarkerShape.Cube));
             provenance.Claim((frame.MinX + frame.MaxX) / 2, (frame.MinZ + frame.MaxZ) / 2, ProvenancePass.Structure, w.Stamp);
             woolFrame[i] = frame;
             woolFloor[i] = fy;
@@ -314,7 +316,9 @@ public static class WorldBuilder
         // region and of the terrain. Derived here rather than in the compiler because the clearance rule reads
         // the terrain the world actually placed; the areas arrive already fanned, so the marker is symmetric.
         if (intent.Build is { } build)
-            BuildMarkerStamper.Stamp(world, BlockRects(build.Areas.Select(area => area.Rect)), BlockRects(build.Holes), terrain.Ground);
+            BuildMarkerStamper.Stamp(world,
+                BlockRects(build.Areas.Where(area => StampSwitches.On(area.StampsOff, StampSwitches.Outline)).Select(area => area.Rect)),
+                BlockRects(build.Holes), terrain.Ground);
 
         // ── Destroyables (DTM) — the box is computed once here and carried on the resolved intent, so the
         // region the generator emits is the volume these blocks were stamped into (OB8).
@@ -606,7 +610,7 @@ public static class WorldBuilder
     {
         var said = new List<Finding>();
         if (s is null) return said;
-        foreach (var w in s.Walls)
+        foreach (var w in s.Walls.Where(wall => StampSwitches.On(wall.StampsOff, StampSwitches.Wall)))
         {
             var cells = w.Cells().ToList();
             var top = StructureStamper.StampWall(world, surface, cells, w.TopY);
@@ -637,7 +641,7 @@ public static class WorldBuilder
     private static void ClaimStructures(WorldProvenance provenance, StructureIntent? s)
     {
         if (s is null) return;
-        foreach (var wall in s.Walls)
+        foreach (var wall in s.Walls.Where(wall => StampSwitches.On(wall.StampsOff, StampSwitches.Wall)))
             provenance.Claim(wall.Cells(), ProvenancePass.Structure, wall.Stamp);
         foreach (var chest in s.Chests)
             provenance.ClaimRect(chest.X, chest.Z, chest.X, chest.Z, ProvenancePass.Structure, chest.Stamp);
@@ -717,7 +721,8 @@ public static class WorldBuilder
             provenance.ClaimRect(platformMinX, platformMinZ, platformMaxX, platformMaxZ, ProvenancePass.Structure, owner);
 
             // One marker per destroyable — already one orbit image per entry (PlanCompiler fans team-outer).
-            markers.Add((ax, az, WoolDataForTeam(b.Owner, teams), GoalMarkerShape.Cross));
+            if (StampSwitches.On(b.StampsOff, StampSwitches.Marker))
+                markers.Add((ax, az, WoolDataForTeam(b.Owner, teams), GoalMarkerShape.Cross));
             provenance.Claim(ax, az, ProvenancePass.Structure, owner);
 
             resolved.Add(new DestroyableIntent
@@ -909,6 +914,7 @@ public static class WorldBuilder
         var resolved = new List<ControlPointIntent>(points.Count);
         foreach (var point in points)
         {
+            if (!StampSwitches.On(point.StampsOff, StampSwitches.Marker)) { resolved.Add(point); continue; }
             var (ax, az) = ObjectiveFootprint.AnchorCell(point.Anchor.X, point.Anchor.Z);
             GoalMarkerStamper.Stamp(world, ax, az, markerFloor, neutral, GoalMarkerShape.Cross);
             resolved.Add(point with { MarkerBox = GoalMarkerStamper.Box(ax, az, markerFloor) });
@@ -946,7 +952,8 @@ public static class WorldBuilder
             provenance.ClaimRect(plateMinX, plateMinZ, plateMaxX, plateMaxZ, ProvenancePass.Structure, owner);
 
             // One marker per core — same already-fanned-per-orbit-image reasoning as the destroyable's.
-            markers.Add((ax, az, WoolDataForTeam(c.Owner, teams), GoalMarkerShape.Cross));
+            if (StampSwitches.On(c.StampsOff, StampSwitches.Marker))
+                markers.Add((ax, az, WoolDataForTeam(c.Owner, teams), GoalMarkerShape.Cross));
             provenance.Claim(ax, az, ProvenancePass.Structure, owner);
 
             resolved.Add(new CoreIntent

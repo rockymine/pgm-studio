@@ -113,10 +113,9 @@ bedrock at a fixed depth would be a floor laid across the objective's own rules:
 pair asks for is bounded by the terrain the board has, not by a slab the stamper put there. The chest below
 is a core's all the same.
 
-**The depth is what makes room for the chest.** At one course down there is nothing between the surface and
-the rock; at three there are two, and a **defence chest** stands at the footprint's centre with
-the course above it carved to air so the lid opens. The course above *that* is left whole, so a defender
-breaks one block of ground and drops onto the supply. It is the same 27-slot loadout an approach wall carries
+**A defence chest stands on the ground under the goal**, at the footprint's centre, in the air the goal
+floats over, with the block over it left air so the lid opens (`StructureStamper.StampDefenseChest`); a defender
+reaches it from any side of the monument. It is the same 27-slot loadout an approach wall carries
 (`DefenseChest`, `docs/generator/rules.md` ST4): dark-oak and spruce planks and crafting tables to build with,
 end stone and a redstone block to reinforce, and two Efficiency II iron pickaxes. Both places are ground a
 team holds, which is why it is one chest rather than two designs.
@@ -260,6 +259,32 @@ export XML only — none of the structure synthesis or the constraints below tou
 - **Spawn yaw → door orientation.** The spawn cube's single 4×4 door must face the intended entry direction: the
   player spawns facing out through the door. The spawn `Yaw` and the door wall are derived together so the entry
   faces the right way; monuments then sit against that door wall / the back wall per §3.
+
+## 5a. A stamp switched off, and the float check
+
+**Every stamp the build lays for a piece runs unless the piece switches it off.** A piece states the stamps it
+switches off in `stampsOff`, words of `StampSwitches`, and a piece stating none runs every one. Six are switchable,
+each on the pieces it belongs to (`StampSwitches.Of`): the **marker** hanging over a wool room, a destroyable, a
+core or a control point; the redstone **outline** round a build area; a wall's own bedrock (**wall**); the
+**loot** chests of a wool room; a destroyable's or a core's say in the kit's pickaxe (**kitPairing**,
+`DestroyKitPairing`); and the **floatCheck** below. A switch is what a world built elsewhere asks for — its own
+marker, outline or wall already stands — and the piece stays a piece: it is placed, moved and read by every rule
+as before, and only the blocks of that one stamp are not laid. A control point with its marker off has no owner
+display region, since the marker is what that region names.
+
+**The float check asks the built world that every monument and core floats** (`OB37`, `OB38`). Under each
+column of the structure there is at least its `float` of air before whatever stands below, and a block at y 0,
+or PGM's void rule refuses breaking the goal's block and placing the lava a core lets out. It is asked by the
+export after `OB17`, over the world just built (`MapExportComposer.CheckGoalsFloat`), so a tree, a house or a
+wall standing under a goal is seen, and both refuse the export. The goal's own defence chest (§2c) stands in that
+air by design and is counted as part of it. A goal meant to rest lower switches its
+`floatCheck` off.
+
+Each switch is a setting of its piece, written by the rail's *Stamps* section or the settings route with a flag:
+
+```json PATCH /api/map/{slug}/intent/pieces/{id}/settings
+{ "key": "marker", "flag": false }
+```
 
 ## 6. Resolved decisions
 

@@ -249,8 +249,12 @@ public readonly record struct IronCube(int MinX, int MinZ, bool Renew, StampId S
 /// <param name="TopY">The height it rises to where the ground under it has nothing to say, inclusive.</param>
 /// <param name="Stamp">Which stamping of the structure this is.</param>
 /// <param name="Id">The piece's id, which the piece route finds it by.</param>
+/// <param name="StampsOff">The stamps switched off for it (<see cref="StampSwitches"/>) — its own bedrock, where the
+/// world has the wall already; null runs every one.</param>
 [method: JsonConstructor]
-public readonly record struct WallStructure(int[][] Points, int TopY, StampId Stamp = default, string Id = "")
+public readonly record struct WallStructure(
+    int[][] Points, int TopY, StampId Stamp = default, string Id = "",
+    [property: WordSet(typeof(StampSwitches))] string[]? StampsOff = null)
 {
     /// <summary>Its corners, in order.</summary>
     public IReadOnlyList<(int X, int Z)> Corners() => [.. Points.Select(point => (point[0], point[1]))];
@@ -383,8 +387,12 @@ public sealed record MetaIntent
 /// <param name="MaxX">Its east edge.</param>
 /// <param name="MaxZ">Its south edge.</param>
 /// <param name="Id">The piece's id.</param>
+/// <param name="StampsOff">The stamps switched off for it (<see cref="StampSwitches"/>) — a build area's outline;
+/// null runs every one.</param>
 [method: JsonConstructor]
-public readonly record struct PieceArea(double MinX, double MinZ, double MaxX, double MaxZ, string Id = "")
+public readonly record struct PieceArea(
+    double MinX, double MinZ, double MaxX, double MaxZ, string Id = "",
+    [property: WordSet(typeof(StampSwitches))] string[]? StampsOff = null)
 {
     /// <summary>Its bounds.</summary>
     [JsonIgnore] public Rect Rect => new(MinX, MinZ, MaxX, MaxZ);
@@ -553,6 +561,10 @@ public sealed record WoolIntent
 {
     /// <summary>The piece's id, unique among the intent's play pieces (<see cref="PlayIds"/>).</summary>
     public string Id { get; init; } = "";
+
+    /// <summary>The stamps switched off for it (<see cref="StampSwitches"/>); null runs every one.</summary>
+    [WordSet(typeof(StampSwitches))]
+    public string[]? StampsOff { get; init; }
 
     /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
     /// per layer, and a thing stated for a hall lands on the deck roofing it unless it says which layer it
@@ -764,6 +776,10 @@ public sealed record DestroyableIntent
     /// <summary>The piece's id, unique among the intent's play pieces (<see cref="PlayIds"/>).</summary>
     public string Id { get; init; } = "";
 
+    /// <summary>The stamps switched off for it (<see cref="StampSwitches"/>); null runs every one.</summary>
+    [WordSet(typeof(StampSwitches))]
+    public string[]? StampsOff { get; init; }
+
     /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
     /// per layer, and a thing stated for a hall lands on the deck roofing it unless it says which layer it
     /// meant.</summary>
@@ -823,6 +839,10 @@ public sealed record CoreIntent
 {
     /// <summary>The piece's id, unique among the intent's play pieces (<see cref="PlayIds"/>).</summary>
     public string Id { get; init; } = "";
+
+    /// <summary>The stamps switched off for it (<see cref="StampSwitches"/>); null runs every one.</summary>
+    [WordSet(typeof(StampSwitches))]
+    public string[]? StampsOff { get; init; }
 
     /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
     /// per layer, and a thing stated for a hall lands on the deck roofing it unless it says which layer it
@@ -902,6 +922,10 @@ public sealed record ControlPointIntent
 {
     /// <summary>The piece's id, which the piece route finds it by.</summary>
     public string Id { get; init; } = "";
+
+    /// <summary>The stamps switched off for it (<see cref="StampSwitches"/>); null runs every one.</summary>
+    [WordSet(typeof(StampSwitches))]
+    public string[]? StampsOff { get; init; }
 
     /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
     /// per layer, and a thing stated for a hall lands on the deck roofing it unless it says which layer it

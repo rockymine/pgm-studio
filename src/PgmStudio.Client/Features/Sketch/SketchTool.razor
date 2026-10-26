@@ -412,6 +412,7 @@
                                      OnDelete="@(LayoutActive ? DeleteStructural : null)"
                                      Settings="pieceSettings" Vocabulary="objectiveWords" Yaw="spawnYaw"
                                      OnSetting="SetObjectiveField" OnFace="FaceSpawn"
+                                     StampsOff="stampsOff" OnSwitchStamp="@(change => SwitchStamp(change.Word, change.On))"
                                    House="@RoomHouseBody" Reshapes="LayoutActive" />
         }
         else

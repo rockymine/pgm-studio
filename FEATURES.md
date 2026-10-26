@@ -10890,6 +10890,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   a drag moves one, a shift-press on a leg adds one and a shift-press on a corner takes it out
   (`WallCornerController`), each written whole through `PUT …/intent/pieces/{id}/line` (`PlayPieceLine`) and carried
   to every image. `M0089` carried every stored wall's two ends into two corners; `ST4` amended (60).
+- **Every stamp switched per piece, and the float check (`WE174`).** A piece's `stampsOff` lists the stamps it
+  switches off (`StampSwitches`): a goal's marker, a build area's outline, a wall's bedrock, a wool room's chests, a
+  destroyable's or core's kit pairing and float check, each a box in the rail's *Stamps* section. The float check
+  is pgmvox's, asked of the built world on export: every monument and core has its float of air under each column
+  (`OB37`) and a block at y 0 (`OB38`). `docs/world-export/sketch-world-export.md` §5a.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the

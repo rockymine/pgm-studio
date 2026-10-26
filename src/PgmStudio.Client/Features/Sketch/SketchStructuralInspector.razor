@@ -84,6 +84,17 @@
     {
       <ObjectiveFields Kind="@ObjectiveKind" Values="settings" Vocabulary="words" OnSet="OnSetting" />
     }
+    @if (StampsOff is { } off && StampSwitches.Of(Piece.Role) is { Length: > 0 } stamps)
+    {
+      <div class="section-header section-header--ruled"><h2 class="section-title">Stamps</h2></div>
+      @foreach (var word in stamps)
+      {
+        var on = !off.Contains(word);
+        <label class="check-row"><input type="checkbox" checked="@on" disabled="@(!Reshapes)"
+               @onchange="@(e => OnSwitchStamp.InvokeAsync((word, e.Value is true)))" />@StampLabel(word)</label>
+      }
+      <p class="section-desc">Switch one off where the world already carries its own.</p>
+    }
     @if (Piece.Turns)
     {
       <div class="panel-actions">

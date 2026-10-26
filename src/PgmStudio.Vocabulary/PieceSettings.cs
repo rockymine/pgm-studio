@@ -49,7 +49,9 @@ public static class PieceSettings
     /// <summary>How a control point is taken (<see cref="CaptureModes"/>).</summary>
     public const string CaptureMode = "captureMode";
 
-    /// <summary>Every setting.</summary>
+    /// <summary>Every setting: the piece's own, then a switch per stamp (<see cref="StampSwitches"/>), each set with a
+    /// flag, true for on.</summary>
     public static readonly string[] All =
-        [Name, Color, Style, Materials, Float, Lava, LavaHeight, OpenTop, Leak, Facing, Shape, Points, CaptureTime, CaptureMode];
+        [Name, Color, Style, Materials, Float, Lava, LavaHeight, OpenTop, Leak, Facing, Shape, Points, CaptureTime, CaptureMode,
+         .. StampSwitches.All];
 }

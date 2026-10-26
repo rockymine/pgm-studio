@@ -367,10 +367,12 @@ time. Shipped to the live studio with no beta (decision D3).
   a square or a disc, placed and sized in Layout (`TS213`), and a wall a polyline that bends at its corners
   (`TS214`), on the author's ruling. Both shipped, as `TS213` and `TS214`.
 - Stamps as the last stage, each switchable per piece: goal marker, build-zone outline, defence wall, wool-room
-  loot, kit pairing, float check (`WE174`).
+  loot, kit pairing, float check (`WE174`). The float check is pgmvox's over the built world — a monument or core
+  has its float of air under it and ground at y 0 — on by default, on the author's call. Shipped as `WE174`.
 - A world built elsewhere uploaded with its `map.xml`, read into the intent, with the stamps run over it on
   export (`TC23`). `POST /map/import-folder` reads a server-side folder today; an upload route is what is
-  missing, and any member may use it, under a size cap.
+  missing, and any member may use it, under a size cap. The `map.xml` is read into an intent rather than kept as a
+  document, on the author's call, so an uploaded board's pieces are placed in Layout like any other.
 
 **What the author notices:** every pgmvox board playable with the studio's markers and outlines on it.
 

@@ -34,6 +34,24 @@ public partial class SketchStructuralInspector
 
     [Parameter] public EventCallback<ObjectiveFieldChange> OnSetting { get; set; }
 
+    /// <summary>The stamps the piece has switched off, read from the intent; null for a piece with none to switch.</summary>
+    [Parameter] public string[]? StampsOff { get; set; }
+
+    /// <summary>Switch one of the piece's stamps on or off.</summary>
+    [Parameter] public EventCallback<(string Word, bool On)> OnSwitchStamp { get; set; }
+
+    /// <summary>What each stamp is called on the rail.</summary>
+    private static string StampLabel(string word) => word switch
+    {
+        StampSwitches.Marker => "Marker over it",
+        StampSwitches.Outline => "Redstone outline",
+        StampSwitches.Wall => "Its bedrock",
+        StampSwitches.Loot => "Chests in it",
+        StampSwitches.KitPairing => "Sets the kit's pickaxe",
+        StampSwitches.FloatCheck => "Float checked on export",
+        _ => word,
+    };
+
     /// <summary>The house of a room whose wing is picked, shaped here and on the canvas; null where the piece is
     /// not one, or outside Layout.</summary>
     [Parameter] public RenderFragment? House { get; set; }

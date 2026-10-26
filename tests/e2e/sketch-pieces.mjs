@@ -250,6 +250,17 @@ try {
   checks.add("dragging the new corner bends the wall there", bent.line[1][0] === bend[0] + 6 && bent.line.length === 3,
     JSON.stringify(bent.line));
 
+  checks.section("a picked wall's rail switches its bedrock off");
+  const stampRow = page.locator(".workspace-inspector label.check-row", { hasText: "Its bedrock" }).first();
+  checks.add("the rail offers the wall's one stamp, on", (await stampRow.count()) === 1
+    && await stampRow.locator("input").isChecked());
+  await stampRow.locator("input").click();
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(600);
+  const switched = (await api(`/map/${slug}/intent`)).structures.walls;
+  checks.add("and switching it off writes it off on the wall and its image",
+    switched.every(wall => JSON.stringify(wall.stampsOff) === '["wall"]'), JSON.stringify(switched.map(wall => wall.stampsOff)));
+
   checks.section("Layout picks the pieces and Ground the ground");
   await page.keyboard.press("Escape"); await page.keyboard.press("Escape");
   const bare = at(20, -25);
