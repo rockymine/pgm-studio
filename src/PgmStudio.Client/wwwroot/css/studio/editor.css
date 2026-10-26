@@ -374,7 +374,7 @@
 
 /* A stack row — a modifier, a paint rule: its order and switch sit at its end, shown on hover or when picked, and
    take no room while hidden, so the name has the whole row. A row switched off keeps its eye in view. */
-.modifier-row-tools { display: none; gap: 2px; margin-left: 6px; }
+.modifier-row-tools { display: none; gap: 2px; margin: -4px 0 -4px 6px; }
 .modifier-row:hover .modifier-row-tools, .modifier-row:focus-within .modifier-row-tools,
 .modifier-row.geo-row--selected .modifier-row-tools, .modifier-row--off .modifier-row-tools { display: flex; }
 .modifier-row--off:not(:hover, :focus-within, .geo-row--selected) .modifier-row-tools > :not(.modifier-eye--off) { display: none; }
