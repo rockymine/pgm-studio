@@ -21,10 +21,13 @@
     <input class="field-input" value="@(Modifier["name"]?.GetValue<string>() ?? "")" placeholder="@Id"
            @onchange="e => SetText(Name, e.Value?.ToString())" />
   </Field>
-  <label class="check-row">
-    <input type="checkbox" checked="@(!SketchModifierState.Off(Modifier))" @onchange="e => SetBool(Off, e.Value is not true)" />
-    On — switched off, it keeps its numbers and changes nothing
-  </label>
+  <Field Label="State">
+    <div class="filter-group-options">
+      <Chip Active="@(!SketchModifierState.Off(Modifier))" OnClick="() => SetBool(Off, false)" Title="It changes the ground">On</Chip>
+      <Chip Active="@SketchModifierState.Off(Modifier)" OnClick="() => SetBool(Off, true)"
+            Title="It keeps its numbers and changes nothing">Off</Chip>
+    </div>
+  </Field>
 
   @switch (Op)
   {
@@ -63,8 +66,7 @@
       break;
     case ModifierOps.Scarp:
       @NumberRow("Height", Height, 6, "blocks the raised side stands above the other")
-      <Field Label="Raised side">
-        <LabelHint>(walking along the line as it was traced)</LabelHint>
+      <Field Label="Raised side" Hint="walking along the line as it was traced">
         <ChildContent>
           <Select Slim="false" Options="Sides" Value="@(Number(Modifier, Side) == -1 ? "-1" : "1")"
                   ValueChanged="SetSide" />
@@ -107,8 +109,7 @@
       break;
     case ModifierOps.Profile:
       @NumberRow("Floor", Floor, null, "the world y of a flat floor; empty follows the ground")
-      <Field Label="Shaped side">
-        <LabelHint>(walking along the line as it was traced)</LabelHint>
+      <Field Label="Shaped side" Hint="walking along the line as it was traced">
         <ChildContent>
           <Select Slim="false" Options="ProfileSides" Value="@(Number(Modifier, Side) is { } hand ? (hand < 0 ? "-1" : "1") : "")"
                   ValueChanged="SetProfileSide" />
@@ -217,8 +218,7 @@
     @if (SketchModifierState.IsLine(Areas[index]))
     {
       var at = index;
-      <Field Label="@LineWidthLabel(at)">
-        <LabelHint>(blocks, the band either side of the line is half)</LabelHint>
+      <Field Label="@LineWidthLabel(at)" Hint="blocks, the band either side of the line is half">
         <ChildContent>
           <NumberField Value="Number(Areas[at], Width) ?? DefaultLineWidth" ValueChanged="v => SetLineWidth(at, v)" Min="1" />
         </ChildContent>
@@ -258,8 +258,7 @@
 
     private RenderFragment BedRow => __builder =>
     {
-        <Field Label="Bed">
-          <LabelHint>(under its water and along its beach; empty is the default bank)</LabelHint>
+        <Field Label="Bed" Hint="under its water and along its beach; empty is the default bank">
           <ChildContent>
             <SlotSelect Styles="styles" Blocks="blocks" Value="@BedSlot.StyleId" Block="@BedSlot.Block"
                         Unbound="@BedUnbound" ValueChanged="FillBed" />
@@ -271,8 +270,7 @@
                                     double? min = null, double? max = null, string step = "1") => __builder =>
     {
         var (low, high) = RangeOf(field, least, most);
-        <Field Label="@label">
-          <LabelHint>(@hint)</LabelHint>
+        <Field Label="@label" Hint="@hint">
           <ChildContent>
             <div class="modifier-size">
               <NumberField Value="@low" ValueChanged="v => SetRange(field, v, high)" Min="min" Max="max" Step="@step" />
@@ -285,8 +283,7 @@
     private RenderFragment NumberRow(string label, string field, double? fallback, string hint,
                                      double? min = null, double? max = null, string step = "1") => __builder =>
     {
-        <Field Label="@label">
-          <LabelHint>(@hint)</LabelHint>
+        <Field Label="@label" Hint="@hint">
           <ChildContent>
             <NumberField Value="@(Number(Modifier, field) ?? fallback)" ValueChanged="v => SetNumber(field, v)"
                          OnCleared="() => Clear(field)" Min="min" Max="max" Step="@step" />

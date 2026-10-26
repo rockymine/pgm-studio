@@ -14,9 +14,9 @@
     <Field Label="Base Y (blocks)">
       <NumberField Value="ActiveLayer.BaseY" ValueChanged="BaseYActive" />
     </Field>
-    <label class="check-row">
+    <label class="check-row" title="Rock hangs under the ground, narrowing inward from the rim">
       <input type="checkbox" checked="@(ActiveLayer.Underside is not null)" @onchange="e => ToggleUnderside(e.Value is true)" />
-      Underside — rock hangs under the ground, narrowing inward from the rim
+      Rock underside
     </label>
     @if (ActiveLayer.Underside is { } underside)
     {

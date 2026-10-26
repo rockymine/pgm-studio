@@ -41,22 +41,24 @@
     @if (draft is null) { @if (note is null) { <p class="section-desc">Loading…</p> } }
     else if (selected == ComposedPart)
     {
-      <p class="section-desc">Use a saved roof, porch, or storeys from their own libraries. A saved part
-      replaces the matching rows below.</p>
-      <Field Label="Roof">
-        <Select Options="@Parts(roofs.Select(part => (part.Id, part.Name)))" Value="@((draft.RoofStyleId ?? 0).ToString())"
-                Placeholder="None (use the Roof row below)" PlaceholderValue="0" ValueChanged="BindRoofStyle" />
+      <Field Label="Roof" HelpTitle="What a saved part is">
+        <Help>A roof, porch or storeys saved in its own library. Picking one replaces this house's own rows for
+          that part.</Help>
+        <ChildContent>
+          <Select Options="@Parts(roofs.Select(part => (part.Id, part.Name)))" Value="@((draft.RoofStyleId ?? 0).ToString())"
+                  Placeholder="This house's own roof" PlaceholderValue="0" ValueChanged="BindRoofStyle" />
+        </ChildContent>
       </Field>
       <Field Label="Porch">
         <Select Options="@Parts(porches.Select(part => (part.Id, part.Name)))" Value="@((draft.PorchStyleId ?? 0).ToString())"
-                Placeholder="None (use the Porch row below)" PlaceholderValue="0" ValueChanged="BindPorchStyle" />
+                Placeholder="This house's own porch" PlaceholderValue="0" ValueChanged="BindPorchStyle" />
       </Field>
 
       @* The stack is an order, so it is a list with the ground at the top and no ordinal to type: moving a
          row is moving a storey. *@
       <Field Label="Storeys">
         <Badge Kind="dim">@(draft.StoreyStack.Count == 0
-          ? "None (use the Walls row below)" : $"{draft.StoreyStack.Count} set")</Badge>
+          ? "This house's own walls" : $"{draft.StoreyStack.Count} set")</Badge>
       </Field>
       @for (var at = 0; at < draft.StoreyStack.Count; at++)
       {
@@ -97,7 +99,7 @@
       {
         <Field Label="Material">
           <SlotSelect Styles="styles" Blocks="blocks" Value="@Single(part.Id).StyleId" Block="Single(part.Id).Block"
-                      Title="@part.Blurb" Unbound="None (default finish)"
+                      Title="@part.Blurb" Unbound="Default finish"
                       ValueChanged="fill => BindSingle(part.Id, fill)" />
         </Field>
       }
@@ -145,7 +147,7 @@
         {
           <Field Label="@zone.Title" @key="zone.Id">
             <SlotSelect Styles="styles" Blocks="blocks" Value="@Single(zone.Id).StyleId" Block="Single(zone.Id).Block"
-                        Title="@zone.Blurb" Unbound="None (floor shows through)"
+                        Title="@zone.Blurb" Unbound="Bare floor"
                         ValueChanged="fill => BindSingle(zone.Id, fill)" />
           </Field>
         }
@@ -293,12 +295,14 @@
     }
     else if (selected == PorchPart)
     {
-      <p class="section-desc">A porch takes space from the footprint rather than adding to it. The walls
-      step back from one side, leaving a deck with posts, a rail, and a roof.</p>
       <Field Label="Porch">
-        <Chip Active="@(Porch is not null)" OnClick="TogglePorch">
-          @(Porch is null ? "None" : "Deck along one wall")
-        </Chip>
+        <Help>A porch takes space from the footprint rather than adding to it. The walls step back from one side,
+          leaving a deck with posts, a rail, and a roof.</Help>
+        <ChildContent>
+          <Chip Active="@(Porch is not null)" OnClick="TogglePorch">
+            @(Porch is null ? "None" : "Deck along one wall")
+          </Chip>
+        </ChildContent>
       </Field>
       @if (Porch is { } deck)
       {

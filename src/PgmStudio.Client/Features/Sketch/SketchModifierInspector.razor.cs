@@ -118,7 +118,7 @@ public partial class SketchModifierInspector
             if (outlines > 0) parts.Add(outlines == 1 ? "one outline" : $"{outlines} outlines");
             if (lines > 0) parts.Add(lines == 1 ? "one line" : $"{lines} lines");
             var held = string.Join(" and ", parts);
-            return $"{char.ToUpperInvariant(held[0])}{held[1..]}. Drag {(Areas.Count == 1 ? "it" : "them")}, or their points, on the board.";
+            return $"{char.ToUpperInvariant(held[0])}{held[1..]}. Drag {(Areas.Count == 1 ? "it or its" : "them or their")} points on the board.";
         }
     }
 

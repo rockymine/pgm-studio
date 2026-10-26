@@ -24,6 +24,10 @@
    the row and the width stayed padding + glyph, which drew it as a tall pill. With the ratio the width is
    read off whatever height the row settles on, so it tracks the row rather than a pinned number. */
 .action-btn--icon           { padding: 4px; aspect-ratio: 1; justify-content: center; }
+/* An icon button beside a single-line field is the field's height, so the row meets on one line wherever it is
+   built — a field's row in an inspector, a binding's select and its library button, a rule's name and its
+   order and delete — rather than each row restating the height for its own children. */
+:has(> .field-input:not(textarea)) > .action-btn--icon { height: var(--control-height); }
 /* The entry-point size: 44px tall, 15px semibold, icon at the standalone size. */
 .action-btn--lg           { min-height: calc(44px * var(--ui-scale)); padding: 0 calc(20px * var(--ui-scale)); gap: var(--space-2); font-size: var(--font-lg); font-weight: 600; border-radius: var(--radius-md); }
 .action-btn--lg svg       { width: var(--icon-lg); height: var(--icon-lg); }

@@ -36,7 +36,7 @@ public sealed class RoomStyleJsonTests
     /// <summary>
     /// <b>A snapshot outlives the shape it was written in.</b> A map keeps its bound style rather than a key
     /// into the library, so every style ever stored is still out there in a layout blob — and the reader falls
-    /// back to the built-in shell on anything it cannot make sense of, which turns a shape change without an
+    /// back to the bedrock box on anything it cannot make sense of, which turns a shape change without an
     /// upgrade into a map that quietly stops looking like itself rather than into an error.
     ///
     /// <para>The sill, the floor and its zoning were three fields beside everything else; they are the one

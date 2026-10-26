@@ -761,7 +761,7 @@ An island of one shape with a rough, sheer-edged underside, set 40 blocks over v
 
 Read against the fields above: both shapes are one island of one layer, `base_height` 1 leaves the rock to the
 underside, and the west edge, which `cliff` draws, hangs 26 blocks at its rim where the other three hang 4. In the
-Draw phase the active layer's panel carries an *Underside* box with the four numbers; `sheer` is stated over the
+Draw phase the active layer's panel carries a *Rock underside* box with the four numbers; `sheer` is stated over the
 API and rides through a save from the browser untouched.
 
 ### What the rasterizer makes of it
@@ -924,7 +924,7 @@ since the observer platform's board is stamped from the intent. A panel writing 
 map on its row and leave `EX6` saying it names nobody, with nothing in the interface able to settle it. The
 traffic already ran the other way — an intent write resolves its names into the rows — so this is the return
 leg, and the intent is patched as JSON rather than round-tripped through `MapIntent`, since a rename is not the
-moment to rewrite an intent through a model. **Settings** is the symmetry the whole board is built against: the mode
+moment to rewrite an intent through a model. **Settings** is the symmetry the whole board is built against: the *Mode*
 — `mirror_x`, `mirror_z`, `rot_180`, `rot_90` or `none` — and the centre X and Z, which the panel hides under `none`
 since nothing turns about it. Under `none` every shape is drawn once: the canvas draws no axis and no mirror
 preview, and a group's *mirrors* has nothing to fan. The words are `SymmetryModes`, and the panel offers the
@@ -1221,8 +1221,10 @@ the bridge's `setReliefScope`, so it is one undo step and the contours answer it
 
 **Below it, the stack is in the order it runs.** A row picks its modifier; its own buttons move it earlier or
 later and switch it off, which keeps its numbers and leaves it out of the build. The inspector says what the
-operation does and edits its name, its numbers, its mode and soft rim, its seed, and whether the map's symmetry
-fans its mask. Every edit, on the board or in a panel, is one undo step.
+operation does and edits its name, its *State* (*On* or *Off*, two chips), its numbers, its mode and soft rim, its
+seed, and whether the map's symmetry fans its mask. A field's hint reads after its label when it is a few words;
+a longer one is the field's help, behind a `?`, with its unit — blocks, world y — kept after the label. Every edit,
+on the board or in a panel, is one undo step.
 
 **The inspector carries every operation's numbers.** Each operation has the fields the table under *The modifier
 stack* gives it; Scarp adds a *Raised side* choice (the side of the run, walking along it as it was traced), and
@@ -1234,15 +1236,16 @@ columns the modifier moved, read from `POST …/sketch/modifiers/changes` with t
 the contours wait for; where the studio cannot answer, the line is not shown.
 
 **The step strip reads the ground part-way through the stack.** At the canvas foot, in 2-D and in the 3-D
-picture alike, a range runs from 0 to the number of modifiers that are on, with a label naming where it stands:
-*the shapes* at 0, then the name of each modifier in the order it runs. Releasing the thumb sets the step, and the
+picture alike, a range labelled *Modifiers shown* runs from 0 to the number of modifiers that are on, and its
+readout says how many of them the board shows and the one it ends on — *14 of 20 · up to lumps-2*, or *shapes
+only* at 0. Releasing the thumb sets the step, and the
 bridge adds `?step=N` to the contour overlay's read (`sketch/relief?heights=true`) and to the 3-D read
 (`sketch/columns`), so both show the ground after the first N modifiers that are on. The last step is the whole
 stack and sends no `step`. The step is a view, not an edit: it is not saved and not an undo step, a switched-off
 modifier or a deleted one that leaves it past the end returns it to the whole stack, and leaving Terraform does the
 same. So does an edit to a modifier the step does not reach — a new one traced, an outline added, a number
 changed — since it would change nothing on show; an edit at or before the step keeps it. Short of the last step
-the strip is drawn in the warning colour, its label reads *N of M* beside the name, and **Show all** returns it to
+the strip is drawn in the warning colour, and **Show all** returns it to
 the whole stack.
 
 **What the stack built is on the board as a shaded height map under contours**, on by default in this phase
@@ -1420,8 +1423,8 @@ one of the board's themes in hand and puts it on the ground.
 because a theme belongs to the board rather than to the phase and every click in the phase is addressed to
 whichever one is in hand. Clicking a swatch takes it in hand; clicking it again puts it down; `[` and `]` step
 through the registry with the empty hand as one of the stops, so one pair of keys reaches every theme however
-many there are. The map
-default is badged on its own swatch. The trailing `+` opens the inspector's **Add from the library** panel,
+many there are. The strip is labelled *Palettes*, each palette a bordered pill, and the map default carries a
+*default* badge inside its own. The trailing `+` opens the inspector's **Add from the library** panel,
 which takes the column while it is up: a library theme copied in lands as a snapshot under its library name,
 and the snapshot records the row it came from (`themeSources`, keyed by the board's theme id). That note is
 what a second copy of the same row matches by, so copying it in again refreshes the copy it already made
@@ -1455,10 +1458,12 @@ it is bound to. The order is the order a column is built: the paint under everyt
 the finish stamped where a room stands.
 
 **The paint rules follow the bindings, because they are the board's own and no library row's.** *Paint rules*
-lists the board's `paint[]` in the order a column meets them: each with its on toggle, its name, the arrows that
-move it earlier or later and its removal; what it lays (a block or a library pattern); *Steeper than* and *At
+lists the board's `paint[]` in the order a column meets them: each with its on toggle (the eye the modifier list
+uses), its name, the arrows that move it earlier or later and its removal; its *Material*, a block or a library
+pattern, reading *Choose a material* until one is picked; *Steeper than* and *At
 most* in degrees; *From y* and *To y*; *Near* one of the board's modifiers *Within* so many blocks of its mask;
 how many *Courses* it lays; and *In patches*, a noise *Patch size* wide that leaves a *Bare share* of the ground.
+How a column reads the list is the section's help, behind the `?` beside its heading rather than open above it.
 Every edit replaces the list in one undo step and the Blocks overlay repaints. A rule naming a modifier is how a
 River's bank becomes sand: `docs/world-export/terrain-painting.md`, TP28, is the rule itself.
 
@@ -1476,8 +1481,8 @@ The kinds, the scale and the palette are the library editor's; picking one here 
 board and records the row it came from (`biome`, `biomeSource`), so editing the library afterwards retints
 nothing. The select resolves what is held by that note first and by the field's own content after it, so a
 field written straight to `PUT …/sketch/biome` reads as the preset it is; one the library does not hold says
-so rather than reading as none. `(none — plains everywhere)` is what a board that never opened the question
-exports as. `docs/world-export/terrain-painting.md` §5b is the field itself.
+so rather than reading as none. With no field the select reads *Plains*, which is what a board that never
+opened the question exports as; with no default palette it reads *Stone*, for the same reason. `docs/world-export/terrain-painting.md` §5b is the field itself.
 
 **Room shells** are two more of those bindings, and they are a fallback in the same sense the default theme
 is: one shell for every wool cage and one for every spawn cube. What separates them from the theme and the
@@ -1488,24 +1493,24 @@ draws one from a snapshot outside the UI. Two bindings and no more — rooms are
 across the symmetry orbit so both sides face the same building, and a per-room shell would be a sightline that
 differed between teams. What is stored is the composed style's **JSON snapshot**, not the library id it came
 from, so editing the library afterwards cannot rebuild a shipped map's rooms. Each binding has three states,
-and they are genuinely distinct: absent stamps that kind's built-in shell, an object stamps the bound style,
+and they are genuinely distinct: absent stamps that kind's bedrock box, an object stamps the bound style,
 and an explicit null means no building at all — a pad on open ground. The finish records the shell but not
 the row it was snapshotted from, so the select says which row is held by matching the snapshot against each
 library row's **document**, the way the biome select does: a board read back after a reload, and one written
 straight to the endpoint, resolve the same way one bound in the phase does. A snapshot no row matches reads
-as `(a shell the library does not hold)` rather than as the built-in one.
+as `(a shell the library does not hold)` rather than as the bedrock box.
 
 ```json SketchLayout
 { "roomStyles": { "wool": { "roof": { "form": "gable", "pitch": 1 } }, "spawn": null } }
 ```
 
 That map stamps its wool cages with the bound style and gives its spawns no building at all. Leaving `spawn`
-out entirely — rather than writing `null` — is the third state, and stamps the built-in spawn shell. The built-in shell is the placeholder a board is drawn with, so every build of a board whose rooms of a
+out entirely — rather than writing `null` — is the third state, and stamps the spawn bedrock box. The bedrock box is the placeholder a board is drawn with, so every build of a board whose rooms of a
 kind still stand in it answers `WX14` on `warnings`, once per kind, naming the rooms and the `roomStyles`
 field to bind (`docs/world-export/structures.md` §9).
 
-**All three are one select per kind**: `(the built-in shell)`, `(no building)`, then every room style the
-library holds. The row's ✕ appears once a kind is off the built-in and returns it there, which is the state
+**All three are one select per kind**: *Bedrock box*, *No building*, then every room style the
+library holds. The row's ✕ appears once a kind is off the bedrock box and returns it there, which is the state
 with no snapshot to store. A binding is a wish rather than a guarantee — a footprint too small to carry walls
 raises nothing whatever is bound (`WX2`, `docs/world-export/structures.md`), and the room's pad, chests and
 monuments are stamped either way.
@@ -2265,7 +2270,7 @@ always did: only a well-formed style or theme that is wrong is refused. A snapsh
 cannot — stated as `null` where it has none, or written as a material rather than as its courses, the shape a
 style had when its floor, ceiling and wall were each one block — is refused by its path, `RQ1` on a bound
 room style (`roomStyles.wool.wall`) and `DR-DOC` on a building's recipe (`shell.wall`), since the export would
-otherwise stamp the built-in shell in its place.
+otherwise stamp the bedrock box in its place.
 
 **And a bound shell taller than the build ceiling is refused there too** (`WX10`,
 `docs/world-export/structures.md`). A room's shell is authored geometry subject to no cap of its own, while
@@ -2449,7 +2454,7 @@ the map in between. It is a refusal, so the **finish** stops on it (422); the **
 and reports it on `Pgm-Warnings`, because a save that fails halfway through authoring is worse than a board
 carrying a fault someone is about to fix. A placement naming *nothing* is outside it: an empty key is a prop
 put down before a recipe was picked, and it builds the kind's own default the way a sketch binding no room
-style stamps the built-in shell.
+style stamps the bedrock box.
 
 **And it complains where a shape belongs to no group.** A group is the unit the symmetry orbit is fanned
 by — the build reads each mirroring group's `shapeIds` and copies exactly those shapes onto their images — so
@@ -2711,7 +2716,7 @@ in the same two registers.
 | `PUT /map/{slug}/sketch/themes/{themeId}` | `{id}` — register a theme under an id, replacing whatever that id carried. The one write in the sketch that creates and replaces through the same verb, because a registry entry is addressed by the name an author gave it. A field no theme has — a misspelled bucket — is stored as posted and named on `warnings` as `RQ3` | 400 `malformed theme` `RQ1` · 400 `invalid style or theme` `PT*` · 409 stale `If-Match` · 404 |
 | `DELETE /map/{slug}/sketch/themes/{themeId}` | `{id}` — take a theme out of the registry. **It does not refuse over what still names the id**: a shape painting with a theme the registry stopped carrying takes the map default, and the map default naming one takes unthemed stone, both already `SK3` complaints on the stored document. They ride back on this write | 409 · 404 the registry carries no such id |
 | `PUT /map/{slug}/sketch/map-theme` | `{id}` — which registered theme covers every cell no shape's own scope claims. Body `{"theme": "<id>"}`; a null or absent theme clears it, which paints unthemed stone. Naming a theme the registry does not carry is stored and complained about (`SK3`) rather than refused | 400 `malformed request` `RQ1` · 409 · 404 |
-| `GET /map/{slug}/sketch/room-styles` | `{wool, spawn}` — both shells **resolved**, which is what the stampers will read: a part that is absent answers its built-in shell and a part bound to open ground answers null. Raw snapshots would not say which of the three states a caller is in | 404 |
+| `GET /map/{slug}/sketch/room-styles` | `{wool, spawn}` — both shells **resolved**, which is what the stampers will read: a part that is absent answers its bedrock box and a part bound to open ground answers null. Raw snapshots would not say which of the three states a caller is in | 404 |
 | `PUT /map/{slug}/sketch/room-styles/{part}` | `{id}` — bind the shell one kind of room is stamped in; `part` is `wool` or `spawn`. **A body of literal `null` is a statement, not an omission**: it asks for open ground, a pad rather than a building over it, which is what a spawn on a plateau the plan already shaped often wants to be. A field no house style has is named on `warnings` as `RQ3` | 400 `unknown room part` / `malformed room style` `RQ1` · 400 `invalid style or theme` `HS*` · 409 · 404 |
 | `DELETE /map/{slug}/sketch/room-styles/{part}` | `{id}` — unbind, which puts that kind of room back to its **built-in** shell. Not the same as binding null | 409 · 404 nothing is bound |
 | `GET /map/{slug}/sketch/biome` | one `BiomeField` — `solid`, `cell` or `noise`. The library's own rows are `GET /api/biome-patterns`, and every biome with the colours it tints with and the biomes of the same colour is `GET /api/terrain/biomes` | 400 `unreadable biome` `RQ1` · 404 the board states none, which is plains everywhere |

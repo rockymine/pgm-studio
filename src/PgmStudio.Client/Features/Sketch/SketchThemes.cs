@@ -15,7 +15,7 @@ namespace PgmStudio.Client.Features.Sketch;
 /// <param name="ShapeCount">How many shapes the whole board carries over every layer — the denominator the
 /// themed count is read against, counted where that count is.</param>
 /// <param name="RoomStyles">The shell snapshot bound to each room kind, as JSON text. A kind bound to no
-/// building at all is in <see cref="OpenRooms"/> instead, and one in neither uses the built-in shell.</param>
+/// building at all is in <see cref="OpenRooms"/> instead, and one in neither uses the bedrock box.</param>
 /// <param name="OpenRooms">The room kinds bound to no building: a pad on open ground with nothing over it.</param>
 /// <param name="BiomeSource">Which library row the board's biome was copied from, or 0 for a board that states
 /// none and for one whose field came from outside the library.</param>

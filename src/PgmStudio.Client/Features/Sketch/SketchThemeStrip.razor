@@ -11,7 +11,7 @@
    round-trip per theme on every entry to the phase. *@
 
 <div class="canvas-theme-strip" role="group" aria-label="Palettes">
-  <span class="canvas-theme-strip-label">Paint</span>
+  <span class="canvas-theme-strip-label">Palettes</span>
   @if (Themes.Ids.Count == 0)
   {
     <span class="canvas-theme-strip-empty">No palettes yet</span>
@@ -25,7 +25,7 @@
                 class="canvas-theme-swatch @(id == Brush ? "canvas-theme-swatch--on" : null)"
                 title="@Title(id)" @onclick="() => OnTake.InvokeAsync(id)">
           <span class="canvas-theme-swatch-name">@id</span>
-          @if (id == Themes.MapTheme) { <span class="canvas-theme-swatch-tag" title="Default palette: paints ground that no shape covers">default</span> }
+          @if (id == Themes.MapTheme) { <span class="canvas-theme-swatch-tag" title="The default palette: paints ground no shape names a palette for">default</span> }
         </button>
       }
     </div>

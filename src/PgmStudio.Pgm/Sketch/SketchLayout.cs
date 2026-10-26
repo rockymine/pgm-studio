@@ -45,7 +45,7 @@ public sealed class SketchLayout
 
     /// <summary>The finish of the map's stamped rooms: one style for every wool room and one for every spawn
     /// room. Map-wide on purpose — a shell that differed between teams would be a sightline that differed
-    /// between teams. Snapshots, like the themes. Absent stamps the built-in shells.</summary>
+    /// between teams. Snapshots, like the themes. Absent stamps the bedrock boxes.</summary>
     [JsonPropertyName("roomStyles")] public SketchRoomStyles? RoomStyles { get; set; }
 
     /// <summary>What the author put on the map — paths, trees, boulders, areas of cover — each carrying its
@@ -140,7 +140,7 @@ public sealed class SketchLayout
 ///
 /// <para>Each answers in one of <b>three</b> states, which is why these are bare <see cref="JsonElement"/>s
 /// rather than nullable ones: an <b>object</b> is the bound style; <b>absent</b> is a sketch that never picked
-/// one, which stamps that kind's built-in shell; and an explicit <b>null</b> is no building at all — a pad on
+/// one, which stamps that kind's bedrock box; and an explicit <b>null</b> is no building at all — a pad on
 /// open ground, which the stampers have always accepted and nothing could ask them for. A nullable property
 /// collapses the last two into one, and the collapse is not harmless: loading a map that bound nothing and
 /// saving it again would write the null and turn every one of its rooms into open ground.</para>

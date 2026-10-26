@@ -246,6 +246,8 @@
 .block-picker-row > * { height: var(--control-height); }
 .block-picker-row > select { flex: 1 1 5rem; min-width: 0; }
 .block-picker-row .coord-field { flex: 0 0 auto; }
+.block-picker-pair { display: flex; align-items: center; gap: var(--space-2); flex: 0 0 auto; }
+.block-picker-pair > * { height: var(--control-height); }
 .block-picker-row .coord-field .coord-input { width: 2.75rem; flex: 0 0 auto; }
 /* The colour chip is a square reading of one block. It takes the row's height like everything else in the
    band and its width from that height, so it stands the same size as the controls beside it instead of a

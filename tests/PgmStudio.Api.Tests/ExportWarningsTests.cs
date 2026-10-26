@@ -70,7 +70,7 @@ public sealed class ExportWarningsTests
         return node.ToJsonString();
     }
 
-    /// <summary>Both kinds of room on open ground. A room left in the built-in shell is `WX14`, and this suite
+    /// <summary>Both kinds of room on open ground. A room left in the bedrock box is `WX14`, and this suite
     /// is about what the dressing pass dropped, so the fixture binds its rooms the way it names its author.</summary>
     private static JsonObject OpenGround() => new() { ["wool"] = null, ["spawn"] = null };
 

@@ -12,12 +12,12 @@
      rather than pushing what the phase is showing down a scroll. *@
   @if (AddOpen)
   {
-    <Section Title="Add from library">
+    <Section Title="Add from library" HelpTitle="What adding does">
+      <Help>Adding a palette copies it to this map. Adding the same palette again updates that copy.</Help>
       <Actions>
         <Button Variant="icon" Icon="x" Title="Close" OnClick="() => AddOpenChanged.InvokeAsync(false)" />
       </Actions>
       <ChildContent>
-        <p class="section-desc">Adds a copy to this map. Adding the same palette again updates that copy.</p>
         @if (libraryThemes.Count == 0)
         {
           <p class="section-desc">No palettes in the library yet.</p>
@@ -100,7 +100,7 @@
       <Field Label="Default palette">
         <div class="lib-bind">
           <Select Options="MapThemes" Value="@Themes.MapTheme" ValueChanged="SetMapDefault"
-                  Placeholder="None (stone)" />
+                  Placeholder="Stone" />
           <Button Variant="icon" Icon="library" Href="/library/themes" Title="Open the palette library" />
         </div>
       </Field>
@@ -111,7 +111,7 @@
       <Field Label="Map biome">
         <div class="lib-bind">
           <Select Options="BiomePatterns" Value="@BiomeChoice" ValueChanged="SetMapBiome"
-                  Placeholder="@(BiomeOffLibrary ? "(not in the library)" : "None (plains everywhere)")"
+                  Placeholder="@BiomePlaceholder"
                   PlaceholderValue="0" />
           <Button Variant="icon" Icon="library" Href="/library/biomes" Title="Open the biome library" />
         </div>
@@ -126,16 +126,12 @@
                     Placeholder="@RoomPlaceholder(kind.Id)" PlaceholderValue="0" />
             @if (BoundRoom(kind.Id) is not null || IsOpenRoom(kind.Id))
             {
-              <Button Variant="icon" Icon="x" Title="Use the built-in shell" Writes
+              <Button Variant="icon" Icon="x" Title="Use the bedrock box" Writes
                       OnClick="() => ClearRoom(kind.Id)" />
             }
             <Button Variant="icon" Icon="library" Href="/library/houses" Title="Open the house library" />
           </div>
         </Field>
-      }
-      @if (rooms.Count == 0)
-      {
-        <p class="section-desc">No room styles in the library yet.</p>
       }
     </Section>
     <SketchPaintRules Handle="Handle" PaintJson="@Themes.PaintJson" ModifierIds="@(Themes.ModifierIds ?? [])"

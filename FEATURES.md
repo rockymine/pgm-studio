@@ -10915,6 +10915,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`rasterizeBoard`). Over the blocks or the height map, groups and shapes are drawn as outlines, so the drawn
   half is no longer tinted against its images. A phase that does not offer the Contours chip does not draw the
   contours.
+- **The UI says less and names what it shows (`TS227`).** A `Field`'s hint reads after its label while it is five
+  words or fewer and is the field's `?` help beyond that, its unit kept inline; definitions (paint rules, porch,
+  biome, tree kinds, saved parts) moved behind `?`. Unset selects name their value — *Plains*, *Stone*, *Bedrock
+  box* (the built-in shell, renamed throughout with `RoomFrameRules.BedrockBox`), *Bare floor*, *Choose a
+  material*. Icon buttons beside a field take its height everywhere (`buttons.css`). The palette strip shows
+  palettes as pills with a *default* badge, the strips' labels are sentence case, the step strip reads *Modifiers
+  shown · 14 of 20 · up to lumps-2*, and a modifier's and a paint rule's on/off are the On/Off chips and the eye.
+  `Select` marks its chosen option, so a value set before its options load no longer shows the first.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the

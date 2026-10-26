@@ -18,8 +18,8 @@
       {
         <div class="geo-row shape-relation-row" @key="shape.Id">
           <span class="geo-type-icon"><i data-lucide="@shape.Icon"></i></span>
-          <span class="geo-label" title="@shape.Type @shape.Dim">@shape.Type</span>
-          <span class="list-tag">@shape.Dim</span>
+          @* The relation is what this row is for, so the shape is its name, with its size on hover. *@
+          <span class="geo-label" title="@shape.Type, @shape.Dim">@shape.Type</span>
           @if (!string.IsNullOrEmpty(shape.HeightMode))
           {
             @* A shape with a height mode stands at its own statement, so the modifiers never reshape it and
@@ -42,7 +42,7 @@
 <Section Title="Modifiers">
   @if (State.Modifiers.Count == 0)
   {
-    <p class="section-desc">No modifier yet. Pick one in the dock and drag its outline or line on the board; each changes the ground inside it, in this list's order.</p>
+    <p class="section-desc">No modifier yet. Pick one in the dock and drag its outline on the board.</p>
   }
   else
   {

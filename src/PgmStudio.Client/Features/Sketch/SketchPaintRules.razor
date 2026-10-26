@@ -5,30 +5,36 @@
    beside a modifier, read in order with the first a column meets winning over its palette. Each edit replaces
    the list through the bridge, so it is one undo step and the Blocks overlay repaints. *@
 
-<Section Title="Paint rules">
+<Section Title="Paint rules" HelpTitle="How paint rules are read">
   <Actions>
     <Button Variant="icon" Icon="plus" Writes Title="Add a rule" OnClick="Add" />
   </Actions>
+  <Help>A column takes the first rule, top to bottom, whose conditions its ground meets; a column no rule meets
+    keeps its palette. A condition left empty does not narrow the rule.</Help>
   <ChildContent>
-    <p class="section-desc">Read top to bottom: a column takes the first rule its ground meets, and one no rule
-      meets keeps its palette. A rule states only what it needs.</p>
+    @if (Rules.Count == 0)
+    {
+      <p class="section-desc">No rules: every column keeps its palette.</p>
+    }
     @for (var index = 0; index < Rules.Count; index++)
     {
       var at = index;
       var rule = Rules[at];
       <div class="paint-rule" @key="Text(rule, Id)">
         <div class="paint-rule-head">
-          <input type="checkbox" checked="@(rule[Off]?.GetValue<bool>() != true)" title="On"
-                 @onchange="e => Edit(at, edited => SetOrRemove(edited, Off, e.Value is true ? null : true))" />
+          @{ var off = rule[Off]?.GetValue<bool>() == true; }
+          <Button Variant="icon" Icon="eye" Writes Class="@(off ? "modifier-eye--off" : null)"
+                  Title="@(off ? "Switched off: switch on" : "Switch off, keeping its conditions")"
+                  OnClick="() => Edit(at, edited => SetOrRemove(edited, Off, off ? null : true))" />
           <input class="field-input field-input--slim" value="@(Text(rule, Name) ?? "")" placeholder="@Text(rule, Id)"
                  @onchange="e => Edit(at, edited => SetOrRemove(edited, Name, string.IsNullOrWhiteSpace(e.Value?.ToString()) ? null : e.Value!.ToString()!.Trim()))" />
           <Button Variant="icon" Icon="chevron-up" Writes Title="Read it earlier" Disabled="@(at == 0)" OnClick="() => Move(at, -1)" />
           <Button Variant="icon" Icon="chevron-down" Writes Title="Read it later" Disabled="@(at == Rules.Count - 1)" OnClick="() => Move(at, 1)" />
           <Button Variant="icon" Icon="trash-2" Writes Title="Remove this rule" OnClick="() => Remove(at)" />
         </div>
-        <Field Label="Lays">
+        <Field Label="Material">
           <SlotSelect Styles="Styles" Blocks="Blocks" Value="@SlotOf(rule).StyleId" Block="@SlotOf(rule).Block"
-                      Unbound="Nothing yet" ValueChanged="fill => Fill(at, fill)" />
+                      Unbound="Choose a material" ValueChanged="fill => Fill(at, fill)" />
         </Field>
         <div class="paint-rule-pair">
           <Field Label="Steeper than">

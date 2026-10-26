@@ -283,7 +283,7 @@ public static class WorldBuilder
             });
         }
 
-        built.AddRange(BuiltInShells(wools, woolStyle, intent.Spawns, spawnStyle));
+        built.AddRange(BedrockBoxes(wools, woolStyle, intent.Spawns, spawnStyle));
 
         // Fill each wool's monuments with the derived world locations.
         for (var i = 0; i < wools.Count; i++)
@@ -1149,7 +1149,7 @@ public static class WorldBuilder
     /// <summary>The complaint each kind of room raises when it stands in the studio's own shell (<c>WX14</c>):
     /// one per kind, counting its rooms and naming their units. The shell is compared by what it builds, so a binding
     /// that copies the shipped shell is the shipped shell; open ground (a null shell) raises none.</summary>
-    private static IEnumerable<Finding> BuiltInShells(
+    private static IEnumerable<Finding> BedrockBoxes(
         IReadOnlyList<WoolIntent> wools, HouseStyle? woolStyle, IReadOnlyList<SpawnIntent> spawns, HouseStyle? spawnStyle)
     {
         var shippedWools = wools.Where(w => IsShipped(RoomStyleScope.StyleOf(w.House, woolStyle, HouseStyle.Wool), HouseStyle.Wool)).ToList();
@@ -1168,7 +1168,7 @@ public static class WorldBuilder
             var units = stamps.Distinct().ToList();
             var rooms = count == 1 ? $"1 {kind} room has no house of its own"
                                    : $"{count} {kind} rooms have no house of their own";
-            return new Finding(RoomFrameRules.BuiltInShell,
+            return new Finding(RoomFrameRules.BedrockBox,
                 rooms,
                 Severity.Complaint, Field: $"roomStyles.{kind}", Subjects: units);
         }

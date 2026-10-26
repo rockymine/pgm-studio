@@ -7,8 +7,7 @@
 
 @if (Kind == "controlPoint")
 {
-  <Field Label="Name">
-    <LabelHint>(optional, PGM numbers an unnamed one)</LabelHint>
+  <Field Label="Name" Hint="optional, PGM numbers an unnamed one">
     <ChildContent>
       <input class="field-input" value="@Values.Name" placeholder="Hill"
              @onchange="@(e => SetText(PieceSettings.Name, e.Value?.ToString(), string.Empty))" />
@@ -34,16 +33,14 @@
   </Field>
   @if (PointMode != "touch")
   {
-    <Field Label="Capture time">
-      <LabelHint>(seconds)</LabelHint>
+    <Field Label="Capture time" Hint="seconds">
       <ChildContent>
         <NumberField Min="1" Max="600" Value="PointSeconds"
                      ValueChanged="@(value => SetNumber(PieceSettings.CaptureTime, (int)value, Vocabulary.ControlPoint.CaptureSeconds))" />
       </ChildContent>
     </Field>
   }
-  <Field Label="Points">
-    <LabelHint>(a second, while held)</LabelHint>
+  <Field Label="Points" Hint="a second, while held">
     <ChildContent>
       <NumberField Min="1" Max="100" Value="PointPoints"
                    ValueChanged="@(value => SetNumber(PieceSettings.Points, (int)value, Vocabulary.ControlPoint.Points))" />
@@ -83,8 +80,7 @@
     <Select Slim="false" Options="DestroyableMaterialOptions" Value="@DestroyableMaterials"
             ValueChanged="@(value => SetText(PieceSettings.Materials, value, Vocabulary.Destroyable.Materials))" />
   </Field>
-  <Field Label="Float">
-    <LabelHint>(air under it)</LabelHint>
+  <Field Label="Float" Hint="air under it">
     <ChildContent>
       <NumberField Min="0" Max="64" Value="DestroyableFloat"
                    ValueChanged="@(value => SetNumber(PieceSettings.Float, (int)value, Vocabulary.Destroyable.Float))" />
@@ -95,15 +91,13 @@ else if (Kind == "core")
 {
   @* A core is chosen, not designed: the author states the lava and the casing follows, so a casing with nothing
      in it cannot be typed. The readout is the obsidian those two imply. *@
-  <Field Label="Lava footprint">
-    <LabelHint>(width and depth)</LabelHint>
+  <Field Label="Lava footprint" Hint="width and depth">
     <ChildContent>
       <Select Slim="false" Options="LavaOptions" Value="@CoreLava.ToString()"
               ValueChanged="@(value => SetNumber(PieceSettings.Lava, Num(value, CoreLava), Vocabulary.Core.Lava))" />
     </ChildContent>
   </Field>
-  <Field Label="Lava height">
-    <LabelHint>(layers)</LabelHint>
+  <Field Label="Lava height" Hint="layers">
     <ChildContent>
       <Select Slim="false" Options="LavaHeightOptions" Value="@CoreLavaHeight.ToString()"
               ValueChanged="@(value => SetNumber(PieceSettings.LavaHeight, Num(value, CoreLavaHeight), Vocabulary.Core.LavaHeight))" />
@@ -118,15 +112,13 @@ else if (Kind == "core")
     </div>
   </Field>
   <p class="section-desc">@CoreCasingReadout</p>
-  <Field Label="Float">
-    <LabelHint>(air under the casing)</LabelHint>
+  <Field Label="Float" Hint="air under the casing">
     <ChildContent>
       <NumberField Min="0" Max="64" Value="CoreFloat"
                    ValueChanged="@(value => SetNumber(PieceSettings.Float, (int)value, Vocabulary.Core.Float))" />
     </ChildContent>
   </Field>
-  <Field Label="Leak">
-    <LabelHint>(fall before it counts)</LabelHint>
+  <Field Label="Leak" Hint="fall before it counts">
     <ChildContent>
       <NumberField Min="0" Max="64" Value="CoreLeak"
                    ValueChanged="@(value => SetNumber(PieceSettings.Leak, (int)value, Vocabulary.Core.Leak))" />

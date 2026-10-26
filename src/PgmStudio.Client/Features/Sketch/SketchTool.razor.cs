@@ -1003,12 +1003,12 @@ public partial class SketchTool
     /// <summary>Where Info's identity save stands, shown in the tool bar while Info is up.</summary>
     private string? infoSave;
 
-    /// <summary>What the bar says about saving, in every phase: Info's identity save while Info is up, and the
-    /// drawing's elsewhere — Saving… while an edit waits for its debounced write, Saved once every edit has
+    /// <summary>What the bar says about saving, in every phase: Info's identity save while Info is up and has
+    /// one to report, and the drawing's otherwise — Saving… while an edit waits for its debounced write, Saved once every edit has
     /// landed. A refused save says nothing here, because the Problems button already says it cannot save, and a
     /// view-only map says nothing at all.</summary>
     private string? SaveState
-        => InfoActive ? infoSave
+        => InfoActive && infoSave is not null ? infoSave
          : writeClosed || saveError is not null ? null
          : edits != savedEdits ? "Saving…" : "Saved";
 

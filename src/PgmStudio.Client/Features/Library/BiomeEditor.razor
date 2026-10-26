@@ -17,12 +17,12 @@
     }
   </Preview>
   <Fields>
-    <p class="section-desc">Biomes tint grass, leaves, and water without placing any blocks. A map with no
-      biome set is plains everywhere.</p>
-
-    <Field Label="How it varies">
-      <Select Options="@Select.Words(BiomeKinds.All, word => word, BiomeKinds.Describe)" Value="@Kinds"
-              ValueChanged="SetKind" />
+    <Field Label="How it varies" HelpTitle="What a biome is">
+      <Help>A biome tints grass, leaves and water without placing any block. A map with no biome is plains.</Help>
+      <ChildContent>
+        <Select Options="@Select.Words(BiomeKinds.All, word => word, BiomeKinds.Describe)" Value="@Kinds"
+                ValueChanged="SetKind" />
+      </ChildContent>
     </Field>
 
     @if (Kinds == BiomeKinds.Solid)

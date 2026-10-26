@@ -55,7 +55,7 @@ function dimLabel(s) {
   // A path reads as how wide it is, not how many points it took to draw — the width is the knob an author
   // reaches for, and the point count is already visible as handles on the canvas.
   if (kind === "polyline")      return `${(s.radius ?? 0) * 2} wide`;
-  return `${s.vertices?.length ?? 0} v`;
+  return `${s.vertices?.length ?? 0} points`;
 }
 
 export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, slug) {
@@ -101,7 +101,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // shipped map's rooms — and map-wide rather than per room, because a cage that differed between teams would
   // be a sightline that differed between teams.
   // Three states each, matching the stored layout: an object is the bound style, `undefined` is unpicked (the
-  // built-in shell gets stamped), and `null` is no building at all — a pad on open ground. Keeping them apart
+  // bedrock box gets stamped), and `null` is no building at all — a pad on open ground. Keeping them apart
   // is what lets an open room survive being opened and saved here; collapsing them would rebuild it.
   let roomStyles = { wool: undefined, spawn: undefined };
   // Dressing (decoration.md) does NOT ride beside theming. A theme is a recipe named once and applied to many
@@ -1526,7 +1526,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // ── terrain-paint themes (docs/world-export/terrain-painting.md TP10) ──
     getThemes() { return themesState(); },
     // A snapshot as its JSON text, the text "null" for no building at all, or null/"" to fall back to that
-    // kind's built-in shell.
+    // kind's bedrock box.
     setRoomStyle(kind, styleJson) {
       if (kind !== "wool" && kind !== "spawn") return;
       let parsed = undefined;

@@ -2,12 +2,13 @@
 
 @* One dropdown. The options arrive as values rather than as markup, so a field is grouped, labelled and
    explained in one place instead of once per site — and an option carrying a note says what it is on hover,
-   which a bare <option> has nowhere to put. *@
+   which a bare <option> has nowhere to put. Each option says whether it is the chosen one, because a value set
+   on the <select> before its options arrive matches nothing and the browser shows the first instead. *@
 
 <select id="@Id" class="@Cls" value="@Value" title="@Title" disabled="@Disabled" @onchange="Changed">
     @if (Placeholder is not null)
     {
-        <option value="@PlaceholderValue">@Placeholder</option>
+        <option value="@PlaceholderValue" selected="@(Value is null || Value == PlaceholderValue)">@Placeholder</option>
     }
     @foreach (var group in Options.GroupBy(option => option.Group))
     {
@@ -15,7 +16,7 @@
         {
             @foreach (var option in group)
             {
-                <option value="@option.Value" title="@option.Note" @key="option.Value">@option.Label</option>
+                <option value="@option.Value" title="@option.Note" selected="@(option.Value == Value)" @key="option.Value">@option.Label</option>
             }
         }
         else
@@ -23,7 +24,7 @@
             <optgroup label="@group.Key" @key="group.Key">
                 @foreach (var option in group)
                 {
-                    <option value="@option.Value" title="@option.Note" @key="option.Value">@option.Label</option>
+                    <option value="@option.Value" title="@option.Note" selected="@(option.Value == Value)" @key="option.Value">@option.Label</option>
                 }
             </optgroup>
         }

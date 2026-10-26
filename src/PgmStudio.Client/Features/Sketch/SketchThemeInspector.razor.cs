@@ -18,7 +18,7 @@ public partial class SketchThemeInspector
     /// <summary>The value <see cref="SelectionTheme"/> answers when a group's shapes disagree.</summary>
     private const string Mixed = "~mixed~";
 
-    /// <summary>The room select's value for the third answer. A style is picked by row id and the built-in by
+    /// <summary>The room select's value for the third answer. A style is picked by row id and the bedrock box by
     /// <c>0</c>, so no building needs a word rather than a number.</summary>
     private const string NoBuilding = "none";
 
@@ -70,6 +70,11 @@ public partial class SketchThemeInspector
     /// claiming the board has none.</summary>
     private bool BiomeOffLibrary => !string.IsNullOrWhiteSpace(Themes.BiomeJson) && HeldBiome is null;
 
+    /// <summary>What the biome select reads where it holds no row.</summary>
+    private string BiomePlaceholder =>
+        !loaded && !string.IsNullOrWhiteSpace(Themes.BiomeJson) ? Loading
+        : BiomeOffLibrary ? "(not in the library)" : "Plains";
+
     private IReadOnlyList<SelectOption> BiomePatterns =>
         [.. biomePatterns.Select(pattern => new SelectOption(pattern.Id.ToString(), pattern.Name))];
 
@@ -95,15 +100,25 @@ public partial class SketchThemeInspector
     private string? InHand => string.IsNullOrEmpty(Brush) ? null : Brush;
     private bool HasSelection => SelectedGroupId is not null || SelectedShapeId is not null;
 
+    /// <summary>Whether the library's lists have arrived. Until they have, a binding cannot be matched to a row, so
+    /// a select holding one says it is loading rather than that the library does not hold it.</summary>
+    private bool loaded;
+
     protected override async Task OnInitializedAsync()
     {
-        libraryThemes = await Library.ListAsync<ThemeSummary>(LibraryKinds.Themes);
-        rooms = await Library.ListAsync<RoomStyleSummary>(LibraryKinds.Houses);
+        var themesRead = Library.ListAsync<ThemeSummary>(LibraryKinds.Themes);
+        var roomsRead = Library.ListAsync<RoomStyleSummary>(LibraryKinds.Houses);
+        var biomesRead = Library.ListAsync<BiomePatternSummary>(LibraryKinds.Biomes);
+        var blocksRead = Library.BlocksAsync();
+        var stylesRead = Library.ListAsync<StyleDto>(LibraryKinds.Styles);
+        await Task.WhenAll(themesRead, roomsRead, biomesRead, blocksRead, stylesRead);
+        (libraryThemes, rooms, biomePatterns, paintBlocks, paintStyles) =
+            (themesRead.Result, roomsRead.Result, biomesRead.Result, blocksRead.Result, stylesRead.Result);
         roomOfSnapshot.Clear();
-        biomePatterns = await Library.ListAsync<BiomePatternSummary>(LibraryKinds.Biomes);
-        paintBlocks = await Library.BlocksAsync();
-        paintStyles = await Library.ListAsync<StyleDto>(LibraryKinds.Styles);
+        loaded = true;
     }
+
+    private const string Loading = "Loading…";
 
     private IReadOnlyList<PaintBlockDto> paintBlocks = [];
     private IReadOnlyList<StyleDto> paintStyles = [];
@@ -224,11 +239,11 @@ public partial class SketchThemeInspector
         [.. Themes.Ids.Select(id => new SelectOption(id, id))];
 
     /// <summary>What a room kind's select offers: no building at all, then every style the library holds. The
-    /// built-in shell is the placeholder rather than an option, because it is also what the select falls back
+    /// bedrock box is the placeholder rather than an option, because it is also what the select falls back
     /// to for a snapshot no row matches, and those two read differently.</summary>
     private IReadOnlyList<SelectOption> RoomOptions =>
     [
-        new(NoBuilding, "(no building)"),
+        new(NoBuilding, "No building"),
         .. rooms.Select(room => new SelectOption(room.Id.ToString(), room.Name)),
     ];
 
@@ -265,18 +280,19 @@ public partial class SketchThemeInspector
     private readonly Dictionary<string, RoomStyleSummary?> roomOfSnapshot = [];
 
     /// <summary>Whether the board binds a shell the library does not hold — what the select says instead of
-    /// claiming the room is on its built-in one.</summary>
+    /// claiming the room is on its bedrock box.</summary>
     private bool RoomOffLibrary(string kind) => Themes.RoomStyles.ContainsKey(kind) && HeldRoom(kind) is null;
 
-    /// <summary>What the select shows: a row id, <c>0</c> for the built-in shell, or
+    /// <summary>What the select shows: a row id, <c>0</c> for the bedrock box, or
     /// <see cref="NoBuilding"/>.</summary>
     private string RoomChoice(string kind) =>
         Themes.OpenRooms.Contains(kind) ? NoBuilding : (HeldRoom(kind)?.Id ?? 0).ToString();
 
-    /// <summary>What the select reads where it holds no row: the built-in shell, or a shell the library
-    /// cannot name.</summary>
+    /// <summary>What the select reads where it holds no row: the bedrock box every room stands in until one is
+    /// bound, or a shell the library cannot name.</summary>
     private string RoomPlaceholder(string kind) =>
-        RoomOffLibrary(kind) ? "(not in the library)" : "(built-in shell)";
+        !loaded && Themes.RoomStyles.ContainsKey(kind) ? Loading
+        : RoomOffLibrary(kind) ? "(not in the library)" : "Bedrock box";
 
     /// <summary>Whether this kind is bound to no building.</summary>
     private bool IsOpenRoom(string kind) => Themes.OpenRooms.Contains(kind);

@@ -18,11 +18,13 @@
   <Fields>
     @if (tree is not null)
     {
-      <p class="section-desc">A <strong>vanilla</strong> tree is a Minecraft species with a drawn canopy. A
-        <strong>copied</strong> tree was built by hand and copied block by block from a world.</p>
       <Field Label="Which tree">
-        <Select Options="@Select.Words(TreeForms.All, TreeForms.Describe)" Value="@tree.Form"
-                ValueChanged="SetTreeForm" />
+        <Help>A <strong>vanilla</strong> tree is a Minecraft species with a drawn canopy. A <strong>copied</strong>
+          tree was built by hand and copied block by block from a world.</Help>
+        <ChildContent>
+          <Select Options="@Select.Words(TreeForms.All, TreeForms.Describe)" Value="@tree.Form"
+                  ValueChanged="SetTreeForm" />
+        </ChildContent>
       </Field>
 
       @if (TreeForms.Canonical(tree.Form) == TreeForms.Template)

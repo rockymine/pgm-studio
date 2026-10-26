@@ -18,7 +18,7 @@ namespace PgmStudio.Api.Endpoints;
 // the shape a single takes: read it, write it, take it away.
 
 /// <summary>The shells a map's rooms are stamped in, <b>resolved</b> — which is what will actually be built.
-/// A part that is absent answers its built-in shell; a part bound to open ground answers null.</summary>
+/// A part that is absent answers its bedrock box; a part bound to open ground answers null.</summary>
 /// <param name="Wool">The style every wool room is stamped in, or null for open ground.</param>
 /// <param name="Spawn">The style every spawn room is stamped in, or null for open ground.</param>
 public sealed record SketchRoomStylesDto(HouseStyle? Wool, HouseStyle? Spawn);
@@ -26,7 +26,7 @@ public sealed record SketchRoomStylesDto(HouseStyle? Wool, HouseStyle? Spawn);
 /// <summary>GET /api/map/{slug}/sketch/room-styles — both shells as the stampers will read them.
 ///
 /// <para>Resolved rather than raw, because the three states a binding has do not survive being handed back
-/// as a snapshot: <b>absent</b> falls back to the built-in shell, <b>null</b> asked for open ground, and a
+/// as a snapshot: <b>absent</b> falls back to the bedrock box, <b>null</b> asked for open ground, and a
 /// stated style is itself. What a caller wants to know is which of those it is getting, and the resolved pair
 /// says so — null for open ground, and a style for both of the others.</para></summary>
 public sealed class SketchRoomStylesEndpoint(MapRepository repo, MapArtifactStore artifacts)
@@ -54,7 +54,7 @@ public sealed class SketchRoomStylesEndpoint(MapRepository repo, MapArtifactStor
 ///
 /// <para><b>A body of literal <c>null</c> is a statement, not an omission</b>: it asks for open ground — a pad
 /// rather than a building over it, which is what a spawn on a plateau the plan already shaped often wants to
-/// be. Removing the binding entirely is <c>DELETE</c>, which restores the built-in shell. The three states the
+/// be. Removing the binding entirely is <c>DELETE</c>, which restores the bedrock box. The three states the
 /// stored layout can hold are all reachable, and they are different answers.</para></summary>
 public sealed class SketchRoomStyleWriteEndpoint(MapRepository repo, MapArtifactStore artifacts)
     : EndpointWithoutRequest<PartWrittenDto>
@@ -101,7 +101,7 @@ public sealed class SketchRoomStyleWriteEndpoint(MapRepository repo, MapArtifact
 }
 
 /// <summary>DELETE /api/map/{slug}/sketch/room-styles/{part} — unbind a shell, which puts that kind of room
-/// back to its built-in one. Not the same as binding null, which asks for open ground.</summary>
+/// back to its bedrock box. Not the same as binding null, which asks for open ground.</summary>
 public sealed class SketchRoomStyleDeleteEndpoint(MapRepository repo, MapArtifactStore artifacts)
     : EndpointWithoutRequest<PartWrittenDto>
 {

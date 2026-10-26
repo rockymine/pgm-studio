@@ -209,7 +209,8 @@ above the 24 × 24px minimum target size of WCAG 2.2 (2.5.8).
 
 ## How a row of things lines up
 
-**A single-line field is the control height, and so is every control in a row with one.** `.field-input` that is
+**A single-line field is the control height, and so is every control in a row with one.** An icon button beside
+one is that height wherever the row is built — `buttons.css` sizes it from the row, so no row restates it. `.field-input` that is
 not a `<textarea>` is `--control-height` tall, so a search box beside a `Select`, or a name beside a role and
 an **Add**, meet on one line; a row that mixes them gives its children that height rather than letting each
 size itself from its own padding. A composer is the other way up: the text box takes the full width and the
@@ -319,6 +320,14 @@ class, saying only the state it is already in. Two `Chip`s say it instead — th
 one visibly available — which is pressable, keyboard-reachable, and shows what the alternative is before it is
 chosen. The pattern it replaces (`control-input--hidden` under a `inspector-readout` span) was in three panels and
 is in none.
+
+**A hint is a few words; anything longer is help.** `Field`'s `Hint` reads after the label in parentheses while it
+is five words or fewer — a unit, a qualifier. A longer one is the field's help, behind a `?` beside the label and
+opened under it, with the unit it opens with (*blocks*, *world y*, *°*) still after the label, so a column of
+fields shows names and units and keeps its sentences a press away. A definition a reader needs once — what a
+porch is, what a biome tints — is a `Help` on the field or the `Section`, never a paragraph open above the
+controls. A select's unset value names what it stands for (*Plains*, *Stone*, *Bedrock box*, *Bare floor*),
+not `None (…)`, and a select that cannot be used until something is chosen prompts for it (*Choose a material*).
 
 **What survives as prose is a keymap, an empty state, or a fact with nowhere else to live.** *Move: arrow keys ·
 Shift+arrow = 16 blocks* is a keymap. *Nothing is terraformed yet* is an empty state. *Turns with the building at

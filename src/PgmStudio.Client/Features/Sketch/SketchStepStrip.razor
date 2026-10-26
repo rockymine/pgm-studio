@@ -9,11 +9,11 @@
 
 @if (State.Running.Count > 0)
 {
-  <div class="canvas-step-strip@(Short ? " canvas-step-strip--short" : null)" role="group" aria-label="Ground after">
-    <span class="canvas-step-strip-label">Ground after</span>
+  <div class="canvas-step-strip@(Short ? " canvas-step-strip--short" : null)" role="group" aria-label="Modifiers shown">
+    <span class="canvas-step-strip-label">Modifiers shown</span>
     <RangeField Min="0" Max="@State.Running.Count" Value="@Shown" KeepKeys aria-label="Step"
                 ValueChanged="Scrub" OnCommit="Commit" />
-    <output class="canvas-step-strip-name">@((int)Shown) of @State.Running.Count · @State.StepName((int)Shown)</output>
+    <output class="canvas-step-strip-name">@Says((int)Shown)</output>
     @if (Short)
     {
       <Button Title="The modifiers after this step are not on the board" OnClick="() => OnStep.InvokeAsync(null)">Show all</Button>
@@ -31,6 +31,11 @@
     private double? held;
 
     private double Shown => held ?? State.StepAt;
+
+    /// <summary>How many of the stack the board shows, and the modifier it ends on — or that it shows the shapes
+    /// alone.</summary>
+    private string Says(int step) =>
+        step <= 0 ? $"0 of {State.Running.Count} · shapes only" : $"{step} of {State.Running.Count} · up to {State.StepName(step)}";
 
     /// <summary>Whether the board shows the ground part-way up the stack, so a modifier after the step changes
     /// nothing on show.</summary>

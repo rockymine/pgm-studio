@@ -42,7 +42,7 @@ checks.add("per-shape override persisted",
 
 // A library row for §4 to bind, made before the page loads: the inspector reads the room library when the
 // Theme phase opens, so a row created after that is not in the list it offers. Given a wall height no
-// built-in shell has, so finding it in the layout says the snapshot travelled rather than that a default
+// bedrock box has, so finding it in the layout says the snapshot travelled rather than that a default
 // happened to match. No courses: a part with none keeps the built-in finish, which is what makes a style
 // that only changes its geometry a legal one.
 const style = await api("/room-styles", { method: "POST", body: {
@@ -174,7 +174,7 @@ checks.add("select-only checks ran", restricted, page.faults.slice(0, 3).join(" 
 // for every spawn room, snapshotted into the layout rather than referenced, and bound from the inspector's
 // board defaults where the other fallbacks are. What has to survive is the snapshot itself — the export
 // reads the layout and nothing else, so a binding that did not come back from GET would silently stamp the
-// built-in shell.
+// bedrock box.
 checks.section("the board defaults bind a room shell");
 
 clearFaults(page);
@@ -204,7 +204,7 @@ try {
     wool?.wall?.extent === 11 && wool.styleId == null && wool.id == null,
     JSON.stringify(Object.keys(wool ?? {})));
   // The other kind is untouched — the two bind independently.
-  checks.add("binding the wool room leaves the spawn on its built-in shell", doc.roomStyles.spawn == null);
+  checks.add("binding the wool room leaves the spawn on its bedrock box", doc.roomStyles.spawn == null);
   await shot("theme-rooms-bound.png");
 
   // …and the binding reads back. The finish records the snapshot and never the row, so the select says which

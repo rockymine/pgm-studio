@@ -687,7 +687,7 @@ public sealed class SketchRecipeGateTests
     }
 
     /// <summary>A prop put down before a recipe was picked builds the kind's own default, the way a sketch
-    /// binding no room style stamps the built-in shell. Refusing it would make a board unsaveable halfway
+    /// binding no room style stamps the bedrock box. Refusing it would make a board unsaveable halfway
     /// through being authored.</summary>
     [Test]
     public async Task A_placement_naming_nothing_at_all_is_not_this()

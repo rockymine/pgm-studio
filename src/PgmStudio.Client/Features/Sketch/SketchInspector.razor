@@ -69,20 +69,17 @@
         {
           @if (Shape.Type != "arch")
           {
-            <Field Label="Turn (°)">
-              <LabelHint>(clockwise)</LabelHint>
+            <Field Label="Turn (°)" Hint="clockwise">
               <ChildContent>
                 <NumberField Value="Shape.Turn" ValueChanged='(v) => SolidChanged("turn", v)' Step="15" />
               </ChildContent>
             </Field>
-            <Field Label="Tilt (°)">
-              <LabelHint>(the far end rises)</LabelHint>
+            <Field Label="Tilt (°)" Hint="the far end rises">
               <ChildContent>
                 <NumberField Value="Shape.Tilt" ValueChanged='(v) => SolidChanged("tilt", v)' Min="-90" Max="90" Step="15" />
               </ChildContent>
             </Field>
-            <Field Label="Sunk (blocks)">
-              <LabelHint>(bedded under the floor)</LabelHint>
+            <Field Label="Sunk (blocks)" Hint="bedded under the floor">
               <ChildContent>
                 <NumberField Value="Shape.Sunk" ValueChanged='(v) => SolidChanged("sunk", v)' Min="0" />
               </ChildContent>
@@ -121,8 +118,7 @@
         }
         @if (!string.IsNullOrEmpty(Shape.HeightMode) && !Shape.IsSolid)
         {
-          <Field Label="Skirt (blocks)">
-            <LabelHint>(how far in from the edge it eases into the ground)</LabelHint>
+          <Field Label="Skirt (blocks)" Hint="how far in from the edge it eases into the ground">
             <ChildContent>
               <NumberField Value="Shape.Skirt" ValueChanged="SkirtChanged" Min="0" />
             </ChildContent>
@@ -158,8 +154,7 @@
           </Field>
           @if (Shape.StrokeEdge == "rough")
           {
-            <Field Label="Edge seed">
-              <LabelHint>(same seed, same edge on every export)</LabelHint>
+            <Field Label="Edge seed" Hint="same seed, same edge on every export">
               <ChildContent>
                 <NumberField Value="Shape.StrokeSeed" ValueChanged="SeedChanged" Min="0" />
               </ChildContent>

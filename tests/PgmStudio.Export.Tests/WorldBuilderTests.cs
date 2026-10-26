@@ -61,12 +61,12 @@ public sealed class WorldBuilderTests
         await Assert.That(built.World.GetBlock(-10, 1, 10)).IsEqualTo((Blocks.Wool, 14));   // red = 14
     }
 
-    // ── the built-in shell ────────────────────────────────────────────────────────────────────────
+    // ── the bedrock box ────────────────────────────────────────────────────────────────────────
     private static string WithRoomStyles(string wool, string spawn) =>
         Layout.TrimEnd()[..^1] + $",\"roomStyles\":{{\"wool\":{wool},\"spawn\":{spawn}}}}}";
 
     private static List<Finding> ShellComplaints(BuiltWorld built) =>
-        [.. built.Declines.Where(finding => finding.Rule == RoomFrameRules.BuiltInShell)];
+        [.. built.Declines.Where(finding => finding.Rule == RoomFrameRules.BedrockBox)];
 
     [Test]
     public async Task A_board_that_binds_no_room_style_is_told_so_once_for_each_kind_of_room()

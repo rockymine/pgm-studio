@@ -43,7 +43,7 @@
                 <div class="lib-bucket-fields">
                   <Field Label="Made of">
                     <SlotSelect Styles="styles" Blocks="blocks" Value="@binding.StyleId" Block="binding.Block"
-                                Unbound="Stone (default)" ValueChanged="fill => Fill(bucket.Id, fill)" />
+                                Unbound="Stone" ValueChanged="fill => Fill(bucket.Id, fill)" />
                   </Field>
                   @if (bucket.HasDepth && IsBound(binding) && binding.Soil is not { Count: > 0 })
                   {

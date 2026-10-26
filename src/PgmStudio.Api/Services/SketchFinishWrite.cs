@@ -51,7 +51,7 @@ public static class SketchFinishWrite
 
     /// <summary>The layout with one room part bound to <paramref name="style"/>, or unbound where it is null.
     /// A <see cref="JsonValue"/> holding null binds open ground; removing the key entirely restores the
-    /// built-in shell, which are different answers and both reachable.</summary>
+    /// bedrock box, which are different answers and both reachable.</summary>
     public static string WithRoomStyle(string? layoutJson, string part, JsonNode? style, bool unbind)
     {
         var root = Root(layoutJson);

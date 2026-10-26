@@ -10,7 +10,7 @@ namespace PgmStudio.Api.Tests;
 /// its columns carry.
 ///
 /// <para>The room binding is the one part with <b>three</b> states rather than two, and the routes have to
-/// keep them apart: absent falls back to the built-in shell, an explicit null asked for open ground, and a
+/// keep them apart: absent falls back to the bedrock box, an explicit null asked for open ground, and a
 /// stated style is itself. A pad on a plateau the plan already shaped is a real thing to want, and it is not
 /// the same as never having answered.</para>
 ///
@@ -33,14 +33,14 @@ public sealed class SketchShellBiomeEndpointsTests
 
     /// <summary>All three states of a binding are reachable and tell each other apart: a board that bound
     /// nothing resolves both shells to the built-in ones, a null binds open ground, and a delete puts the
-    /// built-in one back rather than leaving open ground behind.</summary>
+    /// bedrock box back rather than leaving open ground behind.</summary>
     [Test]
     public async Task A_binding_tells_open_ground_from_never_having_asked()
     {
         using var client = await SketchBoard.FreshAsync();
 
         await Assert.That(await ShellsAsync(client)).IsEqualTo((true, true))
-            .Because("a board that bound nothing stamps the built-in shells");
+            .Because("a board that bound nothing stamps the bedrock boxes");
 
         await Assert.That((await client.DeleteAsync($"{Shells}/spawn")).StatusCode)
             .IsEqualTo(HttpStatusCode.NotFound).Because("there is no binding to remove yet");
@@ -52,7 +52,7 @@ public sealed class SketchShellBiomeEndpointsTests
 
         await Assert.That((await client.DeleteAsync($"{Shells}/spawn")).StatusCode).IsEqualTo(HttpStatusCode.OK);
         await Assert.That(await ShellsAsync(client)).IsEqualTo((true, true))
-            .Because("unbinding restores the built-in shell, which is not the same as open ground");
+            .Because("unbinding restores the bedrock box, which is not the same as open ground");
     }
 
     [Test]

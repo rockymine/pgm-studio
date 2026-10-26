@@ -29,9 +29,11 @@
   scrollbar-width: thin;
 }
 .canvas-layer-strip-label, .canvas-layer-add { flex: none; }
-.canvas-layer-strip-label {
-  display: flex; align-items: center; padding: 0 6px;
-  font-size: var(--font-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted);
+/* A strip's label is a word in the muted colour, in the case it is written in: the three strips read as chrome
+   beside the board, and capitals made each label louder than the thing it labels. */
+.canvas-layer-strip-label, .canvas-theme-strip-label, .canvas-step-strip-label {
+  display: flex; align-items: center; flex: 0 0 auto; padding: 0 6px;
+  font-size: var(--font-sm); color: var(--text-muted); white-space: nowrap;
 }
 /* A tab and its delete are one pill, so the wrap carries the state and the two buttons inside it stay
    transparent — a delete nested in the tab button would be a button inside a button. */
@@ -80,26 +82,25 @@
   background: var(--canvas-float-bg); backdrop-filter: blur(6px);
   border: 1px solid var(--canvas-float-border); box-shadow: var(--canvas-float-shadow);
 }
-.canvas-theme-strip-label {
-  flex: 0 0 auto; padding: 0 4px;
-  font-size: var(--font-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted);
-}
 .canvas-theme-strip-empty { padding: 3px 6px; font-size: var(--font-sm); color: var(--text-muted); }
-.canvas-theme-swatches { display: flex; align-items: center; gap: 2px; overflow-x: auto; scrollbar-width: thin; }
+/* Each palette is a pill of its own, bordered, so a strip of several reads as several things to pick rather
+   than as one line of words. */
+.canvas-theme-swatches { display: flex; align-items: center; gap: var(--space-1); overflow-x: auto; scrollbar-width: thin; }
 .canvas-theme-swatch {
-  display: flex; align-items: center; gap: 5px; flex: 0 0 auto;
-  padding: 3px 8px; border: 0; border-radius: var(--radius-sm);
-  background: transparent; color: var(--text-secondary); font: inherit; cursor: pointer;
+  display: flex; align-items: center; gap: 6px; flex: 0 0 auto;
+  height: calc(26px * var(--ui-scale)); padding: 0 10px; border: 1px solid var(--border); border-radius: 999px;
+  background: var(--bg-panel); color: var(--text-secondary); font: inherit; cursor: pointer;
 }
 .canvas-theme-swatch:hover { background: var(--bg-vis-hover); color: var(--text-primary); }
-.canvas-theme-swatch--on { background: var(--bg-selected); color: var(--text-strong); }
+.canvas-theme-swatch--on { background: var(--bg-selected); border-color: var(--accent); color: var(--text-strong); }
 .canvas-theme-swatch-name {
   font-size: var(--font-sm); line-height: 1.2; max-width: 14ch;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 /* The one theme that paints without being placed. */
 .canvas-theme-swatch-tag {
-  font-size: var(--font-xs); letter-spacing: .06em; text-transform: uppercase; color: var(--accent-light);
+  padding: 0 6px; border-radius: 999px; background: var(--bg-selected);
+  font-size: var(--font-xs); line-height: 1.5; color: var(--accent-light);
 }
 .canvas-theme-add {
   display: grid; place-items: center; flex: 0 0 auto; width: 26px; height: 24px;
@@ -111,7 +112,7 @@
 .canvas-theme-add svg { width: var(--icon-xs); height: var(--icon-xs); }
 /* ── the step strip ──
    The ground at each point of the modifier stack, floating above the dock in the Terraform phase. The range is
-   the stack's length and the name is the step it stands at: the shapes alone, or the modifier it ends with. */
+   the stack's length and the readout is how many of it the board shows and the modifier it ends on. */
 .canvas-step-strip {
   position: absolute; left: 50%; bottom: 62px; transform: translateX(-50%); z-index: 3;
   display: flex; align-items: center; gap: 8px; padding: 3px 10px;
@@ -119,10 +120,6 @@
   border-radius: var(--radius-sm);
   background: var(--canvas-float-bg); backdrop-filter: blur(6px);
   border: 1px solid var(--canvas-float-border); box-shadow: var(--canvas-float-shadow);
-}
-.canvas-step-strip-label {
-  flex: 0 0 auto;
-  font-size: var(--font-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted);
 }
 .canvas-step-strip .field-range { width: calc(160px * var(--ui-scale)); flex: 0 1 auto; }
 /* Short of the last step the board leaves modifiers out, so the strip says so in the warning colour. */

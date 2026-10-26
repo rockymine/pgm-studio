@@ -121,11 +121,13 @@
       }
       @if (porch is not null)
       {
-      <p class="section-desc">A porch takes space from the footprint rather than adding to it. The walls
-          step back from one side, leaving a deck with posts, a rail, and a roof.</p>
-          <Field Label="Blocks deep">
-            <NumberField Slim Min="1" Max="8" Value="porch.Depth" ValueChanged="SetPorchDepth"
-                         title="How far the walls step back. The room keeps at least 3 blocks." />
+          <Field Label="Blocks deep" HelpTitle="What a porch is">
+            <Help>A porch takes space from the footprint rather than adding to it. The walls step back from one side,
+          leaving a deck with posts, a rail, and a roof.</Help>
+            <ChildContent>
+              <NumberField Slim Min="1" Max="8" Value="porch.Depth" ValueChanged="SetPorchDepth"
+                           title="How far the walls step back. The room keeps at least 3 blocks." />
+            </ChildContent>
           </Field>
           <Field Label="Inset">
             <NumberField Slim Min="0" Max="8" Value="porch.Inset" ValueChanged="SetPorchInset"
