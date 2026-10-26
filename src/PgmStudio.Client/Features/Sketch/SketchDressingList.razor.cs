@@ -234,10 +234,11 @@ public partial class SketchDressingList
     private static string RowElementId(string propId) => $"placed-{propId}";
 
     /// <summary>Fold or open a kind. A folded row cannot report the pointer leaving it, so the ring goes too.</summary>
-    private async Task Toggle(string kind)
+    private void Toggle(string kind)
     {
         if (!collapsed.Remove(kind)) collapsed.Add(kind);
-        await Hover(null);
+        Hover(null);
+        skipRender = false;     // the fold itself is drawn
     }
 
     /// <summary>A row is reached by Tab and picked by Enter, as a click picks it.</summary>
@@ -247,7 +248,22 @@ public partial class SketchDressingList
     private Task Select(string id)
         => Handle is null ? Task.CompletedTask : Handle.InvokeVoidAsync("selectProp", id).AsTask();
 
-    /// <summary>Ring the row's prop on the board while the pointer is on the row.</summary>
-    private Task Hover(string? id)
-        => Handle is null ? Task.CompletedTask : Handle.InvokeVoidAsync("hoverProp", id).AsTask();
+    /// <summary>Ring the row's prop on the board while the pointer or focus is on the row. Only the board changes,
+    /// so the list does not render for it, and the call is not awaited because an awaited handler renders again
+    /// when it completes: a render re-runs the icon pass, which swaps glyphs out from under a press landing
+    /// elsewhere — the dock button the pointer is leaving the row for.</summary>
+    private void Hover(string? id)
+    {
+        skipRender = true;
+        if (Handle is not null) _ = Handle.InvokeVoidAsync("hoverProp", id).AsTask();
+    }
+
+    private bool skipRender;
+
+    protected override bool ShouldRender()
+    {
+        if (!skipRender) return true;
+        skipRender = false;
+        return false;
+    }
 }
