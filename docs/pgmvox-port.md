@@ -379,7 +379,7 @@ time. Shipped to the live studio with no beta (decision D3).
 ### Phase 6 — built things
 
 - Houses: posts along a storey's wall, a jetty with setback and eave, a chimney and a heading in degrees on the
-  placed house (`houses/HOUSES.md`; `WE175`, `WE177`, `WE178`, `WE180`), parked until the author picks them.
+  placed house (`houses/HOUSES.md`; `WE175`, `WE177`, `WE178`, `WE180`), in the backlog.
   Wooden doors shipped as `WE179`, the laid head course as `WE176`. pgmvox's two house defects (door
   before windows; the cell outside a door at any heading) are fixed on the way.
 - Line builds: a wall, hedge or fence along a line, with its crown following, level or graded, caps, crenels and

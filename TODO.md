@@ -21,6 +21,6 @@ entries parked, and Phase 2 has shipped: shapes, eighteen ground operations in t
 they make. Phase 3 has shipped too: soil by slope, paint rules, beds that dip, fold and cycle, a water's own bed
 and its fall off the edge, and a layer's underside. Phase 4, space in three dimensions, has shipped its carves and solids; dragging a solid out in the dock (`TS212`)
 is parked. Phase 5 has shipped its pieces and stamps; its upload (`TC23`) is parked. Phase 6 has shipped the
-wooden door and the head course; the other house fields (`WE175`, `WE177`, `WE178`, `WE180`) are parked until
-the author picks them from the example images.
+wooden door and the head course; the other house fields (`WE175`, `WE177`, `WE178`, `WE180`) are back in the
+backlog, and the rest of the phase is not on the board yet.
 
