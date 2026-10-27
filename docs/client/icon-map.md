@@ -60,6 +60,12 @@ map.xml regions and filters, symmetry. The third is the things with no icon yet 
 or in a dock: the room and zone pieces the Layout dock shows as swatches, the play pieces the canvas draws as
 colour, the world canvas's `★ ◆ ⊕`, and the Terraform families.
 
+**A thing gets its own glyph only where a reader picks it out from things of other kinds.** That is a phase rail,
+a dock, a list that mixes kinds, or the library's kinds; everywhere else a thing borrows its family's glyph and its
+label does the rest, so a wool room, a wool spawn and a wool monument draw the wool, a flag post the flag, a spawn
+room and spawn protection the spawn, and the house's parts the house. A zone the dock shows as a colour swatch stays
+a swatch, and a plain shape picture that collides with nothing stays Lucide. The rule leaves twenty glyphs to draw.
+
 **The scheme is settled; the drawings are being chosen.** There are three prefixes: `pgm-` for the game's things,
 `deco-` for decoration and the library, and `terrain-` for ground forms, because a core is not terrain. A phase reuses
 the glyph of its headline thing — Cores draws the core, Wools the wool, Terraform the mound. One point glyph serves

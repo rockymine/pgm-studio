@@ -550,7 +550,7 @@ is the standard the copy is held to.
 thing is drawn several ways, and the order the move to the studio's own glyphs takes.
 
 - [ ] **C109 — The studio's own glyph for each thing that collides.** *Parked (author): choosing among the first
-  drafts — 46 sketches across `pgm-`, `deco-` and `terrain-`, each beside the Lucide icons it replaces.* Then
+  drafts — 20 sketches across `pgm-` and `deco-`, one for each thing a reader picks among kinds, each beside the Lucide icons it replaces.* Then
   register the kept ones in `icons/terrain-icons.js` under their prefix, point every table in
   `docs/client/icon-map.md`'s collision lists at them, rename `terrain-hill` to `terrain-mound` with its modifier,
   and change the rule in `docs/client/ui-conventions.md` that names `terrain-*` alone.
