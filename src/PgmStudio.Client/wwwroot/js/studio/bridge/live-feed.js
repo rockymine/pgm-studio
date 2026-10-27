@@ -7,8 +7,8 @@ export const UNREACHABLE = "Couldn't reach the studio. Check your connection and
 export async function refusalText(res) {
   try {
     const body = await res.json();
-    return body?.message || body?.error || `The studio returned an error (HTTP ${res.status}).`;
-  } catch { return `The studio returned an error (HTTP ${res.status}).`; }
+    return body?.message || body?.error || "Couldn't get an answer from the studio. Try again.";
+  } catch { return "Couldn't get an answer from the studio. Try again."; }
 }
 
 /**

@@ -22,8 +22,8 @@ public static class ApproachWalls
     {
         var thinAlongX = box.Width <= box.Depth;
         var wall = thinAlongX
-            ? new WallStructure((box.MinX + box.MaxX) / 2, box.MinZ, (box.MinX + box.MaxX) / 2, box.MaxZ, topY, wallStamp)
-            : new WallStructure(box.MinX, (box.MinZ + box.MaxZ) / 2, box.MaxX, (box.MinZ + box.MaxZ) / 2, topY, wallStamp);
+            ? new WallStructure([[(box.MinX + box.MaxX) / 2, box.MinZ], [(box.MinX + box.MaxX) / 2, box.MaxZ]], topY, wallStamp)
+            : new WallStructure([[box.MinX, (box.MinZ + box.MaxZ) / 2], [box.MaxX, (box.MinZ + box.MaxZ) / 2]], topY, wallStamp);
 
         var lane = thinAlongX ? box.Depth : box.Width;
         var count = lane <= SingleChestMaxLane ? 1 : 2;

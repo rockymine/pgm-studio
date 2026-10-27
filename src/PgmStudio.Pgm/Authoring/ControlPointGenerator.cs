@@ -63,7 +63,11 @@ public static class ControlPointGenerator
                 // A hill, not a control point: one PGM module, and the spelling is what chooses the defaults
                 // PGM applies — and what the map is tagged as.
                 ["element"] = "king",
-                ["capture_region"] = ObjectiveRegion.Emit(doc, id, capture, "capture"),
+                // A round pad is held inside the cylinder standing on it, so a player on the square's corner the
+                // disc leaves as ground is not on the point.
+                ["capture_region"] = point.Shape == ControlPointShapes.Disc
+                    ? ObjectiveRegion.EmitCylinder(doc, id, capture, "capture")
+                    : ObjectiveRegion.Emit(doc, id, capture, "capture"),
 
                 // The studio's convention, written out rather than defaulted. Each of these is what the
                 // corpus states on a KotH board, and every one of them differs between the two spellings.

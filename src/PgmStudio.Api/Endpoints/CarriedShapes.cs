@@ -43,8 +43,7 @@ internal sealed record Carried(
 /// description. A field whose encoding is open by design — the <c>map.xml</c> codec's, a diff's value — is
 /// not here, and <c>SchemaCompletenessTests</c> names each one.</para>
 ///
-/// <para>A converter is the other way a declared type stops saying what crosses: a relief mark's height is a
-/// number or a list, a plan's rectangle is four numbers in a row, and an author is a bare name or a record.
+/// <para>A converter is the other way a declared type stops saying what crosses: a plan's rectangle is four numbers in a row, and an author is a bare name or a record.
 /// Those are published here too, as the converter reads them.</para>
 /// </summary>
 internal sealed class CarriedShapes : ISchemaProcessor
@@ -61,6 +60,8 @@ internal sealed class CarriedShapes : ISchemaProcessor
         new(typeof(PieceHouseRequest), nameof(PieceHouseRequest.House), CarriedForm.Whole, [typeof(RoomHouse)]),
         new(typeof(SketchShape), nameof(SketchShape.Material), CarriedForm.Whole, [typeof(TerrainMaterial)]),
         new(typeof(RoomGround), nameof(RoomGround.Material), CarriedForm.Whole, [typeof(TerrainMaterial)]),
+        new(typeof(SketchModifierJson), nameof(SketchModifierJson.BedMaterial), CarriedForm.Whole, [typeof(TerrainMaterial)]),
+        new(typeof(SketchPaintRuleJson), nameof(SketchPaintRuleJson.Material), CarriedForm.Whole, [typeof(TerrainMaterial)]),
 
         // The documents an answer carries whole, whose types Contracts cannot name.
         new(typeof(CompiledPlanDto), nameof(CompiledPlanDto.Layout), CarriedForm.Whole, [typeof(SketchLayout)]),
@@ -84,9 +85,7 @@ internal sealed class CarriedShapes : ISchemaProcessor
         new(typeof(Refinement), nameof(Refinement.Authors), CarriedForm.Items, [typeof(string), typeof(AuthorIntent)]),
         new(typeof(StatedName), nameof(StatedName.Library), CarriedForm.Whole, [typeof(string), typeof(long)]),
 
-        // What a converter reads in more than one shape: a spot height or a ridgeline's, and a person by name or
-        // by record.
-        new(typeof(ReliefMarkJson), nameof(ReliefMarkJson.Heights), CarriedForm.Whole, [typeof(double), typeof(double[])]),
+        // What a converter reads in more than one shape: a person by name or by record.
         new(typeof(PlanMeta), nameof(PlanMeta.Authors), CarriedForm.Items, [typeof(string), typeof(AuthorIntent)]),
         new(typeof(PlanMeta), nameof(PlanMeta.Contributors), CarriedForm.Items, [typeof(string), typeof(AuthorIntent)]),
         new(typeof(MetaIntent), nameof(MetaIntent.Authors), CarriedForm.Items, [typeof(string), typeof(AuthorIntent)]),

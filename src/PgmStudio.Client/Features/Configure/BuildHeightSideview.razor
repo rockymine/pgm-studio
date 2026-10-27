@@ -2,7 +2,7 @@
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
-@* The max-build-height side-view: a depth slice with an axis toggle and a draggable height line
+@* The build-ceiling side-view: a depth slice with an axis toggle and a draggable height line
    (studio.mountSideview / SideviewCanvas, C7). The host owns the height value + its number input; this renders the
    canvas region, syncs the line to Height, and reports drags via HeightChanged. *@
 
@@ -18,7 +18,7 @@
       <button class="draw-tool-btn @(axis == "px" ? "draw-tool-btn--active" : null)" title="View from +X"
               @onclick='() => SetAxis("px")'>X+</button>
     </div>
-    <div class="canvas-subbar-right"><span class="canvas-hint">Drag the line to set the build height</span></div>
+    <div class="canvas-subbar-right"><span class="canvas-hint">Drag the line to set the build ceiling</span></div>
   </div>
   <div class="svg-area"><canvas @ref="sideviewRef" class="sideview-canvas"></canvas></div>
 </div>

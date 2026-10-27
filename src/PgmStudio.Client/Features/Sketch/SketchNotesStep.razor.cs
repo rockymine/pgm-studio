@@ -165,9 +165,9 @@ public partial class SketchNotesStep
         {
             using var answer = await Http.PostAsJsonAsync("api/notes/handoff", new NoteHandoffRequest(again));
             if (answer.IsSuccessStatusCode) Notes.Handoff = await answer.Content.ReadFromJsonAsync<NoteHandoffDto>();
-            else notesError = $"The notes were not handed over: {await ServerRefusal.SentenceAsync(answer)}";
+            else notesError = $"Couldn't hand the notes over. {await ServerRefusal.SentenceAsync(answer)}";
         }
-        catch { notesError = "Couldn't hand the notes over. Check your connection and try again."; }
+        catch { notesError = "Couldn't hand the notes over. Try again."; }
         finally { handing = false; }
     }
 
@@ -265,13 +265,12 @@ public partial class SketchNotesStep
         pickRound++;
     }
 
-    /// <summary>Whether a pick read a board the pictures are not of, saying so where it did.</summary>
+    /// <summary>Whether a pick read a map the pictures are not of, saying so where it did.</summary>
     private bool Moved(EyePickDto pick)
     {
         if (pick.Change <= DrawnAt) return false;
         stale = true;
-        pickNote = string.Create(CultureInfo.InvariantCulture,
-            $"The board has changed since this picture was drawn: it shows change {DrawnAt}, and change {pick.Change} has landed. Draw the pictures again, then mark it afresh.");
+        pickNote = "The map has changed since this picture was drawn. Draw the pictures again, then mark it again.";
         return true;
     }
 
@@ -306,7 +305,7 @@ public partial class SketchNotesStep
     private string AnchorBody => wholeMap
         ? "The note is about the whole map."
         : mark is null
-            ? "The note saves this camera and picture. To pin it to a spot, pick Point, Box, or Lasso on the picture."
+            ? "The note keeps this camera and picture. Pick Point, Box or Lasso in the dock to pin it to a spot."
             : pickNote ?? (picked is null ? "Finding the ground under the mark…" : Ground(picked));
 
     private static string Ground(EyePickDto pick)
@@ -342,13 +341,13 @@ public partial class SketchNotesStep
                 var camera = mark is null ? await PickAsync(view, null) : picked;
                 if (camera is null || Moved(camera))
                 {
-                    notesError = pickNote ?? "Couldn't read this picture's camera, so the note wasn't sent.";
+                    notesError = pickNote ?? "Couldn't read the picture's camera. Try again.";
                     return false;
                 }
                 picture = await JS.InvokeAsync<string?>("studio.keepPicture", PictureSource(view));
                 if (picture is null)
                 {
-                    notesError = "The note was not sent: the browser could not keep a copy of the picture it is written on. Send it again.";
+                    notesError = "Couldn't keep a copy of the picture. Send the note again.";
                     return false;
                 }
                 anchor = AnchorOf(mark?.Kind ?? NoteAnchors.View, view.Id, view.Name, camera, mark?.Pixels);
@@ -371,7 +370,7 @@ public partial class SketchNotesStep
         }
         catch
         {
-            notesError = "Couldn't send the note. Check your connection and try again.";
+            notesError = "Couldn't send the note. Try again.";
             return false;
         }
         finally { StateHasChanged(); }
@@ -410,7 +409,7 @@ public partial class SketchNotesStep
         }
         catch
         {
-            notesError = "Couldn't send the reply. Check your connection and try again.";
+            notesError = "Couldn't send the reply. Try again.";
             return false;
         }
         finally { StateHasChanged(); }
@@ -429,7 +428,7 @@ public partial class SketchNotesStep
             if (!answer.IsSuccessStatusCode) notesError = await ServerRefusal.SentenceAsync(answer);
             else await LoadNotesAsync();
         }
-        catch { notesError = "Couldn't update the note. Check your connection and try again."; }
+        catch { notesError = "Couldn't update the note. Try again."; }
         finally { busy = false; }
     }
 
@@ -547,7 +546,7 @@ public partial class SketchNotesStep
             if (answer.IsSuccessStatusCode) return await answer.Content.ReadFromJsonAsync<EyePickDto>();
             pickNote = await ServerRefusal.SentenceAsync(answer);
         }
-        catch { pickNote = "Couldn't read the ground under the mark. Check your connection."; }
+        catch { pickNote = "Couldn't read the ground under the mark. Try again."; }
         return null;
     }
 

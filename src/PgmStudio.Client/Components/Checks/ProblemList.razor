@@ -30,7 +30,7 @@
               <i data-lucide="@Glyph(kind)"></i>
             </span>
             <a class="problem-id" href="@($"/rules?rule={Uri.EscapeDataString(row.Rule)}")" target="_blank" rel="noopener"
-               title="@($"Open rule {row.Rule} in a new tab")" @onclick:stopPropagation>@row.Rule<i data-lucide="external-link"></i></a>
+               title="@($"Open rule {row.Rule}")" @onclick:stopPropagation>@row.Rule<i data-lucide="external-link"></i></a>
             <span class="problem-sum" title="@title">@title</span>
             @if (row.Reading is not null)
             {
@@ -61,7 +61,7 @@
                 }
                 @if (rule?.Fix is { } fix)
                 {
-                  <div class="problem-blk"><span class="problem-lbl">What to do</span><p>@RuleWords.Plain(fix)</p></div>
+                  <div class="problem-blk"><span class="problem-lbl">Fix</span><p>@RuleWords.Plain(fix)</p></div>
                 }
               }
               @if (row.Reading is null)

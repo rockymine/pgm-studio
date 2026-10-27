@@ -6,7 +6,7 @@
 
 <ContentColumn MaxWidth="1200">
   <PageHeading Title="Library">
-    <Lead>Patterns, palettes, buildings, trees, and biomes to reuse in any map. Each map keeps its own copy.</Lead>
+    <Lead>@LibraryDefinition</Lead>
   </PageHeading>
 
   @foreach (var (group, slugs) in Groups)
@@ -27,7 +27,7 @@
               }
               else
               {
-                <span class="lib-choice-empty">@(loading ? "Loading…" : $"No {kind.Title.ToLowerInvariant()} yet")</span>
+                <span class="lib-choice-empty">@(loading ? "Loading…" : $"No {kind.Title.ToLowerInvariant()} yet.")</span>
               }
             </div>
             <div class="lib-choice-body">

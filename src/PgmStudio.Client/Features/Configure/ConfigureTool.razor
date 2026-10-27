@@ -30,7 +30,7 @@ else
     <div class="callout configure-notice" role="status">
       <span class="callout-icon"><i data-lucide="@(changedElsewhere ? "refresh-cw" : "triangle-alert")"></i></span>
       <p>@(changedElsewhere
-          ? "Someone else saved this map after you opened it. Reload to see their changes. Edits made here before reloading are not saved."
+          ? "Someone else saved this map since you opened it. Reload to see their changes. Edits made here are not saved."
           : saveMessage)</p>
       @if (changedElsewhere) { <Button Variant="primary" Icon="refresh-cw" OnClick="Reload">Reload</Button> }
     </div>
@@ -41,7 +41,7 @@ else
     @* Hold the phase bodies until the intent has loaded — they read it once on init, so mounting them
        mid-load would capture an empty intent (blank Identity even when the map has a name/authors). *@
     <div class="workspace" @key="@("loading")">
-      <div class="workspace-scroll"><p class="panel-empty-msg">Loading…</p></div>
+      <div class="workspace-scroll"><StatusLine /></div>
     </div>
   }
   else if (Phase.Id == "info")
@@ -80,8 +80,8 @@ else
   {
     <BuildLayerStep @key="@("build-layer")" />
   }
-  @* Keyed on the step label, not its index: sketch-origin maps drop the Monuments step, which
-     shifts Room's index down (ConfigureTool.razor.cs LoadOriginAsync). *@
+  @* Keyed on the step label, not its index: sketch-origin maps drop the Wool monuments step, which
+     shifts Wool room's index down (ConfigureTool.razor.cs LoadOriginAsync). *@
   else if (Phase.Id == "wools" && StepLabel == "Objectives")
   {
     <WoolObjectivesStep @key="@("wools-objectives")" />
@@ -90,11 +90,11 @@ else
   {
     <WoolSpawnStep @key="@("wools-spawn")" />
   }
-  else if (Phase.Id == "wools" && StepLabel == "Monuments")
+  else if (Phase.Id == "wools" && StepLabel == "Wool monuments")
   {
     <WoolMonumentsStep @key="@("wools-monuments")" />
   }
-  else if (Phase.Id == "wools" && StepLabel == "Room")
+  else if (Phase.Id == "wools" && StepLabel == "Wool room")
   {
     <WoolRoomStep @key="@("wools-room")" />
   }
@@ -140,19 +140,11 @@ else
     <Sidebar>
         <Section Title="@Phase.Title">
           <ChildContent>
-          <p class="section-desc">
-            @if (Phase.Steps.Length == 0)
-            {
-              <text>This phase has one step.</text>
-            }
-            else
-            {
-              <text>Step @(step + 1) of @Phase.Steps.Length: <strong>@StepLabel</strong>.</text>
-            }
-          </p>
-          <p class="panel-empty-msg panel-empty-msg--left">
-            This phase isn't available yet.
-          </p>
+          @if (Phase.Steps.Length > 0)
+          {
+            <Readout>Step @(step + 1) of @Phase.Steps.Length: @StepLabel.</Readout>
+          }
+          <EmptyState>No settings in this phase yet.</EmptyState>
           </ChildContent>
         </Section>
     </Sidebar>
@@ -161,7 +153,7 @@ else
 
     <div class="workspace-canvas">
       <div class="canvas-surface canvas-surface--centered">
-        <p class="panel-empty-msg">@Phase.Title · @StepLabel</p>
+        <p class="text-muted">@Phase.Title · @StepLabel</p>
       </div>
     </div>
 
@@ -170,7 +162,7 @@ else
     <Inspector>
         <Section>
           <DetailHeader Icon="@Phase.Icon" IconMuted Label="Inspector" />
-          <p class="section-desc">Nothing to show yet.</p>
+          <EmptyState>No selection yet.</EmptyState>
         </Section>
     </Inspector>
   </Workspace>

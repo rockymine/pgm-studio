@@ -2,7 +2,8 @@ namespace PgmStudio.Domain;
 
 /// <summary>What a room's doorway is filled with. A closed set, not a free material choice: the wool-room
 /// block rule whitelists exactly the materials an attacker may break, so a door made of anything else seals
-/// the cage — an entrance nobody can open, which no gate would catch.</summary>
+/// the cage — an entrance nobody can open, which no gate would catch. A wooden door is the other way in: a
+/// player opens it by hand, so it seals nothing and the rule has nothing to whitelist.</summary>
 public enum DoorMaterial
 {
     /// <summary>An open doorway. The spawn cube's only choice — a player spawning in has to be able to walk
@@ -14,6 +15,12 @@ public enum DoorMaterial
     StainedGlass,
     /// <summary>Stained-glass panes in the room's colour. The shipped cage door.</summary>
     StainedGlassPane,
+    /// <summary>An oak door: two blocks tall, opened by hand.</summary>
+    OakDoor,
+    /// <summary>A spruce door: two blocks tall, opened by hand.</summary>
+    SpruceDoor,
+    /// <summary>A dark oak door: two blocks tall, opened by hand.</summary>
+    DarkOakDoor,
 }
 
 /// <summary>
@@ -31,13 +38,14 @@ public enum DoorMaterial
 public static class DoorMaterials
 {
     /// <summary>One door choice. <paramref name="Coloured"/> takes the room's colour as its damage value;
-    /// <paramref name="PgmMaterial"/> is null for <see cref="DoorMaterial.Air"/> alone — an opening is
-    /// already open, so there is nothing for the filter to permit. <paramref name="Label"/> is the name a
-    /// picker offers it under, here rather than in the client for the reason the rest of the row is: the set
-    /// is served, never restated.</summary>
+    /// <paramref name="Opens"/> marks a door leaf, two blocks tall and opened by hand. <paramref name="PgmMaterial"/>
+    /// is null where a player passes without breaking anything — an opening, which is already open, and a leaf,
+    /// which opens — so there is nothing for the filter to permit. <paramref name="Label"/> is the name a picker
+    /// offers it under, here rather than in the client for the reason the rest of the row is: the set is
+    /// served, never restated.</summary>
     public readonly record struct DoorChoice(
         DoorMaterial Material, string Slug, string Label, int BlockId, bool Coloured,
-        string? PgmMaterial, string? FilterId);
+        string? PgmMaterial, string? FilterId, bool Opens = false);
 
     /// <summary>Every choice, in enum order — the authoring vocabulary, and the order the wool-room filter
     /// emits its breakable leaves in.</summary>
@@ -47,9 +55,13 @@ public static class DoorMaterials
         new(DoorMaterial.Web, "web", "Cobweb", 30, Coloured: false, "web", "__wr-web"),
         new(DoorMaterial.StainedGlass, "stained-glass", "Stained glass", 95, Coloured: true, "stained glass", "__wr-glass"),
         new(DoorMaterial.StainedGlassPane, "stained-glass-pane", "Glass panes", 160, Coloured: true, "stained glass pane", "__wr-pane"),
+        new(DoorMaterial.OakDoor, "oak-door", "Oak door", 64, Coloured: false, null, null, Opens: true),
+        new(DoorMaterial.SpruceDoor, "spruce-door", "Spruce door", 193, Coloured: false, null, null, Opens: true),
+        new(DoorMaterial.DarkOakDoor, "dark-oak-door", "Dark oak door", 197, Coloured: false, null, null, Opens: true),
     ];
 
-    /// <summary>The choices the wool-room block filter has to whitelist — every one that places a block.</summary>
+    /// <summary>The choices the wool-room block filter has to whitelist — every one a player has to break to
+    /// pass.</summary>
     public static IEnumerable<DoorChoice> Breakable => All.Where(choice => choice.PgmMaterial is not null);
 
     public static DoorChoice Of(DoorMaterial material) => All[(int)material];

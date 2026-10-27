@@ -23,7 +23,8 @@ internal static class ThemeLibraryMapping
         new(row.Id, row.Name, row.BedrockRelative, row.BedrockValue, RimEdgeModes.Canonical(row.RimEdges),
             row.WallOnTerrainFaces,
             buckets.Select(b => new ThemeBucketDto(
-                b.Bucket, b.StyleId ?? 0, Slots.BlockOf(b.BlockId, b.BlockData, b.BlockLaid), b.Depth, b.Enabled))
+                b.Bucket, b.StyleId ?? 0, Slots.BlockOf(b.BlockId, b.BlockData, b.BlockLaid), b.Depth, b.Enabled,
+                ThemeLibrary.SoilDtos(b.Soil)))
             .ToList(), row.SeedKey is not null);
 
     /// <summary>A style's card picture, or an empty string for params that do not form a material this build can
@@ -222,7 +223,7 @@ public sealed class ThemeCreateEndpoint(ThemeStore store) : Endpoint<ThemeSaveRe
         {
             Bucket = b.Bucket, StyleId = b.Block is not null || b.StyleId == 0 ? null : b.StyleId,
             BlockId = b.Block?.Id, BlockData = b.Block?.Data ?? 0, BlockLaid = b.Block?.Laid ?? false,
-            Depth = b.Depth, Enabled = b.Enabled,
+            Depth = b.Depth, Enabled = b.Enabled, Soil = ThemeLibrary.SoilColumn(b.Soil),
         });
 }
 

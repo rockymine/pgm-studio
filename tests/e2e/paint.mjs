@@ -30,7 +30,7 @@ const page = await newPage(browser);
 const SURFACES = [
   { name: "sketch", path: `/maps/${seed.sketchSlug}/sketch`, floor: 5, screen: ["groupChrome", "handles", "center", "scale"] },
   { name: "world",  path: `/maps/${seed.mapSlug}/configure`, floor: 1, screen: ["overlay"],
-    enter: (page) => page.click('button.nav-btn[title="World"]') },
+    enter: (page) => page.click('button.nav-btn:has(.nav-btn-caption:text-is("World"))') },
 ];
 
 /** Painted pixels, distinct colours, and an order-sensitive signature of the surface's content. */

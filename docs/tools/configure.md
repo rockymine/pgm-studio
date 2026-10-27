@@ -204,7 +204,7 @@ machine, it also lists the importable world folders under the imports root — a
 server's operator can put a folder on its disk. Next scans the chosen world into MariaDB, which is
 what creates the map row. **Found** is the detection brief over the scanned world: islands, wool blocks,
 monument candidates, resource blocks, chests, spawners, and the detected symmetry with its suggested team
-count, each selectable for a detail explanation. **Plan** hands off to the wizard at Identity.
+count, each selectable for a detail explanation. **Phases** hands off to the wizard at Identity.
 
 A folder carrying a `map.xml` is refused with 422 — it is not a new-map candidate. That is the line between
 a map being configured and a finished one.
@@ -255,20 +255,20 @@ first Next.
 
 ### World — Scan · Islands · Symmetry
 
-Three read-and-confirm steps over the already-scanned world; only Scan's **Replace the world** reads one again.
+Three read-and-confirm steps over the already-scanned world; only Scan's **World replacement** reads one again.
 
 **Scan** is a look at the extracted world on the shared world canvas, with its island-base and surface layer
-toggle. On a map imported from a world it also takes a new download of that world: **Replace the world**
+toggle. On a map imported from a world it also takes a new download of that world: **World replacement**
 fetches the link through the same checks the import makes and reads it over the map's scan
 (`POST /map/{slug}/import-url`). The new world is fetched beside the old one and scanned before anything is
 replaced, and the scan is one write, so a link the import refuses or a scan that fails leaves the map with the
 world it had. What the map states stays as it is: its intent, its document, its notes and its changes. What
 changes is everything read out of the world — the segments every placement check reads, the island outlines,
-the wool, chest, spawner and goal suggestions — and an unconfirmed symmetry, which is dropped to be detected
+the wool, chest, spawner and objective suggestions — and an unconfirmed symmetry, which is dropped to be detected
 again; a confirmed one is the author's answer and stays. Island exclusions and the Teams step's island tags
 are kept by island number, which a new world can renumber, so both steps want walking again. A sketch map has
-no such control: its world is built from its layout. **Islands** is where the strays are excluded — decorative rocks, observer towers —
-selected from the list or by clicking the canvas; excluding one re-runs symmetry detection server-side over
+no such control: its world is built from its layout. **Islands** is where the strays are excluded — decorative rocks, an observer platform — with the *Included*
+and *Excluded* chips on an island selected from the list or by clicking the canvas; excluding one re-runs symmetry detection server-side over
 the already-detected islands rather than touching the world. **Symmetry** confirms the mode and centre: the
 detection is pre-selected and the author clicks another mode, or `none`, only to change it. That choice is the
 World slice, and it is what every later orbit-fill reads.
@@ -280,9 +280,9 @@ source states, and an intent compiled afresh from a plan carries no symmetry and
 compile assigned. Since the World phase's gate is exactly the presence of a confirmed symmetry, a map stored
 that way re-locks the rail behind it until the step is walked once more.
 
-### Teams — Teams & islands · Spawn point · Protection
+### Teams — Teams and islands · Spawns · Protection
 
-**Teams & islands** creates the teams, with the confirmed symmetry suggesting the count (`rot_90` → four,
+**Teams and islands** creates the teams, with the confirmed symmetry suggesting the count (`rot_90` → four,
 everything else → two), sets the shared `maxPlayers`, and tags each island to a team by selecting a team and
 clicking the island, which tints it. The tags are an authoring aid rather than map data: the spawn step reads
 them so a marker takes the team of the island it lands on.
@@ -293,7 +293,7 @@ next, and the row offers only the colours no team holds. Recolouring a team afte
 id, the auto-derived name, the island tags and every `team` or `owner` an intent slice states, wherever it is
 nested. Two teams cannot share an id, so a colour whose id another team already holds recolours alone.
 
-**Spawn point** drops team 0's spawn with the point tool and orbit-fills the rest, reassigning each copy by
+**Spawns** drops team 0's spawn with the point tool and orbit-fills the rest, reassigning each copy by
 the island it actually lands in — so a slightly-off rotation still gives the right team its own spawn. The
 **observer spawn is placed here too**, as a spawn like any other, and it matters because it is the one thing
 no plan authors: a plan puts the observer at the map origin at a computed height and offers no marker, so
@@ -310,10 +310,10 @@ own. A Y typed by hand is the author's and stands.
 team and further rects extend it; authored rects carry a stable id and resize on the canvas, and the symmetry
 orbits them onto the other teams as read-only copies that are listed so the union reads coherently.
 
-### Build — Build height · Buildable layer
+### Build — Build ceiling · Build regions
 
-**Build height** is the Y cap above which nothing may be placed, set on a side-view of the terrain or typed.
-**Buildable layer** draws the over-void bridges as `areas` and the no-build cutouts as `holes` with the
+**Build ceiling** is the world y above which nothing may be placed, set on a side-view of the terrain or typed,
+and left empty there is none. **Build regions** draws the over-void bridges as `areas` and the no-build cutouts as `holes` with the
 rectangle tool. The islands' own terrain needs no rectangle — it is buildable through the void filter — so
 what is drawn here is the crossing: the places a player may bridge a gap. The generator unions the areas,
 subtracts the holes as a complement, and wires the void enforcement over the result (`not-build-area`,
@@ -327,7 +327,7 @@ there — a tree's log and leaves, and every plant the flora overlay scatters. W
 past a coast is sealed for the whole match, since no column out there has a block at y=0. Terrain materials
 are deliberately not in that list: a crag is a shape the author built, and a team may not mine it away.
 
-The **Editable** overlay on the canvas is the read-back of all of it — one colour per column saying what
+The **Buildable** overlay on the canvas is the read-back of all of it — one colour per column saying what
 makes it editable, and `EZ1` on `GET …/editability` naming any patch of standing ground nobody can touch.
 **The void past the map reads sealed, because nothing stands in it.** The break exception lets a canopy over the
 void be cut down, and an empty column has no canopy: a void column no segment of the scan stands in holds nothing
@@ -367,7 +367,7 @@ through, and the spawn kit hands out a stack of each of them in place of wood an
 hands out no block and no digging tool at all. A stated `mode` overrides the default either way
 (`docs/pgm/new-map-authoring.md` §5c). The wizard does not offer the word yet (`TC16`); it is stated on the intent.
 
-### Wools — Objectives · Spawn · Monuments · Room
+### Wools — Objectives · Spawn · Wool monuments · Wool room
 
 The CTW phase, and the one that does the most work on an imported map, because **it reads the world rather
 than asking**.
@@ -387,13 +387,13 @@ empty room list over a saved wool.
 other team captures it at a monument of its own — one capturer on a two-team map, three on a four-team one. The
 step lists each capturing team with its monument beside the defender, and changing the defender re-teams the
 monuments: one takes the team of the island it stands on, on a two-team map one standing where no island has a
-team takes the one team left, and anything else is left without a team for the Monuments step to settle.
+team takes the one team left, and anything else is left without a team for the Wool monuments step to settle.
 
 **Objectives follow the islands.** Reassigning islands after the objectives were confirmed leaves them with their
 old teams, which is how a wool comes to be exported for the wrong team. The Teams step's *Island owners* and the
 Objectives step both say what no longer agrees — a wool defended by another team than the island it spawns on, a
-monument where another team than its own places the wool, a core or destroyable on another team's island — and
-*Move the objectives to these teams* brings them along (`ObjectiveTeams`). The *Wool teams* check and
+monument where another team than its own places the wool, a core or monument on another team's island — and
+*Reassign the objectives* brings them along (`ObjectiveTeams`). The *Wool teams* check and
 every intent save carry the same reading as complaints, `OB34` for a wool without exactly one monument for each
 team but its defender and `OB35` for a wool or monument on another team's island (`WoolTeams.Check`).
 
@@ -403,7 +403,7 @@ by coordinate re-seats it the same way the point tool does, anchored at the wool
 normally sits in a covered room, whose roof would otherwise be the column's topmost surface. Editing the
 anchor team's wool re-derives its symmetric partners; editing an orbit copy nudges that one alone.
 
-**Monuments** confirms one monument per capturing team. The scan usually pre-fills them from signed pedestals;
+**Wool monuments** confirms one wool monument per capturing team. The scan usually pre-fills them from signed wool monuments;
 a gap is filled by drawing a box around a cluster, which routes each hit to its colour's wool with the
 capturing team read off the island. A team that already has a monument on that wool keeps it, so boxing a
 monument that is already placed adds nothing rather than a second for the same team. An empty box drops one
@@ -419,18 +419,18 @@ monument is the block a player puts the wool **into** and so needs two things at
 clear, and a block to place against. A block is placed against **any face** of a neighbour, so all six are
 asked — a monument hung from a ceiling or set into a wall plays exactly like one on a pedestal, and the
 corpus builds all three. `GET /map/{slug}/block-seat` answers off the vertical segments, over the block's own
-column and its four neighbours, and its answers are the sentences the step shows: clear on a pedestal, clear
+column and its four neighbours, and its answers are the sentences the step shows: clear and standing on a block, clear
 and held by the block against it, a block already standing there, nothing on any of the six faces, or a
 column the scan never reached. It reports rather than snapping: the author states the block and the step says
 what it costs. Saving is where it stops being advice: a monument whose block is solid, or that nothing touches,
 is refused when the intent is stored (`OB33`, **422**), off the same read, so a map read from a world never
 exports a monument no wool can be put into. A column the scan never reached is left to the author.
 
-**Room** draws the rectangles the wool lives in — again a union, again orbited onto the partner wools as
+**Wool room** draws the rectangles the wool lives in — again a union, again orbited onto the partner wools as
 read-only copies. A wool with no room still generates its objective and its monuments; what it loses is the
 room region, the spawner and the room wiring.
 
-### Destroyables — Objectives
+### Monuments — Objectives
 
 One step, because a destroyable states less than a core does: what shape it is, what it is built of, and how
 far it floats over the ground solved under its anchor. There is no casing to describe and, like a core, no
@@ -518,7 +518,7 @@ copy's inspector shows what it carries and is read-only, and only the drawn boxe
 
 **Match** states how the match ends, how players respawn and the combat rules (`docs/pgm/match.md` §7), and is
 one form. *Match end* is the *Score limit*, the *Time limit* as PGM writes a duration, and the *Winner at time
-limit*: *Default* (the team furthest along its objectives, then the higher score), *Most objectives*, *Highest
+limit*: *Objectives then score* (the team furthest along its objectives, then the higher score), *Most objectives*, *Highest
 score* or *Tie*. *Respawn* is the *Respawn time*, *Auto respawn*, *Spectate while dead* and the *Lives* a blitz
 gives. *Combat* is *Rage* and the *Kill height* a player falls into the void below. A blank field is the map's
 own default — the score limit the generator derives from the objectives, no time limit, two seconds, no lives,
@@ -632,7 +632,7 @@ case-insensitively, so this never fires on a case difference — only on a `kind
 headless driver, which links that method and speaks no HTTP, is judged by exactly what `GET /export` is
 judged by. The traversability judgement is asked there over the world **this build** writes rather than
 over the segments the last `sketch/finish` stored, which is the same reason `OB17` is: a subtract cut, a
-relief solve or an edit after the finish each move where ground is without re-entering that stage. It is the
+modifier or an edit after the finish each move where ground is without re-entering that stage. It is the
 world and not the terrain the build stood on — a house is walked round and over, not through, a tree's trunk
 is solid, and a pool of lava is crossed a block a column where the document lets a block be placed over
 ground at y=0, and is a wall where it forbids one.
@@ -654,7 +654,7 @@ hand-edited label or a corpus-derived one the export would otherwise ship straig
 **A sketch-origin map's export answers two more 409s, from `MapExportComposer` itself rather than from
 pre-flight.** They exist because `BuildAndCompose` already builds that map's world and holds its resolved
 intent, so it can ask them against the ground the rasterizer actually produced instead of the plan's
-rectangles — the case a subtract cut, a relief solve, or a post-compile sketch edit opens, none of which
+rectangles — the case a subtract cut, a modifier, or a post-compile sketch edit opens, none of which
 re-enters the compile gate, and the case a map begun in Sketch never reaches at all.
 
 - **`OB17`, `OB30` and `OB31` — objective placement**, asked again here the same way the compile gate asks it
@@ -707,12 +707,13 @@ writes: apart from the import and one island toggle, **Configure has exactly one
 | `PUT /map/{slug}/intent` | the whole intent | `{}` — projects it onto the map's document and stores both; an intent the projection refuses is not stored, so a map never holds an intent its document did not take; `warnings` carries any field the intent reader has nowhere to keep (`RQ3`), which is a slice the author stated and the map will not carry. An `If-Match` names the **intent's** revision, which is what `GET …/intent` answered; the projection that follows rewrites the map and is not guarded by it | **400 `RQ1`** a field the binder cannot read (`modes[0]` posted as a word where `modes` takes objects), `field` naming its path and nothing stored · a person named something that is not a name, `field` naming them · a room stating a `footprint`, whose building is its `house`, or a `house` with no wing, a wing that is not two corners, or a style of its own that does not read, `field` naming it · **409 `RQ5`** a stale `If-Match`, or two play pieces stating one `id` · 404 · 422 the stored map will not carry the projection, **`OB32`** a wool stating two monuments for one team, or **`OB33`** on a map read from a world, a monument whose block is solid or touches no block, nothing stored |
 | `GET /map/{slug}/intent/pieces` | — | `[{id, kind, color, minX, minZ, maxX, maxZ, carried}]` — every play piece where the Sketch tool draws it, the symmetry's images included, at the rectangle the move below reads it as standing on | 404 unknown map |
 | `POST /map/{slug}/intent/pieces` | `{kind, minX, minZ, maxX, maxZ, team?}` | `{id}` — adds one play piece and every orbit image of it, as the Sketch tool's Layout step places it (`docs/tools/sketch.md`) | 400 `RQ1` · 404 · 409 · 422 |
-| `PATCH /map/{slug}/intent/pieces/{id}/settings` | `{key, text?, number?, flag?, alone?}` | `{}` — sets one of a piece's settings: a goal's name and structure, a wool's colour, a spawn's facing (`docs/tools/sketch.md`) | 400 `RQ1` · 404 `RQ4` · 409 · 422 |
+| `PATCH /map/{slug}/intent/pieces/{id}/settings` | `{key, text?, number?, flag?, alone?}` | `{}` — sets one of a piece's settings: a goal's name and structure, a wool's colour, a spawn's facing, a control point's pad and capture, which of a piece's stamps run (`docs/tools/sketch.md`) | 400 `RQ1` · 404 `RQ4` · 409 · 422 |
 | `PUT /map/{slug}/intent/pieces/{id}/house` | `{house: {wings, style?}, alone?}` | `{}` — sets a spawn's or a wool room's house whole, the room's wing first, and carries it to every image of the room's unit through the symmetry step, a wing's ridge turning with a quarter turn; `style` absent wears the map's room style and `null` stands no building (`docs/world-export/structures.md` §1) | 400 `RQ1` no wing, a wing that is not two corners, or the room's point outside its wing · `WX2` a wing under 4 blocks across · `WX12` a wing outside the room's region · 404 `RQ4` · 409 · 422 |
 | `GET /map/{slug}/intent/pieces/{id}/doors` | — | `{doors: [{edge, x?, z?}], stated}` — the doors a spawn's or a wool room's house is cut with, in order; `stated` false where the room states none, a spawn then opening on the wall its yaw leans into and a wool on the side of its region its ground gives it (`docs/world-export/structures.md` §1) | 404 `RQ4` |
 | `PUT /map/{slug}/intent/pieces/{id}/doors` | `{doors: [{edge, x?, z?}], alone?}` | `{}` — sets a room's doors whole, each the way its wall faces and the point on that wall it is centred on, or no point for a door centred on its wall, and carries them to every image of the room's unit through the symmetry step | 400 `RQ1` no door, an edge that is not `-z`, `+z`, `-x` or `+x`, half a point, or a point outside the room's region · 404 `RQ4` · 409 · 422 |
+| `PUT /map/{slug}/intent/pieces/{id}/line` | `{points, alone?}` | `{}` — runs an approach wall through its corners, `[[x, z], …]` on block corners, and every image of its unit through them carried by the symmetry step (`docs/tools/sketch.md`) | 400 `RQ1` · 404 `RQ4` · 409 · 422 |
 | `DELETE /map/{slug}/intent/pieces/{id}` | `?alone=true` | `{}` — takes one play piece and every orbit image of it out | 404 `RQ4` · 409 · 422 |
-| `PATCH /map/{slug}/intent/pieces/{id}` | `{part?, minX, minZ, maxX, maxZ, alone?, wing?}` or `{part?, turn, alone?}` | `{}` — moves one play piece, and every orbit image of it, where the Sketch tool dragged it, or turns a room or an area in place, then stores and projects exactly as the whole-intent `PUT` does. `id` is the piece's id: a spawn, a wool, a destroyable, a core, a build area, a water lane, an iron cube, an approach wall, a defence chest, `observer`, or a room's id with `-marker` after it for the room's point — where its team arrives or its wool is dispensed — which moves alone, by whole blocks, inside the room's building or, where none is stated, its region. `part` is absent for the piece itself, the room's own region word (`spawn`, `woolRoom`) for the same, or `building` for the house on a room's region, whose wing `wing` names, counted from 0, the whole house moving with it, or `start` or `end` for one end of an approach wall, which moves alone to the block corner all four bounds state while the other stands, every image moving its matching end the way the symmetry carries the displacement; moving a room's **region carries the room seated on it** — the marker, the building, the iron, the entry interfaces — and moving a goal moves its anchor, its rectangle being the structure centred there; an iron cube, a wall, a chest and the observer move by whole blocks. A placed span differing from the standing one **resizes** a room's region, a build area or a water lane: a room keeps what stands on it at the same fraction across it, every image takes the image of the new rectangle, and a building or a goal refuses a span other than its own. `turn` is quarter turns clockwise seen from above, negative the other way, about the middle of the region — which carries everything on it and turns the doors and the yaw — or of the building alone, or of a build area or water lane, and turns a defence chest the way it fronts; a region whose sides differ by an odd number of blocks is shifted the half block that keeps it on the grid. Every piece of the same kind sharing the piece's stamp is an image of one unit and moves by the displacement turned through the symmetry, turning the same way under a rotation and the other way under a reflection; `alone` moves or turns the named image without the others, and a piece with no stamp — one whose stamp the intent no longer states — always moves alone, except a build area or water lane, whose images are the areas standing where the symmetry carries it. The symmetry is the intent's, or where it states none the board's from the sketch's setup | **400 `RQ1`** a body stating both a rectangle and a turn or neither, a building or a goal placed at a span other than its own, a resize off the block grid or a resized room's marker outside its wing, a region stated as several rectangles, a piece with no such rectangle, a piece that moves by whole blocks moved off them, a piece that is not a room, an area or a chest turned, a `part` the piece does not have, a wall's end stated as a rectangle that spans blocks, off a block corner, or on the wall's other end, a room's point carried outside its room on any image · **400 `WX12`** a building carried or turned off its region on any image · **400 `WX2`** a region resized under 4 blocks across, or a wing of it under 4 · **400 `ST10`** a region resized over 20×30 · **404 `RQ4`** the id names no piece · **409 `RQ5`** a stale `If-Match` · 422 the stored map will not carry the projection |
+| `PATCH /map/{slug}/intent/pieces/{id}` | `{part?, minX, minZ, maxX, maxZ, alone?, wing?}` or `{part?, turn, alone?}` | `{}` — moves one play piece, and every orbit image of it, where the Sketch tool dragged it, or turns a room or an area in place, then stores and projects exactly as the whole-intent `PUT` does. `id` is the piece's id: a spawn, a wool, a destroyable, a core, a control point, a build area, a water lane, an iron cube, an approach wall, a defence chest, `observer`, or a room's id with `-marker` after it for the room's point — where its team arrives or its wool is dispensed — which moves alone, by whole blocks, inside the room's building or, where none is stated, its region. `part` is absent for the piece itself, the room's own region word (`spawn`, `woolRoom`) for the same, or `building` for the house on a room's region, whose wing `wing` names, counted from 0, the whole house moving with it — a wall's corners are set by `PUT …/intent/pieces/{id}/line`; moving a room's **region carries the room seated on it** — the marker, the building, the iron, the entry interfaces — and moving a goal moves its anchor, its rectangle being the structure centred there; an iron cube, a wall, a chest and the observer move by whole blocks. A placed span differing from the standing one **resizes** a room's region, a control point, a build area or a water lane: a room keeps what stands on it at the same fraction across it, a control point takes the longer side as its size centred where the rectangle is, every image takes the image of the new rectangle, and a building or a goal refuses a span other than its own. `turn` is quarter turns clockwise seen from above, negative the other way, about the middle of the region — which carries everything on it and turns the doors and the yaw — or of the building alone, or of a build area or water lane, and turns a defence chest the way it fronts; a region whose sides differ by an odd number of blocks is shifted the half block that keeps it on the grid. Every piece of the same kind sharing the piece's stamp is an image of one unit and moves by the displacement turned through the symmetry, turning the same way under a rotation and the other way under a reflection; `alone` moves or turns the named image without the others, and a piece with no stamp — one whose stamp the intent no longer states — always moves alone, except a build area or water lane, whose images are the areas standing where the symmetry carries it. The symmetry is the intent's, or where it states none the board's from the sketch's setup | **400 `RQ1`** a body stating both a rectangle and a turn or neither, a building or a goal placed at a span other than its own, a resize off the block grid or a resized room's marker outside its wing, a control point resized under 3 or over 15 blocks, a region stated as several rectangles, a piece with no such rectangle, a piece that moves by whole blocks moved off them, a piece that is not a room, an area or a chest turned — a goal and a control point state no facing — a `part` the piece does not have, a room's point carried outside its room on any image · **400 `WX12`** a building carried or turned off its region on any image · **400 `WX2`** a region resized under 4 blocks across, or a wing of it under 4 · **400 `ST10`** a region resized over 20×30 · **404 `RQ4`** the id names no piece · **409 `RQ5`** a stale `If-Match` · 422 the stored map will not carry the projection |
 
 **Getting a world in**
 
@@ -742,7 +743,7 @@ short of a side says so as well.
 | Endpoint | Answers |
 |---|---|
 | `GET /map/{slug}/column-floor?x=&z=` | the floor a marker seats on — what makes a placed point land on terrain. `{y: null}` where the column has no segment data |
-| `GET /map/{slug}/block-seat?x=&y=&z=` | whether one block can hold a thing placed into it: `clear` that nothing stands in it, `pedestal` that something stands directly under it, `scanned` that the column was read at all. What the Monuments step says its verdict from |
+| `GET /map/{slug}/block-seat?x=&y=&z=` | whether one block can hold a thing placed into it: `clear` that nothing stands in it, `pedestal` that something stands directly under it, `scanned` that the column was read at all. What the Wool monuments step says its verdict from |
 | `GET /map/{slug}/segments[?axis=&xmin=&xmax=&zmin=&zmax=]` | the vertical section through the world along one axis — what the side view draws. 404 when the map has no segments |
 | `POST /map/{slug}/wool-sources` | wool colours and their source clusters inside a drawn rectangle |
 | `POST /map/{slug}/resources` | the iron, gold and diamond blocks — optionally inside a drawn rectangle, the same `bounds` object — and how many of them a declared `<renewable>` already covers |
@@ -751,7 +752,7 @@ short of a side says so as well.
 | `GET /map/{slug}/core-suggestions[?box=]` | the detected casings, plus the generator's casing defaults. The box is optional and narrows the list; one that is stated and cannot be read is refused (`RQ1`, `field: box`) rather than skipped, because skipping it answers every casing the map has and reads as the volume holding them all |
 | `GET /map/{slug}/destroyable-suggestions[?box=]` | the destroyables the scan proposed, each carrying the two readings it was proposed on — `sameNearby` and `elevation` — beside the generator's defaults and the style and material vocabularies. About two in three are real, which is why the step confirms rather than applies |
 | `GET /map/{slug}/flag-suggestions` | every banner the scan found — position, wall or standing, the yaw a post there takes, base dye and patterns — beside the King of the Flag defaults (points rate, carrier, carrier hearts, score limit). A banner is where a flag may start, since PGM loads none without one (`docs/world-scan/objective-suggestion.md` §6) |
-| `GET /map/{slug}/origin` | whether the map came from a sketch — which drops the Monuments step |
+| `GET /map/{slug}/origin` | whether the map came from a sketch — which drops the Wool monuments step |
 
 ### Asking whether the map can be played
 

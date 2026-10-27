@@ -12,12 +12,14 @@
 
 import { toRing } from "./shape.js";
 import { pointInRing } from "./polygon.js";
+import { applySymmetry, orbitAxes } from "./symmetry.js";
 
 const key = (x, z) => `${x},${z}`;
 
-/** The block cells a single shape covers: bbox of its ring, kept where the cell centre is inside it. */
-function rasterShapeCells(shape) {
-  const ring = toRing(shape);
+/** The block cells a single shape covers: bbox of its ring, kept where the cell centre is inside it. `turn`
+ *  moves the ring first — an orbit image is the shape turned and then rasterized, as the server does it. */
+function rasterShapeCells(shape, turn) {
+  const ring = turn ? toRing(shape).map(([x, z]) => turn(x, z)) : toRing(shape);
   if (ring.length < 3) return [];
   let minX = Infinity, minZ = Infinity, maxX = -Infinity, maxZ = -Infinity;
   for (const [x, z] of ring) {
@@ -34,13 +36,13 @@ function rasterShapeCells(shape) {
 /**
  * The solid footprint of a shape group as a Set of `"x,z"` cell keys. Mirrors the server's 4-step set
  * algebra: normal add/subtract, then override add/subtract applied last (immune to / cutting through the
- * normal ops). Mirror copies are the host's concern and not applied here — this is the primary footprint.
+ * normal ops). This is one footprint; `rasterizeBoard` adds the symmetry images.
  */
-export function rasterizeShapes(shapes) {
+export function rasterizeShapes(shapes, turn = null) {
   const add = new Set(), sub = new Set(), oadd = new Set(), osub = new Set();
   for (const shape of shapes ?? []) {
     if (shape.role) continue;   // structural annotation — not terrain, never rasterized
-    const cells = rasterShapeCells(shape);
+    const cells = rasterShapeCells(shape, turn);
     if (shape.operation === "subtract") {
       const set = shape.override ? osub : sub;
       for (const [x, z] of cells) set.add(key(x, z));
@@ -57,28 +59,18 @@ export function rasterizeShapes(shapes) {
 }
 
 /**
- * Merge a Set of `"x,z"` cell keys into horizontal runs `{ x, z, w }` (one fillRect each), so painting the
- * footprint is a few hundred rects instead of one per block. Rows are swept left→right; a gap closes a run.
+ * Every cell the board's ground covers: the primary footprint, and each image of every group that mirrors under
+ * the map's symmetry — the group's shapes turned onto that image and rasterized, the way `SketchRasterizer` fans
+ * a group with `mirrors` set. A group that does not mirror stands once.
  */
-export function cellRuns(cells) {
-  const byRow = new Map();
-  for (const k of cells) {
-    const comma = k.indexOf(",");
-    const x = parseInt(k.slice(0, comma), 10), z = parseInt(k.slice(comma + 1), 10);
-    let row = byRow.get(z);
-    if (!row) { row = []; byRow.set(z, row); }
-    row.push(x);
+export function rasterizeBoard(shapes, groups, mode, cx = 0, cz = 0) {
+  const cells = rasterizeShapes(shapes);
+  const byId = new Map((shapes ?? []).map(shape => [shape.id, shape]));
+  for (const group of groups ?? []) {
+    if (!group.mirrors) continue;
+    const members = (group.shapeIds ?? []).map(id => byId.get(id)).filter(Boolean);
+    for (const axis of orbitAxes(mode))
+      for (const cell of rasterizeShapes(members, (x, z) => applySymmetry(x, z, axis, cx, cz))) cells.add(cell);
   }
-  const runs = [];
-  for (const [z, xs] of byRow) {
-    xs.sort((a, b) => a - b);
-    let start = xs[0], prev = xs[0];
-    for (let i = 1; i < xs.length; i++) {
-      if (xs[i] === prev + 1) { prev = xs[i]; continue; }
-      runs.push({ x: start, z, w: prev - start + 1 });
-      start = prev = xs[i];
-    }
-    runs.push({ x: start, z, w: prev - start + 1 });
-  }
-  return runs;
+  return cells;
 }

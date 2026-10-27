@@ -27,6 +27,9 @@ public static class PlayPieceKinds
     /// <summary>An iron cube.</summary>
     public const string IronCube = "ironCube";
 
+    /// <summary>A control point: a pad a team holds by standing on it.</summary>
+    public const string ControlPoint = "controlPoint";
+
     /// <summary>A bedrock approach wall.</summary>
     public const string Wall = "wall";
 
@@ -43,5 +46,5 @@ public static class PlayPieceKinds
     public const string WoolSpawn = "woolSpawn";
 
     /// <summary>Every kind.</summary>
-    public static readonly string[] All = [Spawn, WoolRoom, Destroyable, Core, BuildArea, WaterLane, IronCube, Wall, Chest, Observer, SpawnPoint, WoolSpawn];
+    public static readonly string[] All = [Spawn, WoolRoom, Destroyable, Core, BuildArea, WaterLane, IronCube, ControlPoint, Wall, Chest, Observer, SpawnPoint, WoolSpawn];
 }

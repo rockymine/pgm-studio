@@ -34,7 +34,7 @@ else
                     else
                     {
                         <span class="editor-menu-item" role="menuitem" aria-disabled="true"
-                              title="@(map is null ? failed ? "The studio did not say what this map holds" : "Checking what this map holds…" : $"No {label.ToLowerInvariant()} yet")">@label</span>
+                              title="@(map is null ? failed ? "Unknown for this map" : "Checking this map…" : $"No {label.ToLowerInvariant()} yet")">@label</span>
                     }
                 }
             </div>

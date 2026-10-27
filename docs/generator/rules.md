@@ -568,7 +568,7 @@ the stat corpus.
   palette is **3–19** and the 137 measured land-interface deltas are even by construction: histogram Δ0 ×47,
   Δ2 ×73, Δ4 ×10, Δ6 ×4, Δ8+ ×3. **The consequence is what the rule is for**: on a board built from that
   palette every non-flush seam is a step nobody walks, so the seam wants a ramp or a flight carved into it by
-  the relief, and the lint's output is the work list for that pass rather than a fault to redraw around.
+  the terrain, and the lint's output is the work list for that pass rather than a fault to redraw around.
   `SP8` and `WL11` are this same reading asked at the two seams where the step decides a match; a seam either
   of them speaks for is theirs, so one seam is named once.
 
@@ -587,13 +587,13 @@ the stat corpus.
   levels, only outlines.
 - **EL5 [corpus; amendment 2026-08-14]** Cliffs (one-way drops) are made by **terrain, not by an
   annotation**. A drop is whatever the ground does at a seam — a plan states a surface per piece and
-  the relief carves the rest, so a cliff is a consequence of two heights meeting, never a mark. The
+  the terrain carves the rest, so a cliff is a consequence of two heights meeting, never a mark. The
   only interface a plan authors deliberately is a **wall** (`walls`), which stamps a structure; a
   `cliffs` list was authored, read by nothing but the lint that demanded it, and is deleted. The
   corpus reading it produced is kept below as measurement.
 - **EL6 [expert]** **Cliff qualification** — what separates a real cliff from a stepped path edge. It is
-  read off a **solved surface**, where a face's width and drop are measured on the ground rather than
-  declared, which is what `ReliefReadback` applies. A cliff (a) cuts the **full width of a lane**,
+  read off the **built surface**, where a face's width and drop are measured on the ground rather than
+  declared. A cliff (a) cuts the **full width of a lane**,
   (b) is **≥10 blocks** wide, and (c) carries **Δ≥6**, *or* a shallow **Δ4 that walls a pit**
   (EL7's opposing-cliff geometry) with no gentle bypass — a lone Δ4 dead-end step-up is just a
   staircase edge, however wide. Of the corpus's 17 Δ≥4 seams this reproduces the author's
@@ -691,9 +691,9 @@ disagree with the one that runs.
   the same rule, whether it stands beside a spawn room or alone on a piece that carries none: the
   cube fits inside the piece it rides or the marker resolves unplaceable (`WX9`) and nothing is
   stamped for it.
-- **ST4 [corpus; amendments 43, 58]** *Pre-built wall*: a line between two block corners, **2 blocks thick**
-  across it at any angle, **three courses of bedrock** over the ground it crosses — measured from the surface
-  the **relief solved**, not the surface the plan drew the approach at — over solid bedrock down to y=0, and
+- **ST4 [corpus; amendments 43, 58, 60]** *Pre-built wall*: a line through two or more block corners, **2 blocks
+  thick** across every leg at any angle, **three courses of bedrock** over the ground it crosses — measured from the surface
+  the **built terrain**, not the surface the plan drew the approach at — over solid bedrock down to y=0, and
   nothing over the bedrock. The top is **one level across the whole run**, taken from the **highest** ground
   the wall crosses: a top that followed the ground per column would step with it and read as a curved wall,
   and a top taken from the average buries the wall wherever the ground rises past it. Ground that falls away
@@ -842,8 +842,8 @@ between its two exits rather than at one of them.
     place — the EL6 lint it silenced — and no compiler, composer or stamper ever read it, so the
     annotation could not change the map it described. A cliff is what the terrain does where two
     surfaces meet; the only interface a plan authors on purpose is a wall. EL6's qualification
-    survives as the reading `ReliefReadback` takes off a solved surface, and its corpus
-    measurements are kept.
+    survives as a reading of the built surface, and its corpus
+    measurements are kept (`world-scan/terrain-steepness.md`).
 13. **Distance is the walk, not the line (2026-08-15).** Author's call, settling `B212`: every distance
     in these rules is traversal over the walkable surface. It changes no rule text — `WL9` and `WL10`
     already read "traversal distances" and "by surface traversal", and `WoolWoolDistance`'s docstring
@@ -860,7 +860,7 @@ between its two exits rather than at one of them.
 14. **The build ceiling is measured, and measured on the terrain (2026-08-15).** Author's call, closing
     `B104`'s cause. `G6` asks for **≥20 blocks of build clearance above the
     island surface**; what was never stated is *which* surface, and every implementation so far had answered
-    with the plan's nominal `surface` — a flat number the relief solve abandons, which is how boards came out
+    with the plan's nominal `surface` — a flat number the terraforming abandons, which is how boards came out
     with a ceiling under their own terrain and a destroy goal stamped above it. The rule is now: the cap is
     **the highest terrain column the world actually builds, plus 20**, at the floor of `G6`'s band rather than
     in the middle of it, for `G6`'s own second reason — a generous cap over flat terrain is the sky-layer
@@ -907,8 +907,7 @@ between its two exits rather than at one of them.
     being unraised: `GET /api/rules` answers the layout rules a plan lint, an evaluator term or a
     producibility finding can name — 34 of the 92 here — and `RulesEndpointTests` holds that set to the
     source in both directions. `BZ1` and `PC-S` left the file, both having said only that they were
-    superseded, and `EL6` lost the account of its retirement as a lint and keeps the cliff qualification
-    `ReliefReadback` applies.
+    superseded, and `EL6` lost the account of its retirement as a lint and keeps the cliff qualification.
 
 20. **The walk is octile, and it is one walk (2026-08-23).** Author's call, settling `B246`. Amendment 13
     settled that a distance is a walk and left the walk itself to each caller, and fourteen of them had
@@ -941,7 +940,7 @@ between its two exits rather than at one of them.
     door and complains at Δ≥2; nothing asked the same of a wool room, though the seam an attacker arrives
     across is met at the end of the run that decides the map. No existing rule changes: `WL11` is `SP8`'s
     reading applied to a room that has no facing, so every entry interface is the egress rather than the
-    ones ahead of a door. The relief half of `B244` — a Δ the terrain creates under two pieces that declare
+    ones ahead of a door. The terrain half of `B244` — a Δ the terrain creates under two pieces that declare
     the same surface — is closed by construction rather than linted: a structural room the author has not
     corrected is seated on the ground outside its own doors, so the plan number can no longer leave a room
     in a pit. A Δ≥2 face between two ordinary pieces stays unlinted, being a design element as often as a
@@ -1262,7 +1261,7 @@ same commit.
 43. **`ST4`: the wall's height is the ground's, not the plan's (2026-09-21).** Reported by the author off
     `opus5c-emberhowe`, where the wall was **under the terrain it was meant to bar**. `PlanCompiler` set
     `topY` from `approach.Surface` — the number the *piece* was drawn at — and the stamper laid bedrock to
-    it, so a relief that lifted the seam left the barrier buried while its own defence chest stood correctly
+    it, so terrain that lifted the seam left the barrier buried while its own defence chest stood correctly
     on the ground above, because the chest reads the solved surface and the wall did not. On that board the
     bedrock stopped at y11 under ground at y12–13. `StructureStamper.StampWall` now takes the solved surface
     the way every other stamper in `StampStructures` already did, and `topY` is kept as the plan tier's
@@ -1351,3 +1350,7 @@ same commit.
     most ground meets, the side facing the middle on a tie, and an author places the rest. A door whose
     doorstep is void is a complaint. On a sketched board `WL11` asks the step only at the sides a door opens
     through.
+60. **`ST4`: a wall bends at its corners (2026-10-26).** Author's call. A wall runs through two or more block
+    corners, laid two blocks thick along every leg with the blocks round each bend filled, so one wall can follow
+    a shore or turn round a corner of a lane. Its height rule and the four-course cap are unchanged, and the seam
+    rules (`PL17`, `ST8`, `ST11`) ask a bent wall as the line between its ends, which is the approach it bars.

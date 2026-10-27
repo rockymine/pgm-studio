@@ -41,7 +41,7 @@ await download.click();
 const problems = page.locator(".problems-pop");
 await problems.waitFor({ timeout: 180000 });
 const button = (await page.locator(".problems-btn").first().textContent()) ?? "";
-checks.add("the problems button says the map can't be downloaded", button.includes("Can’t download"), button.trim());
+checks.add("the problems button says the map can't be downloaded", button.includes("Download blocked"), button.trim());
 const said = (await problems.textContent()) ?? "";
 checks.add("the refusal is the export's own sentence", said.includes("spawn"), said.trim());
 checks.add("nothing is saved", unexpected === null, unexpected ?? "");

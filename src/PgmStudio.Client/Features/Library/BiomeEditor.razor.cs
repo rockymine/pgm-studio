@@ -50,7 +50,7 @@ public partial class BiomeEditor
 
     private string Kinds => drawn["kind"]?.GetValue<string>() ?? BiomeKinds.Solid;
 
-    private IReadOnlyList<EditorPart> Outline => [new(FieldPart, "Layout", "sun")];
+    private IReadOnlyList<EditorPart> Outline => [new(FieldPart, "Biomes", "sun")];
 
     protected override async Task OnParametersSetAsync()
     {
@@ -97,7 +97,7 @@ public partial class BiomeEditor
     {
         if (await Library.GetAsync<BiomePatternSummary>(Kind, id) is not { } row)
         {
-            note = "Couldn't load this biome. Reload the page to try again.";
+            note = "Couldn't load the biome. Reload the page to try again.";
             return;
         }
         (editingId, draftName) = (row.Id, row.Name);
@@ -190,7 +190,7 @@ public partial class BiomeEditor
         var saved = editingId is { } id
             ? await Library.UpdateAsync<BiomeSaved>(Kind, id, request)
             : await Library.CreateAsync<BiomeSaved>(Kind, request);
-        if (saved is null) { note = "Couldn't save this biome. Try again."; return; }
+        if (saved is null) { note = "Couldn't save the biome. Try again."; return; }
         note = editingId is null ? "Added to the library." : "Saved.";
         await OnSaved.InvokeAsync("saved");
         if (editingId is null) Nav.NavigateTo($"/library/{Kind.Slug}/{saved.Id}");
@@ -201,7 +201,7 @@ public partial class BiomeEditor
     {
         if (await Library.CreateAsync<BiomeSaved>(Kind, Draft($"{draftName.Trim()} copy")) is not { } saved)
         {
-            note = "Couldn't save a copy of this biome. Try again.";
+            note = "Couldn't save a copy of the biome. Try again.";
             return;
         }
         await OnSaved.InvokeAsync("copied");
@@ -217,7 +217,7 @@ public partial class BiomeEditor
     {
         if (editingId is not { } id) return;
         if (await Library.DeleteAsync(Kind, id) is { Deleted: false })
-        { note = "Couldn't delete this biome. Try again."; return; }
+        { note = "Couldn't delete the biome. Try again."; return; }
         Nav.NavigateTo($"/library/{Kind.Slug}");
     }
 }

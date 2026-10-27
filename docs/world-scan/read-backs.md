@@ -196,7 +196,7 @@ no route**; it is slower, so it doubles the distance of the cells it covers.
 
 `aim` picks which of those the route minimises. `travel` takes the shortest way and reports what it costs to
 build; `reach` takes the way asking for the fewest placed blocks and reports how far round it goes. **They
-disagree on any board worth the question** — on a 60×140 test board with a relief ridge across it, travel
+disagree on any board worth the question** — on a 60×140 test board with a ridge across it, travel
 walks 121 blocks placing 41, and reach walks 144 placing 24.
 
 **`comfort` is the third, and it exists because standoff costs distance.** Both aims above break a tie by
@@ -265,6 +265,10 @@ because a sum charges a longer route for its own length and would rank a safe de
 avoids. `comfort` has no field of its own — the bound is the journey's own length, so it is answered between
 two cells; `render/walk?aim=comfort` shades the travel field and draws the comfort route on it, which is the
 pairing that shows what the standoff bought.
+
+**`walk` goes through carved space.** It reads the built world's own spans, so a carve's floor is a place to
+stand like any storey's: a Tunnel through a hill that is a wall from edge to edge is walked with no block placed,
+where without it the same journey pillars the wall (`CarveWorldTests`).
 
 **`walk` also says which storey it stood on at every place, which steps it left a walk for, and what stands
 beside it.** `places` carries the route's own `y` at each cell — the storey the walk chose, not the ground a
@@ -380,7 +384,7 @@ diff is usually already built, and a diff between two changes nobody has read pa
 
 **After every store a drive asks the same thirty-odd questions, and the report asks them in one request.**
 `GET /map/{slug}/report` builds the board once and answers, in the order a reader meets them: the findings,
-the plan's grid and flow, the relief, what the build declined, pre-flight, coverage, the heightmap, the slopes,
+the plan's grid and flow, what the build declined, pre-flight, coverage, the heightmap, the slopes,
 reach, a section along each axis through the middle of the board, a transect each way through every spawn,
 goal, house, fluid, boulder and made thing, a walk from every spawn to every goal, the theme census, the
 dressing's claims, the seats for a tree, a boulder and a nine-by-seven house, and the void scan. On the
@@ -389,8 +393,8 @@ deployed studio, where a build waits its turn one caller at a time, that is one 
 **Every reading names the route that answers it alone, and is that route's answer.** A reading is made by the
 same call its own route makes, with the words the report writes beside it — `transect?points=-37,-28;-21,-28&beside=2&format=text`
 — so it can be asked again on its own, and the two cannot say different things. A posted read is named
-`POST …` and answers the same when posted the stored layout. The five readings whose own routes answer JSON —
-the findings, the relief, the declines, pre-flight and coverage — are written as lines here, from the same
+`POST …` and answers the same when posted the stored layout. The four readings whose own routes answer JSON —
+the findings, the declines, pre-flight and coverage — are written as lines here, from the same
 call. A reading that cannot be made carries `missing` and the reason in place of its text: a map stored
 without a plan has no grid.
 
@@ -622,10 +626,10 @@ cell, water at twice the walk; lava is not stood in, so a lava bed is no footing
 footing. A flat list of swatches cannot say that, and a reader given one reads the hue as a class and the
 class as a hue.
 
-`heightmap` answers whether a relief solved into the shape it was drawn as, and shows a flat pad butted
+`heightmap` answers whether the ground came out in the shape it was drawn as, and shows a flat pad butted
 against a hill as the ruled edge it is. Its text twin answers the same question as characters rather than
 tone: a neighbour's height is a subtraction rather than an estimate, and the houses, halls, fluids, spawns
-and goals overprinted on it say what the relief carries rather than leaving a reader to guess from shape
+and goals overprinted on it say what the ground carries rather than leaving a reader to guess from shape
 alone. `surface` answers whether a board's paint is the palette it was authored from — a whole tone family
 taken where two members were meant reads as the noise it is. `mirror` answers whether a board somebody
 believes is symmetric actually is, and **the fold it compares against is the layout's own**
@@ -635,7 +639,7 @@ that one fans the *intent* (a spawn, a goal) and a board compiled from a plan le
 taking it first answers `none`, compares every column with itself and reports a board that does not fold as
 perfectly folded — the one read built to catch an asymmetry, silent on the boards it was built for.
 
-`slopes` answers where a relief is too steep to be crossed for free, the way `heightmap` answers its overall
+`slopes` answers where the ground is too steep to be crossed for free, the way `heightmap` answers its overall
 shape: a cliff reads as a line of `#`, a ramp as a band of `.` running through it, and ground graded past
 what a player can scramble up reads as a page of `#` rather than one count with nowhere to check it. Its
 faces name the barrier runs worth walking to in-game, largest first.

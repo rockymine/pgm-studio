@@ -7,7 +7,7 @@
 
 @if (Entries is { Count: > 0 })
 {
-  <div class="board-key" aria-label="Colours on the boards">
+  <div class="board-key" aria-label="Colour key">
     @foreach (var entry in Entries)
     {
       <span class="board-key-item" @key="entry.Label">

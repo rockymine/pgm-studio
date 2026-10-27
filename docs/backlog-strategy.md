@@ -219,7 +219,7 @@ server-side reaches no editor, why three room-style fields have no control, and 
 authorable only over HTTP. `C51`. Four of it have landed. `B260`: the six room-style fields
 the editor could not reach are controls now, and the load that wrote them away goes through the one mapping
 that states them all. `B200`: the Theme phase's layered form wrote a shape the reader had to carry forward,
-and carrying it forward is what pinned every stack to `repeat` — it writes the wire shape now, so a ring stack
+and carrying it forward is what pinned every stack to `hold` — it writes the wire shape now, so a ring stack
 is authorable. And `B261`: the material editor reads `GET /api/terrain/patterns` for the kinds, their names,
 their help, their fields and their defaults, so a kind added server-side is offered with a seed that works and
 `laidLog` stopped silently becoming a stone block. And `WE54`: the biome the export writes had a route and no
@@ -318,12 +318,10 @@ defect rather than the bound.
 
 **A budget for pressure was declined outright (author, 2026-09-08).** `S47` asked what share of a board a
 relief may charge, and the answer is that there is no such number: a median is not a target, and one score
-over a whole surface ranks every deliberate barrier as a defect — which is the argument `relief.md` §2 already
-makes about walkability scores, turned on the readback. What judges a relief is a named rule on one measure
-with a corpus-calibrated threshold, and two of those shipped while the entry sat: `RL2` for elevation never
-graded, `RL5` for elevation graded everywhere with nowhere to stand. Nothing referenced `S47` in `src/`,
-`tools/` or `tests/`, and its measurements were never in it — `relief.md` §12 holds them, under the rule that
-keeps a corpus reading whatever happens to the design around it. Its one live idea, the detour factor between
+over a whole surface ranks every deliberate barrier as a defect — which is the argument about walkability scores turned on a terrain read. What judges ground is a named rule
+on one measure with a corpus-calibrated threshold. Nothing referenced `S47` in `src/`, `tools/` or `tests/`, and
+its measurements were never in it — `world-scan/terrain-steepness.md` holds them, under the rule that keeps a
+corpus reading whatever happens to the design around it. Its one live idea, the detour factor between
 key places, moved to `world-export/ideas.md` beside `WE108`, which asks the same question of dressing.
 
 **And one left because the boards it was about no longer compile (author, 2026-09-08).** `TS88` asked for 54
@@ -371,7 +369,7 @@ answers cost is worth recording, because it is not what the board's shape sugges
 | question | answer | what it left |
 |---|---|---|
 | `C11` — is the Edit tool kept? | **no** | the entry withdrawn, and `TE3` — retire the tool — filed in its place. `TE2` went with it |
-| `WE28` — how is a relief keyed? | **layer + group** | work: the pairing becomes structural rather than a global id an author keeps unique by hand |
+| `WE28` — how is a relief keyed? | **layer + group** | retired with the relief: a modifier carries an id of its own (`pgmvox-port.md`) |
 | `WE48` — the floor on a brush? | **2** | work. A guard against a brush finer than the blocks it paints, not a style rule — every board on the shelf passes |
 | `B144` — height against paint? | **delegated** | ruled below, on `TS23`'s precedent |
 | `B70` — which view on a card? | **the section, as it is** | the entry withdrawn: an author knows a house by name, and the one worth looking at is a click from a 3-D view |
@@ -450,7 +448,7 @@ relocation. What went instead was the hygiene population — `C12`, `C14`, `CV12
 — which the previous reading had scheduled as a phase to *gate* rather than to delete.
 
 The reorganisation that followed supersedes the relocation and is the better answer. Each roadmap entry now
-sits under the foundation it spends rather than in a bucket of its own, so `S46` reads beside the relief
+sits under the foundation it spends rather than in a bucket of its own, so `S46` reads beside the terrain
 entries whose model it needs. A capability with no end condition is legible when it is filed against the
 thing that would make it possible, and unreadable in a list of its peers.
 The cost is that a section's length no longer says how much *work* is in it, which is what the split above is

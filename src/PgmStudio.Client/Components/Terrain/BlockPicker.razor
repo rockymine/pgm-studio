@@ -13,13 +13,16 @@
   <div class="block-picker-row">
     <span class="block-chip" style="--swatch: @Hex" title="@Name"></span>
     <Select Options="Offered" Value="@SelectedKey" ValueChanged="ChooseBlock" />
-    <CoordField Prefix="id" Type="number" Value="@Id" OnChange="SetId"
-                min="0" step="1" title="Block ID" />
-    @if (ShowColors)
-    {
-      <CoordField Prefix="data" Type="number" Value="@Data" OnChange="SetData"
-                  min="0" max="15" step="1" title="Data value (for example, the colour)" />
-    }
+    @* The pair wraps as one: an id on the name's line and its data alone under it read as two settings. *@
+    <span class="block-picker-pair">
+      <CoordField Prefix="ID" Type="number" Value="@Id" OnChange="SetId"
+                  min="0" step="1" />
+      @if (ShowColors)
+      {
+        <CoordField Prefix="Data" Type="number" Value="@Data" OnChange="SetData"
+                    min="0" max="15" step="1" />
+      }
+    </span>
   </div>
 
   @if (ShowColors && Family is not null)

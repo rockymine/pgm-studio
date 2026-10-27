@@ -22,6 +22,18 @@ about which section the entry sits in — the retired prefixes still on entries 
 
 ## Parked from the programme
 
+- [ ] **TC23 — A world uploaded with its `map.xml`.** *Parked (author): skipped for the time being.* `POST /map/upload` takes a zip of a world's `region/` and
+  its `map.xml` from any member, refused over a size cap, scanned as `import-url` scans; the stamps run over it
+  on export. The `map.xml` is read into an intent, on the author's call: teams, spawns, wools, monuments, cores,
+  control points and build regions become intent pieces, configured in Configure as a world read from a scan is
+  (D13), and what the studio cannot state is refused by name (`docs/tools/configure.md`, `docs/tools/flow.md`).
+
+- [ ] **TS212 — Dragging a solid out in the dock.** *Parked (author): not yet.* The dock draws a rectangle, polygon, polyline or lasso, and a
+  solid is made by reading a drawn footprint with the inspector's Form row. Add dock tools that drag out a box,
+  wedge, cylinder, sphere or torus with the form already chosen (`SketchTool.razor`, `asSolid` in
+  `geometry/shape.js`, `addShape` in `sketch-bridge.js`), and inspector rows for an arch's rock `thick`, its easing
+  powers and its `camber`, stated over the API today (`docs/tools/sketch.md`, *Solids*).
+
 - [ ] **TS190 — A place states the numbers it is held to.** *Parked (author): agent-facing, and the rule measures already band a distance.* A place carries targets — a value and the band it
   must fall in — and each is measured off the sketch's ground and shown beside its band, a miss as a complaint,
   as pgmvox's checker prints one line per number (`freeform/lib/AGENT-GUIDE.md` § the plan). The walks the
@@ -61,8 +73,8 @@ about which section the entry sits in — the retired prefixes still on entries 
 - [ ] **TS130 — Point edits and bends reach every outline.** *Parked (author): tangled with how land is made,
   which the pgmvox port's Phase 2 redesigns; picked up when that work needs it.* `editShapes` and
   `bendShapes` address a shape's `vertices` alone (`SketchGeometryEdit.Outline`), where `outlines` already
-  writes a relief `area` mark's and a push's `ring` and a stroke's, fluid's or flora's `points`
-  (`Refinement.Outlined`). Both reach those three, each refused where an edit folds the ring.
+  writes a stroke's, fluid's or flora's `points`
+  (`Refinement.Outlined`). Both reach those, each refused where an edit folds the ring.
   `docs/tools/flow.md`.
 
 - [ ] **C104 — Where a sketch's layers live.** *Parked (author): deciding the direction themselves.* The
@@ -81,12 +93,13 @@ about which section the entry sits in — the retired prefixes still on entries 
 
 The guided wizard at `/maps/{id}/configure` (UI label **Configure**) that builds a map from declarative
 intent (`docs/pgm/new-map-authoring.md`; backend + every page-order step are landed —
-`FEATURES.md`). **Leave the existing Edit editor untouched** — a separate surface, not a refit.
+`FEATURES.md`).
 
 - [ ] **RP121 — A wool room the world builds is held to the room cap too.** `WX13` asks only a spawn room
-  (`WorldBuilder.OversizedRoom`, one call at `WorldBuilder.cs:210`), so a wool room whose protection Configure
-  redrew past 20 by 20 blocks builds with no finding, while `ST9` reads only the plan. The wool room loop calls
-  the same check, and `WX13`'s text names wool rooms beside spawn rooms. `docs/refusals.md`.
+  (`WorldBuilder.OversizedRoom`, one call at `WorldBuilder.cs:232`), so a wool room whose protection Configure
+  redrew past 20 by 20 blocks builds with no finding, while `ST9` asks only of a building the intent states
+  (`IntentCheck`). The wool room loop calls the same check, and `WX13`'s text names wool rooms beside spawn
+  rooms. `docs/refusals.md`.
 
 **A monument sits inside its capturing team's spawn, and that settles which map each entry is about**
 (author; `docs/design-decisions.md`). The studio's own maps derive it — `WorldBuilder` fills the location
@@ -99,19 +112,13 @@ never gets to choose on either kind.
 answerable over the API; what neither has is a step, so `TC7` and `TC9` sit with the surface that owes
 them one rather than with the contract work that shipped them.
 
-- [ ] **TC13 — An export with nothing in it is refused.** `GET /map/{slug}/export` on a map holding only a plan
-  (no intent, no sketch, no world) answers 200 with a five-line `map.xml`: name, an empty version, the
-  gamemode and an empty objective. EX1/EX2 gate only intent-authored maps, so nothing refuses it. Refuse it
-  in `MapExportLoader` with a finding that names what is missing (no game settings and no world), and the
-  matching `/xml` route the same way. `docs/tools/configure.md` § export gate.
-  *Evidence: `GET /api/map/composed-p12-t2-0/export` on a plan-stage map, 200, 144 bytes.*
-
 - [ ] **TC7 — The configure tool cannot place a hill.** The API is the way in — an agent adds
   `controlPoints` to the intent it already posts (`docs/pgm/control-points.md` §9) — and the wizard has no
   step for it. What the step states is a count and the anchors; the tuning is one shared block and already
   has its answer (`capture-time="5s"`, `points="1"`, `<score><limit>750</limit></score>`), so the step fills
-  it rather than asking. The anchors are the plan's to derive and it does (`FEATURES.md`), so the step asks
-  for a count on a board with no plan behind it and shows what the plan already worked out on one with.
+  it rather than asking. The anchors are derived when a plan is compiled (`FEATURES.md`), so the step asks for
+  a count on a board whose intent states none and shows the anchors the compile already worked out on one that
+  does.
 
 - [ ] **TC9 — The configure tool cannot place a shop.** The API is the way in — an agent adds `shops` to the
   intent it already posts (`docs/pgm/shops.md` §9) — and the wizard has no step for it. What the step states
@@ -158,24 +165,6 @@ what is gathered here is the parked and dormant slices of the same surface.
 
 ### Painting terrain
 
-- [ ] **WE60 — `repeat` names a cycle and holds a course.** `BandEnding.Repeat` makes the last band claim
-  everything past the stack, which is what `BandStack.At` does and what the enum's own docstring says. The
-  word says the opposite: a reader who has met a repeating texture anywhere else expects the bands to cycle.
-  A painting agent authoring a `height` strata for a 9-block pillar wrote three courses of red sandstone and
-  six of smooth and reported it as a defect, then wrote its courses out longhand to work around behaviour
-  that was never wrong — evidence at `(-4,-49)` on `specs/probe-badlands-2` in `pgm-studio-mapgen`. Nothing
-  to fix in the painter; the fix is the name. `hold`, `carry` or `extend` each say what it does, and
-  `BandEndings.Repeat` in `ThemeVocabulary` plus the `"repeat"` on the wire and `TerrainThemeJson:139` move
-  with it. A stored theme carrying the old word has no second reading, so the callers change in one commit.
-
-- [ ] **WE143 — A band stack that cycles.** Strata are a short run of beds meant to recur, and a stack
-  can only hold its last band or hand over, so a `height` strata is written out longhand to the tallest face:
-  `specs/whitstone-weald/build-spec.py` `strata()` states its ten beds four times over to cover 76 courses. A
-  stack following the ground (TP26) has to span the lowest ground to the highest, which makes that longer still.
-  A third `BandEnding`, `cycle`, reads `BandStack.At(step % span)` past the last band, with `BandEndings` in
-  `PgmStudio.Vocabulary` and the editor's ending toggle offering it. Lands with or after `WE60`, since both
-  change the words the ending is spelled in.
-
 - [ ] **TS51 — Scoping the paint repaint, and the preview it would pay for.** A full board paint is ~2.0s and
   the column read ~2.9s / 2.6MB on a real agent board, tracking board *area* rather than shape count — a
   112-shape board and a 534-shape board of the same size cost the same. So the Blocks overlay refreshes on
@@ -215,103 +204,30 @@ what is gathered here is the parked and dormant slices of the same surface.
   voronois**, 44 are on the surface and none is in the fill. The earlier candidates (one family per pattern:
   157/201; a neutral family mixed with a warm one: 54) are superseded.*
 
-### Relief
+### The finished sketch's scan
 
 - [ ] **TS178 — A finished sketch's scan follows the intent's rooms.** The scan is redrawn when the layout's
   revision moves past the one it was drawn from (`SketchFinish.RefreshAsync`, `WorldFeatureWriter.SketchScanRevision`),
-  but a room pins the relief under it and lives in the intent, so a move through the piece route alone leaves the
+  but a room holds the ground under it and lives in the intent, so a move through the piece route alone leaves the
   scan describing the room where it stood. Key the scan on both revisions. `docs/tools/sketch.md`.
-
-- [ ] **WE28 — A relief is keyed by group id, and a stacked board's storeys share one namespace.**
-  `SketchReliefJson` rides top-level on the layout keyed by group, and a group id is unique across the stack
-  only by the author keeping it so: two storeys of one board are the same footprint one layer up, told apart
-  by a string nothing in the geometry distinguishes. A collision is a complaint (`SK12`) rather than a
-  refusal, and the two halves of the studio then disagree about what it means — the rasterizer solves the
-  stated relief onto **every** group answering to the id, each over its own footprint, while
-  `POST …/sketch/relief/read` and the contour overlay report the first alone.
-
-  **Settled (author): the key is the layer plus the group.** The pairing becomes structural rather than a
-  string equality two documents have to keep agreeing on, and it addresses a relief the way
-  `PUT …/sketch/layers/{layerId}/groups/{groupId}` already addresses the group it belongs to. Amend the model
-  in `docs/world-export/relief.md` first, then the key and the four `/sketch/relief/{groupId}` routes, then a
-  read-forward for a relief keyed by group alone — its layer is the one that carries that group. `SK12`
-  narrows to within a layer in the same commit.
-
-  *A stack keyed `team` on both `under` (`base_y` 0) and `ground` (`base_y` 40), one point mark at h 24:
-  both storeys build the solved surface — `under` y1..23, `ground` y40..63 — and the read answers one group.
-  Every key in the 24 stored relief-bearing layouts and the 76 in `pgm-studio-mapgen` resolves to exactly one
-  layer, so the read-forward is unambiguous.*
-
-- [ ] **S42 — Relief: the carve and the graded road fold too.** The solve folds, and so now does the stair cut
-  (`FEATURES.md`) — the first later pass to land, and the one that showed the rule is real rather than
-  theoretical. The other two are still open: a carve and a graded road each decide things by **walking** the
-  map, and a walk has a direction the half-turn does not preserve, so each folds again or it undoes what the
-  solve established (`world-export/relief.md` §8). Measured on the designed map, a carve that did not re-fold left
-  the two halves **9 blocks** apart. Belongs with S46, which lands both passes; the fold itself needs no new
-  machinery — `ReliefSolver.FoldBlocks` is the shape of it.
-
-- [ ] **WE148 — A mark or a push that lands nowhere says why.** `RL4` fires on a mark that pinned no cell
-  and names only "off its group's ground"; two causes read alike under it. A mark stated over ground another
-  group owns — a `team` mark on the mid stone — should name that group, which the rasterizer knows. A bevel of
-  at least half the ring's short side leaves every pin under weight 1, and `ReliefSolver` drops such pins over
-  unclaimed ground, so a small area mark with a wide bevel pins nothing; that is its own sentence. And a push
-  whose ring covers no cell has no finding at all: `ReliefReadback.Check` reads pushes only where `Cells > 0`,
-  so a push keyed on the wrong group is silent where a mark is `RL4`. *Evidence: a 10 × 6 area mark on Gypsum
-  Reach (note 52's wash rim) raised `RL4` and nothing else; Sootcombe's `mid-rise`/`mid-lip` pushes are keyed
-  `team` over the mid stone and cover 0 cells.* `docs/world-export/relief.md` §6.
-
-- [ ] **WE149 — Pushes that overlap, and a mark under a push.** *Parked (author): whether two pushes summing
-  over one cell is a fault or a tool.* `Sculpt` adds every push's lift (`ReliefSolver.cs`) and applies the sum
-  over the marked field, so two pushes stack and a mark under a push moves the base it lifts from — as
-  `relief.md` §5 states, on purpose. Nothing reports it: the read gives each push's gradients, not where two
-  meet. If the author rules it a fault, the finding is the push twin of `RL3` — the pair, the overlap's cell
-  count, and at the worst cell the summed lift against each push's own. *Evidence: a second push over Gypsum
-  Reach's wash rim dug a pit to y7, and a line mark there did the same by lowering the base.*
 
 ### Water
 
-- [ ] **S46 — Water reads the relief; a river on the axis is a canal.** A dressing path draping over whatever
+- [ ] **S46 — Water reads the ground; a river on the axis is a canal.** A dressing path draping over whatever
   it crosses is **settled as correct** — it repaints the top block of each column and adds no cell, which is
   what lets a road cross a slope without becoming a ramp, and routing or grading it would be the tool
   deciding where the author's road goes. Terrain that a route *emits* is the draw phase's path primitive
-  (`FEATURES.md`) and the erected-shape modes, not this. Water is the half that is genuinely wrong on a
-  relief, because it has to obey the ground rather than sit on it. It needs three things the flat model never
+  (`FEATURES.md`) and the erected-shape modes, not this. Water is the half that is genuinely wrong on
+  ground with relief, because it has to obey the ground rather than sit on it. It needs three things the flat model never
   did: routing on a **depression-filled** copy, because steepest descent stops at the first grain-made pit after 2 cells
   where the filled run covers 65; a bed floor forced non-increasing downstream; and **per-pool** water levels
   replacing `decoration.md` §7's single lowest-surface line — the measured run holds 14 distinct levels, and a
   basin is an outlet alongside the map edge, which is what a pond is. The exception is the case that matters
   most: **a river on the mirror axis cannot both fall and be fair**, because a half-turn reverses the flow, so
-  on the axis it is a canal at one level and falling water belongs to the flanks. And the cheapest good idea
-  here runs the other way — a drawn channel handed to the solver as a line mark below base level makes the
-  terrain form a valley around it (`world-export/relief.md` §9).
-
-### Placing something on a storey that is not the top one
-
-All six placement kinds carry an optional `Layer`, a prop carries one, and `BuiltTerrain.SurfaceFor(layer)`
-answers that storey's own surface — so what a document states, the world builds. Each entry below states what
-cannot state it.
-
-*Measured on a two-storey board (`under` y0..7 under `ground` y24..31), two wools alike but for the field: the
-one naming `layer: "under"` builds at **y7** with its cage around it, the one naming nothing at **y31**.
-`PUT /map/{slug}/intent` is what places an underground objective.*
-
-- [ ] **B264 — Configure cannot address a storey at all, so no objective can be authored below the top one.**
-  Not six missing fields. `SketchLayerStrip` appears in one file, `SketchTool.razor`, and every Configure
-  canvas runs base-layer-only by construction — `SpawnStep`, `TeamAssignStep`, `WorldIslandsStep` and
-  `WorldSymmetryStep` each say so in their own comments. So there is no active layer for a placement to take,
-  and the point-pick surface cannot pick a point on a lower floor even if there were.
-  Build in that order: the strip in Configure, a pick that resolves against the chosen storey's surface, then
-  the six write paths (spawn, wool, monument, iron cube, destroyable, core) and a field on each inspector.
-  `docs/tools/configure.md` gains the storey to its phases.
+  on the axis it is a canal at one level and falling water belongs to the flanks
+  (`world-export/decoration.md` §7.1).
 
 ### A made thing is a third kind, and it is drawn out of layers
-
-- [~] **TS64 — A made thing is one row in the strip, and one thing to drag.** The layer's `prop` field is
-  written and the rasterizer seats by it; the surface is not. `opus5-automaton` carries 31 layers, 24 of them
-  `colossus-L0…sentinel-L7`, so `SketchLayerStrip` shows 31 tabs and `GET …/render/topdown?layer=` prints all
-  31 in its `RQ4` refusal. Render the strip, the layer list and the topdown filter **by `prop`** — one row per
-  made thing with its layers folded under it. **A prop is also what moves**: dragging one has to take every
-  layer of it together, since a made thing standing half a block from where it was put is not a made thing.
 
 - [ ] **WE74 — A made thing fanned across the axis cannot change colour with the side it lands on.** The
   author's statue is red clay and wool on one island and blue on the other; a `teamTint` material answers
@@ -361,10 +277,29 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   3 on an odd one, 2 at four across) and a style's `doorway.width` reaches only the dressing's houses. Honouring
   it is `clamp(stated, 2, interior − 2)`, dropped by one where its parity differs from the wall's so the door
   stays centred — carried on `RoomShells`, since `Domain` cannot see `HouseStyle`, and re-checked against the
-  iron cube the plan seats beside the door (`PieceRoom.Iron`, `WX8`). The field is `NOT NULL DEFAULT 2`
+  iron cube the room seats beside the door (`ResolvedRoom.Iron`, `WX8`). The field is `NOT NULL DEFAULT 2`
   (`M0027`), and 11 of the deployed 13 room styles hold 2, so read as stated every room door narrows: it has to
   become nullable with a migration, and whether a stored 2 is a statement is the author's. *Evidence: Sootcombe
   note 10 asks for a 2-wide wool-room door.* `docs/world-export/structures.md` §7.
+
+- [ ] **WE175 — Timber bays along a storey's wall.** `Storey.Bays`: a post every `period` blocks along a wall
+  (pgmvox: 4, upper storeys, long walls only), counted from the corners so both ends land on a post, in its own
+  material or the storey's `Post`. Stamped after the wall and before the windows, which `HouseWindows` then
+  keeps off a bay as it keeps them off a corner (`HouseStamper.cs:320`).
+
+- [ ] **WE177 — A jetty, a setback and an eave per storey.** `Storey.Jetty` (reach 1, joists as a laid log
+  course) pushes an upper storey out over the one below; `Storey.Setback` steps it in; `Storey.Eave` hangs a
+  course out at its head. The tiered tower and the half-timbered overhang of the Brittlebush boards. A reach
+  that leaves the 20×20 footprint (`ST9`) is refused as a new house rule.
+
+- [ ] **WE178 — A chimney.** `HouseStyle.Chimney`: a body, a cap, which wall it rises against (`rear` by
+  default) and how far it stands above the ridge (pgmvox: 2, `build.py:476-481`), placed clear of the doorway
+  and of a roof cut. It changes the silhouette from across a board, which is why pgmvox puts one on every house.
+
+- [ ] **WE180 — A heading on a placed house.** `HouseProp.Heading` in degrees, so a hamlet stops standing in a
+  row (the author's review of Slatefold). A second stamper path over a turned frame, as pgmvox's `Frame` and
+  framed `RoofField` do; a turned roof drops to cubes and slabs, and the cell outside the door is kept clear
+  at any heading. Measured against `HouseStamper` before it is promised.
 
 ### Shapes
 
@@ -383,17 +318,6 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   `docs/tools/sketch.md`. *Evidence: `pgm-studio-mapgen/reports/sonnet55-halcyon-cays.md`, the kit section — the
   spawn halls came out cyan clay over pink-white clay.*
 
-- [ ] **TS140 — A carve: a cave cut through ground that stays.** A subtract is a set of `(x, z)` cells
-  that empties the whole column (`SketchRasterizer.cs:349`), and underground space is that hole under a flat
-  override-add lid, so a chamber cannot keep the relief ground over it and every tunnel is a straight-walled
-  shaft. Add a carve stated in three dimensions: a polyline whose vertices each carry a radius and a centre
-  height, splined like a polyline's points so the bore swells and narrows smoothly between vertices, with a
-  `rough` seed wandering the wall; a single point is the negative boulder, a lumpy ellipsoid. It removes
-  `[y − r, y + r]` from the **built** column and leaves what is above it, so it runs after the raster the way a
-  fluid already carves built terrain (`decoration.md` §7), and its walls show the theme's fill. Decide first
-  what the plan-tier walks (`SK11`) and the export's reach say about a void they cannot see. `docs/tools/sketch.md`.
-  *Evidence: `sketch.md` "A subtract with a lid over it": the lid comes back as the column's only span.*
-
 - [ ] **S59 — Per-vertex height is the headline feature and is found by accident.** The path is: select a
   polygon, read the one conditional sentence in the inspector, click a vertex on the canvas without moving it,
   then type into a field that appears in the panel. On the canvas a vertex handle looks exactly like a drag
@@ -403,8 +327,6 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   slope-fit has the same problem and the same fix. The 3-D preview is where a height edit is actually legible
   and it now draws the built world (`FEATURES.md`), but it is a modal swap rather than a companion view, so it
   confirms an edit after the fact rather than while it is being made.
-
-## World import: reading a map the studio did not build
 
 ## The shop: buying things in the middle of a match
 
@@ -447,7 +369,7 @@ one naming `layer: "under"` builds at **y7** with its cage around it, the one na
   author's bar is **40 blocks on the hole's longest side**. `HubBoxCells` sizes the hub from its budget share
   alone and the holed bodies build every wall one corridor thick, so the hole takes the whole difference as
   the box grows. Either the ring's walls thicken with the box or the body splits the void — a `double-hole`
-  where one ring's hole would run long. Lands in `TeamUnitAllocator.ChooseHubBody`/`ChooseHubWalls`;
+  where one ring's hole would run long. Lands in `TeamUnitAllocator.ChooseHubForm`/`ChooseHubWalls`;
   `docs/generator/model.md` and `rules.md` (`CT8` is the rule that states the envelope and measures nothing).
 
   *Evidence: 12 seeds a band, cell 4 — the hole run's median is 16 · 16 · 18 · 24 blocks up the ladder and
@@ -573,8 +495,7 @@ the skerry layout as the board that shows the over-warning is gone.
   ways and over-warn: on the skerry layout a small front piece makes the check ask a diagonal route through
   the void to a wool room. One measure: walk the land, then the straightest bridge from land edge to land
   edge. `docs/generator/`.
-- [ ] **G286 — A step a player cannot walk is 3 blocks.** `EL1`, `SP8`, `WL11` and `WX11` fire at 2, `RL3` at
-  3. A 2-block step is fine where a block can be placed; 3 or more is the fault, on plan seams and above all
+- [ ] **G286 — A step a player cannot walk is 3 blocks.** `EL1`, `SP8`, `WL11` and `WX11` fire at 2. A 2-block step is fine where a block can be placed; 3 or more is the fault, on plan seams and above all
   out of a spawn. Lower is always better, so a soft term prefers it. Read the thresholds from
   `Walk.FreeRise`/`Walk.ScrambleStep` rather than literals. `docs/generator/`.
 - [ ] **G287 — A corridor is its size band's width.** `G2` is three numbers today: the size band's text, 10
@@ -609,30 +530,16 @@ text-size setting have shipped; what remains is what a sentence cannot fix — a
 up, controls that behave unlike every other tool, and the look itself. `docs/client/writing-for-the-ui.md`
 is the standard the copy is held to.
 
-- [~] **RP99 — The terms defined where they appear.** `/glossary` lists `GET /api/glossary`; what remains is a
-  `Term` component that underlines a word, shows its one-line definition on hover and links to its
-  `/glossary#slug` entry, then the tool pages losing the explanatory paragraphs that stand in for help today. The
-  guide entries in `docs/client/writing-for-the-ui.md` join the glossary as a longer field when a page needs
-  them. `docs/client/`.
-
-- [ ] **RP100 — The map list says who made each map, and filters by them.** `/maps` rows carry no author;
-  add the first author's head and name to each row (`PlayerHead`, already used by `AuthorsEditor`) and an
-  author filter beside the search box. Needs the map summary DTO to carry the authors.
-  `docs/client/routing-and-ia.md`.
+- [~] **RP99 — A term inside a sentence is defined where it stands.** A field or a section naming a glossary term
+  shows its definition behind its `?`; a term inside a description, a note or a readout has no way to. A
+  definition tooltip — the word dotted-underlined, its definition on focus and hover, a link to `/glossary#slug` —
+  closes that, and the guide entries in `docs/client/writing-for-the-ui.md` join the glossary as a longer field
+  when a page needs them. `docs/client/`.
 
 - [ ] **C83 — Clicking the zoom readout resets the view.** The zoom percentage in `CanvasReadout` is
   pointer-transparent; a reader expects clicking it to return to 100% or fit. Make the zoom item a button
-  (the rest of the readout stays transparent) that calls each canvas's existing fit command, in the plan,
-  sketch and configure canvases. `docs/client/canvas-interaction.md`.
-
-- [ ] **TN25 — Undo and redo in the plan editor.** The sketch binds `mod+z` / `mod+shift+z` / `mod+y`
-  (`sketch-bridge.js`); the plan editor binds neither and keeps no history. A plan document is one JSON value,
-  so a step can be the whole `getState()` the way the sketch's is. `docs/tools/plan.md`.
-
-- [ ] **TN26 — A failed 3-D preview says why and can be tried again.** In the plan editor the 3-D toggle
-  flashes and then greys out as *3-D unavailable* (`PlanTool.razor.cs`, `IsoNote`), with the reason only on
-  hover and no way back short of a reload. Show the reason inline and keep the toggle pressable so a second
-  attempt re-runs the WebGL probe. `docs/tools/plan.md`.
+  (the rest of the readout stays transparent) that calls each canvas's existing fit command, in the sketch
+  and configure canvases. `docs/client/canvas-interaction.md`.
 
 - [ ] **TS150 — Zoom in the sketch's 3-D view.** Reported: in a map's Draw phase with 3-D on, the wheel moves
   the zoom readout and the scale bar but the picture stays still. Reproduce in the iso view
@@ -663,7 +570,76 @@ is the standard the copy is held to.
   authors, beside the sketch's In-game and change-history panels. The choice decides `tokens.css` and the
   landing and list layouts; the components stay. `docs/client/ui-conventions.md`.
 
+## The studio's own icons: one glyph for one thing
+`docs/client/icon-map.md` is the map: 511 icon assignments, where one picture stands for several things and one
+thing is drawn several ways, and the order the move to the studio's own glyphs takes.
+
+- [ ] **C109 — The studio's own glyph for each thing that collides.** *Parked (author): choosing among the first
+  drafts — 20 sketches across `pgm-` and `deco-`, one for each thing a reader picks among kinds, each beside the Lucide icons it replaces.* Then
+  register the kept ones in `icons/terrain-icons.js` under their prefix, point every table in
+  `docs/client/icon-map.md`'s collision lists at them, rename `terrain-hill` to `terrain-mound` with its modifier,
+  and change the rule in `docs/client/ui-conventions.md` that names `terrain-*` alone.
+- [ ] **C110 — One table per icon set.** The props' icons are stated in `DressingTools.All` and
+  `PropKindNames.All`, and the pieces' in the Layout dock's marker list and `SketchStructuralRow.Icon`; each pair
+  agrees only by hand. Keep one of each and derive the other, before any glyph moves.
+- [ ] **C111 — The vendor scan takes only icon names.** The Lucide subset vendors every kebab-case literal in the
+  client, so 37 of its 152 names are never drawn (*anchor*, *bed*, *road*). Scan only icon positions — `Icon=`,
+  `data-lucide`, the icon tables — and regenerate. `docs/client/icon-map.md`.
+
 ## User Experience
+
+**What the UX review of a recorded build found open.** Each entry was read off the recording and checked against
+the client source.
+
+- [ ] **TS218 — A paint rule says how much ground it takes.** Palette's rule cards show no result: nothing tells one
+  rule's columns from the ground before it, or says an earlier rule shadows it. Answer a count per rule from the
+  paint read (`sketch/paint`) and show it in each card's header — *claims 1,240 columns*, or *claims none: an earlier
+  rule wins* in the warning colour — and tint that rule's columns while its card is hovered. `docs/tools/sketch.md`.
+
+- [ ] **TS219 — A paint rule card folds to one line.** Five rules take about 1,700 px; unset conditions weigh as much
+  as set ones, an empty field looks like 0, and nothing says every condition must hold. Fold a card to a sentence
+  built from what it sets (*Snow Block · slope ≤ 34° · y 26–28 · in patches*), offer *+ Add condition* for the rest,
+  say "all conditions must hold" once, and state Bare share in percent like Paved share. `SketchPaintRules`.
+  `docs/tools/sketch.md`.
+
+- [ ] **TS220 — Every modifier row says its type, and the list scrolls to its pick.** Terraform's list names a type
+  only on renamed rows, and lumps, roughness and warp share one wavy glyph. From about seventeen rows the picked one
+  is cut off. Show a muted type word on every row, give the list its own scroll region, and scroll the pick into
+  view as the Placed list does. `SketchModifierList`. `docs/tools/sketch.md`.
+
+- [ ] **TS221 — Deleting a modifier is not beside Close, and says how to undo.** The inspector header puts Delete
+  32 px from Close with no confirmation; undo exists but only as the top bar's arrows and Ctrl+Z. Move Delete to the
+  inspector's foot and show *ridge-2 deleted · Undo* after it. `SketchModifierInspector`. `docs/tools/sketch.md`.
+
+- [ ] **TS222 — The tree picker searches.** About 94 cards in library order with no search, height or family;
+  selected and hover share one border (`design.css` `.prop-card--active`). Add a search box and Species and Size chips
+  over the grid, a height under each generated card, and a check mark on the selected one.
+  `SketchDressingInspector`. `docs/tools/sketch.md`.
+
+- [ ] **TS223 — A block is picked by name, not typed as id:data.** Paint rules and stroke paving take numeric id and
+  data (`3:1`, `60:7`) and truncate names in the 280 px Palette column. Reuse the searchable `BlockPicker` with id:data
+  as a caption, and widen Palette's inspector to Decoration's. `docs/tools/sketch.md`.
+
+- [ ] **TS224 — Ground cover shows its density before a field is drawn.** The inspector draws no picture of a
+  ground cover, because the plan view the pass rendered read as a flat green square, and four plants (cacti, dead
+  bushes, mushrooms, lily pads) offer sliders on boards with no ground they grow on. Draw a density swatch from the
+  sliders that reads at a glance, and show the plants the board can grow first. `docs/tools/sketch.md`.
+
+- [ ] **TS225 — Review and the map.xml are reached by name from where a map is finished.** Decoration's way out is
+  an icon-only rail glyph and an icon-only Download; the XML is read only in Configure. Add labelled *Preview as
+  player* and *View map.xml* beside Download, and a legend under the eye picture naming monuments (which float by
+  design), cores and the build area. `docs/tools/sketch.md`.
+
+- [ ] **TS228 — Each modifier parameter shows what it does, as a short animation.** A `?` on a modifier field
+  explains a parameter in words; a Ridge's *Wander* or a Butte's *Apron* reads better as the ground moving while
+  the number sweeps. Render one looping vector animation per parameter from the build itself — the section
+  through a sample patch at a few values — and open it in the field's help. `SketchModifierInspector`,
+  `docs/tools/sketch.md`.
+
+- [ ] **C107 — Drawing the land shows its fill and its mirror while it is drawn.** A lasso trails 8 px squares with
+  no fill, the mirrored half appears only once the ring closes, and the close target is a 7 px square. Draw a
+  translucent fill and the symmetry copy at 40% while tracing, and a 14 px close ring that grows on hover.
+  `docs/client/canvas-interaction.md`.
 
 - [ ] **TG5 — Player bands are counted and combined.** The Generator's band chips (`SizeBands`) carry no counts
   and only one can be on, because `GET /api/compose` serves one band per request and its feed returns no
@@ -687,10 +663,6 @@ is the standard the copy is held to.
   Add a delete action on a row for its owner and admins, behind a confirm naming the map, greyed with the reason
   for anyone else (the `WriteGate` pattern). `docs/client/routing-and-ia.md`.
 
-- [ ] **TN29 — A saved plan can be deleted from the plan editor.** `DELETE /api/plans/{id}` is reached only by
-  the Generator's unpin; the plan editor's *Open a saved plan* list (`PlanTool.razor`) has no delete. Add one per
-  row, behind a confirm. `docs/tools/plan.md`.
-
 - [ ] **RP105 — An admin can issue a token that acts as another member.** `POST /api/users/{uuid}/tokens`
   exists and `Tokens.razor` only issues the caller's own (`/users/me/tokens`). Add the member picker to the
   admin's Tokens page. `docs/access.md`.
@@ -712,7 +684,7 @@ is the standard the copy is held to.
   removes work done in another phase. The sketch keeps one stack of whole-document snapshots across every
   phase (`history` in `sketch-bridge.js`), so the topbar Undo in Theme takes back the last shape drawn in Draw.
   Tag each step with the phase that made it and restore only that phase's slice of the document — Draw the
-  shapes, Theme the registry and each shape's theme, Dressing `dressing`, Relief `relief`, Info `setup` — so
+  shapes, Theme the registry and each shape's theme, Dressing `dressing`, Terraform `modifiers`, Info `setup` — so
   Undo in a phase walks back that phase's own steps and is greyed where it has none; `Ctrl`+`Z` follows the
   same rule. *Open (author): whether Info's mode needs an undo at all.* `docs/tools/sketch.md`.
 
@@ -736,17 +708,11 @@ is the standard the copy is held to.
   `docs/architecture.md` say "thirty-six edit routes"; there are 20 `MapEdit.RunAsync` call sites. State the
   number nowhere, or derive it. `docs/architecture.md`.
 
-- [ ] **TN16 — The structure preview calls a wool room a `wool-cage`.** `StructureBox.Kind` is one of
-  `spawn-cube`, `wool-cage`, `iron`, `destroyable`, `core` and `wall` (`PlanStructurePreview:74`,
-  `PlanInspectDto:117`), and the two room families are the only ones naming a thing the rest of the studio
-  calls something else: the vocabulary beside them already says `woolRoom` (`StructuralRoles.WoolRoom`), and a
-  board binds a shell for a **wool** room and a **spawn** room (`roomStyles.wool`, `roomStyles.spawn`). Rename
-  the two to `wool-room` and `spawn-room`, and change the client that draws them. The words are this DTO's own
-  constant and nothing else spells them, so the surface is three source lines, three in
-  `PlanStructurePreviewTests` and four in `docs/` — one of which is a dated `rules.md` amendment and stays as
-  it reads. The prose goes with it: nine docstrings across `WorldBuilder`, `MapExportComposer`, `SketchRules`,
-  `SketchMaterialGate` and `PlanStructurePreview` still call the structures a wool cage and a spawn cube,
-  which is the same word under a different hat and wants renaming in one pass rather than in two.
+- [ ] **TN16 — The prose calls a wool room a wool cage and a spawn room a spawn cube.** The vocabulary already
+  says `woolRoom` (`StructuralRoles.WoolRoom`), and a board binds a shell for a **wool** room and a **spawn**
+  room (`roomStyles.wool`, `roomStyles.spawn`), yet docstrings in `WorldBuilder`, `SketchMaterialGate`,
+  `PieceDoors`, `WorldProvenance`, `MonumentStamper` and `StructureRenewables` still call the structures a wool
+  cage and a spawn cube, which is the same word under a different hat. Rename them in one pass.
 
 - [ ] **G143 — the board deriver calls segments "edges", which is the one word the model reserves.**
   `model.md` fixes the vocabulary: an **edge** is one full side end to end, a **run** is a contiguous
@@ -807,7 +773,7 @@ server's backups.
 - [ ] **RP97 — The sketch layout's words are published sets.** `GET /api/kit.py` checks a word only where
   the schema lists it, and 44 of 574 string fields do: the layout an author writes most has none, so
   `SketchShape(relief_scope="hld")` is built and sent. Mark `[WordSet]` on `SketchShape.operation`,
-  `relief_scope`, `stroke_edge`, `SketchLayer.kind`, a relief mark's `kind` and
+  `relief_scope`, `stroke_edge`, `SketchLayer.kind` and
   `PlanGlobals.symmetry`, declaring each set in `Vocabulary` where it is not already; and publish `minimum`/
   `maximum` for the 0–1 shares (`FloraSpec`, `RoofStyle.Wear`) so the kit refuses `coverage=5`.
   `docs/architecture.md`. *Evidence: a constructor sweep against schema `a095aa2c71059f2c`.*
@@ -870,4 +836,4 @@ list. `docs/pgm/supported-maps.md`.
   yet**, because which side `PlanCompiler` belongs to is not yet known — and it is the one thing the split
   turns on. The answer arrives when the generator next needs a structural change and the seam has to be
   argued about anyway; doing the rename as a standalone refactor before then buys nothing.
-  See `docs/project-structure.md` §6.1.
+  See `docs/project-structure.md` §7.1.

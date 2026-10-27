@@ -165,7 +165,7 @@
 }
 /* ── NAV RAIL ── */
 .nav-rail {
-  width: 56px;
+  width: 68px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -206,10 +206,12 @@
 .nav-btn {
   position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  gap: 3px;
+  width: 64px;
+  min-height: 50px;
   border: none;
   border-radius: 0;
   background: transparent;
@@ -218,7 +220,12 @@
   padding: 0;
   transition: color var(--transition-fast);
 }
-.nav-rail .nav-btn svg { width: var(--icon-lg); height: var(--icon-lg); }
+.nav-rail .nav-btn svg { width: var(--icon-lg); height: var(--icon-lg); flex: 0 0 auto; }
+/* The button's name under its glyph: small, centred, and allowed a second line rather than a cut. */
+.nav-btn-caption {
+  max-width: 62px; font-size: 9.5px; line-height: 1.15; letter-spacing: 0; text-align: center;
+  overflow-wrap: anywhere; text-decoration: none;
+}
 .nav-btn:not(:disabled):hover { color: var(--text-strong); }
 .nav-btn.active { color: var(--text-strong); }
 .nav-btn.active::before {
@@ -282,6 +289,13 @@
    embeds the same editor the style library opens in its rail. It starts at a width that form is readable
    at; the resize handle still takes it anywhere in [MIN_WIDTH, MAX_WIDTH]. */
 .workspace-inspector--wide { width: calc(420px * var(--ui-scale)); }
+
+/* The inspector's Delete (InspectorDelete), pinned to its foot while the form scrolls: margin-top auto sends it to
+   the foot of a short form, and sticky keeps it there over a long one. */
+.inspector-delete {
+  position: sticky; bottom: calc(-1 * var(--space-4)); z-index: 2; margin-top: auto;
+  padding: var(--space-3) 0 var(--space-4); background: var(--bg-panel);
+}
 
 /* Scrollable inner content area of a sidebar — holds .panel-section blocks */
 .workspace-scroll {
@@ -355,6 +369,23 @@
 .geo-row--selected       { background: var(--bg-selected); }
 .geo-row--selected-child { background: var(--bg-selected-child); }
 .geo-indent { flex-shrink: 0; display: flex; align-items: center; }
+/* A heading row over the rows of one kind: what it holds and how many. */
+.geo-row--group .geo-label { font-weight: 600; color: var(--text-strong); }
+
+/* A stack row — a modifier, a paint rule: its order and switch sit at its end, shown on hover or when picked, and
+   take no room while hidden, so the name has the whole row. A row switched off keeps its eye in view. */
+.modifier-row-tools { display: none; gap: 2px; margin: -4px 0 -4px 6px; }
+.modifier-row:hover .modifier-row-tools, .modifier-row:focus-within .modifier-row-tools,
+.modifier-row.geo-row--selected .modifier-row-tools, .modifier-row--off .modifier-row-tools { display: flex; }
+.modifier-row--off:not(:hover, :focus-within, .geo-row--selected) .modifier-row-tools > :not(.modifier-eye--off) { display: none; }
+.modifier-row--off .geo-label { text-decoration: line-through; color: var(--text-muted); }
+.modifier-row--off .geo-type-icon, .modifier-eye--off { opacity: .45; }
+/* The Shapes list above the stack: a shape's size reads quietly and its relation to the modifiers is the control at the row's end. */
+.shape-relation-row { cursor: default; gap: 6px; }
+.shape-relation-row .list-tag { margin-left: auto; }
+.shape-relation-row .shape-relation { margin-left: 0; }
+.shape-relation .field-input--slim { width: auto; flex: none; }
+.modifier-size { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 6px; align-items: end; }
 .indent-pipe   { display: inline-block; width: 14px; flex-shrink: 0; }
 .geo-type-icon {
   flex-shrink: 0;

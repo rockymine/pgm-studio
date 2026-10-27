@@ -7,7 +7,7 @@
 <div class="region-tree">
   @if (Groups is null || !Groups.Any(g => g.Regions.Count > 0))
   {
-    <div class="panel-empty-msg">No named regions found.</div>
+    <EmptyState>No named regions found.</EmptyState>
   }
   else
   {
@@ -38,7 +38,7 @@
             </span>
             <span class="geo-type-icon"><i data-lucide="@RegionNode.Icon(n.Type)"></i></span>
             <span class="geo-label @(n.Synthetic ? "geo-label--synthetic" : null)" title="@n.Label">
-              @(string.IsNullOrEmpty(n.Label) ? $"({n.Type})" : n.Label)
+              @(string.IsNullOrEmpty(n.Label) ? n.Type : n.Label)
             </span>
             @if (row.ParentType == "complement" && row.Index == 0)
             {

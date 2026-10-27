@@ -56,11 +56,11 @@ public partial class ReviewXmlStep : IDisposable
             }
             else
             {
-                error = $"The server returned an error (HTTP {(int)resp.StatusCode}). {Trunc(await resp.Content.ReadAsStringAsync())}";
+                error = "Reload the page to try again.";
                 Wizard.RegisterExport(false, null);
             }
         }
-        catch (Exception ex) { error = ex.Message; Wizard.RegisterExport(false, null); }
+        catch { error = "Reload the page to try again."; Wizard.RegisterExport(false, null); }
         loading = false;
     }
 
@@ -106,6 +106,4 @@ public partial class ReviewXmlStep : IDisposable
         var m = Regex.Match(doc, $@"(?ms)^    <{tag}\b(?:[^>]*/>|.*?^    </{tag}>)");
         return m.Success ? m.Value : null;
     }
-
-    private static string Trunc(string s) => s.Length > 200 ? s[..200] + "…" : s;
 }

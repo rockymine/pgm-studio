@@ -33,11 +33,11 @@ await page.waitForSelector("svg.map-canvas-svg", { timeout: 20000 });
 // ── nothing drawn, nothing written ────────────────────────────────────────────────────────────────────
 checks.section("a flush with no edit behind it sends nothing");
 
-await page.click('button.nav-btn[title="Review"]');
+await page.click('button.nav-btn:has(.nav-btn-caption:text-is("Review"))');
 await page.waitForTimeout(1500);
 checks.add("entering Review on an untouched board writes nothing", saves.length === 0,
   JSON.stringify(saves));
-await page.click('button.nav-btn[title="Draw"]');
+await page.click('button.nav-btn:has(.nav-btn-caption:text-is("Draw"))');
 await page.waitForSelector('.canvas-dock button[aria-label="Rectangle"]', { timeout: 10000 });
 
 // ── the board moves on without the tab ────────────────────────────────────────────────────────────────
@@ -58,10 +58,10 @@ checks.add("the tab's save states the revision it read", saves.length > 0 && sav
   JSON.stringify(saves));
 checks.add("and is refused 409", saves.length > 0 && saves.every((save) => save.status === 409),
   JSON.stringify(saves));
-await page.locator(".problems-btn", { hasText: "Can’t save" }).click().catch(() => {});
+await page.locator(".problems-btn", { hasText: "Save blocked" }).click().catch(() => {});
 const warning = (await page.locator(".problems-pop .problems-verdict").textContent().catch(() => "")) ?? "";
-checks.add("the problems popover says the board was saved from somewhere else",
-  warning.includes("saved from somewhere else"), warning);
+checks.add("the problems popover says the map changed elsewhere",
+  warning.includes("changed elsewhere"), warning);
 checks.add("and the stored board is the one stored from elsewhere",
   shapesStored(await api(`/map/${draft.slug}/sketch`)) === before);
 

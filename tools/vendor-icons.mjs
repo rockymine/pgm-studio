@@ -18,6 +18,9 @@
  * node_modules) and pinned below. Bump VERSION deliberately: lucide renames icons between releases,
  * which is what makes an unpinned CDN "@latest" tag unsafe as well as unreachable.
  *
+ * The studio's own `terrain-*` glyphs are not lucide's and are not generated here: `icons/terrain-icons.js`
+ * registers them into `window.lucide.icons` after this file loads.
+ *
  * --check re-runs the generation and exits non-zero if the committed file is stale.
  */
 
@@ -33,6 +36,9 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const CLIENT = join(ROOT, "src/PgmStudio.Client");
 const OUT = join(CLIENT, "wwwroot/js/studio/vendor/lucide-icons.js");
 const SCAN_EXTENSIONS = [".razor", ".cs", ".js", ".html"];
+// The studio's own glyphs, registered beside the vendored set by a hand-written script. Its string literals are
+// SVG element names and the glyphs' own names, not uses of a lucide icon, so the scan leaves it out.
+const CUSTOM_ICON_SCRIPTS = ["terrain-icons.js"];
 
 /** Every kebab-case-looking string literal in the client, from markup attributes and C# alike. */
 function collectCandidates(dir, into = new Set()) {
@@ -43,7 +49,7 @@ function collectCandidates(dir, into = new Set()) {
       collectCandidates(path, into);
       continue;
     }
-    if (!SCAN_EXTENSIONS.some((ext) => entry.endsWith(ext))) continue;
+    if (!SCAN_EXTENSIONS.some((ext) => entry.endsWith(ext)) || CUSTOM_ICON_SCRIPTS.includes(entry)) continue;
     const source = readFileSync(path, "utf8");
     for (const [, name] of source.matchAll(/["']([a-z][a-z0-9]*(?:-[a-z0-9]+)*)["']/g)) into.add(name);
   }

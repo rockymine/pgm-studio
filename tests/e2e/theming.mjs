@@ -42,7 +42,7 @@ checks.add("per-shape override persisted",
 
 // A library row for §4 to bind, made before the page loads: the inspector reads the room library when the
 // Theme phase opens, so a row created after that is not in the list it offers. Given a wall height no
-// built-in shell has, so finding it in the layout says the snapshot travelled rather than that a default
+// bedrock box has, so finding it in the layout says the snapshot travelled rather than that a default
 // happened to match. No courses: a part with none keeps the built-in finish, which is what makes a style
 // that only changes its geometry a legal one.
 const style = await api("/room-styles", { method: "POST", body: {
@@ -68,7 +68,7 @@ try {
   await page.waitForTimeout(1500);
 
   // Enter the Theme phase (the palette nav button). One step, so there is nothing to advance through.
-  await page.click('button[title="Palette"]', { timeout: 8000 });
+  await page.click('.nav-btn:has(.nav-btn-caption:text-is("Palette"))', { timeout: 8000 });
   await page.waitForTimeout(1200);
   await shot("theme-phase.png");
 
@@ -174,7 +174,7 @@ checks.add("select-only checks ran", restricted, page.faults.slice(0, 3).join(" 
 // for every spawn room, snapshotted into the layout rather than referenced, and bound from the inspector's
 // board defaults where the other fallbacks are. What has to survive is the snapshot itself — the export
 // reads the layout and nothing else, so a binding that did not come back from GET would silently stamp the
-// built-in shell.
+// bedrock box.
 checks.section("the board defaults bind a room shell");
 
 clearFaults(page);
@@ -204,7 +204,7 @@ try {
     wool?.wall?.extent === 11 && wool.styleId == null && wool.id == null,
     JSON.stringify(Object.keys(wool ?? {})));
   // The other kind is untouched — the two bind independently.
-  checks.add("binding the wool room leaves the spawn on its built-in shell", doc.roomStyles.spawn == null);
+  checks.add("binding the wool room leaves the spawn on its bedrock box", doc.roomStyles.spawn == null);
   await shot("theme-rooms-bound.png");
 
   // …and the binding reads back. The finish records the snapshot and never the row, so the select says which
@@ -213,7 +213,7 @@ try {
   await page.goto(`${BASE}/maps/${seed.sketchSlug}/sketch`, { waitUntil: "networkidle", timeout: 30000 });
   await page.waitForSelector("canvas", { timeout: 20000 });
   await page.waitForTimeout(1500);
-  await page.click('button[title="Palette"]', { timeout: 8000 });
+  await page.click('.nav-btn:has(.nav-btn-caption:text-is("Palette"))', { timeout: 8000 });
   await page.waitForTimeout(1500);
   const reloaded = page.locator(String.raw`.field:has-text("Wool rooms") .lib-bind select`).first();
   checks.add("the bound shell reads back as its own row after a reload",
@@ -225,6 +225,31 @@ try {
 }
 checks.add("room shells drove without error", bound, page.faults.slice(0, 3).join(" | "));
 checks.add("sketch tool is clean under the room shells", page.faults.length === 0, page.faults.slice(0, 3).join(" | "));
+
+// ── 5. paint rules are a list beside the groups, and the picked one is the inspector ─────────────────────
+checks.section("paint rules: the sidebar lists them, the inspector edits one");
+clearFaults(page);
+let ruled = false;
+try {
+  const rows = () => page.locator(".workspace-sidebar .modifier-row");
+  const before = await rows().count();
+  await page.click('.workspace-sidebar button[title="Add a rule"]');
+  await page.waitForTimeout(1500);
+  checks.add("adding a rule lists it in the sidebar and opens it", await rows().count() === before + 1
+    && await page.locator(".workspace-inspector", { hasText: "Paint rule" }).count() === 1,
+    `${before} → ${await rows().count()} rows`);
+  checks.add("its fields sit two to a row, and Delete is at the inspector's foot",
+    await page.locator(".workspace-inspector .field-grid .field--half").count() >= 4
+    && await page.locator(".workspace-inspector .inspector-delete button").count() === 1);
+  await page.click(".workspace-inspector .inspector-delete button");
+  await page.waitForTimeout(1500);
+  checks.add("Delete takes the rule off the list and back to the board's defaults", await rows().count() === before
+    && await page.locator(".workspace-inspector", { hasText: "Map defaults" }).count() === 1, `${await rows().count()} rows`);
+  ruled = true;
+} catch (e) {
+  page.faults.push(`paint rules: ${String(e).split("\n")[0]}`);
+}
+checks.add("paint rules drove without error", ruled, page.faults.slice(0, 3).join(" | "));
 
 checks.finish();
 await browser.close();

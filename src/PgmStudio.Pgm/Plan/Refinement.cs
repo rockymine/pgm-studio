@@ -12,8 +12,8 @@ namespace PgmStudio.Pgm.Plan;
 
 /// <summary>
 /// Everything a board states that its plan cannot: the paint on the compiled shapes, the storeys and shapes
-/// drawn over the compiled ground, the outlines reshaped a point at a time and bent into coasts, the relief, the
-/// theme registry, the biome, the room styles, the dressing, and the parts of the intent a plan has no words for.
+/// drawn over the compiled ground, the outlines reshaped a point at a time and bent into coasts, the modifier stack,
+/// the theme registry, the biome, the room styles, the dressing, and the parts of the intent a plan has no words for.
 /// A material it states more than once is named once, in <see cref="Materials"/>, and used by name.
 /// It is applied onto the layout and intent a plan compiles to, or onto a drawn pair, by <see cref="Apply"/>;
 /// each statement is the one a Sketch route makes, so a board stated here and one edited by hand end the same.
@@ -51,13 +51,13 @@ public sealed record Refinement
     /// <summary>Outlines drawn as coasts, by shape id, after every point edit.</summary>
     [JsonPropertyName("bendShapes")] public Dictionary<string, ShapeBend>? BendShapes { get; init; }
 
-    /// <summary>Outlines stated by their shape, by the id of what they outline: a shape's vertices, a relief
-    /// area's or push's ring, a stroke's, fluid's or flora's points. Written once everything is drawn and before
+    /// <summary>Outlines stated by their shape, by the id of what they outline: a shape's vertices, a stroke's,
+    /// fluid's or flora's points. Written once everything is drawn and before
     /// the point edits, so an outlined shape can still be edited and bent.</summary>
     [JsonPropertyName("outlines")] public Dictionary<string, Outline>? Outlines { get; init; }
 
-    /// <summary>The relief, by group id; <c>*</c> stands for every group of the compiled ground.</summary>
-    [JsonPropertyName("relief")] public Dictionary<string, SketchReliefJson>? Relief { get; init; }
+    /// <summary>The modifier stack, as <c>SketchLayout.modifiers</c> takes it; it replaces what the layout held.</summary>
+    [JsonPropertyName("modifiers")] public List<SketchModifierJson>? Modifiers { get; init; }
 
     /// <summary>The theme registry, id → the theme.</summary>
     [JsonPropertyName("themes")] public Dictionary<string, JsonElement>? Themes { get; init; }
@@ -123,7 +123,7 @@ public sealed record Refinement
 
     /// <summary>
     /// The layout and intent with <paramref name="refinementJson"/> applied, in the order a hand would work: the
-    /// paint and fields on the compiled shapes, the storeys, the shapes drawn onto them, the relief, the theme
+    /// paint and fields on the compiled shapes, the storeys, the shapes drawn onto them, the modifier stack, the theme
     /// registry, the biome, the room styles and the dressing, then the outlines reshaped point by point and bent.
     /// Each statement is copied through as it was written, so a field the typed reader has no room for still
     /// reaches the layout. Before any of it, every <c>use</c> is replaced by the material it names.
@@ -155,7 +155,7 @@ public sealed record Refinement
         var groundId = ground?["id"]?.GetValue<string>();
         var drawn = Draw(refinement, layout.ToJsonString(), groundId, findings);
         var finished = JsonNode.Parse(drawn)!.AsObject();
-        Finish(refinement, finished, groundId);
+        Finish(refinement, finished);
         Outlined(refinement, finished, findings);
         if (findings.Any(finding => finding.Refuses)) return new(layoutJson, intentJson, new Findings(findings));
         var edited = Edit(refinement, finished.ToJsonString(), findings);
@@ -329,19 +329,12 @@ public sealed record Refinement
         return layoutJson;
     }
 
-    // What the layout carries beside its drawing: the relief, the theme registry and its default, the biome, the
-    // room styles and the dressing — each replacing what the layout held, as the route that writes it does.
-    private static void Finish(JsonObject refinement, JsonObject layout, string? groundId)
+    // What the layout carries beside its drawing: the modifier stack, the theme registry and its default, the
+    // biome, the room styles and the dressing — each replacing what the layout held, as the route that writes it
+    // does.
+    private static void Finish(JsonObject refinement, JsonObject layout)
     {
-        if (refinement["relief"] is JsonObject relief)
-        {
-            var stated = new JsonObject();
-            if (relief["*"] is { } every)
-                foreach (var group in GroupsOf(layout, groundId)) stated[group] = every.DeepClone();
-            foreach (var (group, value) in relief)
-                if (group != "*") stated[group] = value?.DeepClone();
-            layout["relief"] = stated;
-        }
+        if (refinement["modifiers"] is JsonArray modifiers) layout["modifiers"] = modifiers.DeepClone();
         if (refinement["themes"] is JsonObject themes)
         {
             layout["themes"] = themes.DeepClone();
@@ -352,17 +345,13 @@ public sealed record Refinement
             if (refinement.ContainsKey(key)) layout[key] = refinement[key]?.DeepClone();
     }
 
-    // The outlines stated by their shape, each written as the points of everything carrying its id. A relief
-    // stated for every group is copied into each, so one id can be a mark in several and the outline is all of
-    // them; an outline that draws no ring refuses the source, and one reaching nothing that reads a ring is said.
+    // The outlines stated by their shape, each written as the points of everything carrying its id; an outline
+    // that draws no ring refuses the source, and one reaching nothing that reads a ring is said.
     private static void Outlined(JsonObject refinement, JsonObject layout, List<Finding> findings)
     {
         if (refinement["outlines"] is not JsonObject outlines) return;
         var shapes = (layout["layers"] as JsonArray ?? []).OfType<JsonObject>()
             .SelectMany(layer => layer["layout"]?["shapes"] as JsonArray ?? []).OfType<JsonObject>().ToList();
-        var relief = (layout["relief"] as JsonObject ?? []).Select(group => group.Value).OfType<JsonObject>().ToList();
-        var marks = relief.SelectMany(group => group["marks"] as JsonArray ?? []).OfType<JsonObject>().ToList();
-        var pushes = relief.SelectMany(group => group["pushes"] as JsonArray ?? []).OfType<JsonObject>().ToList();
         var props = (layout["dressing"]?["props"] as JsonArray ?? []).OfType<JsonObject>().ToList();
 
         foreach (var (id, stated) in outlines)
@@ -390,17 +379,6 @@ public sealed record Refinement
                 shape["vertices"] = Points(ring);
                 reached++;
             }
-            foreach (var mark in marks.Where(mark => Text(mark["id"]) == id))
-            {
-                if (Text(mark["kind"]) is var kind && kind != MarkKinds.Area) { unread.Add($"a {kind ?? MarkKinds.Point} mark"); continue; }
-                mark["ring"] = Points(ring);
-                reached++;
-            }
-            foreach (var push in pushes.Where(push => Text(push["id"]) == id))
-            {
-                push["ring"] = Points(ring);
-                reached++;
-            }
             foreach (var prop in props.Where(prop => Text(prop["id"]) == id))
             {
                 if (Text(prop["kind"]) is var kind && kind is not (PropKinds.Stroke or PropKinds.Fluid or PropKinds.Flora))
@@ -415,7 +393,7 @@ public sealed record Refinement
                     Severity.Complaint, Field: field, Subjects: [id]));
             else if (reached == 0)
                 findings.Add(NamesNothing("outlines", id,
-                    shapes.Concat(marks).Concat(pushes).Concat(props).Select(thing => Text(thing["id"])).OfType<string>().Distinct()));
+                    shapes.Concat(props).Select(thing => Text(thing["id"])).OfType<string>().Distinct()));
         }
 
         static JsonArray Points(double[][] ring) => new([.. ring.Select(point =>
@@ -653,12 +631,6 @@ public sealed record Refinement
             .FirstOrDefault(layer => layer["id"]?.GetValue<string>() == layerId)?["layout"]?["groups"] is JsonArray groups
             ? groups.OfType<JsonObject>().Select(group => group["id"]?.GetValue<string>()).FirstOrDefault(id => id is { Length: > 0 })
             : null;
-
-    private static IEnumerable<string> GroupsOf(JsonObject layout, string? layerId) =>
-        (layout["layers"] as JsonArray)?.OfType<JsonObject>()
-            .FirstOrDefault(layer => layer["id"]?.GetValue<string>() == layerId)?["layout"]?["groups"] is JsonArray groups
-            ? groups.OfType<JsonObject>().Select(group => group["id"]?.GetValue<string>()).OfType<string>()
-            : [];
 }
 
 /// <summary>A storey a refinement adds: its id and name, the height its ground starts at, what it holds and how it

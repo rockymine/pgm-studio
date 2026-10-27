@@ -73,6 +73,18 @@ public sealed class ControlPointGeneratorTests
         await Assert.That(((double)max["x"]!, (double)max["y"]!, (double)max["z"]!)).IsEqualTo((4d, 66d, 4d));
     }
 
+    // A round pad leaves the square's corners as ground, so a player standing on one is not on the point.
+    [Test]
+    public async Task A_disc_is_captured_in_the_cylinder_standing_on_its_pad()
+    {
+        var doc = Generate(Sample() with { Shape = ControlPointShapes.Disc });
+        var region = (Dict)Regions(doc)[(string)First(doc)["capture_region"]!]!;
+        var foot = (Dict)region["base"]!;
+        await Assert.That(region["type"]).IsEqualTo("cylinder");
+        await Assert.That(((double)foot["x"]!, (double)foot["y"]!, (double)foot["z"]!)).IsEqualTo((0.5d, 63d, 0.5d));
+        await Assert.That(((double)region["radius"]!, (double)region["height"]!)).IsEqualTo((3.5d, 3d));
+    }
+
     // The pie is drawn on the pad, so the display region is the one course the stamper laid — never the
     // capture volume, whose upper blocks are air and hold nothing to recolour.
     [Test]

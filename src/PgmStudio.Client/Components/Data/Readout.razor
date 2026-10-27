@@ -1,0 +1,16 @@
+@namespace PgmStudio.Client.Components
+
+@* What the author's numbers work out to, computed: "Changed 898 columns." It renders nothing when it has nothing
+   to say, so a readout that never changes is never drawn (docs/client/writing-for-the-ui.md). *@
+
+@if (ChildContent is not null)
+{
+    <p class="@Cls">@ChildContent</p>
+}
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    private string Cls => string.Join(' ', new[] { "inspector-readout", Class }.Where(c => !string.IsNullOrEmpty(c)));
+}

@@ -307,6 +307,7 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
             // A house's three: unbound they stay what a shell is — corners that are wall like the rest of it,
             // no footing, and a rim in the roof's own material.
             Post = stack.Bound(RoomParts.Post),
+            Head = stack.Bound(RoomParts.Head),
             // What the building stands on: the plate, the footing round it, and how the plate's top course is
             // divided in plan. Each zone is unbound until a course names it, and an unbound zone is not a
             // zone: the plate shows through, which is what every stored style was.

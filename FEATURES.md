@@ -47,6 +47,10 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **One filter rail (`C97`).** Maps, Catalog, Generator and `/design` build their rails from `FilterSidebar`,
   `FilterPanel` and `FilterGroup`, with counts on `Chip` and one Clear in each panel's heading.
   `docs/client/ui-conventions.md`.
+- **The map list names who made each map and filters by them (`RP100`).** Each `/maps` row shows the first
+  credited author's head and name (`AuthorMark`, with `+N` for the rest) from `MapSummary.Authors`, and the
+  rail carries an author search and one chip per author, grouped Agents and People, with counts and `?author=`
+  in the address (`Pages/Maps.razor`). `docs/client/routing-and-ia.md`.
 - **`/design` shows the studio as built (`C102`).** Tokens read live in both themes, then primitives, forms,
   data, layout and navigation, the filter rail, editor chrome, feedback and entry surfaces, each drawn by the
   real component. `docs/client/ui-conventions.md`.
@@ -6319,6 +6323,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   body's own material, never over a laid log and never beside a `roofSlab`. Both editors offer whole blocks,
   stairs or slabs, the stair and the wear; `M0057` adds the two columns to house and roof rows.
   `docs/world-export/structures.md` §7.1, `docs/tools/library.md`. (`WE161`)
+- **A wooden door on a house and a wool room (`WE179`)** — `DoorMaterial` offers oak, spruce and dark oak doors
+  beside air, glass and cobweb: a leaf a player opens by hand, so it needs no break filter. The stamper fills a
+  doorway's two lowest courses with the leaf, its lower half facing into the house and the upper half hinged at the
+  doorway's outer sides so a two-wide door opens as a pair, and stands the wall over it up to the head; a house's
+  clearance in front of a wooden door is two blocks. A spawn's door stays open. `docs/world-export/structures.md`
+  §7.5, `docs/tools/library.md`. (`WE179`)
+- **A head course on every storey (`WE176`)** — a storey's `head` lays one material round its walls over its clear:
+  between two storeys in the course the slab sits in, and on the topmost one course more under the eave, so the
+  floor line and the eave line are stated once rather than left to a wall stack's last band repeating. Posts win
+  the corners; a house's `head` serves every storey naming none; the library binds it as the `head` part of a
+  house or a storey, and both editors offer it. A laid-log head is the timber `HS9` asks beam ends to come out of,
+  and `HS4` and the face rules read it. `docs/world-export/structures.md` §7.6–§7.7, `docs/tools/library.md`.
+  (`WE176`)
 - **The library's front page shows what it holds (`TL38`).** `/library` groups its nine kinds as *Terrain*,
   *Buildings* and *Nature*; each card is the pictures of the newest three entries over the kind's name, count
   and one-line description, the nine lists load in parallel, and a browse card is its picture over the entry's
@@ -7532,6 +7549,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   a hill cut through the beds; a narrow one lays them along every bump. The Theme phase's material editor offers
   both on the height axis, and a stack that does not follow writes and reads exactly as before.
   `docs/world-export/terrain-painting.md` §3.1. (`WE142`)
+- **A band stack's ending says what it does: `hold`, `handOver` or `cycle` (`WE60`, `WE143`).** The ending that
+  carries the last band on is `hold` where it was `repeat`, a word that promised the bands would recur;
+  `cycle` is the one that does, reading `BandStack.At(step % span)` with a true modulo so a height stack that
+  cycles bands the ground below its datum too, and a ring stack is still never asked off the footprint. The
+  Theme phase's material editor offers all three, `BandEndings` in `PgmStudio.Vocabulary` spells them, and
+  `M0088` rewrites every stored `"ending":"repeat"` — library styles, boulder rock, composed boards, every map
+  document and every document a change recorded — to `"hold"`. `docs/world-export/terrain-painting.md` §3.1.
+  (`WE60`, `WE143`)
 - **A band stack reads the ground's inclination, which is the angle mask (`WE97`, `TP24`).** Every paintable
   column carries `ColumnProfile.Slope` — Horn's 3x3 gradient over the neighbouring surface tops, in whole
   degrees from level, 0-89 — and `BandAxis.Slope` reads it off `BucketContext.SlopeDegrees`, so a thickness on
@@ -10798,6 +10823,146 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **Layout reaches no shape, and its panel lists the pieces (`TS203`).** In Layout a double-click picks no shape
   and a click on empty canvas lets the pick go; the left panel lists the play pieces by kind (`SketchPiecesList`),
   a row picking its piece and an orbit's image listed but not picked.
+- **Terraform over the modifier stack, on paper (`RP133`).** The concept page
+  (https://claude.ai/artifact/PXyATVHg1XQ12BWoBmYaes) draws the Shapes and Modifiers lists, the strip, masks and
+  their edges, recipes and the stored format under D16–D23, and has the author's approval.
+- **The modifier stack runs over the built ground (`TS204`).** A sketch's `modifiers[]` run in list order inside
+  `RasterizeColumns`, so every read answers them: Hill, Hollow, Level and Roughness, ported from pgmvox's ground
+  layer, masked by ellipses, outlines and the board, fanned by the symmetry, with `join`, `soft`, `mode` and
+  `off`; a room's ground holds. Terraform lists the stack (`SketchModifierList`), adds, reorders and switches
+  each, edits the picked one (`SketchModifierInspector`) and outlines its mask, every edit one undo step.
+  `docs/tools/sketch.md`, *The modifier stack*.
+- **Terraform traces masks on the board (`TS205`).** A modifier's tool in the dock traces its outline with a press,
+  a drag and a release, simplified to its bends; Select picks the smallest mask under the pointer, drags it, and
+  reshapes the picked outline by its points and edge inserts (`ModifierController`, which the marks controller
+  became). *Add an outline* joins another to a picked mask.
+- **The group relief is gone, and its maps carry modifiers (`TS206`).** A migration turned every stored relief's
+  area and point marks into Levels, its pushes into Hills and its grain into Roughness and dropped its line, scarp
+  and rim marks, wrote what it converted into each map's history (`M0086`), and folded `relief_scope` to `hold`
+  or absent; the solver, its endpoints, the readback, `SK14` and `RL1`–`RL6` left with it, and a refinement states
+  `modifiers`. A play room, a `hold` shape and a `level` shape keep their columns out of every modifier, and a
+  `raise`, `sink` or `drape` shape rides the ground the stack left. `docs/tools/sketch.md`.
+- **The board steps through the stack, and each modifier says what it moved (`TS207`).** `?step=N` on
+  `sketch/relief` and `sketch/columns` reads the ground after the first N modifiers (`SketchSteps.Through`), a step
+  strip at the canvas foot sets it, and `POST sketch/modifiers/changes` counts the columns each modifier's own run
+  moved, shown in its inspector.
+- **A shape follows, holds or rides the stack, and a mask can leave shapes out (`TS208`).** `relief_scope: ride`
+  keeps a shape's form and moves it by the median change under it; `mask.leaves` names shapes one modifier leaves
+  out. Terraform lists the drawn shapes with Follow, Hold or Ride above the stack.
+- **Fourteen ground operations, a line mask and water (`TS209`).** Ridge, Butte, Spire, Scarp, Canyon, River,
+  Lake, Road, Gullies and Warp join Hill, Hollow, Level and Roughness, ported from pgmvox's landforms; a line
+  operation traces an open run into a `line` mask; River and Lake fill their beds with water through the same
+  flood the Fluid prop places (`SketchRasterizer.WaterOf`, `Decorator.PlaceStackWater`). The dock groups them as
+  Ground, Lines, Water and Texture in the concept page's terrain icons, with Carve shown for Phase 4.
+- **Profile, Coast, Lumps and Shatter, and noise that is as fair as the map (`TS210`).** A Profile sets a
+  cross-section of floor, cliffs and benches by distance from a line; a Coast floods an area as a sea with a falling
+  floor and a beach; Lumps strews hummocks and fallen blocks; a Shatter breaks the ground into lifted, tilted plates
+  with clefts. Every operation that reads noise or scatters by seed reads it in the drawn area's frame, so each
+  mirrored image, and a board under a symmetry, carries the same shape (`MaskArea.ToDrawn`).
+- **A theme's surface thins with the slope, and a tread reads as a ledge (`WE169`).** `soil` gives the surface's
+  depth by steepness — three courses under 25°, two under 38°, one under 55°, rock on anything steeper — set in the
+  theme editor with *Thins with the slope*; a cell level with three of its four neighbours paints as a tread of at
+  most 30°, so a terrace and the lip of a face keep their turf (TP27, `docs/world-export/terrain-painting.md`).
+- **Paint rules, first match winning (`WE170`).** A layout's `paint[]` lays a material over a column's top
+  courses by slope, height, noise patches or nearness to a named modifier — a River's sandy bank — read in order
+  ahead of every theme, edited in the Palette's *Paint rules* (TP28, `docs/world-export/terrain-painting.md`).
+- **Beds that dip and fold (`WE171`).** A height stack states `dip` `[east, south]`, blocks of lift per block from the world origin, and `fold`, blocks of noise lift in cells of 24; both add to its datum beside `follow` and are read at the folded cell, so strata lean across a cliff and ripple along it (TP26, `docs/world-export/terrain-painting.md`). The material editor offers *Dip x*, *Dip z* and *Fold*.
+- **A water's own bed (`WE172`).** A River, Lake or Coast states `bed_material`, a terrain material, and the flood
+  lays it under that modifier's water and along its beach instead of the default bank; `SketchTerraform.Run` answers
+  each wet cell as a `WetColumn` carrying its surface and the modifier whose water it is, and the Terraform
+  inspector's Bed row picks a block or pattern.
+- **Water falls off the edge (`WE173`).** A wet column beside a cell with no ground pours flowing water down the
+  face past it to the lowest floor the board built (`Decorator.PourOffEdges`), so a river run to an island's edge
+  ends in a fall rather than a wall of still water.
+- **Carves: a tunnel, a chamber and a shaft (`TS140`).** Three operations in the dock's *Carve* family cut space
+  in the built world after the paint, keeping the ground over it: a Tunnel along a line on a level floor between
+  mouths at the ground, a domed Chamber and a Shaft to the sky with a ladder, each dressed as a cave and never
+  cutting a stamped structure (`CaveCarver`, `docs/tools/sketch.md`).
+- **The walk goes through carved space, and a lid over a hole is a complaint (`WS91`).** The walk reads the built
+  world, so a tunnel's floor is walked as the way through a hill no block is placed for; `SK13` complains rather
+  than refuses, since a carve is the way under the ground (`docs/world-scan/read-backs.md`).
+- **Primitives in the block grid (`TS212`).** A shape's `type` is also `box`, `wedge`, `cylinder`, `sphere`, `torus` or
+  `arch`, read off the footprint of a rectangle, circle or path with `turn`, `tilt`, `sunk`, a torus's `tube` and an
+  arch's `deck`, `thick` and `camber`. A body is cut into the runs of blocks each column meets (`Geom.Solid`,
+  `Geom.NaturalArch`, `SketchSolids`): one run for the convex forms, two through a torus's hole, and a layer keeps
+  every run a solid makes beside the ground it stands in. A solid holds against the modifiers unless it states
+  `follow` or `ride`, and its images are exact mirrors. The Draw inspector's Form row reads a rectangle, circle or
+  path as one (`docs/tools/sketch.md` *Solids*).
+- **A layer hangs rock under itself (`TS211`).** A layer's `underside` — `edge`, `taper`, `rough`, `seed` and a
+  `sheer` list of shape ids — lowers each column's floor to a rock 4 blocks thick at the rim and 0.9 more per
+  block inward, 26 and 1.2 beside a sheer side, and rests it on the terrain below where under 4 blocks would stay
+  clear (`Underside`, `SketchRasterizer.Hang`). The Draw phase's layer panel carries the toggle and the numbers.
+  `docs/tools/sketch.md` *A layer's underside*. (`TS211`)
+- **A control point placed in Layout, square or disc (`TS213`).** *Markers* puts one down with a click at any number
+  of teams, its images with it under one stamp; a drag moves the orbit, an edge drag resizes it (the longer side,
+  3 to 15), and the rail sets its name, its pad (`ControlPointShapes`: square or disc), how it is taken, its
+  capture time in seconds and its points. A disc is laid round (`ControlPointStamper.Cells`) and captured inside a
+  `<cylinder>` (`ObjectiveRegion.EmitCylinder`). `docs/tools/sketch.md` *Draw*, `docs/pgm/control-points.md` §9.
+- **A wall bends (`TS214`).** A wall states `points`, two or more block corners, laid two blocks thick along every
+  leg with the four blocks round each bend filled (`WallLine`). In Layout a picked wall wears a grip on each corner:
+  a drag moves one, a shift-press on a leg adds one and a shift-press on a corner takes it out
+  (`WallCornerController`), each written whole through `PUT …/intent/pieces/{id}/line` (`PlayPieceLine`) and carried
+  to every image. `M0089` carried every stored wall's two ends into two corners; `ST4` amended (60).
+- **Every stamp switched per piece, and the float check (`WE174`).** A piece's `stampsOff` lists the stamps it
+  switches off (`StampSwitches`): a goal's marker, a build area's outline, a wall's bedrock, a wool room's chests, a
+  destroyable's or core's kit pairing and float check, each a box in the rail's *Stamps* section. The float check
+  is pgmvox's, asked of the built world on export: every monument and core has its float of air under each column
+  (`OB37`) and a block at y 0 (`OB38`). `docs/world-export/sketch-world-export.md` §5a.
+- **The Placed list is grouped, counted and named (`TS215`).** Decoration's sidebar sets each kind under a
+  heading that counts it and folds away; a row names what its prop is — *Spruce · 17*, *Round boulder · 3*,
+  *Worn path · 6 wide*, a building by its shell — with its x, z, length or footprint beside it. A prop picked on
+  the canvas opens its heading and scrolls its row into view, a row under the pointer or focus rings its prop on
+  the board, and Tab and Enter reach and pick rows (`SketchDressingList`, `PropKindNames`, `hoverProp`).
+- **What the screen was not saying, it says (`TS216`).** The bar shows *Saving…* / *Saved* in every phase, not
+  only Info. The Ground-after strip turns warning-coloured short of the last step, reads *N of M*, offers **Show
+  all**, and returns to the whole stack when a modifier past the step is edited. The Decoration inspector's
+  header is pinned, banded while a tool is in hand, and says what a change does: the next click places this,
+  Shift places several; or the change applies to this prop and carries to the next one placed.
+- **The shell names what it shows (`TS217`).** Every left rail carries each button's name under its glyph
+  (`NavButton`). Sketch's Next names where it goes (*Next: Ground*, *Next: Terraform*). The in-hand header says
+  each kind's gesture — a click, a drag along the board, a ring, a rectangle — and a building in hand raises no
+  refusal before its rectangle is down. Layout's empty state points at the dock below the board and its three
+  groups.
+- **Blocks shows stone, and every layer reads the same on both halves (`TS226`).** Draw's Blocks overlay draws the
+  board's cells as one pixel per block in stone (`stoneBitmap`), every image of a mirroring group included
+  (`rasterizeBoard`). Over the blocks or the height map, groups and shapes are drawn as outlines, so the drawn
+  half is no longer tinted against its images. A phase that does not offer the Contours chip does not draw the
+  contours.
+- **The UI says less and names what it shows (`TS227`).** A `Field`'s hint reads after its label while it is five
+  words or fewer and is the field's `?` help beyond that, its unit kept inline; definitions (paint rules, porch,
+  biome, tree kinds, saved parts) moved behind `?`. Unset selects name their value — *Plains*, *Stone*, *Bedrock
+  box* (the built-in shell, renamed throughout with `RoomFrameRules.BedrockBox`), *Bare floor*, *Choose a
+  material*. Icon buttons beside a field take its height everywhere (`buttons.css`). The palette strip shows
+  palettes as pills with a *default* badge, the strips' labels are sentence case, the step strip reads *Modifiers
+  shown · 14 of 20 · up to lumps-2*, and a modifier's and a paint rule's on/off are the On/Off chips and the eye.
+  `Select` marks its chosen option, so a value set before its options load no longer shows the first.
+- **One control, one place, across the inspectors (`TS229`).** Fields sit in sections a gap apart, short ones two
+  to a row (`field-grid`, `Field Half`), and a half-width field keeps only its unit inline. A seed is `SeedField`
+  everywhere, with *Reroll*. Delete is `InspectorDelete`, pinned to the inspector's foot, for a shape, a piece, a
+  prop, a modifier, a place and a paint rule. Paint rules are a sidebar list beside the groups, rows like the
+  modifier list's, and the picked rule is the inspector (`SketchPaintRuleList`, `SketchPaintRuleInspector`,
+  `SketchPaintRuleSet`). The `?` sits a gap after its label on its centre line. Decoration draws no picture of a
+  prop: a tree's picker opens on its *In use* card, and ground cover's sliders are two groups, two to a row.
+- **The picked modifier's area reads on the board, and what it is reads in the panel (`TS230`).** The picked mask
+  is drawn in `--canvas-pick` over a halo while the others fall back. The inspector's *Area* says where it acts —
+  *Acts along one line, in a band 110 blocks wide* — with *Mirrored* and *Band width*; *Excluded shapes* replaces
+  *Leaves out*. On and off is the eye in a modifier's and a paint rule's header, names take the full width, a
+  short field with no partner takes the row, grid controls meet on one line, and a seed's number fills its row
+  beside a Reroll of its height. A paint rule is its *Material* and one *Mask* — the conditions, a *Depth* in blocks
+  and a *Coverage* whose share below 100% lays in patches — and the sidebar's heading over groups and their shapes
+  is *Shapes*.
+- **Every screen text has one channel, one form and a gate (`C108`, `RP99`).** `docs/client/writing-for-the-ui.md`
+  names where each kind of text goes and how it is written, after NN/g, GOV.UK, Carbon, Polaris and Microsoft;
+  `ClientTextTests` holds every text in the client to it, beside `RuleTextTests`, with one form per recurring
+  situation. `Field` takes `Unit`, `Help`, `Term` and `Note`; a term's `?` shows the glossary's own definition and
+  links to it; `Readout`, `EmptyState`, `StatusLine` and `HelpNote` give their channels one mechanism each. The
+  glossary page files every retired name as a see entry under an A to Z bar, ranks a search by name, and lands a
+  deep link on its entry.
+- **An empty number says what it stands for (`TS231`).** A modifier's numbers that are worked out when unstated —
+  a Level's height, a Butte's or Spire's top, a Lake's or Sea's level, a floor, a heading — read *Auto* and say
+  under the box what they take; Soft rim shows its default, 0, a hard edge; a paint rule's empty conditions read
+  *Any*. A stack row is the operation's icon and the name across the row: the kind tag beside a renamed
+  modifier is gone, and the row's buttons take no room until hover or pick.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **`sketch/seats` answers the way past a building, groups and all (`WE127`).** The forward read ran the

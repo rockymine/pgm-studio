@@ -7,7 +7,7 @@
  */
 
 import { paintShape } from "./shape-render.js";
-import { toRing } from "../geometry/shape.js";
+import { toRing, footprintOf } from "../geometry/shape.js";
 import { primitiveStyle, opColors, OBJECTIVE_COLORS, BUILDING_COLORS, UNKNOWN_KIND_COLOR } from "./primitive-style.js";
 
 function shapeStyle(shape, selected) {
@@ -18,16 +18,19 @@ function shapeStyle(shape, selected) {
 }
 
 /** One draw primitive: add/subtract coloured, dashed when it overrides the normal boolean order. */
-export function paintSketchShape(painter, shape, { selected = false, alpha = 1 } = {}) {
-  const style = { ...shapeStyle(shape, selected), alpha };
-  if (shape.type === "rectangle") {
+export function paintSketchShape(painter, shape, { selected = false, alpha = 1, filled = true } = {}) {
+  const style = { ...shapeStyle(shape, selected), alpha, ...(filled ? {} : { fill: null }) };
+  const kind = footprintOf(shape);
+  if (kind === "rectangle" && shape.turn) {
+    painter.ring(toRing(shape), { ...style, fillRule: "evenodd" });
+  } else if (kind === "rectangle") {
     paintShape(painter, "rectangle", shape, style);
-  } else if (shape.type === "circle") {
+  } else if (kind === "circle") {
     paintShape(painter, "circle", {
       min_x: shape.center_x - shape.radius, max_x: shape.center_x + shape.radius,
       min_z: shape.center_z - shape.radius, max_z: shape.center_z + shape.radius,
     }, style);
-  } else if (shape.type === "polyline") {
+  } else if (kind === "polyline") {
     // The band, not the line — a path is filled by what it covers, the same as every other primitive.
     const ring = toRing(shape);
     if (ring.length >= 3) painter.ring(ring, { ...style, fillRule: "evenodd" });
@@ -44,6 +47,7 @@ const ROLE_FILL = { spawn: "var(--canvas-role-spawn)", woolRoom: "var(--canvas-r
 const PIECE_FILL = {
   destroyable: { color: OBJECTIVE_COLORS.destroyable, alpha: 0.85 },
   core:        { color: OBJECTIVE_COLORS.core, alpha: 0.85 },
+  controlPoint: { color: OBJECTIVE_COLORS.controlPoint, alpha: 0.45 },
   ironCube:    { color: OBJECTIVE_COLORS.iron, alpha: 0.85 },
   observer:    { color: OBJECTIVE_COLORS.spawn, alpha: 0.85 },
   spawnPoint:  { color: OBJECTIVE_COLORS.spawn, alpha: 0.95 },
@@ -71,10 +75,10 @@ export function paintStructural(painter, shapes, selectedId = null) {
     const box = { min_x: s.min_x, min_z: s.min_z, max_x: s.max_x, max_z: s.max_z };
     // The ring goes outside whatever the piece draws for itself, in the selection ink every other picked
     // thing on this canvas wears, so a picked region and a picked island read as the same kind of state.
-    // A wall is the band its line is laid in, at whatever angle the line runs.
-    const band = s.line ? wallBand(s.line) : null;
+    // A wall is the bands its legs are laid in, at whatever angle each runs.
+    const bands = s.line ? wallBands(s.line) : null;
     if (s.id === selectedId) {
-      if (band) painter.ring(band, { stroke: "var(--accent)", strokeAlpha: 1, width: 4 });
+      if (bands) for (const band of bands) painter.ring(band, { stroke: "var(--accent)", strokeAlpha: 1, width: 4 });
       else painter.rect(box, { stroke: "var(--accent)", strokeAlpha: 1, width: 4 });
     }
     // A piece that is not a room is drawn in its kind's colour and carries no label: what it is shows by its
@@ -86,7 +90,8 @@ export function paintStructural(painter, shapes, selectedId = null) {
         fill: look.color, fillAlpha: s.carried ? look.alpha / 2 : look.alpha,
         stroke: look.color, strokeAlpha: 0.95, width: 2, ...(dash ? { dash } : {}),
       };
-      if (band) painter.ring(band, style);
+      if (bands) for (const band of bands) painter.ring(band, style);
+      else if (s.shape === "disc") paintShape(painter, "circle", box, style);
       else painter.rect(box, style);
       continue;
     }
@@ -130,6 +135,32 @@ export function paintPlaces(painter, places, selectedId = null) {
   }
 }
 
+/** The modifiers' masks: every outline thin, the picked modifier's bold with its images under the symmetry
+ *  dashed, and a switched-off modifier's faint. A line is stroked open with its band beside it. */
+export function paintMasks(painter, masks) {
+  // The picked mask is drawn over a halo in its own colour, and while one is picked the others fall back, so the
+  // area being tuned is the one thing on the board that reads at a glance.
+  const anyPicked = (masks ?? []).some(mask => mask.picked && !mask.image);
+  for (const mask of masks ?? []) {
+    const strong = mask.picked && !mask.image;
+    const colour = mask.picked ? "var(--canvas-pick)" : "var(--accent)";
+    const strokeAlpha = mask.off ? 0.3 : strong ? 1 : mask.picked ? 0.7 : anyPicked ? 0.25 : 0.6;
+    const dash = mask.image || mask.off ? [5, 4] : null;
+    if (mask.line) {
+      painter.polyline(mask.points, { stroke: colour, strokeAlpha: strong ? 0.22 : mask.picked ? 0.1 : 0.04,
+                                      width: (mask.width ?? 0) / painter.screenPx(1), cap: "round", join: "round" });
+      if (strong) painter.polyline(mask.points, { stroke: "var(--bg-panel)", strokeAlpha: 0.9, width: 5, cap: "round", join: "round" });
+      painter.polyline(mask.points, { stroke: colour, strokeAlpha, width: strong ? 2.5 : 1.5, dash, cap: "round", join: "round" });
+      continue;
+    }
+    if (strong) painter.ring(mask.points, { stroke: "var(--bg-panel)", strokeAlpha: 0.9, width: 5 });
+    painter.ring(mask.points, {
+      fill: colour, fillAlpha: strong ? 0.14 : mask.picked ? 0.05 : 0.02, stroke: colour,
+      strokeAlpha, width: strong ? 2.5 : 1.5, dash,
+    });
+  }
+}
+
 /** The place under (wx, wz), the last drawn first — inside a box or a ring, within `reach` blocks of a point or
  *  a line — or null. */
 export function placeAt(places, wx, wz, reach) {
@@ -158,6 +189,19 @@ export function placeAt(places, wx, wz, reach) {
         if (near(points[j - 1][0], points[j - 1][1], points[j][0], points[j][1])) return place;
   }
   return null;
+}
+
+/** The bands a wall through `points` stands in, one per leg: each two blocks across, square at its ends, and run a
+ *  block past a bend so the legs meet without a notch. */
+export function wallBands(points) {
+  return points.slice(1).map((to, at) => {
+    const from = points[at];
+    const [dx, dz] = [to[0] - from[0], to[1] - from[1]];
+    const length = Math.hypot(dx, dz) || 1;
+    const before = at > 0 ? 1 : 0, after = at < points.length - 2 ? 1 : 0;
+    return wallBand([from[0] - dx / length * before, from[1] - dz / length * before,
+                     to[0] + dx / length * after, to[1] + dz / length * after]);
+  });
 }
 
 /** The four corners of the band a wall from (x1, z1) to (x2, z2) stands in: two blocks across, square at the ends. */
@@ -203,21 +247,45 @@ export function paintMirror(painter, polys) {
   }
 }
 
+/** The grey a sketch's ground is built from before any paint: vanilla stone's top. */
+const STONE = 125;
+/** How far one block's grey strays from the next, either way — enough that neighbouring blocks read apart at
+ *  any zoom with no line drawn between them, little enough that the whole still reads as one stone. */
+const STONE_SPREAD = 9;
+
+/** One block's shade of stone, fixed by its cell so a redraw never shimmers. */
+export function stoneShade(x, z) {
+  let hash = Math.imul(x, 73856093) ^ Math.imul(z, 19349663);
+  hash = Math.imul(hash ^ (hash >>> 13), 1274126177);
+  return STONE + ((hash >>> 0) % (2 * STONE_SPREAD + 1)) - STONE_SPREAD;
+}
+
 /**
- * The rasterized block footprint — the exact cells the shapes voxelize into, as merged horizontal
- * runs `{ x, z, w }` (see geometry/rasterize.cellRuns). Painted as a faint stone fill beneath the smooth
- * group outline, so a curve visibly reads as the blocky cells it becomes on export. This is the geometry
- * preview only; the *paint* those cells receive is the block bitmap the canvas blits over it.
+ * The block footprint as a picture: one pixel per block, in stone, over the box the cells span — what the
+ * export lays before any paint, drawn the way the paint layer is drawn so the two read alike. `cells` is a
+ * Set of `"x,z"` keys (`rasterizeBoard`). Answers `{ image, bounds }`, or null for no cells.
  */
-export function paintRaster(painter, runs) {
-  // A faint fill plus a hairline round each run — the run edges are exactly the stair-stepped cell
-  // boundaries, so the voxelization reads as blocks — in the neutral stone a sketch is built from.
-  const stone = "var(--canvas-result-stroke)";
-  const line = painter.screenPx(1);
-  for (const { x, z, w } of runs ?? []) {
-    painter.rect({ min_x: x, max_x: x + w, min_z: z, max_z: z + 1 },
-      { fill: stone, fillAlpha: 0.20, stroke: stone, strokeAlpha: 0.55, width: line });
+export function stoneBitmap(cells) {
+  if (!cells?.size) return null;
+  const points = [...cells].map(cell => cell.split(",").map(Number));
+  let minX = Infinity, minZ = Infinity, maxX = -Infinity, maxZ = -Infinity;
+  for (const [x, z] of points) {
+    if (x < minX) minX = x; if (x > maxX) maxX = x;
+    if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
   }
+  const width = maxX - minX + 1, depth = maxZ - minZ + 1;
+  const image = new ImageData(width, depth);
+  for (const [x, z] of points) {
+    const at = ((z - minZ) * width + (x - minX)) * 4;
+    const shade = stoneShade(x, z);
+    image.data[at] = image.data[at + 1] = image.data[at + 2] = shade;
+    image.data[at + 3] = 255;
+  }
+  const surface = document.createElement("canvas");
+  surface.width = width;
+  surface.height = depth;
+  surface.getContext("2d").putImageData(image, 0, 0);
+  return { image: surface, bounds: { min_x: minX, min_z: minZ, max_x: maxX + 1, max_z: maxZ + 1 } };
 }
 
 /**

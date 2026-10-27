@@ -23,52 +23,42 @@
         </SmartSuggestion>
       }
 
-      <Section Title="Teams">
+      <Section Title="Teams" Description="@(teams.Count > 0 && SuggestedCount > 0 ? "Set up the first team. Every other team gets a symmetry copy." : null)">
         <ChildContent>
         <div class="panel-list">
-          @if (teams.Count == 0) { <div class="list-empty">No teams yet. Accept the suggestion or pick a colour below.</div> }
+          @if (teams.Count == 0) { <EmptyState>No teams yet. Accept the suggestion or pick a colour below.</EmptyState> }
           @for (var i = 0; i < teams.Count; i++)
           {
             var t = teams[i];
             var idx = i;
             <ListRow Compact Selected="selectedTeamId == t.Id" @key="t.Id" OnClick="() => Select(t.Id)">
               <span class="list-swatch" style="--swatch: @Hex(t.Color)"></span>
-              <span class="list-label list-label--mono">@t.Id</span>
+              <span class="list-label">@(t.Name.Length > 0 ? t.Name : t.Id)</span>
               <Badge Class="@(idx == 0 ? "badge--success" : "badge--dim")">@(idx == 0 ? "Main" : "Copy")</Badge>
-              <WriteGate Context="closed">
-                <button class="btn-remove btn-remove--hover-only" title="@(closed ?? "Remove")" disabled="@(closed is not null)"
-                        @onclick:stopPropagation="true" @onclick="() => RemoveTeam(t)"><i data-lucide="x"></i></button>
-              </WriteGate>
             </ListRow>
           }
         </div>
         @if (AddableColors.Count > 0)
         {
-          <Field Label="Add a team">
+          <Field Label="New team">
             <SwatchRow TKey="string" Writes OnPick="AddTeam"
                        Swatches="@AddableColors.Select(c => new SwatchRow<string>.Swatch(c.Value, c.Hex, c.Label)).ToList()" />
           </Field>
         }
-        @if (teams.Count > 0 && SuggestedCount > 0)
-        {
-          <p class="section-desc">You set up the first team. The other teams are copied from it by symmetry.</p>
-        }
         </ChildContent>
       </Section>
 
-      <Section Title="Island owners">
+      <Section Title="Island owners" Description="Pick a team, then click its islands on the canvas. An island with no owner stays neutral, such as a shared mid.">
         <Actions><Badge Kind="dim">Optional</Badge></Actions>
         <ChildContent>
-        <p class="section-desc">Select a team, then click its islands on the canvas. Islands without an owner
-          stay neutral, such as a shared middle.</p>
         @if (disagreements.Count > 0)
         {
           <div class="callout">
             <span class="callout-icon"><i data-lucide="triangle-alert"></i></span>
             <div>
-              <p>The objectives no longer match these islands:</p>
+              <p>The objectives no longer match the islands' teams:</p>
               <ul>@foreach (var line in disagreements) { <li>@line</li> }</ul>
-              <Button Writes Variant="primary" Icon="refresh-cw" OnClick="ReassignObjectives">Move the objectives to these teams</Button>
+              <Button Writes Variant="primary" Icon="refresh-cw" OnClick="ReassignObjectives">Reassign the objectives</Button>
             </div>
           </div>
         }
@@ -79,7 +69,7 @@
             {
               <ListRow Compact Class="list-row--muted">
                 <span class="list-swatch" style="--swatch: @Hex(t.Color)"></span>
-                <span class="list-label">@t.Name</span>
+                <span class="list-label">@(t.Name.Length > 0 ? t.Name : t.Id)</span>
                 <span class="list-tag">@IslandsFor(t.Id) islands</span>
               </ListRow>
             }
@@ -88,16 +78,13 @@
         </ChildContent>
       </Section>
 
-      <Section Title="Team size and kit" Writes>
+      <Section Title="Size and kit" Writes>
         <div class="section-body">
-          <Field Label="Max players">
-            <LabelHint><span class="list-tag">per team</span></LabelHint>
-            <ChildContent>
-              <NumberField Value="maxPlayers" ValueChanged="SetMaxPlayers" Min="1" />
-            </ChildContent>
+          <Field Label="Team size" Unit="players">
+            <NumberField Value="maxPlayers" ValueChanged="SetMaxPlayers" Min="1" />
           </Field>
-          <Field Label="Spawn kit">
-            <input class="field-input" type="text" value="Standard" disabled title="Set automatically" />
+          <Field Label="Spawn kit" Note="The studio sets it.">
+            <input class="field-input" type="text" value="Standard" disabled />
           </Field>
         </div>
       </Section>
@@ -115,7 +102,7 @@
       @if (Selected is { } sel)
       {
         <Section @key="sel.Id">
-          <DetailHeader Icon="users" IconMuted Mono Label="@sel.Id">
+          <DetailHeader Icon="users" IconMuted Label="@(sel.Name.Length > 0 ? sel.Name : sel.Id)">
             <Badge Class="@(teams.IndexOf(sel) == 0 ? "badge--success" : "badge--dim")">@(teams.IndexOf(sel) == 0 ? "Main" : "Copy")</Badge>
           </DetailHeader>
           <div class="section-body">
@@ -125,24 +112,23 @@
             <Field Label="Colour">
               <SwatchRow TKey="string" Selected="@sel.Color" OnPick="SetColor"
                          Swatches="@GameColors.ChatColors.Select(c => new SwatchRow<string>.Swatch(c.Value, c.Hex, c.Label)).ToList()" />
-              <p class="section-desc">Changing the colour also changes the team's id, unless another team already
-                uses it.</p>
             </Field>
             <Field Label="Islands">
               <div class="field-pick-row"><Badge Kind="neutral">@IslandsFor(sel.Id)</Badge><span class="list-tag">assigned</span></div>
             </Field>
-            @if (SuggestedCount > 0)
+            @if (SuggestedCount > 0 && teams.IndexOf(sel) > 0)
             {
-              <p class="section-desc">@(teams.IndexOf(sel) == 0 ? "The other teams are copied from this one." : "Copied from the first team by symmetry.")</p>
+              <Readout>@($"Its spawn and protection are symmetry copies of {teams[0].Name}'s.")</Readout>
             }
           </div>
         </Section>
+        <InspectorDelete Title="Delete this team" OnClick="() => RemoveTeam(sel)" />
       }
       else
       {
         <Section>
           <DetailHeader Icon="users" IconMuted Label="Teams" />
-          <p class="section-desc">Select a team to edit its name and colour.</p>
+          <EmptyState>No team selected. Pick one to edit its name and colour.</EmptyState>
         </Section>
       }
   </Inspector>

@@ -17,12 +17,12 @@
 
           <section class="landing-section">
             <div class="landing-section-head">
-              <h2 class="landing-section-title">@(mine ? "Continue working" : "Latest maps")</h2>
+              <h2 class="landing-section-title">@(mine ? "Your recent maps" : "Latest maps")</h2>
               <a class="landing-section-link" href="maps">All maps</a>
             </div>
             @if (recent.Count == 0)
             {
-              <p class="landing-empty">No maps yet. Start one to see it here.</p>
+              <EmptyState>No maps yet. Create one with New map.</EmptyState>
             }
             else
             {
@@ -60,8 +60,7 @@
           </section>
 
           <section class="landing-guide">
-            <span class="landing-guide-text">New to mapmaking? Hub, front line, wool room: every term the studio uses is
-              explained in one place.</span>
+            <span class="landing-guide-text">New to mapmaking? Every word the studio uses is defined in one place.</span>
             <Button Size="lg" Icon="book-open-text" Href="glossary" Class="action-btn--push-end">Open the glossary</Button>
           </section>
         </div></div>

@@ -1,0 +1,71 @@
+@namespace PgmStudio.Client.Features.Sketch
+@using PgmStudio.Vocabulary
+
+@* The Terraform phase's left column. Shapes first, because they are what the stack works on: each drawn shape
+   with how the modifiers meet it. Then the stack, in the order it runs: each row picks its modifier, switches it
+   off and on, and moves it up or down the order. A modifier is added by tracing its area with its tool in the
+   dock. *@
+
+<Section Title="Shapes">
+  @if (Ground.Count == 0)
+  {
+    <EmptyState>No shapes yet. Draw the ground in the Draw phase.</EmptyState>
+  }
+  else
+  {
+    <div class="region-tree" aria-label="Shapes, and how the modifiers meet each">
+      @foreach (var shape in Ground)
+      {
+        <div class="geo-row shape-relation-row" @key="shape.Id">
+          <span class="geo-type-icon"><i data-lucide="@shape.Icon"></i></span>
+          @* The relation is what this row is for, so the shape is its name, with its size on hover. *@
+          <span class="geo-label" title="@shape.Type, @shape.Dim">@shape.Type</span>
+          @if (!string.IsNullOrEmpty(shape.HeightMode))
+          {
+            @* A shape with a height mode stands at its own statement, so the modifiers never reshape it and
+               the relation is not asked of it. *@
+            <span class="shape-relation list-tag" title="@HeightModeNote(shape.HeightMode)">@Capitalised(shape.HeightMode)</span>
+          }
+          else
+          {
+            <span class="shape-relation">
+              <Select Options="SketchReliefScopes.Ground" Value="@shape.ReliefScope" Title="Set its terraform"
+                      ValueChanged="word => Relate(shape.Id, word)" />
+            </span>
+          }
+        </div>
+      }
+    </div>
+  }
+</Section>
+
+<Section Title="Modifiers">
+  @if (State.Modifiers.Count == 0)
+  {
+    <EmptyState>No modifiers yet. Pick one in the dock and trace its area on the canvas.</EmptyState>
+  }
+  else
+  {
+    <div class="region-tree" role="listbox" aria-label="Modifiers, in the order they run">
+      @for (var index = 0; index < State.Modifiers.Count; index++)
+      {
+        var modifier = State.Modifiers[index];
+        var id = SketchModifierState.Id(modifier);
+        var off = SketchModifierState.Off(modifier);
+        var at = index;
+        <div class="geo-row modifier-row @(id == State.SelectedId ? "geo-row--selected" : null) @(off ? "modifier-row--off" : null)"
+             @key="id" role="option" aria-selected="@(id == State.SelectedId)" @onclick="() => Pick(id)">
+          @* The icon is the operation, so a renamed row still says what it is; the name takes the rest of the row. *@
+          <span class="geo-type-icon" title="@ModifierOps.Label(SketchModifierState.Op(modifier))"><i data-lucide="@SketchModifierState.Icon(SketchModifierState.Op(modifier))"></i></span>
+          <span class="geo-label" title="@SketchModifierState.Name(modifier)">@SketchModifierState.Name(modifier)</span>
+          <span class="modifier-row-tools" @onclick:stopPropagation>
+            <Button Variant="icon" Icon="chevron-up" Writes Title="Move up" Disabled="@(at == 0)" OnClick="() => Move(id, -1)" />
+            <Button Variant="icon" Icon="chevron-down" Writes Title="Move down" Disabled="@(at == State.Modifiers.Count - 1)" OnClick="() => Move(id, 1)" />
+            <Button Variant="icon" Icon="eye" Writes Class="@(off ? "modifier-eye--off" : null)"
+                    Title="@(off ? "Switch on" : "Switch off")" OnClick="() => Toggle(id, !off)" />
+          </span>
+        </div>
+      }
+    </div>
+  }
+</Section>

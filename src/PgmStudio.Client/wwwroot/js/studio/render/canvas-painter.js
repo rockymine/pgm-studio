@@ -238,6 +238,19 @@ export class CanvasPainter {
     this.#strokeCurrent(style);
   }
 
+  /** An open run through world points, stroked only: `width` is screen pixels like every stroke, so a band
+   *  of `n` blocks is `n / painter.screenPx(1)`. */
+  polyline(points, style = {}) {
+    if (!points || points.length < 2) return;
+    const ctx = this.#ctx;
+    ctx.beginPath();
+    points.forEach(([x, z], index) => {
+      const at = this.#toSurface(x, z);
+      if (index === 0) ctx.moveTo(at.x, at.y); else ctx.lineTo(at.x, at.y);
+    });
+    this.#strokeCurrent(style);
+  }
+
   /** A circle of `radius` WORLD units, so it grows with the zoom the way a drawn thing does. */
   circle(centreX, centreZ, radius, style = {}) {
     const centre = this.#toSurface(centreX, centreZ);

@@ -37,10 +37,29 @@ public sealed record ConfigureStateDto(
 /// <param name="Destroyable">What a DTM goal may be made of, and what an unauthored one is.</param>
 /// <param name="Core">What a DTC goal may be made of, and what an unauthored one is.</param>
 /// <param name="Wool">Which dyes a CTW goal may be, and what an unstated one becomes.</param>
+/// <param name="ControlPoint">How a control point may be laid and taken, and what an unauthored one is.</param>
 public sealed record ObjectiveVocabularyDto(
     DestroyableVocabularyDto Destroyable,
     CoreVocabularyDto Core,
-    WoolVocabularyDto Wool);
+    WoolVocabularyDto Wool,
+    ControlPointVocabularyDto ControlPoint);
+
+/// <summary>What an unauthored control point is, and the range each of its knobs takes.</summary>
+/// <param name="Shapes">The pads it may be laid as.</param>
+/// <param name="CaptureModes">The ways it may be taken.</param>
+/// <param name="Shape">The pad an unauthored point is laid as.</param>
+/// <param name="Size">An unauthored pad's side, or diameter, in blocks.</param>
+/// <param name="MinSize">The smallest pad.</param>
+/// <param name="MaxSize">The largest pad.</param>
+/// <param name="Points">What holding an unauthored point pays, per second.</param>
+/// <param name="CaptureSeconds">How long an unauthored point is held alone to take it, in seconds.</param>
+/// <param name="CaptureMode">How an unauthored point is taken.</param>
+public sealed record ControlPointVocabularyDto(
+    [property: WordSet(typeof(ControlPointShapes))] IReadOnlyList<string> Shapes,
+    [property: WordSet(typeof(CaptureModes))] IReadOnlyList<string> CaptureModes,
+    [property: WordSet(typeof(ControlPointShapes))] string Shape,
+    int Size, int MinSize, int MaxSize, int Points, int CaptureSeconds,
+    [property: WordSet(typeof(CaptureModes))] string CaptureMode);
 
 /// <summary>The destroyable designs on offer and what an unauthored one is made of.</summary>
 /// <param name="Styles">The shapes a destroyable can be built as.</param>

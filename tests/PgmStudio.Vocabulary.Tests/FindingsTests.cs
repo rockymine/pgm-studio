@@ -44,17 +44,17 @@ public class FindingsTests
 
         var stated = Complaint with
         {
-            Edit = DocumentEdit.Of(MapDocuments.Layout, "relief.team.marks", DocumentEdit.Add,
-                new { id = "ramp-a-b", kind = "line", h = new[] { 12, 9 } }, "a ramp"),
+            Edit = DocumentEdit.Of(MapDocuments.Layout, "modifiers", DocumentEdit.Add,
+                new { id = "bench-a", op = "level", top = 12 }, "a bench"),
         };
         var json = JsonSerializer.Serialize(stated, wire);
         using var read = JsonDocument.Parse(json);
         var edit = read.RootElement.GetProperty("edit");
         await Assert.That(edit.GetProperty("document").GetString()).IsEqualTo("layout");
-        await Assert.That(edit.GetProperty("path").GetString()).IsEqualTo("relief.team.marks");
+        await Assert.That(edit.GetProperty("path").GetString()).IsEqualTo("modifiers");
         await Assert.That(edit.GetProperty("op").GetString()).IsEqualTo("add");
-        await Assert.That(edit.GetProperty("value").GetProperty("kind").GetString()).IsEqualTo("line");
-        await Assert.That(edit.GetProperty("says").GetString()).IsEqualTo("a ramp");
+        await Assert.That(edit.GetProperty("value").GetProperty("op").GetString()).IsEqualTo("level");
+        await Assert.That(edit.GetProperty("says").GetString()).IsEqualTo("a bench");
     }
 
     /// <summary>Nothing wrong is a value rather than an absence, so a gate with nothing to say never returns

@@ -1,4 +1,5 @@
 using PgmStudio.Domain;
+using PgmStudio.Geom;
 using PgmStudio.Geom.Algorithms;
 using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Minecraft.Anvil;
@@ -1700,6 +1701,163 @@ public sealed class DecoratorTests
         await Assert.That(wall.Message).Contains("open columns of ground");
         await Assert.That(world.GetBlock(17, 6, 17).Id).IsEqualTo(Blocks.StationaryWater);
         await Assert.That(world.GetBlock(23, 6, 17).Id).IsEqualTo(Blocks.Air);
+    }
+
+    /// <summary>A trench dug along z 10, x 10..14, down to a floor at y4: the ground is air from y5 up.</summary>
+    private static (VoxelWorld World, Dictionary<(int X, int Z), int> SurfaceTop) Trench()
+    {
+        var (world, top) = Plateau();
+        for (var x = 10; x <= 14; x++)
+        {
+            for (var y = 5; y <= 7; y++) world.SetBlock(x, y, 10, Blocks.Air);
+            top[(x, 10)] = 5;
+        }
+        return (world, top);
+    }
+
+    /// <summary><b>The water the modifier stack made fills each wet column to its own surface.</b> The surface is
+    /// the height the water stands under, so a surface of 7 fills the courses from the ground up to y6; a column
+    /// whose ground stands at the surface or above is dry however the map lists it.</summary>
+    [Test]
+    public async Task Water_the_stack_made_fills_each_wet_column_up_to_its_own_surface()
+    {
+        var (world, top) = Trench();
+        var water = new Dictionary<(int X, int Z), int>
+        {
+            [(10, 10)] = 7, [(11, 10)] = 7, [(12, 10)] = 6, [(13, 10)] = 6, [(14, 10)] = 6,
+            [(20, 10)] = 7,
+        };
+        var tally = Decorator.Decorate(world, new DressingContext(top, [], (_, _) => null, DressingSymmetry.None,
+                                                                     StackWater: Stacked(water)));
+
+        foreach (var x in new[] { 10, 11 })
+        {
+            await Assert.That(world.GetBlock(x, 6, 10).Id).IsEqualTo(Blocks.StationaryWater);
+            await Assert.That(world.GetBlock(x, 5, 10).Id).IsEqualTo(Blocks.StationaryWater);
+            await Assert.That(world.GetBlock(x, 7, 10).Id).IsEqualTo(Blocks.Air);
+        }
+        foreach (var x in new[] { 12, 13, 14 })
+        {
+            await Assert.That(world.GetBlock(x, 5, 10).Id).IsEqualTo(Blocks.StationaryWater);
+            await Assert.That(world.GetBlock(x, 6, 10).Id).IsEqualTo(Blocks.Air);
+        }
+        await Assert.That(world.GetBlock(20, 7, 10).Id).IsEqualTo(Blocks.Grass)
+            .Because("ground at the surface is the bank, not the bed");
+        await Assert.That(tally.FluidCells).IsGreaterThanOrEqualTo(5);
+    }
+
+    [Test]
+    public async Task Water_the_stack_made_lays_the_floor_it_covers_with_the_default_bank()
+    {
+        var (world, top) = Trench();
+        var water = Enumerable.Range(10, 5).ToDictionary(x => (x, 10), _ => 7);
+        Decorator.Decorate(world, new DressingContext(top, [], (_, _) => null, DressingSymmetry.None,
+                                                      StackWater: Stacked(water)));
+
+        foreach (var x in Enumerable.Range(10, 5))
+            await Assert.That(new[] { Blocks.Gravel, Blocks.Dirt, Blocks.Sand }).Contains(world.GetBlock(x, 4, 10).Id);
+    }
+
+    /// <summary>The water a stack made, from each cell's surface, all of one body.</summary>
+    private static StackedWater Stacked(IReadOnlyDictionary<(int X, int Z), int> surfaces, string body = "river",
+                                        IReadOnlyDictionary<string, TerrainMaterial>? beds = null, int fallFloor = 0) =>
+        new(surfaces.ToDictionary(cell => cell.Key, cell => new WetColumn(cell.Value, body)), beds, fallFloor);
+
+    [Test]
+    public async Task Water_the_stack_made_lies_on_the_bed_its_body_states_and_every_other_on_the_default_bank()
+    {
+        var (world, top) = Trench();
+        var water = Enumerable.Range(10, 5).ToDictionary(x => (X: x, Z: 10), x => new WetColumn(7, x < 13 ? "stated" : "plain"));
+        var beds = new Dictionary<string, TerrainMaterial> { ["stated"] = new SolidMaterial(Blocks.Clay) };
+        Decorator.Decorate(world, new DressingContext(top, [], (_, _) => null, DressingSymmetry.None,
+                                                      StackWater: new StackedWater(water, beds)));
+
+        foreach (var x in new[] { 10, 11, 12 })
+            await Assert.That(world.GetBlock(x, 4, 10).Id).IsEqualTo(Blocks.Clay).Because("the body states a bed");
+        foreach (var x in new[] { 13, 14 })
+            await Assert.That(new[] { Blocks.Gravel, Blocks.Dirt, Blocks.Sand }).Contains(world.GetBlock(x, 4, 10).Id);
+    }
+
+    /// <summary>A plateau with a channel cut along z 10 from its west edge, x 0..4, down to a floor at y4.</summary>
+    private static (VoxelWorld World, Dictionary<(int X, int Z), int> SurfaceTop) EdgeChannel()
+    {
+        var (world, top) = Plateau();
+        for (var x = 0; x <= 4; x++)
+        {
+            for (var y = 5; y <= 7; y++) world.SetBlock(x, y, 10, Blocks.Air);
+            top[(x, 10)] = 5;
+        }
+        return (world, top);
+    }
+
+    private static Dictionary<(int X, int Z), int> ChannelWater() =>
+        Enumerable.Range(0, 5).ToDictionary(x => (x, 10), _ => 7);
+
+    [Test]
+    public async Task Water_the_stack_made_beside_a_cell_with_no_ground_falls_down_past_it_to_the_floor()
+    {
+        var (world, top) = EdgeChannel();
+        Decorator.Decorate(world, new DressingContext(top, [], (_, _) => null, DressingSymmetry.None,
+                                                      StackWater: Stacked(ChannelWater())));
+
+        for (var y = 0; y <= 6; y++)
+        {
+            await Assert.That(world.GetBlock(-1, y, 10)).IsEqualTo((Blocks.Water, 8)).Because($"y{y} of the fall past the lip");
+        }
+        await Assert.That(world.GetBlock(-1, 7, 10).Id).IsEqualTo(Blocks.Air).Because("the fall starts at the surface block");
+        await Assert.That(world.GetBlock(-1, 6, 9).Id).IsEqualTo(Blocks.Air).Because("only the column the water runs into falls");
+        await Assert.That(world.GetBlock(-1, 6, 11).Id).IsEqualTo(Blocks.Air);
+    }
+
+    [Test]
+    public async Task Water_the_stack_made_inside_the_ground_pours_nowhere()
+    {
+        var (world, top) = Trench();
+        var water = Enumerable.Range(10, 5).ToDictionary(x => (x, 10), _ => 7);
+        Decorator.Decorate(world, new DressingContext(top, [], (_, _) => null, DressingSymmetry.None,
+                                                      StackWater: Stacked(water)));
+
+        var falling = 0;
+        for (var x = -2; x < 42; x++)
+        for (var z = -2; z < 42; z++)
+        for (var y = 0; y < 12; y++)
+            if (world.GetBlock(x, y, z).Id == Blocks.Water) falling++;
+        await Assert.That(falling).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task A_fall_stops_at_the_floor_it_is_given()
+    {
+        var (world, top) = EdgeChannel();
+        Decorator.Decorate(world, new DressingContext(top, [], (_, _) => null, DressingSymmetry.None,
+                                                      StackWater: Stacked(ChannelWater(), fallFloor: 3)));
+
+        await Assert.That(world.GetBlock(-1, 3, 10).Id).IsEqualTo(Blocks.Water);
+        await Assert.That(world.GetBlock(-1, 2, 10).Id).IsEqualTo(Blocks.Air);
+    }
+
+    [Test]
+    public async Task A_fall_does_not_go_through_what_stands_in_its_way()
+    {
+        var (world, top) = EdgeChannel();
+        world.SetBlock(-1, 3, 10, Blocks.Stone);
+        Decorator.Decorate(world, new DressingContext(top, [], (_, _) => null, DressingSymmetry.None,
+                                                      StackWater: Stacked(ChannelWater())));
+
+        await Assert.That(world.GetBlock(-1, 4, 10).Id).IsEqualTo(Blocks.Water);
+        await Assert.That(world.GetBlock(-1, 3, 10).Id).IsEqualTo(Blocks.Stone);
+        await Assert.That(world.GetBlock(-1, 2, 10).Id).IsEqualTo(Blocks.Air);
+    }
+
+    [Test]
+    public async Task A_board_with_no_water_from_the_stack_is_dressed_as_before()
+    {
+        var (world, top) = Trench();
+        var tally = Decorator.Decorate(world, new DressingContext(top, [], (_, _) => null, DressingSymmetry.None,
+                                                                     StackWater: Stacked(new Dictionary<(int X, int Z), int>())));
+
+        await Assert.That(tally.FluidCells).IsEqualTo(0);
+        await Assert.That(world.GetBlock(10, 5, 10).Id).IsEqualTo(Blocks.Air);
     }
 
     [Test]

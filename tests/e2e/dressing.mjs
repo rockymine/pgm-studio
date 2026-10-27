@@ -99,7 +99,7 @@ checks.section("the sketch Dressing phase places things");
 
 // The placing tools this spec drives, named once: the dock check asserts they are offered and the drive
 // clicks them, so a renamed tool fails both together rather than passing one and timing out in the other.
-const DRIVEN = { stroke: "Stroke", fluid: "Fluid", tree: "Tree" };
+const DRIVEN = { stroke: "Stroke", fluid: "Fluid", tree: "Tree", boulder: "Boulder" };
 
 const browser = await openBrowser();
 const page = await newPage(browser, { width: 1600, height: 1000 });
@@ -112,7 +112,7 @@ try {
   await page.waitForSelector("canvas", { timeout: 20000 });
   await page.waitForTimeout(1500);
 
-  await page.click('button[title="Decoration"]', { timeout: 8000 });
+  await page.click('.nav-btn:has(.nav-btn-caption:text-is("Decoration"))', { timeout: 8000 });
   await page.waitForTimeout(1500);
 
   const groups = await page.locator(".canvas-dock .canvas-dock-group").evaluateAll(
@@ -142,13 +142,17 @@ try {
   const aim = await worldAimer(page, board);
   const ground = (await api(`/map/${seed.sketchSlug}/sketch`)).layers.flatMap(layer => layer.layout?.shapes ?? [])
     .filter(shape => !shape.role);
-  const spots = aim ? deepestPoints(ground, 4, 12).map(point => aim(point.x, point.z)) : [];
-  checks.add("the ground offers four places for a tree", spots.length === 4
+  const spots = aim ? deepestPoints(ground, 5, 12).map(point => aim(point.x, point.z)) : [];
+  checks.add("the ground offers five places for a tree and a rock", spots.length === 5
     && spots.every(spot => spot.x > box.x && spot.x < box.x + box.width && spot.y > box.y && spot.y < box.y + box.height),
     `${spots.length} found`);
   const placeAt = spot => page.mouse.click(spot.x, spot.y);
-  const placedRows = () => page.locator(".geo-label").allInnerTexts();
+  // A placement's row, not the heading over its kind: a row names what the prop is, then what sets it apart.
+  // Rows sit under a heading per kind, each kind in the order its props were placed.
+  const placedRows = kind => page.locator(`.workspace-sidebar .geo-row${kind ? `[data-kind="${kind}"]` : ":not(.geo-row--group)"} .geo-label`).allInnerTexts();
+  const what = label => label.split(" · ")[0];
   const before = await placedRows();
+  const treesBefore = (await placedRows("tree")).length;
   await page.click(`button[aria-label^="${DRIVEN.tree}"]`);
   await placeAt(spots[0]);
   await page.waitForTimeout(1500);
@@ -156,29 +160,29 @@ try {
   // the Placed list is what says one landed.
   const panel = () => page.evaluate(() => document.body.innerText);
   // The library's trees load with the first tree the phase shows, and a cold studio draws every card first.
-  await page.waitForSelector('.prop-card[title="oak"]', { timeout: 30000 }).catch(() => {});
+  await page.waitForSelector('.prop-card[data-name="oak"]', { timeout: 30000 }).catch(() => {});
   checks.add("a click places a tree, and the phase asks which one",
-    (await placedRows()).length === before.length + 1 && await page.locator('.prop-card[title="oak"]').count() > 0,
+    (await placedRows()).length === before.length + 1 && await page.locator('.prop-card[data-name="oak"]').count() > 0,
     `${before.length} → ${(await placedRows()).length} placed · ${(await panel()).match(/GENERATED/)?.[0] ?? "(no tree list)"}`);
   await shot("dressing-tree.png");
 
   // Which tree a placement is, is the recipe it names, so what the phase carries is the card it marks
   // active. Cards are addressed by their title attribute, which is the row's name exactly: `oak` as text
   // also matches `dark oak`.
-  await page.locator('.prop-card[title="spruce"]').click();
+  await page.locator('.prop-card[data-name="spruce"]').click();
   await page.waitForTimeout(2500);
   checks.add("picking a recipe marks it, and only it",
-    await page.locator('.prop-card--active[title="spruce"]').count() === 1
+    await page.locator('.prop-card--active[data-name="spruce"]').count() === 1
     && await page.locator(".prop-card--active").count() === 1);
   // A generated tree is tuned where it stands: its height is a slider on the placement, not a library row.
   checks.add("a generated tree offers its height, and its seed",
-    /height \(blocks\)/i.test(await panel()) && /seed/i.test(await panel()),
-    (await panel()).match(/height \(blocks\)|seed/gi)?.join(",") ?? "(neither)");
+    /height\s*\(blocks\)/i.test(await panel()) && /seed/i.test(await panel()),
+    (await panel()).match(/height\s*\(blocks\)|seed/gi)?.join(",") ?? "(neither)");
   await shot("dressing-tree-spruce.png");
-  await page.locator('.prop-card[title="oak"]').click();
+  await page.locator('.prop-card[data-name="oak"]').click();
   await page.waitForTimeout(2000);
   checks.add("and picking another moves the mark rather than adding one",
-    await page.locator('.prop-card--active[title="oak"]').count() === 1
+    await page.locator('.prop-card--active[data-name="oak"]').count() === 1
     && await page.locator(".prop-card--active").count() === 1);
 
   // Arming the tool again lets go of the tree just placed, so the recipe picked next is the next tree's and
@@ -187,13 +191,24 @@ try {
   await page.waitForTimeout(800);
   checks.add("arming the tool again shows the next placement, not the last one",
     /in hand/.test(await panel()), (await panel()).match(/selected|in hand/)?.[0] ?? "(no badge)");
-  await page.locator('.prop-card[title="spruce"]').click();
+  checks.add("and says that Shift keeps placing", /Hold\s+Shift\s+to place several/.test(await panel()),
+    (await panel()).match(/next click[^.]*\.[^.]*\./)?.[0] ?? "(no hint)");
+  await page.locator('.prop-card[data-name="spruce"]').click();
   await page.waitForTimeout(1500);
   await placeAt(spots[1]);
   await page.waitForTimeout(1500);
-  const placed = (await placedRows()).slice(before.length);
+  const placed = (await placedRows("tree")).slice(treesBefore);
   checks.add("so the pick lands on the new tree and leaves the old one as it was",
-    placed.join(",") === "oak,spruce", placed.join(","));
+    placed.map(what).join(",") === "Oak,Spruce", placed.join(","));
+  // The list heads each kind with how many it holds, and a row names a generated tree by species and height.
+  const heading = await page.locator(".workspace-sidebar .geo-row--group", { hasText: "Trees" }).innerText().catch(() => "");
+  checks.add("the trees sit under a heading that counts them",
+    Number(heading.match(/Trees\s+(\d+)/)?.[1] ?? 0) >= 2 && placed.every(label => /^\w[\w ]* · \d+$/.test(label)), `${heading.replace(/\s+/g, " ")} · ${placed.join(",")}`);
+  await page.locator(".workspace-sidebar .geo-row:not(.geo-row--group)", { hasText: "Spruce" }).last().click();
+  await page.waitForTimeout(1200);
+  checks.add("a placed tree picked from the list says an edit carries to the next one",
+    /selected/.test(await panel()) && /carry to the next one placed/.test(await panel()),
+    (await panel()).match(/Changes apply[^.]*\./)?.[0] ?? "(no sentence)");
 
   // Shift held as a tree lands keeps the tool in hand: two clicks are two trees, and the dock still shows
   // the tree tool pressed afterwards.
@@ -216,6 +231,18 @@ try {
   checks.add("and Escape puts it down", await page.locator('.canvas-dock button[aria-pressed][aria-label="Select"]').count() === 1,
     `${await page.locator('.canvas-dock button[aria-pressed]').evaluateAll(els => els.map(e => e.getAttribute("aria-label")))}`);
 
+  // A boulder's shape picked with the tool in hand is the shape the next boulder is placed in.
+  await page.click(`button[aria-label^="${DRIVEN.boulder}"]`);
+  await page.waitForTimeout(800);
+  await page.locator('.workspace-inspector [data-name="Outcrop"]').last().click();
+  await page.waitForTimeout(1500);
+  await placeAt(spots[4]);
+  await page.waitForTimeout(1500);
+  const rock = (await placedRows("boulder")).at(-1);
+  checks.add("a shape picked with the boulder in hand is the next boulder's", /^Outcrop boulder/.test(rock ?? ""), rock ?? "(nothing placed)");
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(400);
+
   // Drag a route: press, trace, release — no separate way to finish, which is the bug the rework fixes.
   await page.click(`button[aria-label^="${DRIVEN.stroke}"]`);
   await page.mouse.move(box.x + box.width * 0.25, box.y + box.height * 0.65);
@@ -226,7 +253,7 @@ try {
   }
   await page.mouse.up();
   await page.waitForTimeout(1500);
-  checks.add("a drag places a path, and releasing ends it", await page.locator("text=Style").count() > 0);
+  checks.add("a drag places a path, and releasing ends it", await page.locator('text="Look"').count() > 0);
   await shot("dressing-path.png");
 
   // Drag a fluid channel: the same press-trace-release, but its inspector is the fluid one — a depth and a

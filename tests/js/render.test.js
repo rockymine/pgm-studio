@@ -89,7 +89,7 @@ test("paintAnchorBlock marks the whole block, not its corner", () => {
 });
 
 // ── the symmetry axis on the sketch canvas ─────────────────────────────────────
-import { paintAxis } from "../../src/PgmStudio.Client/wwwroot/js/studio/render/sketch-render.js";
+import { paintAxis, paintMasks } from "../../src/PgmStudio.Client/wwwroot/js/studio/render/sketch-render.js";
 
 const axisBox = { min_x: -10, max_x: 10, min_z: -5, max_z: 5 };
 
@@ -106,4 +106,23 @@ test("paintAxis draws nothing for a board laid to no symmetry", () => {
   const painter = recordingPainter();
   paintAxis(painter, axisBox, { cx: 0, cz: 0 }, "none");
   assert.equal(painter.of("segments").length, 0);
+});
+
+// ── modifier masks ────────────────────────────────────────────────────────────
+test("a line mask is stroked open, with a band as wide as the line, and an outline is a closed ring", () => {
+  const painter = recordingPainter({ scale: 2 });
+  paintMasks(painter, [
+    { points: [[0, 0], [10, 0]], image: false, line: true, width: 6, picked: true },
+    { points: [[0, 0], [4, 0], [4, 4]], image: false, line: false, width: 0 },
+  ]);
+  const [band, edge] = painter.of("polyline");
+  assert.equal(band[1].width, 12, "six blocks at two pixels a block");
+  assert.ok(band[1].strokeAlpha < edge[1].strokeAlpha, "the band sits behind the line");
+  assert.equal(painter.of("ring").length, 1);
+});
+
+test("an image of a line under the symmetry is dashed", () => {
+  const painter = recordingPainter();
+  paintMasks(painter, [{ points: [[0, 0], [10, 0]], image: true, line: true, width: 6, picked: true }]);
+  assert.deepEqual(painter.of("polyline")[1][1].dash, [5, 4]);
 });

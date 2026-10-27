@@ -9,7 +9,8 @@ public readonly record struct TerrainBand(int LoY, int HiY, TerrainBucket Bucket
 /// the orbit image of that scope the cell lies on turns a direction, null on the authored image. The turn is
 /// the fan's, read from which image of a shape claimed the cell, so ground the author drew on the far half
 /// is painted exactly as drawn.</summary>
-public readonly record struct CellPaint(TerrainTheme Theme, Func<int, int, (int X, int Z)>? Turn = null);
+public readonly record struct CellPaint(TerrainTheme Theme, Func<int, int, (int X, int Z)>? Turn = null,
+                                        IReadOnlyList<PaintRule>? Rules = null);
 
 /// <summary>
 /// Terrain painting (docs/world-export/terrain-painting.md): dresses the raw stone a finished world exports —
@@ -85,8 +86,9 @@ public static class TerrainPainter
         {
             var sample = foldAt?.Invoke(cell.X, cell.Z) ?? cell;
             var paint = paintAt(cell.X, cell.Z);
+            var rule = PaintRule.First(paint.Rules, cell, column, sample);
             foreach (var (y, id, data) in ColumnBlocks(cell.X, cell.Z, column, paint.Theme, team(cell.X, cell.Z), sample,
-                         profile.Ground, paint.Turn))
+                         profile.Ground, paint.Turn, rule))
             {
                 // The stone-only invariant, over the whole block and not its id alone: stone's id is shared
                 // by granite, diorite, andesite and their polished forms, so a course a lower layer has
@@ -109,20 +111,25 @@ public static class TerrainPainter
     /// because whether a cell may be overwritten is a fact about the world, not about the column.</para>
     /// <para><paramref name="ground"/> is the painted layer's <see cref="TerrainProfile.Ground"/>, which a height
     /// stack that follows the ground measures from (TP26); left null, such a stack reads world Y.
-    /// <paramref name="turn"/> is the cell's <see cref="CellPaint.Turn"/>.</para>
+    /// <paramref name="turn"/> is the cell's <see cref="CellPaint.Turn"/>. <paramref name="rule"/> is the paint
+    /// rule the column met (TP28), which lays its material over that many top courses of whatever band holds
+    /// them, bedrock aside.</para>
     /// </summary>
     public static IEnumerable<(int Y, int Id, int Data)> ColumnBlocks(
         int x, int z, ColumnProfile column, TerrainTheme theme, int teamDamage = -1,
-        (int X, int Z)? sample = null, SmoothedGround? ground = null, Func<int, int, (int X, int Z)>? turn = null)
+        (int X, int Z)? sample = null, SmoothedGround? ground = null, Func<int, int, (int X, int Z)>? turn = null,
+        PaintRule? rule = null)
     {
         var bands = Resolve(column, theme);
+        var ruled = rule is null ? int.MaxValue : column.SurfaceTop - Math.Max(1, rule.Depth);
         for (var i = bands.Count - 1; i >= 0; i--)   // top band first — the preview wants only its top cell
         {
             var band = bands[i];
             var material = band.Bucket == TerrainBucket.Bedrock ? Bedrock : theme.MaterialFor(band.Bucket);
             for (var y = band.HiY - 1; y >= band.LoY; y--)
             {
-                var (id, data) = material.Resolve(
+                var laid = rule is not null && y >= ruled && band.Bucket != TerrainBucket.Bedrock ? rule.Material : material;
+                var (id, data) = laid.Resolve(
                     new BucketContext(x, y, z, band.Bucket, band.HiY - 1 - y, teamDamage, column.PerimeterArc,
                         y - band.LoY, column.PerimeterTurn, column.PerimeterRun, column.Inset, column.Slope)
                     { Sample = sample ?? (x, z), Ground = ground, Turn = turn });
@@ -135,9 +142,10 @@ public static class TerrainPainter
     /// is the top cell of the topmost band. Null only for a column that paints nothing at all.</summary>
     public static (int Y, int Id, int Data)? TopBlock(
         int x, int z, ColumnProfile column, TerrainTheme theme, int teamDamage = -1,
-        (int X, int Z)? sample = null, SmoothedGround? ground = null, Func<int, int, (int X, int Z)>? turn = null)
+        (int X, int Z)? sample = null, SmoothedGround? ground = null, Func<int, int, (int X, int Z)>? turn = null,
+        PaintRule? rule = null)
     {
-        foreach (var block in ColumnBlocks(x, z, column, theme, teamDamage, sample, ground, turn)) return block;
+        foreach (var block in ColumnBlocks(x, z, column, theme, teamDamage, sample, ground, turn, rule)) return block;
         return null;
     }
 
@@ -174,7 +182,8 @@ public static class TerrainPainter
         int topDepth;
         if (column.Covered) { topBucket = TerrainBucket.Fill; topDepth = 0; }
         else if (isRim && theme.Rim.Enabled) { topBucket = TerrainBucket.Rim; topDepth = Math.Max(1, theme.Rim.Depth); }
-        else if (theme.Surface.Enabled) { topBucket = TerrainBucket.Surface; topDepth = Math.Max(1, theme.Surface.Depth); }
+        else if (theme.Surface.Enabled && theme.Surface.DepthAt(column.Slope) is > 0 and var soil)
+        { topBucket = TerrainBucket.Surface; topDepth = soil; }
         else { topBucket = TerrainBucket.Fill; topDepth = 0; }
         var treatLo = topDepth > 0 ? Math.Max(paintFloor, top - topDepth) : top;
 

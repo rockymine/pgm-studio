@@ -65,18 +65,9 @@ public partial class WoolRoomStep
 
     private Row? Selected => selectedRegionId is { } id ? Rows().FirstOrDefault(r => r.RegionId == id) : null;
 
-    // The generated region name a rect becomes (single → {colour}-wool, several → {colour}-wool-N).
-    private static string RoomName(string color, int i, int count) => count <= 1 ? $"{ColorSlug(color)}-wool" : $"{ColorSlug(color)}-wool-{i + 1}";
-    private static string ColorSlug(string color) => color.Trim().ToLowerInvariant().Replace(' ', '_');
-
-    // The id-slug a team id reduces to in the wiring (red-team → red), matching the generator's filter ids.
-    private static string TeamSlug(string teamId)
-    {
-        var s = teamId.Trim().ToLowerInvariant();
-        if (s.EndsWith("-team")) s = s[..^5];
-        s = System.Text.RegularExpressions.Regex.Replace(s, "[^a-z0-9]+", "-").Trim('-');
-        return s.Length > 0 ? s : teamId;
-    }
+    // A rectangle's name in the list: its wool's room, numbered where the room has several.
+    private static string RoomName(string color, int i, int count) =>
+        count <= 1 ? $"{W.Name(color)} wool room" : $"{W.Name(color)} wool room {i + 1}";
 
     protected override void OnInitialized()
     {
@@ -192,13 +183,13 @@ public partial class WoolRoomStep
             nodes.Add(new
             {
                 id = $"wool-src-{w.Color}", type = "point", marker = true, primary = false, color = W.Hex(w.Color),
-                label = $"{w.Color} wool",
+                label = $"{W.Name(w.Color)} wool",
                 bounds = new { min_x = w.SpawnX - 0.5, min_z = w.SpawnZ - 0.5, max_x = w.SpawnX + 0.5, max_z = w.SpawnZ + 0.5 },
             });
         foreach (var r in authored)
             nodes.Add(new
             {
-                id = RegionId(r.Id), type = "rectangle", label = $"{r.Color} wool room", color = W.Hex(r.Color),
+                id = RegionId(r.Id), type = "rectangle", label = $"{W.Name(r.Color)} wool room", color = W.Hex(r.Color),
                 bounds = new { min_x = r.MinX, min_z = r.MinZ, max_x = r.MaxX, max_z = r.MaxZ },
             });
         foreach (var kv in ghosts)
@@ -208,7 +199,7 @@ public partial class WoolRoomStep
                 nodes.Add(new
                 {
                     id = GhostId(kv.Key, i), type = "rectangle", ghost = true,
-                    label = $"{kv.Key} wool room", color = W.Hex(kv.Key),
+                    label = $"{W.Name(kv.Key)} wool room", color = W.Hex(kv.Key),
                     bounds = new { min_x = r.MinX, min_z = r.MinZ, max_x = r.MaxX, max_z = r.MaxZ },
                 });
             }

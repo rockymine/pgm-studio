@@ -19,7 +19,7 @@ public static class StructuralRoles
     public const string WoolRoom = "woolRoom";
 
     /// <summary>The footprint the shell is stamped on, inside whichever region raises it. It carries no
-    /// height of its own: the region shape is what a group's relief is held against.</summary>
+    /// height of its own: the region shape states it.</summary>
     public const string Building = "building";
 
     /// <summary>The three, region words first.</summary>

@@ -152,7 +152,7 @@ public static class HouseStyleJson
     ///
     /// <para><b>A snapshot outlives the shape it was written in.</b> A map keeps its bound style rather than a
     /// key into the library, so every style ever stored is still out there in a layout blob, and a field that
-    /// moves has to be carried rather than dropped — the reader falls back to the built-in shell on anything it
+    /// moves has to be carried rather than dropped — the reader falls back to the bedrock box on anything it
     /// cannot make sense of (<see cref="DeserializeOr"/>), so a shape change without an upgrade is not an error
     /// but a map that quietly stops looking like itself.</para>
     ///

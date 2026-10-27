@@ -8,7 +8,7 @@
 <PageTitle>Maps · PGM Studio</PageTitle>
 
 @* Every map in the studio, in one table, with its filters open in the sidebar beside it. Stage, author and
-   gamemode are kept in the address so a link or a landing card can open a view; each row links straight into
+   game mode are kept in the address so a link or a landing card can open a view; each row links straight into
    every tool the map has a layer in. *@
 
 <StudioShell>
@@ -56,7 +56,7 @@
 
             @if (GamemodesPresent.Count > 0)
             {
-              <FilterGroup Label="Gamemode" Multi>
+              <FilterGroup Label="Game mode" Multi>
                 @foreach (var gamemode in GamemodesPresent.Append(NoGamemode))
                 {
                   <Chip Active="@PickedGamemodes.Contains(gamemode)" Count='Count(skip: "gamemode", gamemode: gamemode)' OnClick="() => ToggleGamemode(gamemode)">
@@ -72,33 +72,35 @@
           <PageHeading Title="Maps">
             <Actions>
               <Badge Kind="dim">@CountLabel</Badge>
-              <Button Variant="primary" OnClick="NewSketch" Icon="plus" Class="action-btn--push-end" Writes Disabled="@creatingSketch">New sketch</Button>
+              <Button Variant="primary" OnClick="NewSketch" Icon="plus" Class="action-btn--push-end" Writes Disabled="@creatingSketch">New map</Button>
               <Button Href="maps/new" Icon="import" Writes>Import a world</Button>
             </Actions>
           </PageHeading>
 
             <div class="map-search-row">
-              <input class="field-input map-search" type="search" placeholder="Search name, slug or author"
+              <input class="field-input map-search" type="search" placeholder="Search maps"
                      aria-label="Search maps" @bind="search" @bind:event="oninput" />
               <Select Id="map-sort" Options="SortOptions" Value="@SortKey" ValueChanged="SetSort" Title="Sort by" />
             </div>
 
             @if (loadError is not null)
             {
-              <div class="list-empty">@loadError <Button OnClick="LoadAsync">Try again</Button></div>
+              <StatusLine>@loadError</StatusLine>
+              <Button OnClick="LoadAsync">Try again</Button>
             }
-            else if (maps is null) { <div class="list-empty">Loading…</div> }
-            else if (maps.Count == 0) { <div class="list-empty">No maps yet. Draw a sketch, or import a world.</div> }
+            else if (maps is null) { <StatusLine /> }
+            else if (maps.Count == 0) { <EmptyState>No maps yet. Start a new map, or import a world.</EmptyState> }
             else if (Shown.Count == 0)
             {
-              <div class="list-empty">No map matches these filters. <Button OnClick="ClearFilters">Clear filters</Button></div>
+              <EmptyState>No map matches these filters. Clear them to see every map.</EmptyState>
+              <Button OnClick="ClearFilters">Clear filters</Button>
             }
             else
             {
               <div class="map-table-box">
                 <table class="map-table">
                   <thead>
-                    <tr><th class="map-col-map">Map</th><th>Open in</th><th class="map-col-modes">Gamemode</th><th>Author</th><th>Last changed</th></tr>
+                    <tr><th class="map-col-map">Map</th><th>Open in</th><th class="map-col-modes">Game mode</th><th>Author</th><th>Last changed</th></tr>
                   </thead>
                   <tbody>
                     @foreach (var m in Shown)
@@ -115,13 +117,13 @@
                           <span class="map-row-slug" title="@m.Slug">@m.Slug</span>
                           @if (m.AgentMade)
                           {
-                            <span class="list-tag" title="Made by an agent. Only admins and the map's owner see it.">agent</span>
+                            <span class="list-tag" title="Seen by admins and its owner">Agent</span>
                           }
                           @if (admin)
                           {
                             <span class="map-row-mark" @onclick:stopPropagation>
                               <Button Variant="icon" Icon="bot" OnClick="() => MarkAgentMadeAsync(m, !m.AgentMade)"
-                                      Title="@(m.AgentMade ? "Show to everyone: not made by an agent" : "Hide from everyone but admins and its owner: made by an agent")" />
+                                      Title="@(m.AgentMade ? "Mark as made by a person" : "Mark as made by an agent")" />
                             </span>
                           }
                         </td>
@@ -133,7 +135,7 @@
                               else if (opens == id)
                               {
                                 <a class="map-layer map-layer--now" @onclick:stopPropagation href="@($"maps/{m.Slug}/{id}")"
-                                   title="@($"{LayerTitle(id)} The map is at {MapLayers.LabelOf(MapLayers.StageOf(m))}.")"><span class="map-stage-dot map-stage-dot--@m.Stage"></span>@label</a>
+                                   title="@LayerTitle(id)"><span class="map-stage-dot map-stage-dot--@m.Stage"></span>@label</a>
                               }
                               else
                               {
@@ -143,8 +145,8 @@
                           </span>
                         </td>
                         <td class="map-modes map-col-modes">
-                          @if (m.Gamemodes.Count > 0) { @(string.Join(" ", m.Gamemodes).ToUpperInvariant()) }
-                          else { <span class="map-empty" title="No gamemode yet">—</span> }
+                          @if (m.Gamemodes.Count > 0) { @(string.Join(", ", m.Gamemodes.Select(GamemodeLabel))) }
+                          else { <span class="map-empty" title="No game mode yet">—</span> }
                         </td>
                         <td>
                           @if (credits.Count == 0) { <span class="map-empty" title="Nobody credited">—</span> }

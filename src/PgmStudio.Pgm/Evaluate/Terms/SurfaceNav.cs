@@ -7,7 +7,7 @@ namespace PgmStudio.Pgm.Evaluate.Terms;
 /// <summary>Shared surface-traversal helpers for the distance terms: the walkable cell surface (terrain + build),
 /// snapping a marker onto it, and drawing a route as evidence. Distances between markers are
 /// <see cref="Walk"/>'s — how far a player actually travels, in blocks, not a straight line and not a count of
-/// cells. A plan states no heights until its relief is solved, so this ground charges no climb: what it
+/// cells. A plan states no heights until its ground is terraformed, so this ground charges no climb: what it
 /// measures is the shape of the board, which is what a layout term is scoring.</summary>
 internal static class SurfaceNav
 {

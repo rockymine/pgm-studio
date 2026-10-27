@@ -67,9 +67,17 @@ public sealed record SlotBlockDto(int Id, int Data, bool Laid);
 /// <param name="Depth">How many top courses the bucket claims, where it claims a configurable number: the
 /// rim and the surface do, the wall's depth is the riser it finds, and the fill takes what is left.</param>
 /// <param name="Enabled">Whether the bucket is painted at all.</param>
+/// <param name="Soil">The surface's depth by slope, steepest last: a column takes the depth of the first entry its
+/// slope is under, and none steeper than all of them. Absent, every column takes <paramref name="Depth"/>.</param>
 public sealed record ThemeBucketDto(
     [property: WordSet(typeof(ThemeBuckets))] string Bucket, long StyleId, SlotBlockDto? Block, int Depth,
-    bool Enabled);
+    bool Enabled, IReadOnlyList<SoilDepthDto>? Soil = null);
+
+/// <summary>One step of a surface's soil: on ground under <paramref name="Below"/> degrees it lies
+/// <paramref name="Depth"/> courses deep.</summary>
+/// <param name="Below">The slope, in degrees, this depth holds under.</param>
+/// <param name="Depth">How many courses of surface lie on such ground.</param>
+public sealed record SoilDepthDto(int Below, int Depth);
 
 /// <summary>One row in the theme library list (GET /api/themes), with the sample plateau the theme finishes —
 /// the same reason <see cref="StyleDto.Preview"/> travels with a style.</summary>

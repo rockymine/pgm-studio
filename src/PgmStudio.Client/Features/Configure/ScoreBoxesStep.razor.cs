@@ -48,10 +48,6 @@ public partial class ScoreBoxesStep
     private int? selectedId;
     private WorldCanvas? canvas;
 
-    private const string Home = "home";
-    private const string Stays = "stays";
-    private static readonly IReadOnlyList<SelectOption> HomeOptions =
-        [new(Home, "Yes"), new(Stays, "No")];
 
     private string Slug => Wizard.Slug;
     private IEnumerable<Box> Rows => boxes.Concat(copies);

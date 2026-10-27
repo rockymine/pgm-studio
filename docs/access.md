@@ -204,19 +204,19 @@ the rule above closes to the caller, with the reason on hover: an admin who is n
 and no control on an admin's or an owner's row, and no invitation for someone who already signs in.
 
 Someone on the whitelist also finds *Tokens* in the account menu, at `/tokens`: it issues a token and shows it
-once with a copy button, and lists theirs with what each is for and when it was last used, to revoke. An admin
-sees one more box there, *May read and answer map notes*, and a token issued with it is marked `notes` in the
-list.
+once with a copy button, and lists theirs with what each is for and when it was last used, each with a
+*Delete this token*. An admin sees one more box there, *Access to map notes*, and a token issued with it is
+marked *Notes* in the list.
 
 A page the caller may not write opens read-only: the tool's bar says *View only*, with the reason on hover, the
 panels and the sidebars grey every field that writes, and the canvas keeps only the tools that look: it pans,
 zooms, selects and measures, and a drag, a draw or a key that would change the map moves nothing and sends
 nothing. Signed in, a read-only Sketch page
-still draws the ground's relief, its paint and the 3-D preview; signed out, it draws the outlines alone.
+still draws the ground's contours, its paint and the 3-D preview; signed out, it draws the outlines alone.
 
 **An action the caller may not take is greyed wherever it sits, with the reason on hover.** That holds on a
-page that writes nothing as much as on one that writes: the map list's *New sketch* and *Import a
-world*, the library's *New* and an entry's *Save*, the generator's *Open in Sketch*, the canvas's 2D/3D switch (the 3-D preview is a build), and every save,
+page that writes nothing as much as on one that writes: the map list's *New map* and *Import a
+world*, the library's *New* and an entry's *Save*, the generator's *Make a map*, the canvas's 2D/3D switch (the 3-D preview is a build), and every save,
 build and remove in the map tools. Deleting a
 library entry is greyed for anyone but an admin, since a `DELETE` outside a map is an
 admin's (below). Reading and downloading are never greyed. `docs/client/ui-conventions.md` says how the shell
@@ -262,9 +262,9 @@ An endpoint that states its own access keeps it: the whitelist's routes are an a
 revoking one's own token is a member's, the notes routes are the `notes` policy's, reads included, and signing
 out is anyone's.
 
-**A read that carries a body is a `POST`, and it is still a read.** The Sketch page draws its paint, its relief
-contours and its 3-D world from the live layout, which it posts to `sketch/paint`, `sketch/relief` and
-`sketch/columns`; `sketch/relief/read`, `sketch/dressing`, `sketch/seats` and `sketch/probe-footprint` answer
+**A read that carries a body is a `POST`, and it is still a read.** The Sketch page draws its paint, its contour
+overlay and its 3-D world from the live layout, which it posts to `sketch/paint`, `sketch/relief` and
+`sketch/columns`; `sketch/dressing`, `sketch/seats` and `sketch/probe-footprint` answer
 the same way. Each computes an answer and stores nothing, and says so with `[CostlyRead]`, which gives it the
 `member` policy whichever map it names: anyone on the whitelist sees how a map they may not change is made. A
 visitor who is not signed in is refused them with `RQ7`, because each answer is a build — `sketch/columns`

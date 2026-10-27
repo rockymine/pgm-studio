@@ -117,6 +117,7 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
         // air, and a wall stack that disagreed with it would be a second answer to a settled question.
         Wall = courses.Stack(RoomParts.Wall, Math.Max(3, row.Clear), HouseStyle.Wool.Wall),
         Post = courses.Bound(RoomParts.Post),
+        Head = courses.Bound(RoomParts.Head),
         // What closes this storey where another stands on it. Unbound it is the house floor's own top
         // material, which is what every stored storey was before the slab had a name of its own.
         Deck = courses.Bound(RoomParts.Deck),

@@ -6,8 +6,8 @@ namespace PgmStudio.Pgm.Tests.Sketch;
 
 /// <summary>
 /// The document gate for a sketch layout. Every case here was first put through the real build and observed
-/// to pass silently — a shape kind nobody has, a two-vertex polygon, a mirror mode nobody has and a relief
-/// keyed to no group all produce a world, with less in it than the document asked for. The rasterizer is set
+/// to pass silently — a shape kind nobody has, a two-vertex polygon, a mirror mode nobody has and a theme
+/// naming no entry all produce a world, with less in it than the document asked for. The rasterizer is set
 /// algebra, so an unreadable shape contributes no ground rather than failing; this is what says so.
 /// </summary>
 public sealed class SketchLayoutCheckTests
@@ -219,16 +219,6 @@ public sealed class SketchLayoutCheckTests
     }
 
     [Test]
-    public async Task A_relief_keyed_to_an_island_that_is_not_there_is_named()
-    {
-        var findings = SketchLayoutCheck.Check(Layout(Rect, ""","relief":{"group-2":{"kind":"hills"}}"""));
-
-        var finding = findings.Single();
-        await Assert.That(finding.Field).IsEqualTo("relief.group-2");
-        await Assert.That(finding.Message).Contains("names group 'group-2', which the layout does not have");
-    }
-
-    [Test]
     [Arguments(300, 12, "has a top of 312 blocks, more than 255 blocks")]
     [Arguments(-40, 12, "has a `floor` of -40 blocks, less than 0 blocks")]
     public async Task A_column_the_world_cannot_hold_is_named_as_the_height_it_states(double floor, double height, string says)
@@ -279,14 +269,14 @@ public sealed class SketchLayoutCheckTests
     public async Task A_board_carrying_none_of_a_finish_is_told_so_and_one_carrying_any_of_it_is_not()
     {
         // The silence the other gates cannot cover: each of them needs something stated to disagree with, so
-        // a board stating no theme, no relief and no props slips between them and exports as raw stone.
+        // a board stating no theme, no modifier and no props slips between them and exports as raw stone.
         // Any one of the three is a board being finished on purpose, and says nothing.
         await Assert.That(SketchLayoutCheck.Unfinished(SketchLayout.Stated(Layout(Rect)))!.Rule)
             .IsEqualTo(SketchRules.NoFinish);
 
         foreach (var carried in (string[])[
             ""","themes":{"t":{}}""",
-            ""","relief":{"i":{"base":10}}""",
+            ""","modifiers":[{"id":"m","op":"mound"}]""",
             ""","dressing":{"props":[{"kind":"boulder","id":"b","x":0,"z":0}]}""",
         ])
             await Assert.That(SketchLayoutCheck.Unfinished(SketchLayout.Stated(Layout(Rect, carried))))
@@ -484,9 +474,8 @@ public sealed class SketchLayoutCheckTests
             .Where(finding => finding.Rule == SketchRules.StackedInOneLayer)).IsEmpty();
     }
 
-    /// <summary>A group id is the key a relief is stored under, so a board carrying it twice has no single
-    /// group for that terrain to belong to. On one layer the last group solved takes the terrain over its own
-    /// cells and the ones before it build flat, so the message says which layer they are on.</summary>
+    /// <summary>A group id is the key a placement names its group by, so a board carrying it twice has no single
+    /// group to mean. The message says which layer they are on.</summary>
     [Test]
     public async Task Two_groups_answering_to_one_id_are_declined()
     {
@@ -496,10 +485,9 @@ public sealed class SketchLayoutCheckTests
         await Assert.That(found[0].Message).Contains("2 groups have the id 'i' on layer 'ground'");
     }
 
-    /// <summary>The same id on two layers is the worse half, and the message has to separate it: the
-    /// rasterizer solves the stated relief onto every group answering to the id, each over its own footprint,
-    /// so a storey is shaped by ground it never stated — and the read reports the first alone, which is what
-    /// keeps that off every read of the board. The layers are named because they are what an author moves.</summary>
+    /// <summary>The same id on two layers is the worse half, and the message has to separate it: a name that
+    /// answers on two layers has no single group to mean. The layers are named because they are what an author
+    /// moves.</summary>
     [Test]
     public async Task One_id_on_two_layers_names_both_of_them()
     {
@@ -551,68 +539,10 @@ public sealed class SketchLayoutCheckTests
             .Where(finding => finding.Rule == SketchRules.StackedInOneLayer)).IsEmpty();
     }
 
-    // ── SK14: a relief solves through an override add ────────────────────────────────────────────────────
-    private static string Relieved(string shapes, string ids) =>
-        "{\"setup\":{\"mirror_mode\":\"rot_180\",\"center\":{\"cx\":0,\"cz\":0}},"
-        + "\"layers\":[{\"id\":\"ground\",\"base_y\":0,\"layout\":{\"shapes\":[" + shapes + "],"
-        + "\"groups\":[{\"id\":\"i\",\"name\":\"I\",\"shapeIds\":[" + ids + "]}]}}],"
-        + "\"relief\":{\"i\":{\"base\":8,\"reach\":16,\"step\":1,\"marks\":[]}}}";
-
     private const string Ground =
         """{"id":"g","type":"rectangle","operation":"add","min_x":-40,"max_x":40,"min_z":-40,"max_z":40,"floor":0,"base_height":9}""";
     private const string Wall =
         """{"id":"wall","type":"rectangle","operation":"add","override":true,"theme":"stone","min_x":-40,"max_x":40,"min_z":10,"max_z":14,"floor":0,"base_height":22}""";
-
-    /// <summary>A made thing is an override add: the column is its own, floor and all. A relief replaces the
-    /// top of every column of its group, so a wall carrying no `height_mode` builds to the field and its
-    /// twenty-two courses are nowhere in the world — with nothing else on the board to say so.</summary>
-    [Test]
-    public async Task An_override_add_a_relief_solves_through_is_named()
-    {
-        var findings = SketchLayoutCheck.Check(Relieved(Ground + "," + Wall, "\"g\",\"wall\""))
-            .Where(finding => finding.Rule == SketchRules.ReliefOverStatedTop).ToList();
-
-        await Assert.That(findings.Count).IsEqualTo(1);
-        await Assert.That(findings[0].SubjectIds).IsEquivalentTo(new[] { "wall" });
-        await Assert.That(findings[0].Message).Contains("a top at y22");
-    }
-
-    /// <summary>The two words that hold a stated top, and the plain ground that is not this: a relief shaping
-    /// ordinary terrain is what a relief is for, so only the override is the statement being overruled.</summary>
-    [Test]
-    public async Task A_shape_that_stands_out_of_the_field_or_is_not_an_override_is_not_named()
-    {
-        foreach (var held in new[] { "\"height_mode\":\"level\",\"skirt\":0", "\"relief_scope\":\"exclude\"" })
-        {
-            var wall = Wall.Replace("\"override\":true", "\"override\":true," + held);
-            await Assert.That(SketchLayoutCheck.Check(Relieved(Ground + "," + wall, "\"g\",\"wall\""))
-                .Where(finding => finding.Rule == SketchRules.ReliefOverStatedTop)).IsEmpty();
-        }
-        var plain = Wall.Replace("\"override\":true,", "");
-        await Assert.That(SketchLayoutCheck.Check(Relieved(Ground + "," + plain, "\"g\",\"wall\""))
-            .Where(finding => finding.Rule == SketchRules.ReliefOverStatedTop)).IsEmpty();
-    }
-
-    /// <summary>A top has to be stated to be discarded. An override add carrying no height at all is a
-    /// footprint holding a theme, and the ground the relief solves under it is the ground it wanted.</summary>
-    [Test]
-    public async Task An_override_add_that_states_no_top_is_not_named()
-    {
-        var paint =
-            """{"id":"scree","type":"rectangle","operation":"add","override":true,"theme":"scree","min_x":-8,"max_x":8,"min_z":8,"max_z":16}""";
-        await Assert.That(SketchLayoutCheck.Check(Relieved(Ground + "," + paint, "\"g\",\"scree\""))
-            .Where(finding => finding.Rule == SketchRules.ReliefOverStatedTop)).IsEmpty();
-    }
-
-    /// <summary>A relief is keyed on a group, so a board that carries none has nothing to overrule.</summary>
-    [Test]
-    public async Task An_island_with_no_relief_overrules_nothing()
-    {
-        var flat = Relieved(Ground + "," + Wall, "\"g\",\"wall\"")
-            .Replace("\"relief\":{\"i\":{\"base\":8,\"reach\":16,\"step\":1,\"marks\":[]}}", "\"relief\":{}");
-        await Assert.That(SketchLayoutCheck.Check(flat)
-            .Where(finding => finding.Rule == SketchRules.ReliefOverStatedTop)).IsEmpty();
-    }
 
     /// <summary>A shape in a mirroring group stands on the board once per axis of the orbit, so what a patch
     /// contests is as often another patch's reflection as the patch itself.</summary>
@@ -712,39 +642,6 @@ public sealed class SketchLayoutCheckTests
             ("ground", 0, null), ("balloon-top", 40, "made"), ("balloon-basket", 24, "made"), ("lid", 17, null)));
         await Assert.That(findings.Where(finding => finding.Rule == SketchRules.StackOutOfOrder)).IsEmpty();
     }
-
-    // ── SK3: a landform outside the four words turns RL1 off rather than failing it ───
-
-    private static string WithRelief(string landform) =>
-        "{\"setup\":{\"mirror_mode\":\"rot_180\",\"center\":{\"cx\":0,\"cz\":0}},"
-        + "\"layers\":[{\"base_y\":0,\"layout\":{\"shapes\":[" + Rect + "],"
-        + "\"groups\":[{\"id\":\"i\",\"shapeIds\":[\"s1\"]}]}}],"
-        + "\"relief\":{\"i\":{\"base\":8,\"landform\":\"" + landform + "\"}}}";
-
-    [Test]
-    [Arguments("plain")]
-    [Arguments("rolling")]
-    [Arguments("hills")]
-    [Arguments("mountain")]
-    public async Task One_of_the_four_landforms_says_nothing(string word)
-    {
-        var findings = SketchLayoutCheck.Check(WithRelief(word));
-        await Assert.That(findings.Where(finding => finding.Field?.EndsWith("landform") == true)).IsEmpty();
-    }
-
-    [Test]
-    [Arguments("quarry")]
-    [Arguments("Hills")]
-    [Arguments("HILLS")]
-    public async Task A_landform_outside_the_four_is_reported_rather_than_read_as_silence(string word)
-    {
-        var findings = SketchLayoutCheck.Check(WithRelief(word));
-        var reported = findings.Single(finding => finding.Rule == SketchRules.NamesNothing
-                                                  && finding.Field == "relief.i.landform");
-        await Assert.That(reported.Severity).IsEqualTo(Severity.Complaint);
-        await Assert.That(reported.Message).Contains(word);
-        await Assert.That(reported.Message).Contains("mountain");
-    }
 }
 
 /// <summary>
@@ -790,7 +687,7 @@ public sealed class SketchRecipeGateTests
     }
 
     /// <summary>A prop put down before a recipe was picked builds the kind's own default, the way a sketch
-    /// binding no room style stamps the built-in shell. Refusing it would make a board unsaveable halfway
+    /// binding no room style stamps the bedrock box. Refusing it would make a board unsaveable halfway
     /// through being authored.</summary>
     [Test]
     public async Task A_placement_naming_nothing_at_all_is_not_this()

@@ -159,6 +159,12 @@ public sealed record Storey
     /// not be part of either.</summary>
     public TerrainMaterial? Post { get; init; }
 
+    /// <summary>One ring course laid over this storey's clear, the topmost storey's included — a laid log that
+    /// draws the floor line between two storeys and the eave line under the roof — or null for a wall whose
+    /// courses carry on to the top. A storey with something standing on it lays it in the course its slab sits
+    /// in; the topmost spends one course more on it, under the eave.</summary>
+    public TerrainMaterial? Head { get; init; }
+
     /// <summary>The windows through that wall, or none.</summary>
     public WindowStyle? Windows { get; init; }
 
@@ -191,8 +197,12 @@ public sealed record Storey
     public int Headroom => Shell ? Math.Max(1, Clear) : Math.Max(3, Clear);
 
     /// <summary>How many courses of wall this storey spends: its headroom, plus the course its slab sits in
-    /// when something stands above it.</summary>
-    public int Courses(bool topmost) => Headroom + (topmost ? 0 : 1);
+    /// when something stands above it, or its <see cref="Head"/> when it is the topmost and names one.</summary>
+    public int Courses(bool topmost) => Headroom + (topmost && Head is null ? 0 : 1);
+
+    /// <summary>Whether <paramref name="course"/>, counted up from this storey's floor from 1, is laid in its
+    /// <see cref="Head"/>.</summary>
+    public bool IsHead(int course) => Head is not null && course == Headroom + 1;
 }
 
 /// <summary>
@@ -357,7 +367,8 @@ public sealed record RoofStyle
 /// </summary>
 public sealed record Doorway
 {
-    /// <summary>What fills the opening, and a closed set because the wool room's break rule whitelists it.
+    /// <summary>What fills the opening, and a closed set because the wool room's break rule whitelists it. A
+    /// wooden door fills the opening's two lowest courses and leaves the wall standing above it.
     /// Separate from <see cref="Head"/>, which carries the wall over the opening and is never something a
     /// player goes through.</summary>
     public DoorMaterial Door { get; init; } = DoorMaterial.Air;
@@ -390,6 +401,7 @@ public sealed record Doorway
     {
         get
         {
+            if (DoorMaterials.Of(Door).Opens) return Math.Min(2, Height);
             if (!Head.Fits(Width, Height)) return Height;
             var genuineSlab = Head.Fill == DoorHeadFill.UpperSlab && BlockFamilies.IsSlab(Head.FillBlock);
             return (Height - 1) + (genuineSlab ? 0.5m : 0m);
@@ -428,6 +440,10 @@ public sealed record HouseStyle
     /// unset.</summary>
     public TerrainMaterial? Post { get; init; } = new SolidMaterial(Blocks.Log, Oak);
 
+    /// <summary>The ring course over every storey's clear that names none of its own (<see cref="Storey.Head"/>),
+    /// or null for walls whose courses carry on to the top.</summary>
+    public TerrainMaterial? Head { get; init; }
+
 
     /// <summary>The windows cut through the walls, or none.</summary>
     public WindowStyle Windows { get; init; } = new();
@@ -454,6 +470,7 @@ public sealed record HouseStyle
         {
             Wall = storey.Wall ?? Wall,
             Post = storey.Post ?? Post,
+            Head = storey.Head ?? Head,
             Windows = storey.Windows ?? Windows,
             Surface = storey.Surface ?? Foundation.Surface,
             Deck = storey.Deck ?? Foundation.Deck,
@@ -461,7 +478,7 @@ public sealed record HouseStyle
         : [new Storey
         {
             Shell = true, Clear = Wall.Extent,
-            Wall = Wall, Post = Post, Windows = Windows, Surface = Foundation.Surface,
+            Wall = Wall, Post = Post, Head = Head, Windows = Windows, Surface = Foundation.Surface,
             Deck = Foundation.Deck,
         }];
 
@@ -501,7 +518,7 @@ public sealed record HouseStyle
                 var wall = storey.Wall ?? Wall;
                 var post = storey.Post ?? Post;
                 for (var course = storey.Courses(level == levels.Count - 1); course >= 1; course--)
-                    if (!post.IsAir() || !wall.At(course - 1).Material.IsAir())
+                    if (!post.IsAir() || !(storey.IsHead(course) ? storey.Head : wall.At(course - 1).Material).IsAir())
                         return bases[level] + course;
             }
             return 0;
@@ -562,7 +579,7 @@ public sealed record HouseStyle
     public bool Equals(HouseStyle? other)
         => other is not null
            && Foundation == other.Foundation && Roof == other.Roof
-           && Wall == other.Wall && Post == other.Post && Windows == other.Windows
+           && Wall == other.Wall && Post == other.Post && Head == other.Head && Windows == other.Windows
            && Storeys.SequenceEqual(other.Storeys)
            && Porch == other.Porch && Front == other.Front
            && Beams == other.Beams && Doorway == other.Doorway;
@@ -571,7 +588,7 @@ public sealed record HouseStyle
     {
         var hash = new HashCode();
         hash.Add(Foundation); hash.Add(Roof);
-        hash.Add(Wall); hash.Add(Post); hash.Add(Windows);
+        hash.Add(Wall); hash.Add(Post); hash.Add(Head); hash.Add(Windows);
         foreach (var storey in Storeys) hash.Add(storey);
         hash.Add(Porch); hash.Add(Front);
         hash.Add(Beams); hash.Add(Doorway);

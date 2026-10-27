@@ -78,8 +78,8 @@ public partial class Maps
 
     private static string LayerTitle(string layer) => layer switch
     {
-        MapStage.Sketch => "Open this map's sketch.",
-        _ => "Open this map's world in Configure.",
+        MapStage.Sketch => "Open the sketch",
+        _ => "Open in Configure",
     };
 
     /// <summary>A credit with no account behind it, which is how an agent is credited.</summary>
@@ -98,11 +98,21 @@ public partial class Maps
             .Distinct()
             .Order(StringComparer.OrdinalIgnoreCase)];
 
-    /// <summary>The gamemodes any map is played for, in the order the studio names them.</summary>
+    /// <summary>The game modes any map is played for, in the order the studio names them.</summary>
     private IReadOnlyList<string> GamemodesPresent =>
         maps is null ? [] : [.. maps.SelectMany(map => map.Gamemodes).Distinct().Order(StringComparer.Ordinal)];
 
-    private static string GamemodeLabel(string gamemode) => gamemode == NoGamemode ? "Not set" : gamemode.ToUpperInvariant();
+    /// <summary>A game mode by its full name; a mode the list has no name for shows its own word.</summary>
+    private static string GamemodeLabel(string gamemode) => gamemode switch
+    {
+        NoGamemode => "No game mode",
+        "ctw" => "Capture the Wool",
+        "dtm" => "Destroy monuments",
+        "dtc" => "Destroy cores",
+        "koth" => "King of the Hill",
+        "ctf" => "Capture the Flag",
+        _ => gamemode,
+    };
 
     /// <summary>Whether a map passes every filter, or — for a count — every filter but <paramref name="skip"/>,
     /// with the one value given in its place.</summary>
@@ -207,7 +217,7 @@ public partial class Maps
         maps = null;
         loadError = null;
         try { maps = await Http.GetFromJsonAsync<List<MapSummary>>("api/maps"); }
-        catch (HttpRequestException) { loadError = "Couldn't load the maps. The studio may be restarting; try again in a moment."; }
+        catch (HttpRequestException) { loadError = "Couldn't load the maps. Reload the page to try again."; }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");

@@ -4,173 +4,201 @@
    (rename / mirror participation + its shape list). Edits round-trip to the JS bridge via the host. *@
 
 <Inspector>
-    <Section>
-      @if (Shape is not null)
-      {
-        <DetailHeader Icon="@TypeIcon(Shape.Type)" Label="@Shape.Type">
-          <span class="detail-header-badges">
-            <Badge Class="@(Shape.Operation == "subtract" ? "badge--error" : "badge--success")">@Shape.Operation</Badge>
-            @if (Shape.Override) { <Badge Kind="warning">override</Badge> }
-            <Badge Kind="neutral">@Shape.Dim</Badge>
-          </span>
-        </DetailHeader>
+  @if (Shape is not null)
+  {
+    <DetailHeader Icon="@Shape.Icon" Label="@Shape.Name">
+      <span class="detail-header-badges">
+        <Badge Class="@(Shape.Operation == "subtract" ? "badge--error" : "badge--success")">@(Shape.Operation == "subtract" ? "Carve" : "Build")</Badge>
+        @if (Shape.Override) { <Badge Kind="warning">Override</Badge> }
+        <Badge Kind="neutral">@Shape.Dim</Badge>
+      </span>
+    </DetailHeader>
 
-        <div class="section-header section-header--ruled"><h2 class="section-title">Actions</h2></div>
-        <Button Full Writes OnClick="() => OnToggleOp.InvokeAsync(Shape.Id)">
-          @(Shape.Operation == "subtract" ? "Switch to build" : "Switch to carve")
+    <Section Title="Actions">
+      <Button Full Writes OnClick="() => OnToggleOp.InvokeAsync(Shape.Id)">
+        @(Shape.Operation == "subtract" ? "Switch to build" : "Switch to carve")
+      </Button>
+      <Button Full Writes OnClick="() => OnToggleOverride.InvokeAsync(Shape.Id)">
+        @(Shape.Override ? "Clear override" : "Set override")
+      </Button>
+      @if (Shape.Type == "rectangle")
+      {
+        <Button Full Writes OnClick="() => OnPromoteShape.InvokeAsync(Shape.Id)">
+          <i data-lucide="pentagon"></i> Convert to polygon
         </Button>
-        <Button Full Writes OnClick="() => OnToggleOverride.InvokeAsync(Shape.Id)">
-          @(Shape.Override ? "Remove override" : "Set override")
-        </Button>
-        @if (Shape.Type == "rectangle")
-        {
-          <Button Full Writes OnClick="() => OnPromoteShape.InvokeAsync(Shape.Id)"
-                  Title="Convert to a polygon to drag corners, add vertices, or curve edges (P)">
-            <i data-lucide="pentagon"></i> Convert to polygon
-          </Button>
-        }
+      }
+    </Section>
+
+    <Section>
+      @if (Forms.Length > 1)
+      {
+        <Field Label="Form">
+          <Select Options="Forms" Value="@(Shape.IsSolid ? Shape.Type : "")" ValueChanged="FormChanged" />
+        </Field>
+      }
+      @* A sphere, a torus and an arch are as tall as a radius, a tube and a deck make them. *@
+      @if (HasHeight)
+      {
         @if (IsLevel)
         {
-          <Field Label="Top at">
-            <div class="field-affix"><span class="field-affix-text" aria-hidden="true">y</span>
-              <NumberField Value="Shape.Floor + Shape.BaseHeight" ValueChanged="TopChanged" Min="Shape.Floor + 1" aria-label="Top y" /></div>
+          <Field Label="Top" Unit="world y">
+            <NumberField Value="Shape.Floor + Shape.BaseHeight" ValueChanged="TopChanged" Min="Shape.Floor + 1" aria-label="Top" />
           </Field>
         }
         else
         {
-          <Field Label="@HeightLabel">
-            <LabelHint>@HeightHint</LabelHint>
-            <ChildContent>
-              <NumberField Value="Shape.BaseHeight" ValueChanged="HeightChanged" Min="1" />
-            </ChildContent>
+          <Field Label="@HeightLabel" Unit="blocks" Note="@HeightNote">
+            <NumberField Value="Shape.BaseHeight" ValueChanged="HeightChanged" Min="1" />
           </Field>
         }
-        <Field Label="Floor">
-          <div class="field-affix"><span class="field-affix-text" aria-hidden="true">y</span>
-            <NumberField Value="Shape.Floor" ValueChanged="FloorChanged" Min="0" aria-label="Floor y" /></div>
+      }
+      @if (Shape.Type != "arch")
+      {
+        <Field Label="Floor" Unit="world y">
+          <NumberField Value="Shape.Floor" ValueChanged="FloorChanged" Min="0" aria-label="Floor" />
         </Field>
+      }
+      @if (TopReadout.Length > 0)
+      {
+        <Readout>@TopReadout</Readout>
+      }
+      @if (Shape.IsSolid)
+      {
+        @if (Shape.Type != "arch")
+        {
+          <Field Label="Turn" Unit="°" Note="Measured clockwise.">
+            <NumberField Value="Shape.Turn" ValueChanged='(v) => SolidChanged("turn", v)' Step="15" />
+          </Field>
+          <Field Label="Tilt" Unit="°" Note="A positive tilt raises the far end.">
+            <NumberField Value="Shape.Tilt" ValueChanged='(v) => SolidChanged("tilt", v)' Min="-90" Max="90" Step="15" />
+          </Field>
+          <Field Label="Sunk" Unit="blocks" Help="How deep the solid is bedded under its floor.">
+            <NumberField Value="Shape.Sunk" ValueChanged='(v) => SolidChanged("sunk", v)' Min="0" />
+          </Field>
+        }
+        @if (Shape.Type == "torus")
+        {
+          <Field Label="Tube radius" Unit="blocks">
+            <NumberField Value="Shape.Tube" ValueChanged='(v) => SolidChanged("tube", v)' Min="1" />
+          </Field>
+        }
+        @if (Shape.Type == "arch")
+        {
+          <Field Label="Deck at crown" Unit="world y">
+            <NumberField Value="Shape.DeckCrown" ValueChanged="CrownChanged" Min="0" aria-label="Deck at crown" />
+          </Field>
+          <Field Label="Deck at feet" Unit="world y">
+            <NumberField Value="Shape.DeckEnd" ValueChanged="FeetChanged" Min="0" aria-label="Deck at feet" />
+          </Field>
+        }
+      }
 
-        @* How the top is decided once the group carries a relief. Ordinary ground is the default and stays
-           it: a shape drawn to make a landmass IS the landmass, and the relief inside it is what the ground
-           does. The other three are for a shape meant to stand in the terrain rather than be it. *@
+      @* How the top is decided. Ordinary ground is the default: a shape drawn to make an island is that island's
+         ground. The other four are for a shape meant to stand in the ground rather than be it. *@
+      @if (!Shape.IsSolid)
+      {
         <Field Label="Height mode">
           <Select Options="HeightModes" Value="@Shape.HeightMode" ValueChanged="HeightModeChanged" />
         </Field>
-        @if (HeightModeReadout.Length > 0)
-        {
-          <p class="inspector-readout">@HeightModeReadout</p>
-        }
-        @if (!string.IsNullOrEmpty(Shape.HeightMode))
-        {
-          <Field Label="Skirt (blocks)">
-            <LabelHint>(how far in from the edge it eases into the ground)</LabelHint>
-            <ChildContent>
-              <NumberField Value="Shape.Skirt" ValueChanged="SkirtChanged" Min="0" />
-            </ChildContent>
-          </Field>
-          <p class="inspector-readout">@SkirtReadout</p>
-        }
-        else
-        {
-          @* Whether the shape's ground joins its group's relief. Only asked of a shape that IS ground: one
-             standing out of the field already answers it, and a raise reads the ground under its own
-             footprint to know where to stand. *@
-          <Field Label="Terraform">
-            <Select Options="ReliefScopeOptions" Value="@Shape.ReliefScope" ValueChanged="ReliefScopeChanged" />
-          </Field>
-          @if (ReliefScopeReadout.Length > 0)
-          {
-            <p class="inspector-readout">@ReliefScopeReadout</p>
-          }
-        }
-        <Field Label="Rotate (°)">
-          <NumberField Value="null" ValueChanged="RotateChanged" Step="15" placeholder="0" />
+      }
+      @if (!string.IsNullOrEmpty(Shape.HeightMode) && !Shape.IsSolid)
+      {
+        <Field Label="Skirt" Unit="blocks" Term="skirt">
+          <NumberField Value="Shape.Skirt" ValueChanged="SkirtChanged" Min="0" />
+        </Field>
+      }
+      else
+      {
+        @* Whether the modifiers reshape the shape's ground. Only asked of a shape that is ground: one with a
+           height mode already stands at its own statement and holds. *@
+        <Field Label="Terraform">
+          <Select Options="@(Shape.IsSolid ? SketchReliefScopes.Solid : SketchReliefScopes.Ground)" Value="@Shape.ReliefScope" ValueChanged="ReliefScopeChanged" />
+        </Field>
+      }
+      <Field Label="Rotate by" Unit="°">
+        <NumberField Value="null" ValueChanged="RotateChanged" Step="15" />
+      </Field>
+    </Section>
+
+    @if (Shape.Footprint == "polyline")
+    {
+      <Section Title="Line">
+        <Field Label="Width" Unit="blocks">
+          <NumberField Value="Shape.Radius * 2" ValueChanged="WidthChanged" Min="2" Step="2" />
         </Field>
         @if (Shape.Type == "polyline")
         {
-          <div class="section-header section-header--ruled"><h2 class="section-title">Band</h2></div>
-          <Field Label="Width (blocks)">
-            <NumberField Value="Shape.Radius * 2" ValueChanged="WidthChanged" Min="2" Step="2" />
-          </Field>
-          <Field Label="Edge">
+          <Field Label="Edges">
             <Select Options="StrokeEdges" Value="@Shape.StrokeEdge" ValueChanged="EdgeChanged" />
           </Field>
           @if (Shape.StrokeEdge == "rough")
           {
-            <Field Label="Edge seed">
-              <LabelHint>(same seed, same edge on every export)</LabelHint>
-              <ChildContent>
-                <NumberField Value="Shape.StrokeSeed" ValueChanged="SeedChanged" Min="0" />
-              </ChildContent>
+            <SeedField Label="Edge seed" Value="Shape.StrokeSeed" ValueChanged="seed => SeedChanged(seed)" />
+          }
+        }
+      </Section>
+    }
+    @if (Shape.Type == "polygon" || Shape.Type == "lasso")
+    {
+      <Section Title="Surface slope" Description="@SlopeDescription">
+        @if (SlopeControls.Count >= 2)
+        {
+          @foreach (var control in SlopeControls)
+          {
+            <Field Label='@($"Point {control.Idx + 1} height")' Unit="blocks">
+              <NumberField Value="control.Height" ValueChanged="(v) => OnSlopeHeightChanged.InvokeAsync((control.Idx, v))" Min="1" />
             </Field>
           }
+          <Button Full Writes OnClick="() => OnApplySlope.InvokeAsync()">
+            <i data-lucide="move-3d"></i> Apply slope
+          </Button>
+          <Readout>Fits a @(SlopeControls.Count == 2 ? "ramp" : "plane") through @SlopeControls.Count points.</Readout>
         }
-        @if (Shape.Type == "polygon" || Shape.Type == "lasso")
+        else if (SelectedVertexIdx >= 0)
         {
-          @if (SlopeControls.Count >= 2)
-          {
-            <div class="section-header section-header--ruled"><h2 class="section-title">Surface slope</h2></div>
-            @foreach (var control in SlopeControls)
-            {
-              <Field Label='@($"Vertex {control.Idx + 1} height")'>
-                <NumberField Value="control.Height" ValueChanged="(v) => OnSlopeHeightChanged.InvokeAsync((control.Idx, v))" Min="1" />
-              </Field>
-            }
-            <Button Full Writes OnClick="() => OnApplySlope.InvokeAsync()">
-              <i data-lucide="move-3d"></i> Apply slope
-            </Button>
-            <p class="inspector-readout">
-              Fits a @(SlopeControls.Count == 2 ? "ramp" : "plane") through @SlopeControls.Count points. Shift-click
-              a marked vertex to unmark it.
-            </p>
-          }
-          else if (SelectedVertexIdx >= 0)
-          {
-            <Field Label='@($"Vertex {SelectedVertexIdx + 1} height")'>
-              <NumberField Value="SelectedVertexHeight" ValueChanged="VertexHeightChanged" Min="1" />
-            </Field>
-            <p class="section-desc">Shift-click 2–3 vertices to tilt the surface. Delete removes this vertex.</p>
-          }
-          else
-          {
-            <p class="section-desc">Click a vertex to set its height, or shift-click 2–3 vertices to tilt the surface.</p>
-          }
+          <Field Label='@($"Point {SelectedVertexIdx + 1} height")' Unit="blocks">
+            <NumberField Value="SelectedVertexHeight" ValueChanged="VertexHeightChanged" Min="1" />
+          </Field>
         }
-        <Button Full Variant="danger" Writes OnClick="() => OnDeleteShape.InvokeAsync(Shape.Id)">
-          <i data-lucide="trash-2"></i> Delete
-        </Button>
-      }
-      else if (Group is not null)
-      {
-        <DetailHeader Icon="layers" Label="@Group.Name">
-          <span class="detail-header-badges">
-            <Badge Kind="neutral">@Group.ShapeIds.Count shape@(Group.ShapeIds.Count == 1 ? "" : "s")</Badge>
-          </span>
-        </DetailHeader>
+      </Section>
+    }
+    <InspectorDelete Title="Delete this shape" OnClick="() => OnDeleteShape.InvokeAsync(Shape.Id)" />
+  }
+  else if (Group is not null)
+  {
+    <DetailHeader Icon="layers" Label="@Group.Name">
+      <span class="detail-header-badges">
+        <Badge Kind="neutral">@Group.ShapeIds.Count shape@(Group.ShapeIds.Count == 1 ? "" : "s")</Badge>
+      </span>
+    </DetailHeader>
 
-        <Field Label="Name">
-          <input class="field-input" value="@Group.Name" @onchange="RenameChanged" />
-        </Field>
-        <Button Full Writes OnClick="() => OnToggleMirrors.InvokeAsync(Group.Id)">
-          @(Group.Mirrors ? "Don't copy for other teams" : "Copy for other teams")
-        </Button>
-        <Field Label="Rotate (°)">
-          <NumberField Value="null" ValueChanged="RotateChanged" Step="15" placeholder="0" />
-        </Field>
+    <Section>
+      <Field Label="Name">
+        <input class="field-input" value="@Group.Name" @onchange="RenameChanged" />
+      </Field>
+      <Button Full Writes OnClick="() => OnToggleMirrors.InvokeAsync(Group.Id)">
+        @(Group.Mirrors ? "Stop copying" : "Copy for other teams")
+      </Button>
+      <Field Label="Rotate by" Unit="°">
+        <NumberField Value="null" ValueChanged="RotateChanged" Step="15" />
+      </Field>
+    </Section>
 
-        <div class="section-header section-header--ruled"><h2 class="section-title">Shapes</h2></div>
-        @foreach (var s in GroupShapes())
-        {
-          <ListRow Compact>
-            <span class="@(s.Operation == "subtract" ? "geo-type-icon geo-type-icon--subtract" : "geo-type-icon")"><i data-lucide="@TypeIcon(s.Type)"></i></span>
-            <span class="list-label">@s.Type</span>
-            <span class="list-tag">@s.Dim</span>
-          </ListRow>
-        }
-      }
-      else
+    <Section Title="Shapes">
+      @foreach (var s in GroupShapes())
       {
-        <p class="section-desc">Select a shape or group to edit it.</p>
+        <ListRow Compact>
+          <span class="@(s.Operation == "subtract" ? "geo-type-icon geo-type-icon--subtract" : "geo-type-icon")"><i data-lucide="@s.Icon"></i></span>
+          <span class="list-label">@s.Name</span>
+          <span class="list-tag">@s.Dim</span>
+        </ListRow>
       }
     </Section>
+  }
+  else
+  {
+    <Section>
+      <EmptyState>No shape selected. Click a shape or a group to edit it.</EmptyState>
+    </Section>
+  }
 </Inspector>

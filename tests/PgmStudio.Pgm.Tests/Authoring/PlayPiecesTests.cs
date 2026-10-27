@@ -29,12 +29,13 @@ public sealed class PlayPiecesTests
         ],
         Destroyables = [new DestroyableIntent { Id = "destroyable-red", Owner = "red", Style = "cube-3", Anchor = new Pt(40, 12, 5) }],
         Cores = [new CoreIntent { Id = "core-red", Owner = "red", Anchor = new Pt(60, 12, 5) }],
+        ControlPoints = [new ControlPointIntent { Id = "point-1", Anchor = new Pt(50, 0, 40) }],
         Build = new BuildIntent { Areas = [new PieceArea(0, 20, 10, 30, "build-1")] },
         WaterLanes = new WaterLaneIntent { Rects = [new PieceArea(20, 20, 24, 30, "water-lane-1")] },
         Structures = new StructureIntent
         {
             IronCubes = [new IronCube(70, 5, true, Id: "iron-1")],
-            Walls = [new WallStructure(81, 0, 81, 8, 20, Id: "wall-1")],
+            Walls = [new WallStructure([[81, 0], [81, 8]], 20, Id: "wall-1")],
             Chests = [new ChestMarker(79, 4, "-x", Id: "chest-1")],
         },
         Observer = new ObserverIntent { Point = new Pt(50.5, 30, 50.5) },

@@ -36,7 +36,7 @@ public sealed class TintsByTeamTests
     public async Task A_tint_inside_a_stack_states_one()
     {
         var surface = new LayeredMaterial(new BandStack(
-            [new Band(new SolidMaterial(Grass), 1), new Band(Tint, 2)], BandEnding.Repeat));
+            [new Band(new SolidMaterial(Grass), 1), new Band(Tint, 2)], BandEnding.Hold));
 
         await Assert.That(Materials.TintsByTeam(surface)).IsTrue();
     }

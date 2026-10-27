@@ -5,12 +5,12 @@ using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Client.Features.Sketch;
 
-/// <summary>The History phase's list of the board's changes.</summary>
+/// <summary>The History phase's list of the map's changes.</summary>
 public partial class SketchHistoryList
 {
     [Parameter, EditorRequired] public SketchHistory History { get; set; } = default!;
 
-    /// <summary>The board's changes, oldest first as the studio answers them; null while they are read.</summary>
+    /// <summary>The map's changes, oldest first as the studio answers them; null while they are read.</summary>
     private IReadOnlyList<MapChangeDto>? Changes => History.Changes?.Changes;
 
     /// <summary>What a change is, in its writer's words where they gave some and by what it wrote where not.</summary>
@@ -23,7 +23,7 @@ public partial class SketchHistoryList
         {
             MapDocuments.Layout => "sketch",
             MapDocuments.Intent => "game settings",
-            MapDocuments.Places => "plan",
+            MapDocuments.Places => "places",
             _ => document,
         }).Distinct());
 

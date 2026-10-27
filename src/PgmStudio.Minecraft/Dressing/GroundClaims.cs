@@ -83,15 +83,13 @@ public static class DressingRules
     /// <summary>The rise of the ground across a building's footprint is at least the height of its walls plus 2
     /// blocks for each block of pitch.</summary>
     /// <remarks>Either move the building in <c>dressing.props</c> onto ground that rises less than the building's
-    /// height, or add an <c>area</c> mark under the footprint to the <c>marks</c> of the group in
-    /// <c>relief</c>.</remarks>
+    /// height, or add a Level modifier under the footprint to <c>modifiers</c>.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Structure, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string SiteNotLevel = "DR-SLOPE";
 
     /// <summary>The ground dug out of a building's footprint is more than 3 blocks deep at one column.</summary>
     /// <remarks>Either move the building in <c>dressing.props</c> onto ground beside the lowest column of its
-    /// footprint, or add an <c>area</c> mark under the footprint to the <c>marks</c> of the group in
-    /// <c>relief</c>.</remarks>
+    /// footprint, or add a Level modifier under the footprint to <c>modifiers</c>.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Structure, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string SiteDug = "DR-DIG";
 

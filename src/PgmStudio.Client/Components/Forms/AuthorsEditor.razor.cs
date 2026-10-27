@@ -1,6 +1,7 @@
 using PgmStudio.Contracts;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 using PgmStudio.Vocabulary;
 
@@ -43,6 +44,9 @@ public partial class AuthorsEditor
             else if (AuthorNames.IsAccountName(p.Name.Trim())) _ = ResolveByName(p);
         }
     }
+
+    /// <summary>Draw the glyphs of the buttons a new row brings.</summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 
     private void Add(List<AuthorRow> list) { list.Add(new AuthorRow()); NotifyChanged(); }
     private void Remove(List<AuthorRow> list, AuthorRow p) { list.Remove(p); NotifyChanged(); }

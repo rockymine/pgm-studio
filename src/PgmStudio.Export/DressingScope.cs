@@ -31,6 +31,18 @@ public static class DressingScope
         return dressing is null ? DressingDoc.Empty : DressingJson.Deserialize(dressing.Value.GetRawText());
     }
 
+    /// <summary>The water the layout's modifier stack made, with the bed each modifier states under its own water
+    /// and the lowest floor of the ground the board built, which falling water reaches. Null where the stack made
+    /// none.</summary>
+    public static StackedWater? StackWaterOf(string layoutJson)
+    {
+        var layout = SketchLayout.Parse(layoutJson);
+        var water = SketchRasterizer.WaterOf(layout);
+        if (water.Count == 0) return null;
+        var floor = SketchRasterizer.RasterizeColumns(layout).Min(column => column.YFloor);
+        return new StackedWater(water, TerrainThemeScope.BedsOf(layout), Math.Max(0, floor));
+    }
+
     /// <summary>The map's symmetry, as the dressing pass reads it — the frame every prop is fanned through.</summary>
     public static DressingSymmetry SymmetryOf(string layoutJson)
     {

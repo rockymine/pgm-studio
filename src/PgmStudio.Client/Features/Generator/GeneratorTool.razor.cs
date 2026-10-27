@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using PgmStudio.Client.Models;
 using PgmStudio.Contracts;
 using PgmStudio.Vocabulary;
 
@@ -28,12 +29,13 @@ public partial class GeneratorTool : IAsyncDisposable
 
     private const int PageSize = 9;
 
-    private static readonly (string Id, string Label, bool Supported)[] Symmetries =
+    /// <summary>The symmetries the feed is asked for, each named by <see cref="SymmetryInfo"/>.</summary>
+    private static readonly (string Id, bool Supported)[] Symmetries =
     [
-        ("rot_180", "Rotate 180°", true),
-        ("mirror_z", "Mirror Z", true),
-        ("rot_90", "Rotate 90°", false),
-        ("mirror_x", "Mirror X", false),
+        ("rot_180", true),
+        ("mirror_z", true),
+        ("rot_90", false),
+        ("mirror_x", false),
     ];
 
     // Structural filter vocabularies. Wool families the composer emits are enabled; the classifier-only reads
@@ -67,8 +69,8 @@ public partial class GeneratorTool : IAsyncDisposable
     // `role-*` class on the pieces the renderer drew, so a toggle changes classes on the picture already inline.
     private static readonly (string Role, string Label)[] HighlightRoles =
     [
-        (BoardRoles.Hub, "Hub"), (BoardRoles.Frontline, "Front line"), (BoardRoles.Approach, "Approaches"),
-        (BoardRoles.Spawn, "Spawn"), (BoardRoles.Wool, "Wool rooms"), (BoardRoles.Zone, "Build zone"),
+        (BoardRoles.Hub, "Hubs"), (BoardRoles.Frontline, "Front lines"), (BoardRoles.Approach, "Approaches"),
+        (BoardRoles.Spawn, "Spawns"), (BoardRoles.Wool, "Wool rooms"), (BoardRoles.Zone, "Build regions"),
     ];
     private readonly HashSet<string> highlights = [];
     private string HighlightClasses => string.Join(' ', highlights.Select(role => $"board-hl-{role}"));
@@ -124,7 +126,7 @@ public partial class GeneratorTool : IAsyncDisposable
                 key = page.Key;
             }
         }
-        catch { feedError = "Couldn't load layouts. Reload the page to try again."; atEnd = true; }
+        catch { feedError = "Couldn't load the layouts. Reload the page to try again."; atEnd = true; }
         finally { loading = false; StateHasChanged(); }
     }
 
@@ -156,21 +158,11 @@ public partial class GeneratorTool : IAsyncDisposable
     private bool Unseen(Dictionary<string, int> seen, string token) =>
         CensusIsTelling && seen.GetValueOrDefault(token) == 0;
 
-    /// <summary>Why the grid is empty. A filter naming something this request never produced is a different
-    /// answer from an unlucky run, and the census can tell them apart — so it says which one it is.</summary>
-    private string EmptyFeedMessage()
-    {
-        var never = Selected()
-            .Where(f => Unseen(f.Seen, f.Token))
-            .Select(f => f.Label)
-            .ToList();
-        if (censusBoards == 0)
-            return "Layouts for these settings are still being generated. Check back later.";
-        if (never.Count == 0)
-            return $"None of the {censusBoards} layouts for these settings match these filters.";
-        return $"{string.Join(" and ", never)} doesn't appear in any of the {censusBoards} layouts for these "
-             + "settings. These players and symmetry don't produce it.";
-    }
+    /// <summary>The picked shapes this request never produced, joined for a sentence, or empty. A filter naming
+    /// one is a different answer from an unlucky run, and the census can tell them apart.</summary>
+    private string NeverSeen() => string.Join(" or ", Selected()
+        .Where(f => Unseen(f.Seen, f.Token))
+        .Select(f => f.Label));
 
     // every structural filter currently picked, with the census it reads against
     private IEnumerable<(Dictionary<string, int> Seen, string Token, string Label)> Selected()
@@ -186,10 +178,10 @@ public partial class GeneratorTool : IAsyncDisposable
     private string ChipTitle(Dictionary<string, int> seen, string token, string label)
     {
         var n = seen.GetValueOrDefault(token);
-        if (n > 0) return $"{label}: {n} of {censusBoards} layouts";
+        if (n > 0) return $"In {n} of {censusBoards} layouts";
         return CensusIsTelling
-            ? $"{label}: never generated with these settings (0 of {censusBoards} layouts)"
-            : $"{label}: none yet in {censusBoards} layout{(censusBoards == 1 ? "" : "s")}";
+            ? "Never generated with these settings"
+            : $"In none of {censusBoards} layout{(censusBoards == 1 ? "" : "s")} yet";
     }
 
     // ── structural filters (chips + card badges; toggling re-sieves the feed immediately) ────────────
@@ -211,11 +203,9 @@ public partial class GeneratorTool : IAsyncDisposable
         LayoutDescription.Of(c.Descriptor.Players, c.Descriptor.Teams, c.Descriptor.Symmetry, c.WoolCount,
             c.Structure.Wools, c.Structure.Hub, c.Structure.Frontline);
 
-    private static string PlayersLabel(ComposeCard c) =>
-        $"{BandRange(SizeBands.Of(c.Descriptor.Players))} ({char.ToUpperInvariant(SizeBands.Of(c.Descriptor.Players)[0])}{SizeBands.Of(c.Descriptor.Players)[1..]})";
+    private static string PlayersLabel(ComposeCard c) => BandLabel(SizeBands.Of(c.Descriptor.Players));
 
-    private static string SymmetryLabel(string symmetry) =>
-        Symmetries.FirstOrDefault(s => s.Id == symmetry).Label ?? symmetry;
+    private static string SymmetryLabel(string symmetry) => SymmetryInfo.Label(symmetry);
 
     // Make a map of the board (POST /api/compose/map) and open it in the Sketch tool. The board stays in the library,
     // so making a second map of it makes a second map.
@@ -235,9 +225,9 @@ public partial class GeneratorTool : IAsyncDisposable
                 Nav.NavigateTo($"maps/{slug}/sketch");
                 return;
             }
-            openError = "The map couldn't be made. Try again.";
+            openError = "Couldn't make the map. Try again.";
         }
-        catch { openError = "The map couldn't be made. Try again."; }
+        catch { openError = "Couldn't make the map. Try again."; }
         finally { opening = false; }
     }
 
@@ -272,17 +262,14 @@ public partial class GeneratorTool : IAsyncDisposable
     private static string BandRange(string size)
     {
         var (low, high) = SizeBands.Players(size);
-        return size == SizeBands.Centi ? $"{low}+" : $"{low}–{high}";
+        return size == SizeBands.Centi ? $"{low} and up" : $"{low} to {high}";
     }
 
     private static string BandLabel(string size) =>
         $"{char.ToUpperInvariant(size[0])}{size[1..]} · {BandRange(size)}";
 
-    private static string BandTitle(string size) => $"{BandRange(size)} players a team";
-
-    /// <summary>A card's name: the layout it is, which is the descriptor's players, teams and seed.</summary>
-    private static string LayoutId(ComposeCard card) =>
-        $"composed-p{card.Descriptor.Players}-t{card.Descriptor.Teams}-{card.Descriptor.Seed}";
+    /// <summary>A card's name: the layout it is, which its seed tells apart from the others of its settings.</summary>
+    private static string LayoutId(ComposeCard card) => $"Layout {card.Descriptor.Seed}";
 
     public async ValueTask DisposeAsync()
     {

@@ -15,7 +15,7 @@
   <ChildContent>
   <div class="lib-body">
     <FilterSidebar>
-      <FilterPanel Title="Filter shapes" Active="AnyFilter" OnClear="ClearFilters">
+      <FilterPanel Title="Shape filters" Active="AnyFilter" OnClear="ClearFilters">
           <FilterGroup Label="Kind" Multi>
             @foreach (var k in Kinds)
             {
@@ -40,7 +40,7 @@
             }
           </FilterGroup>
 
-          <p class="section-desc">The number on each option counts the whole catalog, whatever else is ticked.</p>
+          <p class="filter-panel-note">The number on each option counts the whole catalog, whatever else is ticked.</p>
       </FilterPanel>
     </FilterSidebar>
 
@@ -50,24 +50,24 @@
           mirrored versions are.</Lead>
       </PageHeading>
 
-      @if (error is not null) { <p class="lib-status">@error</p> }
-      else if (loading) { <p class="lib-status">Loading…</p> }
+      @if (error is not null) { <StatusLine>@error</StatusLine> }
+      else if (loading) { <StatusLine /> }
       else
       {
         <div class="gen-toolbar">
-          <p class="gen-scanned"><strong>@Shown.Count</strong> of @total shape@(total == 1 ? string.Empty : "s")</p>
+          <p class="gen-scanned"><strong>@Shown.Count</strong> of @total shape@(total == 1 ? string.Empty : "s") match</p>
           <BoardKey Entries="key" />
         </div>
         <div class="lib-grid">
           @foreach (var shape in Shown)
           {
             <PictureCard @key="shape.Id" Class="@($"cat-card--{shape.Tier}")" FigClass="lib-card-fig--board" Svg="@shape.Svg"
-                         Name="@FamilyLabel(shape.Family)" Meta="@($"{shape.BoxW} × {shape.BoxH} cells")"
-                         OnClick="() => OpenProbe(shape)" Title="Open in shape settings">
+                         Name="@FamilyLabel(shape.Family)" Meta="@($"{shape.BoxW} by {shape.BoxH} cells")"
+                         OnClick="() => OpenProbe(shape)">
               <div class="lib-card-badges">
-                <span class="lib-badge cat-badge--@shape.Tier" title="@TierHint(shape.Tier)">@TierLabel(shape.Tier)</span>
+                <span class="lib-badge cat-badge--@shape.Tier">@TierLabel(shape.Tier)</span>
                 <span class="lib-badge">@KindLabel(shape.Kind)</span>
-                <span class="lib-badge" title="Lane width, in cells">Lane @shape.LaneWidth</span>
+                <span class="lib-badge">Lane @shape.LaneWidth</span>
                 @foreach (var knob in shape.Knobs)
                 {
                   <span class="lib-badge cat-knob">@knob</span>
@@ -80,7 +80,7 @@
             </PictureCard>
           }
         </div>
-        @if (Shown.Count == 0) { <p class="lib-status">No shapes match these filters.</p> }
+        @if (Shown.Count == 0) { <EmptyState>No shapes match these filters. Clear one to see more.</EmptyState> }
       }
     </main>
 
@@ -92,7 +92,7 @@
         <div class="lib-rail-pin">
           <div class="lib-rail-head">
             <span class="lib-rail-title">Shape settings</span>
-            <button class="lib-rail-x" @onclick="CloseProbe" title="Close"><i data-lucide="x" @key="@("probe-x")"></i></button>
+            <Button Variant="icon" Icon="x" Class="lib-rail-x" Title="Close" OnClick="CloseProbe" />
           </div>
           <div class="lib-fig @(probe?.Rejection is null ? null : "cat-probe-fig--refused")">
             @if (probe?.Svg is { } svg) { @((MarkupString)svg) }
@@ -101,8 +101,7 @@
         </div>
 
         <div class="lib-rail-body">
-        <p class="section-desc">Built with the same checks the generator uses. If the shape can't be built,
-          the reason is shown here.</p>
+        <p class="lib-rail-lead">Built with the generator's own checks. A shape that can't be built says why here.</p>
         @if (probe?.Rejection is { } rejection)
         {
           <div class="cat-probe-reject">
@@ -110,44 +109,44 @@
             <p class="cat-probe-why">@rejection.Detail</p>
             @if (rejection.MinW is { } minW && rejection.MinH is { } minH)
             {
-              <Button OnClick="() => ResizeTo(minW, minH)">Resize to @minW×@minH</Button>
+              <Button OnClick="() => ResizeTo(minW, minH)">Resize to @minW by @minH</Button>
             }
           </div>
         }
         else if (probe is not null)
         {
           <p class="cat-probe-ok">
-            @probe.LandCells cells of land · @string.Join(" · ", probe.Parts)
+            @probe.LandCells cells of ground · @string.Join(" · ", probe.Parts)
           </p>
         }
 
-        <Field Label="Family">
+        <Field Label="Shape family">
           <div class="filter-group-options">
             @foreach (var f in schemaFamilies)
             {
               <Chip Active="probeFamily == f.Token"
-                    Title="@(f.OnProductionMenu ? $"Minimum {f.MinW} × {f.MinH}" : "Not used by the generator")"
-                    OnClick="() => PickFamily(f.Token)">@f.Token</Chip>
+                    Title="@(f.OnProductionMenu ? $"At least {f.MinW} by {f.MinH} cells" : "Not used by the generator")"
+                    OnClick="() => PickFamily(f.Token)">@FamilyLabel(f.Token)</Chip>
             }
           </div>
         </Field>
 
-        <Field Label="Box width">
+        <Field Label="Box width" Unit="cells">
           <LabelEnd><strong>@probeW</strong></LabelEnd>
           <ChildContent>
             <RangeField Min="2" Max="32" Value="probeW" ValueChanged="OnWidth" />
           </ChildContent>
         </Field>
 
-        <Field Label="Box height">
+        <Field Label="Box depth" Unit="cells">
           <LabelEnd><strong>@probeH</strong></LabelEnd>
           <ChildContent>
             <RangeField Min="2" Max="32" Value="probeH" ValueChanged="OnHeight" />
           </ChildContent>
         </Field>
 
-        <Field Label="Lane width">
-          <LabelEnd><strong>w@(probeLaneWidth)</strong></LabelEnd>
+        <Field Label="Lane width" Unit="cells">
+          <LabelEnd><strong>@probeLaneWidth</strong></LabelEnd>
           <ChildContent>
             <RangeField Min="2" Max="5" Value="probeLaneWidth" ValueChanged="OnLaneWidth" />
           </ChildContent>
@@ -174,8 +173,8 @@
 
         @if (AttachWAllowed)
         {
-          <Field Label="Attachment width">
-            <LabelEnd><strong>@(probeAttachW == 0 ? "default" : probeAttachW.ToString())</strong></LabelEnd>
+          <Field Label="Attachment width" Unit="cells" Note="At 0 the shape takes its own width.">
+            <LabelEnd><strong>@(probeAttachW == 0 ? "Auto" : probeAttachW.ToString())</strong></LabelEnd>
             <ChildContent>
               <RangeField Min="0" Max="6" Value="probeAttachW" ValueChanged="OnAttachW" />
             </ChildContent>

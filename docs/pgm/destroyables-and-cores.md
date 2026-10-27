@@ -412,10 +412,10 @@ destroyables on terrain, a pedestal or a build.
 
 **The studio's `float` counts from the ground as built, not from a plan-nominal surface (`B128`).** A marker's
 plan-side `piece` (when it has one) states an `x`/`z` and, for spawns and wools, a Y — but a destroyable or a
-core is never given a Y at all: the structure floats `float` blocks over whatever the relief actually left
-under its column, resolved by the world-export path once the layout is rasterized and the relief solved, which
-is the only place that ground is known. `float` is an offset, not an authored world Y, so it survives a relief
-pass moving the ground under it — a goal placed "on the mesa" stays on the mesa however the mesa's own height
+core is never given a Y at all: the structure floats `float` blocks over whatever the terrain actually left
+under its column, resolved by the world-export path once the layout is rasterized and the modifier stack run, which
+is the only place that ground is known. `float` is an offset, not an authored world Y, so it survives a modifier
+moving the ground under it — a goal placed "on the mesa" stays on the mesa however the mesa's own height
 is later solved. Because the plan compiler resolves nothing about height for these two markers, a destroyable
 or a core is also the one marker kind that may name no plan piece at all: its `at` reads as an absolute board
 position, and the ground it rides can be an authored sketch shape with no piece behind it — a landform is then
@@ -596,7 +596,7 @@ one block change*); the fix is block 36 at y=0 under the goal or a build region 
 *mean* top of the terrain the map builds — the ground alone, and deliberately nothing standing on it, the
 goal included, or this complaint could never fire (`BuildCeiling`). It is a number the
 plan does not have: it comes
-from the terrain the rasterizer produced, after the relief solve. So this is asked at the build rather than at
+from the terrain the rasterizer produced, after the modifier stack. So this is asked at the build rather than at
 the compile gate, against the goal's own bounding box — the same box the stamper used and the region declares
 (OB8). It is a **complaint**, not a refusal: blocks above the line can still be broken, so nothing is
 unwinnable; what is wrong is a goal contested from ground nobody may build up to reach. It takes both knobs to
@@ -643,7 +643,7 @@ stamped on it, and refusing a goal at its far corner would be a refusal with no 
 things a caller has to supply: what counts as land, and which stamped rooms are out of bounds. `PlanValidator`
 supplies the plan's pieces and the frames the compiler will stamp, which catches the fault before a build is
 spent. The second caller is `MapExportComposer`, over the ground the rasterizer actually produced — the only
-place a subtract, a relief, or a sketch edited after its compile can be seen, since a plan that passed can
+place a subtract, a modifier, or a sketch edited after its compile can be seen, since a plan that passed can
 still export a goal standing over a hole somebody carved afterwards, and a map begun in Sketch never reaches
 the compile gate at all. Every finding from either caller carries `OB17` or `OB30` as its rule id, and a wool
 monument with no ground under it, which only the export gate sees, carries `OB31`. The export gate

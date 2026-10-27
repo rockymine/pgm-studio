@@ -2,29 +2,29 @@
 @using System.Text.Json.Nodes
 @using PgmStudio.Contracts
 
-@* A room's house in Layout: the style it is stamped in — the map's for its kind, a library shell copied onto it,
-   or none, a pad on open ground — and its wings, the room's own first. *@
+@* A room's house in Layout: the house it is stamped in — the map's default for its kind, a library house copied
+   onto it, or no building, a pad on open ground — and its wings, the room's own first. *@
 
-<div class="section-header section-header--ruled"><h2 class="section-title">Style</h2></div>
-<p class="section-desc">Picking a shell copies it to this room. Later library edits don't change it.</p>
-<div class="prop-cards">
-  <button class="prop-card @(Worn == MapStyle ? "prop-card--active" : null)" title="The map's style for this kind of room"
-          @onclick="() => OnStyle.InvokeAsync(new Choice(null, false))">
-    <span class="prop-card-label">Map's style</span>
-  </button>
-  @foreach (var shell in Shells)
-  {
-    <button class="prop-card @(Worn == shell.Name ? "prop-card--active" : null)" title="@shell.Name" @key="shell.Id"
-            @onclick="() => OnStyle.InvokeAsync(new Choice(shell, false))">
-      <span class="prop-card-art">@((MarkupString)shell.Preview)</span>
-      <span class="prop-card-label">@shell.Name</span>
+<Field Label="House" Note="@SketchDressingInspector.HouseCopyNote">
+  <div class="prop-cards">
+    <button class="prop-card @(Worn == MapStyle ? "prop-card--active" : null)"
+            @onclick="() => OnStyle.InvokeAsync(new Choice(null, false))">
+      <span class="prop-card-label">Map default</span>
     </button>
-  }
-  <button class="prop-card @(Worn == OpenGround ? "prop-card--active" : null)" title="No building — the pad on open ground"
-          @onclick="() => OnStyle.InvokeAsync(new Choice(null, true))">
-    <span class="prop-card-label">Open ground</span>
-  </button>
-</div>
+    @foreach (var shell in Shells)
+    {
+      <button class="prop-card @(Worn == shell.Name ? "prop-card--active" : null)" @key="shell.Id"
+              @onclick="() => OnStyle.InvokeAsync(new Choice(shell, false))">
+        <span class="prop-card-art">@((MarkupString)shell.Preview)</span>
+        <span class="prop-card-label">@shell.Name</span>
+      </button>
+    }
+    <button class="prop-card @(Worn == OpenGround ? "prop-card--active" : null)"
+            @onclick="() => OnStyle.InvokeAsync(new Choice(null, true))">
+      <span class="prop-card-label">No building</span>
+    </button>
+  </div>
+</Field>
 
 @if (House["wings"] is JsonArray wings)
 {

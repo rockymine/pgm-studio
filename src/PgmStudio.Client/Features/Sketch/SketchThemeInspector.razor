@@ -1,10 +1,10 @@
 @namespace PgmStudio.Client.Features.Sketch
 
 @* The Theme phase's inspector. It shows what is in hand and what the selection is painted with; with nothing
-   selected it shows what the board falls back to instead, so the column describes the phase when it has no one
+   selected it shows what the map falls back to instead, so the column describes the phase when it has no one
    thing to describe.
 
-   Themes are authored in the library, not here — the strip's + copies one onto the board, and a board theme
+   Themes are authored in the library, not here — the strip's + copies one onto the map, and a map's palette
    edited elsewhere is saved out and copied back. One editor for a theme means one shape for a theme. *@
 
 <Inspector>
@@ -12,15 +12,14 @@
      rather than pushing what the phase is showing down a scroll. *@
   @if (AddOpen)
   {
-    <Section Title="Add from library">
+    <Section Title="Add from library" Help="Adding a palette copies it to this map. Adding it again updates that copy.">
       <Actions>
         <Button Variant="icon" Icon="x" Title="Close" OnClick="() => AddOpenChanged.InvokeAsync(false)" />
       </Actions>
       <ChildContent>
-        <p class="section-desc">Adds a copy to this map. Adding the same palette again updates that copy.</p>
         @if (libraryThemes.Count == 0)
         {
-          <p class="section-desc">No palettes in the library yet.</p>
+          <EmptyState>No palettes in the library yet. Create one with the button below.</EmptyState>
         }
         else
         {
@@ -36,7 +35,7 @@
           </div>
         }
         <div class="panel-actions">
-          <Button Href="/library/themes" Icon="external-link" Writes>Create one in the library</Button>
+          <Button Href="/library/themes" Icon="external-link" Writes>Create in the library</Button>
         </div>
       </ChildContent>
     </Section>
@@ -45,26 +44,21 @@
   {
   @if (InHand is { } held)
   {
-    <Section Title="Palette">
+    <Section Title="Palette" Description="Deleting it from this map returns the shapes painted with it to the default palette.">
       <Actions><Badge Kind="neutral">@held</Badge><Badge Kind="accent">in hand</Badge></Actions>
       <ChildContent>
-        @if (HeldSource is { } source)
+        @if (HeldSourceLine is { } copied)
         {
-          <p class="section-desc">
-            Copied from “@source.Name” in the library.
-            @if (heldMatchesSource == true) { <text>It matches the library version.</text> }
-            else if (heldMatchesSource == false) { <text>It differs from the library version. One of them has been edited.</text> }
-          </p>
+          <Readout>@copied</Readout>
         }
         @if (preview is not null)
         {
           <div class="theme-section-figure">@((MarkupString)preview.Section)</div>
         }
         <div class="panel-actions">
-          <Button Variant="danger" Icon="trash-2" Writes OnClick="RemoveFromBoard"
-                  Title="Remove from this map. Shapes painted with it go back to the default palette.">Remove</Button>
+          <Button Variant="danger" Icon="trash-2" Writes OnClick="RemoveFromBoard">Delete</Button>
         </div>
-        @if (note is not null) { <p class="section-desc">@note</p> }
+        @if (note is not null) { <p class="field-error">@note</p> }
       </ChildContent>
     </Section>
   }
@@ -80,7 +74,7 @@
           <span class="list-label list-label--mono">@(SelectedGroupId ?? SelectedShapeId)</span>
           @if (SelectionTheme() == Mixed) { <Badge Kind="neutral">mixed</Badge> }
           else if (SelectionTheme() is { Length: > 0 } current) { <Badge Kind="neutral">@current</Badge> }
-          else { <span class="section-desc">Unpainted (uses the default palette)</span> }
+          else { <Badge Kind="dim">default palette</Badge> }
         </div>
         <div class="panel-actions">
           <Button Icon="eraser" Writes OnClick="ClearSelection" Disabled="@(SelectionTheme().Length == 0)">Unpaint</Button>
@@ -90,17 +84,17 @@
   }
   else if (InHand is null)
   {
-    @* Nothing is selected and nothing is in hand, so the column describes the board: what paints where
+    @* Nothing is selected and nothing is in hand, so the column describes the map: what paints where
        nothing else reaches. *@
     <Section Title="Map defaults">
-      @* Every row is one library row bound to the whole board, and each carries the button through to the
+      @* Every row is one library row bound to the whole map, and each carries the button through to the
          library that holds it. What a row is bound to is said by name; the pictures are the library's own.
          The order is the order a column is built: the paint under everything, the tint over it, then the
          finish stamped where a room stands. *@
       <Field Label="Default palette">
         <div class="lib-bind">
           <Select Options="MapThemes" Value="@Themes.MapTheme" ValueChanged="SetMapDefault"
-                  Placeholder="None (stone)" />
+                  Placeholder="Stone" />
           <Button Variant="icon" Icon="library" Href="/library/themes" Title="Open the palette library" />
         </div>
       </Field>
@@ -111,7 +105,7 @@
       <Field Label="Map biome">
         <div class="lib-bind">
           <Select Options="BiomePatterns" Value="@BiomeChoice" ValueChanged="SetMapBiome"
-                  Placeholder="@(BiomeOffLibrary ? "(not in the library)" : "None (plains everywhere)")"
+                  Placeholder="@BiomePlaceholder"
                   PlaceholderValue="0" />
           <Button Variant="icon" Icon="library" Href="/library/biomes" Title="Open the biome library" />
         </div>
@@ -126,16 +120,12 @@
                     Placeholder="@RoomPlaceholder(kind.Id)" PlaceholderValue="0" />
             @if (BoundRoom(kind.Id) is not null || IsOpenRoom(kind.Id))
             {
-              <Button Variant="icon" Icon="x" Title="Use the built-in shell" Writes
+              <Button Variant="icon" Icon="eraser" Title="Use the bedrock box" Writes
                       OnClick="() => ClearRoom(kind.Id)" />
             }
             <Button Variant="icon" Icon="library" Href="/library/houses" Title="Open the house library" />
           </div>
         </Field>
-      }
-      @if (rooms.Count == 0)
-      {
-        <p class="section-desc">No room styles in the library yet.</p>
       }
     </Section>
   }

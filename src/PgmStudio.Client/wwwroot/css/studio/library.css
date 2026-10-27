@@ -243,3 +243,9 @@ img.block-render { image-rendering: auto; }
 .lib-knobs .panel-actions { flex-wrap: nowrap; gap: var(--space-2); }
 .lib-knobs .panel-actions > :first-child { flex: 1 1 auto; min-width: 0; }
 .lib-knobs .panel-actions .field-input--slim { flex: 0 0 68px; width: 68px; }
+
+/* One step of a surface's soil by slope: the steepness it holds under beside the courses it lays. */
+.lib-soil-row {
+  display: flex;
+  gap: var(--space-2);
+}

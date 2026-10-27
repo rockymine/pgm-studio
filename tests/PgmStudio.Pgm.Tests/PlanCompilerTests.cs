@@ -265,7 +265,7 @@ public sealed class PlanCompilerTests
         // The stored layout holds none of them: only what it states about the authored room's ground.
         await Assert.That(SketchLayout.Stack(layout)[0].Shapes.Any(s => s.Role is not null)).IsFalse();
         await Assert.That(layout.Rooms!.Keys).IsEquivalentTo(new[] { "spawn-red", "wool-red-red" });
-        await Assert.That(layout.Rooms["spawn-red"].ReliefScope).IsEqualTo(ReliefScopes.Follow);
+        await Assert.That(layout.Rooms["spawn-red"].ReliefScope).IsNull();
 
         // The terrain the pieces sit on has fused to fewer polygons than there are structural pieces — the very
         // case the annotation exists to survive.

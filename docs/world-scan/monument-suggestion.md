@@ -107,7 +107,7 @@ dotnet run --project tools/PgmStudio.RoundTrip -- --suggest-monuments-corpus [sa
 
 `--auto-style` reads each cluster's actual pedestal/cap to simulate the author declaring the style.
 
-## UI mapping (Monuments step)
+## UI mapping (Wool monuments step)
 
 1. Author **boxes the monument area** on the canvas → `BlockBox` (one call per boxed group).
 2. Author picks the **style** — three dropdowns (pedestal / label / cap), defaulting to `Any`.

@@ -294,7 +294,7 @@ structure, and structures never fuse.
   have been stamped on. It refuses where the style is **bound** — `PUT /api/map/{slug}/sketch`, 400 — rather
   than correcting at stamp time, because silently shortening a building the author drew is the worse answer.
 
-- **WX14** *A room is not left in the built-in shell.* The shipped shell — bedrock walls, a bedrock lid and a
+- **WX14** *A room is not left in the bedrock box.* The shipped shell — bedrock walls, a bedrock lid and a
   team band — is what a board is drawn with before it is finished, not a building, so a spawn or a wool room
   still standing in it is complained of at every build: once per kind of room, naming every room of that kind
   and the `roomStyles` field to bind. A complaint rather than a refusal because the world is whole and
@@ -358,7 +358,7 @@ style is bound: the library's reader and a bound room style (`roomStyles.wool.be
 building's recipe in a dressing document answers `DR-DOC` naming the recipe and `shell.beams`. The walk goes
 down lists too, so `storeys[1].wall.stack` is named by its index. Read past, the null is not the default — it
 is a null the style gate and the stamper dereference, and on a bound room style a snapshot the export's reader
-would drop for the built-in shell.
+would drop for the bedrock box.
 
 **A part is its courses.** `wall`, a foundation's `plate` and a storey's own `wall` are each
 `{"stack": {"bands": [...]}, "extent": n}`, and one written as a material — the shape a style had when its
@@ -370,21 +370,22 @@ wall and a roof **upward**. The direction is the load-bearing part of the model.
 would lift the pad and move the exported point; walls indexed from the floor are what keep a band at eye level
 and a slit near the top when the room's height changes, where the layer indices they replace would have slid.
 
-The **last band repeats** past the end of the stack, so `Extent` moves without the stack being re-authored: a
+The **last band holds** past the end of the stack, so `Extent` moves without the stack being re-authored: a
 taller wall grows in whatever its top course is. That is what makes height a knob at all — §4's note that room
 height stays out of G31 is answered here rather than through the frame.
 
-**Repeating is the stack's own statement, not the axis's.** Bands along a distance is one rule and the studio
+**The ending is the stack's own statement, not the axis's.** Bands along a distance is one rule and the studio
 reads it along three: depth from the top of a bucket for a layer stack, courses from the part's own base for a
 room part, rings from the edge for a floor's zoning. What is *not* shared between those is what happens where
-the bands run out, and assuming it is repeating builds the other case wrong. Repeating is right where the
+the bands run out, and assuming it holds builds the other case wrong. Holding is right where the
 stack **owns the whole space**, which is what a wall or a plate is: there is nothing under it to fall through
 to. Handing over is right where the stack is a band **inside** a larger space — a rim two blocks in and then
-the surface, rather than two blocks of rim and then rim forever. So a `BandStack` states its ending
+the surface, rather than two blocks of rim and then rim forever. Cycling is right where a short run of beds is
+meant to recur to any distance: the bands read again from the first. So a `BandStack` states its ending
 (`BandEnding`) and the caller states the axis, and neither is implied by the other.
 
-**A repeating band does not reseed a pattern.** A pattern's seed lives on the material and its field is
-sampled from world coordinates, so the second block of a repeat is one field read a step further along rather
+**A held or cycled band does not reseed a pattern.** A pattern's seed lives on the material and its field is
+sampled from world coordinates, so the second block of a held band is one field read a step further along rather
 than a second field starting over.
 
 Three fixed layers are ordinary courses, and that is the whole simplification. The coloured band was layer 4
@@ -787,7 +788,7 @@ resting on the door head is a porch nobody can walk under.
 
 Seating it under the house's eave instead is wrong for a reason worth keeping. On a house the two agree, since
 a five-course wall puts its eave about where a porch wants its roof anyway. On a **tower** they do not: a wall
-is a `RoomPart` extent and its last course repeats, so a building twenty-four courses tall is an ordinary
+is a `RoomPart` extent and its last course holds, so a building twenty-four courses tall is an ordinary
 style, and a canopy chasing that eave rides the wall the whole way up — a colonnade of posts with a roof at the
 top and the doorway it fronts left open to the sky twenty courses below.
 
@@ -859,11 +860,20 @@ therefore chosen from the block picker and the stamper supplies the nibble.
 
 ### 7.5 The door is a closed set, and the reason is in the XML
 
-`Domain.DoorMaterials` names the four choices (air, cobweb, stained glass, stained-glass panes) and, for each,
-both the block the stamper places and the PGM material the wool-room block rule must whitelist. The wool
-room's `block` rule is a whitelist (`WoolGenerator`), so a door made of anything it does not name cannot be
-broken — the cage would be stamped with an entrance nobody can open, and nothing else in the pipeline would
-catch it. One row read by both sides is what prevents that; `Pgm` and `Minecraft` are siblings, so `Domain` is
+`Domain.DoorMaterials` names the seven choices (air, cobweb, stained glass, stained-glass panes, and oak,
+spruce and dark oak doors) and, for each, both the block the stamper places and the PGM material the wool-room
+block rule must whitelist. The wool room's `block` rule is a whitelist (`WoolGenerator`), so a door made of
+anything it does not name cannot be broken — the cage would be stamped with an entrance nobody can open, and
+nothing else in the pipeline would catch it. A wooden door is the exception that proves the rule: a player
+opens it by hand rather than breaking it, so it names no material and the rule whitelists nothing for it, on a
+wool room as on a placed house.
+
+**A wooden door is two blocks tall, and the wall stands over it.** The stamper fills the opening's two lowest
+courses with the leaf: the lower block faces into the building, as if hung from outside, and the upper block
+carries the hinge, on the side away from the opening's middle, so a two-wide opening is a pair that opens from
+the centre in every image of the building, mirrored or turned. The courses above the leaf and under the head
+are left as the wall laid them, so a three-course doorway with a head reads as a door under a beam rather than
+a door with a gap over it, and the doorway's clear height is two. One row read by both sides is what prevents that; `Pgm` and `Minecraft` are siblings, so `Domain` is
 the lowest place both reach. A spawn's door is pinned to air whatever its style says: a player spawning in has
 to walk straight out, and the spawn protection rule already keeps enemies from walking in.
 
@@ -938,8 +948,8 @@ the head is what stands over it and is never walked through.
 A building's height is not a wall height but a stack of rooms, and the two are different numbers. A `Storey`
 states its **clear** — the blocks of air a player stands in — and the courses follow from it: a storey carries
 one more course than its clear when something stands over it, for the slab that separates the two, and the top
-storey carries none, because the roof is its lid. Three storeys of three clear is eleven courses of wall, not
-nine. Measuring by the air rather than by the masonry is what makes the number an author decides the number
+storey carries none, because the roof is its lid, unless it lays a head course. Three storeys of three clear is
+eleven courses of wall, not nine. Measuring by the air rather than by the masonry is what makes the number an author decides the number
 that is true: three is the least a room may be, because a room a player cannot stand up in is not a room, and
 a clear asked for under three is read as three.
 
@@ -956,7 +966,7 @@ every storey and a taller ground floor does not slide the one above it. Windows 
 sill of two is two blocks over *this* floor whichever storey it is, and the seater needed nothing new for
 that, because it already takes a sill and a wall height and a storey is simply a shorter wall to it. Only the
 ground storey is told about the doorway; there is no door to avoid on the ones above. A storey may name its
-own wall, windows, floor zoning and deck, and falls back to the building's where it does not — a stack of
+own wall, posts, head course, windows, floor zoning and deck, and falls back to the building's where it does not — a stack of
 identical storeys is a count rather than a repeated description, and every one of those fallbacks is resolved
 in `HouseStyle.Levels` rather than at the point each is used.
 
@@ -1008,6 +1018,13 @@ building is put up rather than drawn — and it belongs to the storey standing o
 its shop in flagstone and the flat over it in boards; unbound, a deck is the house floor's own top material.
 The ground storey's deck is the building's floor, and the topmost storey has nothing over it, since the roof
 is what closes that one.
+
+**A head course draws where a storey ends.** A storey that names a `head` lays that one material round its walls
+in the course over its clear: between two storeys it is the course the slab already sits in, and on the topmost it
+is one course more, under the eave, so a headed building is a course taller. It is one material rather than a
+stack, like a post, and the post wins the corners. Unset, the wall's own stack carries on through the seam with its
+last band repeating, so a stack ending in a laid log lays two of them at every seam; a head says the seam once. A
+house names a head for every storey that names none of its own, and the library binds it as the `head` part.
 
 **A storey above the ground never stands on air.** Over a plate of air — a house on stilts — a storey naming
 no deck falls back to that air, and the room over the stilts is a ring of wall round a hole. `HS18` complains of a
@@ -1076,7 +1093,7 @@ and lets a building have either without the other.
 from a course that is not a laid log is showing the ends of a floor beam it has not got: eight logs
 running out of masonry, which is not a detail but a claim about how the building is put together that the
 building does not honour. `HS9` names it at every seam: the ends are laid in the top course of the storey under
-the seam, so that course is the laid log, and a laid log on any other course is not the timber they come out of.
+the seam, so that course is the laid log, and a head course is that course where a storey names one, and a laid log on any other course is not the timber they come out of.
 A building of one storey lays no beams, so the word on it is inert rather than wrong. And the three timbers of a frame — the
 corner post, the ends docking against it, the course they are the ends of — are one frame and so **one wood**,
 which is `HS4`'s rule, the same one a door head's stair and its slab fill answer to. `opus5-scarrow-delph`'s
@@ -1168,7 +1185,7 @@ studio's library previews. Anything else drawing a building draws with them too 
 right and another gets wrong is worse than either being wrong alone.
 
 The door picker is **served, never restated** (`/api/room-styles/doors` from `Domain.DoorMaterials`). A
-client-side copy of the four choices is the one way a door could come to be offered that the wool-room filter
+client-side copy of the choices is the one way a door could come to be offered that the wool-room filter
 never whitelists, which §7 explains would seal the cage.
 
 ### 8.1 A house is composed from parts
@@ -1243,11 +1260,11 @@ pair, and `StyleOf` answers one room's — its house's own where it states one, 
 that does not read wears the map's, and the intent write refuses one before it is stored (`not a house`, `RQ1`,
 naming the field), with a house of no wing and a wing that is not two corners.
 
-An **absent or unreadable** snapshot falls back to the built-in shell for its kind, so a map that never opened
+An **absent or unreadable** snapshot falls back to the bedrock box for its kind, so a map that never opened
 the step exports the shipped rooms and a hand-edited layout that broke its snapshot loses its chosen shell
 rather than its export.
 
-**The built-in shell is a placeholder, and the build says so** (`WX14`). Every build of a board whose rooms of
+**The bedrock box is a placeholder, and the build says so** (`WX14`). Every build of a board whose rooms of
 a kind stand in it — never bound, bound to a snapshot that did not read, or bound to a copy of the shell
 itself, since the shell is compared by what it builds — carries one complaint for that kind, on the preview's
 and the export's `warnings` alike. A kind with no rooms on the board raises nothing, and neither does `null`:
@@ -1269,6 +1286,6 @@ simply not there and the rest is.
 
 The step is **Theme's third**, after Create and Apply, because a room shell is finishing: it is what the map is
 *made of*, decided once for the whole map, next to the terrain finish that is decided the same way. It offers
-each kind all three answers in one select — the built-in shell, one of the library's room styles, or **no
+each kind all three answers in one select — the bedrock box, one of the library's room styles, or **no
 building** — and the row's ✕ returns it to the built-in, which is the one of the three that has no snapshot to
 clear.

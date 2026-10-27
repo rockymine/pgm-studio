@@ -24,7 +24,7 @@ namespace PgmStudio.Api.Services;
 
 /// <summary>
 /// Everything a drive reads back about a stored map, off one build (<c>docs/world-scan/read-backs.md</c>): the
-/// three numbers a board is wrong or right by, then the findings, the relief, what the
+/// three numbers a board is wrong or right by, then the findings, what the
 /// build could not do, pre-flight, coverage and every text read of the built world — a transect each way
 /// through every thing on it and a walk from every spawn to every goal — and the pictures, named by the routes
 /// that draw them and drawn too where they are asked for.
@@ -35,7 +35,7 @@ namespace PgmStudio.Api.Services;
 /// </summary>
 internal sealed class MapReport(
     MapReader reader, MapArtifactStore artifacts, FeatureData feature, MapChangeLog log,
-    ReliefPreviewCache warm, BlockTextureStore textures)
+    BlockTextureStore textures)
 {
     /// <summary>How far a transect runs past the thing it is taken through, so the way up to it is in it.</summary>
     private const int Overshoot = 8;
@@ -70,10 +70,8 @@ internal sealed class MapReport(
         var findings = await MapFindings.OfAsync(artifacts, feature, reader, map, ct);
         reads.Add(Answered("findings", "findings", () => FindingsText(findings)));
 
-        reads.Add(Answered("relief", "POST sketch/relief/read",
-            () => ReliefText(ReliefReads.Of(layoutJson, map.Id, warm))));
         reads.Add(Answered("declines", "POST sketch/columns",
-            () => DeclinesText(built, SketchPreviews.Of(built, layout, layoutJson))));
+            () => DeclinesText(built, SketchPreviews.Of(built, layout))));
 
         var preflight = await Preflights.OfAsync(map, reader, feature, artifacts, ct);
         reads.Add(Answered("preflight", "preflight", () => string.Join('\n', preflight.Log) + "\n"));
@@ -229,18 +227,6 @@ internal sealed class MapReport(
     private static string Line(Finding finding) =>
         $"{finding.Rule} {finding.Severity.ToString().ToLowerInvariant()}: {finding.Message}"
         + (finding.Field is { } field ? $" ({field})" : "");
-
-    private static string ReliefText((ReliefReadDto Read, IReadOnlyList<Finding> Complaints) relief)
-    {
-        var text = new StringBuilder();
-        if (relief.Read.Groups.Count == 0) text.Append("no relief group\n");
-        foreach (var group in relief.Read.Groups)
-            text.Append(CultureInfo.InvariantCulture,
-                $"group {group.Group}: {group.Cells} cells, low {group.Low}, high {group.High}, relief {group.Relief}, "
-                + $"symmetry error {group.SymmetryError}\n");
-        foreach (var finding in relief.Complaints) text.Append(Line(finding)).Append('\n');
-        return text.ToString();
-    }
 
     private static string DeclinesText(BuiltWorld built, SketchPreview preview)
     {

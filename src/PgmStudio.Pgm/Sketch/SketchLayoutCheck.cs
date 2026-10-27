@@ -59,7 +59,7 @@ public static class SketchLayoutCheck
     public static readonly string[] GroundRules =
     [
         SketchRules.StackedInOneLayer, SketchRules.LayersOverlap, SketchRules.MassUnreached,
-        SketchRules.DrawnOverSubtraction, SketchRules.ReliefOverStatedTop,
+        SketchRules.DrawnOverSubtraction,
         SketchRules.ThemeHiddenUnderAnother, SketchRules.SeatedOnNothing,
         // Raised by the theme gate rather than here, because it needs the theme registry as well as the
         // ground; named here because this is the list a caller taking the shallower reading is handed, and a
@@ -120,7 +120,7 @@ public static class SketchLayoutCheck
         Check(SketchLayout.Stated(layoutJson), reading);
 
     /// <summary>
-    /// Whether a board carries any finish at all — a theme registry, a relief, or props — and which of the
+    /// Whether a board carries any finish at all — a theme registry, a modifier stack, or props — and which of the
     /// three it does not, or null where it carries at least one.
     ///
     /// <para>Asked at the <b>finish</b> rather than in <see cref="Check(SketchLayout?, LayoutReading)"/>,
@@ -134,7 +134,7 @@ public static class SketchLayoutCheck
 
         var absent = new List<string>();
         if (layout.Themes is not { Count: > 0 }) absent.Add("no palettes");
-        if (layout.Relief is not { Count: > 0 }) absent.Add("no terraform");
+        if (layout.Modifiers is not { Count: > 0 }) absent.Add("no terraform");
         if (!HasProps(layout)) absent.Add("no props");
         if (absent.Count < 3) return null;
 
@@ -209,14 +209,6 @@ public static class SketchLayoutCheck
                     + "from the largest island",
                     Severity.Complaint));
 
-            // SK14 — a relief solves a surface over every column of its group, so an override add that does not
-            // stand out of that field builds to the field rather than to the top it stated.
-            foreach (var (shape, layerId, groupId, top) in SketchRasterizer.ReliefOverridesStatedTop(layout))
-                findings.Add(new Finding(SketchRules.ReliefOverStatedTop,
-                    $"override add '{shape}' on layer '{layerId}' states a top at y{top}, and group "
-                    + $"'{groupId}' states terraform that sets the top of the same columns",
-                    Severity.Complaint, Subjects: [shape]));
-
             // SK15 — the taller add wins the column and the paint follows what forms the surface, so where the
             // smaller shape is also the shorter its theme lands on none of the ground the two share.
             foreach (var (layerId, standing, hidden, standingTheme, hiddenTheme, cells, x, z) in
@@ -228,7 +220,8 @@ public static class SketchLayoutCheck
                     Severity.Complaint, Subjects: [standing, hidden]));
 
             // SK13 — a subtract states the board's negative space, and an add over one is silent either way it
-            // lands: it draws nothing, or it puts the ground back.
+            // lands: it draws nothing, or it puts the ground back. A complaint either way, since a carve is the
+            // way under the ground and a lid over a hole is no longer the only one.
             foreach (var (add, addLayer, subtract, subtractLayer, survives, cells, x, z) in
                      SketchRasterizer.AddsOverSubtracts(layout))
                 findings.Add(new Finding(SketchRules.DrawnOverSubtraction,
@@ -237,7 +230,7 @@ public static class SketchLayoutCheck
                           + $"that subtract '{subtract}' on layer '{subtractLayer}' takes away"
                         : $"add '{add}' on layer '{addLayer}' draws nothing over {Wording.Count(cells, "column")} "
                           + $"from ({x}, {z}) where subtract '{subtract}' on layer '{subtractLayer}' takes them away",
-                    survives ? Severity.Refusal : Severity.Complaint, Subjects: [add, subtract]));
+                    Severity.Complaint, Subjects: [add, subtract]));
         }
 
         // SK20 — the list order and base_y disagree about which layer is on top. Read over the plain layers
@@ -363,10 +356,8 @@ public static class SketchLayoutCheck
                         Subjects: group.Id is { Length: > 0 } id ? [id] : null));
                 }
 
-        // SK12 — one id, two groups. The relief is stored under the id and so is a placement's group, so a
-        // board carrying it twice has no single answer to either. The layers are named because they decide
-        // which way it goes wrong: within one layer the last of them takes the terrain and the rest build
-        // flat, across two every one of them takes it over its own footprint.
+        // SK12 — one id, two groups. A placement names its group by the id, so a board carrying it twice has
+        // no single answer. The layers are named because they say where the second one is.
         foreach (var group in Groups(layout).Where(entry => entry.Group.Id is { Length: > 0 })
                                              .GroupBy(entry => entry.Group.Id!, StringComparer.Ordinal)
                                              .Where(group => group.Count() > 1)
@@ -378,22 +369,6 @@ public static class SketchLayoutCheck
                 + $"{Wording.Ids(layers)}, more than 1",
                 Severity.Complaint, Subjects: [group.Key]));
         }
-
-        foreach (var orphan in (layout.Relief ?? []).Keys.Where(key => !groups.Contains(key)).OrderBy(key => key, StringComparer.Ordinal))
-            findings.Add(new Finding(SketchRules.NamesNothing,
-                $"the terraform of the layout names group '{orphan}', which the layout does not have",
-                Severity.Complaint, Field: $"relief.{orphan}"));
-
-        // A landform outside the four words is not a word this reads, and the gate that would have judged the
-        // ground against it (RL1) skips a relief that states nothing — so a typo or the wrong case turns that
-        // gate off rather than failing it. Same rule as every other name matching nothing.
-        foreach (var (id, word) in (layout.Relief ?? [])
-                     .Where(entry => entry.Value?.Landform is { Length: > 0 } stated && !Landform.IsKnown(stated))
-                     .Select(entry => (entry.Key, entry.Value!.Landform!))
-                     .OrderBy(entry => entry.Key, StringComparer.Ordinal))
-            findings.Add(new Finding(SketchRules.NamesNothing,
-                $"group '{id}' names the landform '{word}', which is not one of {string.Join(", ", Landform.All)}",
-                Severity.Complaint, Field: $"relief.{id}.landform", Subjects: [id]));
 
         // A theme scope resolves shape → map default, and a shape naming a registry entry that is not there
         // falls all the way through to whatever the map default happens to be — which paints a board and says
@@ -588,13 +563,37 @@ public static class SketchLayoutCheck
         ShapeKinds.Rectangle => (shape.MaxX ?? 0) - (shape.MinX ?? 0) != 0 && (shape.MaxZ ?? 0) - (shape.MinZ ?? 0) != 0
             ? null
             : (SketchRules.DrawsNoArea, "has no area"),
-        _ => null,
+        _ => SketchSolids.Is(shape) ? SolidEmpty(shape) : null,
     };
+
+    // A solid draws nothing where its footprint has no extent, its height no blocks or its tube no radius.
+    private static (string Rule, string Why)? SolidEmpty(SketchShape shape)
+    {
+        switch (shape.Type)
+        {
+            case ShapeKinds.Box or ShapeKinds.Wedge
+                when (shape.MaxX ?? 0) - (shape.MinX ?? 0) == 0 || (shape.MaxZ ?? 0) - (shape.MinZ ?? 0) == 0:
+                return (SketchRules.DrawsNoArea, "has no area");
+            case ShapeKinds.Cylinder or ShapeKinds.Sphere or ShapeKinds.Torus when !(shape.Radius > 0):
+                return (SketchRules.DrawsNothing, $"has a radius of {shape.Radius ?? 0:0.##} blocks");
+            case ShapeKinds.Arch when !(shape.Radius > 0):
+                return (SketchRules.DrawsNothing, $"has a radius of {shape.Radius ?? 0:0.##} blocks");
+            case ShapeKinds.Arch when shape.Vertices is not { Length: >= 2 }:
+                return (SketchRules.DrawsNothing, $"has {Wording.Count(shape.Vertices?.Length ?? 0, "point")}, less than 2");
+            case ShapeKinds.Torus when !(shape.Tube is null or > 0):
+                return (SketchRules.DrawsNothing, $"has a `tube` of {shape.Tube:0.##} blocks");
+            case ShapeKinds.Box or ShapeKinds.Wedge or ShapeKinds.Cylinder when !(shape.BaseHeight is null or > 0):
+                return (SketchRules.DrawsNothing, $"has a `base_height` of {shape.BaseHeight:0.##} blocks");
+            default:
+                return null;
+        }
+    }
 
     // A column the world cannot hold, said as the fact that makes it one.
     private static string? Unbuildable(SketchShape shape)
     {
-        double floor = shape.Floor ?? 0, top = floor + (shape.BaseHeight ?? 0);
+        double floor = shape.Floor ?? 0,
+               top = SketchSolids.Is(shape) ? SketchSolids.Top(shape) : floor + (shape.BaseHeight ?? 0);
         if (shape.BaseHeight < 0) return $"has a `base_height` of {shape.BaseHeight:0.##} blocks, less than 0 blocks";
         if (floor < 0) return $"has a `floor` of {floor:0.##} blocks, less than 0 blocks";
         if (top >= WorldHeight) return $"has a top of {top:0.##} blocks, more than {WorldHeight - 1} blocks";
@@ -642,7 +641,7 @@ public static class SketchLayoutCheck
             ? (vertices.Min(v => v[0]) - Reach(shape), vertices.Min(v => v[1]) - Reach(shape),
                vertices.Max(v => v[0]) + Reach(shape), vertices.Max(v => v[1]) + Reach(shape))
             : null,
-        _ => null,
+        _ => SketchSolids.Is(shape) ? SketchSolids.Bounds(shape) : null,
     };
 
     // Whether two boxes share any ground. Touching along an edge counts: a footprint that meets its own

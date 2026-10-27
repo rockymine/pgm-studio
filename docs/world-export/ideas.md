@@ -33,16 +33,14 @@ says so.
   unreadable. The layout generator has a two-currency budget and the `BZ`/`LN`/traversability laws; dressing
   has neither. Add a **dressing budget** (density caps per region kind — a lane gets far less than a
   backfield) and a small set of `DR` guardrail rules checked against the built world
-  (`tools/PgmStudio.RoundTrip --traversability-map`, and the relief readback for what the ground charges): no
+  (`tools/PgmStudio.RoundTrip --traversability-map`, and the slope read for what the ground charges): no
   prop reduces a corridor below its minimum, no gameplay-affecting prop inside a bridge or build zone, every
   objective keeps a clear framing radius.
   Restraint as a first-class control, not an afterthought.
 
-  The terrain half of the same question is here rather than on the board: how much a relief should charge is a
-  ruling and not a measurement, and the two shipped rules that bracket it — `RL2` for elevation that was never
-  graded, `RL5` for elevation graded everywhere with nowhere left to stand — are the shape the answer takes,
-  a named rule on one measure rather than a single score. `world-export/relief.md` §12 holds the corpus
-  reading a threshold would be set against. The one measure not yet taken is the **detour factor between key
+  The terrain half of the same question is here rather than on the board: how much the ground should charge is a
+  ruling and not a measurement, and the answer takes the shape of a named rule on one measure rather than a
+  single score. `world-scan/terrain-steepness.md` holds the corpus reading a threshold would be set against. The one measure not yet taken is the **detour factor between key
   places**, which is the material most likely to separate a board that charges well from one that charges
   badly, and it is measurable now that the walk prices a climb: a detour factor reads ≈1 only on ground that
   is genuinely flat.
@@ -111,6 +109,6 @@ says so.
   version, the §5 blob read concave with an FBM-wandered outline, scattered onto low ground and joined to
   channels into one watershed. The bed carve reads best once the **G32-C** elevation pass gives layouts their
   heights, so a channel becomes a cut valley rather than a trench in a flat. What a channel has to do
-  differently once the ground *does* have relief is measured in `relief.md` §9 (task
+  differently once the ground *does* have relief is `decoration.md` §7.1 (task
   S46): route on a depression-filled surface, force the bed non-increasing downstream, and replace the single
   line with one level per pool — the ponds above are then the same mechanism, not a second one.

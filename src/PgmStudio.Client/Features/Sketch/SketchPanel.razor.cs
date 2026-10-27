@@ -30,16 +30,6 @@ public partial class SketchPanel
         return Shapes.Where(s => !assigned.Contains(s.Id));
     }
 
-    private static string TypeIcon(string t) => t switch
-    {
-        "rectangle" => "rectangle-horizontal",
-        "circle"    => "circle",
-        "polygon"   => "pentagon",
-        "lasso"     => "lasso",
-        "polyline"  => "spline",
-        _           => "square",
-    };
-
     // Re-render the lucide icons (chevrons / type glyphs) after the tree changes.
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 }

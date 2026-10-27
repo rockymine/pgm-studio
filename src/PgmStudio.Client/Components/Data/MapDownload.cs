@@ -33,5 +33,5 @@ public static class MapDownload
 
     /// <summary>The refusal a refused request carries, with a plain sentence where the body is not a refusal.</summary>
     public static Task<RefusalDto> RefusalAsync(HttpResponseMessage response) =>
-        ServerRefusal.ReadAsync(response, $"Couldn't download the map (HTTP {(int)response.StatusCode}). Try again.");
+        ServerRefusal.ReadAsync(response, "Couldn't download the map. Try again.");
 }

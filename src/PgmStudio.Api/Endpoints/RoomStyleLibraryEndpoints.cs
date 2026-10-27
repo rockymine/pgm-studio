@@ -119,7 +119,7 @@ public sealed class RoomStyleListEndpoint(RoomStyleLibrary library, BlockTexture
 
 /// <summary>GET /api/room-styles/doors — the doors a room may be stamped with. Served rather than restated in
 /// the client: the authoritative list is the same <see cref="DoorMaterials"/> table the wool-room block filter
-/// is built from, so a door offered here is always one an attacker can break.</summary>
+/// is built from, so a door offered here is always one an attacker can pass: broken, or opened by hand.</summary>
 public sealed class RoomDoorListEndpoint : EndpointWithoutRequest<List<DoorOptionDto>>
 {
     public override void Configure() { Get("/room-styles/doors"); }

@@ -12,7 +12,7 @@
   <Sidebar>
     <fieldset class="readonly-fieldset lib-name" disabled="@ReadOnly">
       <label class="field-label" for="lib-entry-name">Name</label>
-      <input id="lib-entry-name" class="field-input" placeholder="@($"e.g. My {Kind.One}")"
+      <input id="lib-entry-name" class="field-input" placeholder="@($"New {Kind.One}")"
              value="@Name" @oninput="OnNameInput" />
     </fieldset>
 
@@ -57,7 +57,7 @@
     @* Save, copy and forget sit against the foot of the column they act on, out of the scroll — a document
        long enough to scroll is exactly the one whose save should not have to be found. *@
     <div class="lib-foot">
-      @if (Note is not null) { <p class="section-desc lib-foot-note">@Note</p> }
+      @if (Note is not null) { <p class="lib-foot-note">@Note</p> }
       <div class="panel-actions">@Actions</div>
     </div>
   </fieldset>

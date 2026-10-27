@@ -106,8 +106,12 @@ through the studio with it, as the evidence the capability arrived whole.
 **A map's ground is built in three stages, and each does one kind of thing (D17).** Shapes on layers make the
 masses, with full control over where they are and how high; modifiers, stacked in order, change what the shapes
 made; placements stand presets and schematics on the result. Painting the surface is apart from all three.
-Nothing in this section exists in the studio yet; Phase 2 builds it, and the concept page
-(https://claude.ai/artifact/PXyATVHg1XQ12BWoBmYaes) draws Terraform over it. `pgmvox.document.layers` and
+Phase 2 builds it, and the concept page
+(https://claude.ai/artifact/PXyATVHg1XQ12BWoBmYaes) draws Terraform over it. Of this section the modifier stack
+runs in the studio: `modifiers[]` with Hill, Hollow, Level, Roughness, Ridge, Butte, Spire, Scarp, Canyon, Profile,
+River, Lake, Coast, Road, Lumps, Shatter, Gullies and Warp, masked by ellipses, outlines, lines and the board and
+fanned by the symmetry, listed
+and edited in Terraform (`docs/tools/sketch.md`, *The modifier stack*). The rest of it is not built yet. `pgmvox.document.layers` and
 `LAYER-DOCUMENT.md` (draft 4) are the laboratory it is drawn from, not its format.
 
 **Each thing has one word (D16).** A **layer** is where shapes sit, at a base height of its own. A **storey** is a
@@ -116,7 +120,7 @@ stack already states them. A **modifier** is one terraform operation, and its **
 **placement** is a preset or a schematic put at a spot. What pgmvox calls a level is a layer here.
 
 **A shape states a top and a bottom.** The top is a y, or `on` another shape with a thickness, so a wall laid on
-the island follows the island up its slopes. The bottom is the layer's floor, down to whatever is under it, or an
+the island follows the island up its slopes. The bottom is the layer's floor, down to whatever is under it, or, stated on the layer, an
 underside that tapers the way a floating island's does. Beside the drawing tools' rectangle, circle, polygon,
 lasso and polyline stand the primitives: box, cylinder, wedge, sphere and torus, each turned, tilted and sunk, as
 Stratum sets its monolith and its fallen obelisk. Draw keeps level, a shape's base height,
@@ -128,6 +132,12 @@ between them, and a shaft. A modifier has an id, an operation, a mask (any shape
 a mode (set, lift or cut), a join that says how the areas of one modifier merge, a seed and its numbers. A number
 may be a field expression; the modifier list in Terraform edits plain numbers and per-vertex arrays, and shows an
 expression without editing it.
+
+**How a mask's outline is bent is a setting of the mask, not a modifier (D23).** Warp moves the ground the mask is
+measured on sideways, so the whole form bends, rim and crest together; rough wavers the rim; fray bites it block
+by block; lobes bulge it round its middle. Each changes the distance the mask gives, so every modifier drawn with
+that mask gets it, and the outline under edit keeps its straight sides and handles. The Warp modifier is another
+thing: it bends ground already built.
 
 **Every shape says what the modifiers do to it (D18).** `follow` lets them reshape it as ground. `hold` keeps its
 columns out of every modifier, so its form wins. `ride` keeps its form and moves it with the change in the ground
@@ -150,6 +160,14 @@ presets. What an agent builds block by block, and what the sketch calls a made l
 loadable from the library, referenced by the map and never written into its terrain. An agent's brush, a field
 swept or a wall drawn, is a generator whose output is a schematic, placed like any other.
 
+**A recipe is a group of modifiers with the paint and placements that belong to them, placed as one (D22).** A
+volcano, a glacier, a caldera lake: its modifiers stand in the modifier list as one row that opens to edit them one
+at a time, its paint rules stand in Palette bound to its masks, and its placements in Decoration, each tagged with
+the recipe. Moving, turning or sizing it moves every part, and a few numbers on its row (size, turn, height, seed)
+are the ones it exposes. A recipe carries its paint and its placements wherever it is placed. It lays no blocks of
+its own and no play pieces. Recipes are library rows, as themes and patterns are, and the Fire and Ice Composer
+(https://claude.ai/artifact/Tf6EbuUvyxsPAXq61781K6) is the first set of them, still baked into heights.
+
 **The stored format is the sketch's, changed in three places (D19).** Symmetry is stated once in `setup`, and
 `layers[]` keep their shapes and base heights. A shape gains `top`, `bottom`, `on`, its relation to the
 modifiers and the primitive kinds, and a line's width is its full width. `relief`, keyed by group, becomes one
@@ -166,13 +184,15 @@ the game needs them at a spawn floor, a wool room or a monument's plinth, are a 
 only check marks (`RL1`–`RL6`) go with the marks.
 
 **Ground stays in columns; carves run after it in the block grid.** The column model is fast, runs in the browser
-and folds cleanly under symmetry, so shapes and the ground modifiers keep it. Tunnels, chambers, rooms, shafts,
-primitives and undersides run over `VoxelWorld`, so `SK13`'s cut-and-lid stops being the only way down.
+and folds cleanly under symmetry, so shapes and the ground modifiers keep it. Tunnels, chambers, rooms and shafts
+run over `VoxelWorld`, so `SK13`'s cut-and-lid stops being the only way down. A primitive's body is cut into the runs
+of blocks a column meets, a layer holding more than one span of a column where a solid stands apart from the rest, so
+a primitive meets the ground, the paint, the walk and the symmetry through the machinery every shape uses.
 
 **The modifier list makes the old addressing work unnecessary.** `B264` (Configure cannot address a storey), `WE28`
 (a relief keyed by layer and group) and `TS64` (a made thing as one row in the layer strip) were the planned way
 to make terrain addressable. Every modifier has an id of its own and every made thing becomes a schematic, so the
-three are not built: they retire, on the author's call, in the commit that lands Phase 2's document.
+three are not built: they retired, on the author's call, with the migration `M0086`.
 
 **A stored map is carried to its nearest new form, not held to its old heights (D20).** Each mark, push, grain and
 height mode becomes the shape field or modifier it already is, and the migration writes into the map's history
@@ -298,8 +318,8 @@ before anything is built, and boards that stop looking alike because none of the
 - The document as D19 states it: shapes with a top, a bottom, `on` and their relation to the modifiers, the
   primitives, the `modifiers[]` list with masks, modes, joins and seeds, numbers as fields, the cache, the
   per-modifier delta and diff, and the existing reads taken after any modifier with `?step=`.
-- The migration that carries every stored sketch to its nearest new form, after the archive (D20). `WE28`,
-  `B264` and `TS64` retire in the same commit.
+- The migration that carries every stored sketch to its nearest new form, after the archive (D20). It is `M0086`: `WE28`,
+  `B264` and `TS64` retired with it.
 - The modifier list in Terraform: the modifiers listed, reordered, switched off, a mask dragged, and what a modifier
   changed.
 - The ground operations, in the order `pgmvox-cleanup/INVENTORY.md` §4.3 ranks them by how much board code they
@@ -314,39 +334,53 @@ time. Shipped to the live studio with no beta (decision D3).
 
 ### Phase 3 — paint, lay and water
 
-- Paint layers: a block chosen by slope, area, height band and noise, first match winning, an area that may name
-  another layer's line (a river's sandy bank).
-- Lay: soil depth by slope, rock in beds that dip and fold, merged with `TP26` so a bed follows the broad tilt.
-  A band stack that cycles (`WE143`) lands here.
-- Water from each river's level, with its bed's own stack; falls off the island's edge into the void.
-- A shape's underside per column, with a sheer side beside a rift, so a layer floats at its own height or rests
-  on the ground under it.
+**Phase 3 has shipped: the surface is chosen by what the ground is.**
+
+- Paint rules: a layout's `paint[]`, a material chosen by slope, height band, noise and nearness to a modifier,
+  first match winning, so a River's sandy bank names the River (`docs/world-export/terrain-painting.md` §3.1b,
+  TP28).
+- Lay: a surface's soil thins by slope and a tread reads as a ledge (TP27); a height stack's beds dip and fold
+  beside `TP26`'s follow; a band stack that cycles is the `cycle` ending (§3.1).
+- Water: a River, Lake or Coast lays its own `bed_material`, and stack water beside void falls down the face
+  (`docs/tools/sketch.md`, *The modifier stack*).
+- A layer's underside, with a sheer side beside a rift, so a layer floats at its own height or rests on the
+  ground under it (`docs/tools/sketch.md` *A layer's underside*).
 
 ### Phase 4 — space in three dimensions
 
-- Carve modifiers: a tunnel with cover, mouths and a level floor, a chamber, rooms joined by stepped halls, a
-  gallery, a shaft, a bore, and cave dressing (`TS140`).
+- Carve modifiers: a tunnel with cover, mouths and a level floor, a chamber and a shaft with its ladder, cut in the
+  built world and dressed as caves (`docs/tools/sketch.md`, *The modifier stack*); rooms joined by stepped halls,
+  a gallery and a bore are not ported yet.
 - The primitives in the block grid: a box, a cylinder, a wedge, a sphere and a torus, turned, tilted and sunk, and
-  the natural arch as a shape whose deck is a surface.
-- The walk across surfaces over carved space. `SK13` stops refusing anything, because the cut-and-lid is no
-  longer the only way down.
+  the natural arch as a shape whose deck is a surface (`docs/tools/sketch.md`, *Solids*). They are shapes whose
+  bodies the column model reads as runs of blocks, a torus on its edge making two in a column; placing one by
+  dragging it out in the dock is not built, and the other `solid.py` forms (frustum, beam, prism, revolve, sheet) are
+  not ported.
+- The walk across surfaces over carved space: the walk reads the built world, so a tunnel is walked, and `SK13`
+  complains rather than refuses, because the cut-and-lid is no longer the only way down.
 
 **What the author notices:** crypts and mines without the lid trick.
 
 ### Phase 5 — stamps and uploaded worlds
 
-- A control point and a wall as play pieces of any shape, beside the ones Phase 1 places.
+- A control point and a wall as play pieces of any shape, beside the ones Phase 1 places: a control point is
+  a square or a disc, placed and sized in Layout (`TS213`), and a wall a polyline that bends at its corners
+  (`TS214`), on the author's ruling. Both shipped, as `TS213` and `TS214`.
 - Stamps as the last stage, each switchable per piece: goal marker, build-zone outline, defence wall, wool-room
-  loot, kit pairing, float check.
+  loot, kit pairing, float check (`WE174`). The float check is pgmvox's over the built world — a monument or core
+  has its float of air under it and ground at y 0 — on by default, on the author's call. Shipped as `WE174`.
 - A world built elsewhere uploaded with its `map.xml`, read into the intent, with the stamps run over it on
-  export. `POST /map/import-folder` reads a server-side folder today; an upload route is what is missing.
+  export (`TC23`). `POST /map/import-folder` reads a server-side folder today; an upload route is what is
+  missing, and any member may use it, under a size cap. The `map.xml` is read into an intent rather than kept as a
+  document, on the author's call. The upload is parked for the time being.
 
 **What the author notices:** every pgmvox board playable with the studio's markers and outlines on it.
 
 ### Phase 6 — built things
 
-- Houses: the three new storey fields (posts, a laid log course, jetty with setback and eave), a chimney, wood
-  doors, and a heading in degrees on the placed house (`houses/HOUSES.md`). pgmvox's two house defects (door
+- Houses: posts along a storey's wall, a jetty with setback and eave, a chimney and a heading in degrees on the
+  placed house (`houses/HOUSES.md`; `WE175`, `WE177`, `WE178`, `WE180`), in the backlog.
+  Wooden doors shipped as `WE179`, the laid head course as `WE176`. pgmvox's two house defects (door
   before windows; the cell outside a door at any heading) are fixed on the way.
 - Line builds: a wall, hedge or fence along a line, with its crown following, level or graded, caps, crenels and
   gaps.
@@ -401,7 +435,7 @@ the skill's lookup table naming the new reads and layers, so the next run uses t
 
 ## The author's decisions
 
-**All twenty-one are taken.**
+**All twenty-three are taken.**
 
 | # | Decision | Blocks | Answer |
 |---|---|---|---|
@@ -420,12 +454,14 @@ the skill's lookup table naming the new reads and layers, so the next run uses t
 | D13 | Play pieces in the sketch: where a piece is stored, what a drag moves, how it is named, what Configure keeps | 1 | **taken:** the intent is the one store and the sketch draws from it; a drag moves the whole orbit; every piece has a stable id, migrated onto stored maps; imported maps keep Configure's detection flow |
 | D14 | Where play pieces are placed in the sketch, and what a room can be drawn as | 1 | **taken:** Draw has two steps, Ground and then Layout, one click apart in the bar, so the two can later fold into one. Layout holds the tools that add and delete a piece, and later the analysis of the layout; every piece and every shape is drawn in every phase, and a piece is picked, moved and turned from either step, so the two are one board seen for two jobs rather than two layers switched on and off. A spawn or wool room placed where no ground lies also draws an ordinary rectangle of ground under it, the size of the room, which Ground then shapes like any other; a build zone and a water lane stand over the void and bring none, and a goal, an iron cube or the observer placed over no ground is complained of. A spawn, a wool room, a build zone and a water lane are rectangles only, sized when they are drawn and resized from an edge or a corner afterwards (`TS179`) |
 | D15 | Where the places are drawn, what a place shows, and where its versions live | 1 | **taken:** Draw gains a Plan step before Ground, laid out as Review's Cameras step: the board top-down, the notes step's drawing tools, the places listed on the left and a place's thread on the right. Draw opens on Ground, and a new map on Plan. A place states what it holds and nothing more; whatever an agent has to say about it goes in its thread. Its versions are changes in the map's one history, and Review's Cameras step draws the places as an overlay, a note on ground being tagged with the place it falls in |
-| D16 | What the things are called | 2 | **taken:** a layer is where shapes sit; a storey is a building's floor and a course a wall's row; a band is one of a theme's block layers; a modifier is a terraform operation and its mask its area; a placement is a preset or schematic put at a spot |
+| D16 | What the things are called | 2 | **taken:** a layer is where shapes sit; a storey is a building's floor and a course a wall's row; a band is one of a theme's block layers; a modifier is a terraform operation and its mask its area; a recipe is a group of modifiers with its paint and placements; a placement is a preset or schematic put at a spot |
 | D17 | Which stages build a map's ground, and what is kept out of the terrain document | 2 | **taken:** shapes on layers, then modifiers, then placements, with painting apart. Presets and schematics are documents of their own, referenced and never inlined; an agent's brush is a generator that outputs a schematic |
 | D18 | How a shape meets the modifiers, and the order the stages run | 2 | **taken:** each shape is `follow`, `hold` or `ride`, ground shapes following and primitives holding unless stated; shapes that follow or hold, then modifiers, then shapes `on` another (on the modified ground), then shapes that ride, then placements on their surfaces |
 | D19 | The stored format | 2 | **taken:** the sketch's document, with a top, a bottom, `on`, the modifier relation and the primitives on every shape, a line's full width, one top-level `modifiers[]` replacing the group-keyed relief, and `placements[]`; a modifier's number may be a field expression, which the modifier list shows and does not edit |
 | D20 | What the migration keeps | 2 | **taken:** each stored statement goes to its nearest new form and the map's history says what changed; no map is held to its old heights. Every deployed map's world, `map.xml` and sketch are archived in `pgm-studio-mapgen` first |
 | D21 | Which rules caves and layers bring | 4 | **taken:** an objective or spawn that is isolated is refused; everything else is a hint, an unreachable cave never a fault, and no measure is added until a world or a playtest shows one is needed |
+| D22 | What a combination of modifiers is, and what it carries | 2 | **taken:** a recipe, a library row as themes and patterns are: its modifiers, the paint rules bound to its masks and its placements, each landing in its own stage tagged with the recipe and placed, moved, turned and sized as one. It carries its paint and placements; it lays no blocks and no play pieces |
+| D23 | Whether bending a mask's outline is a modifier or a parameter | 2 | **taken:** a setting of the mask: warp, rough, fray and lobes change the distance it gives, so every modifier on that mask gets it |
 
 ## What this does not decide
 

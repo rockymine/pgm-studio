@@ -241,25 +241,39 @@ public readonly record struct RedstoneLine(int X1, int Z1, int X2, int Z2, Stamp
 [method: JsonConstructor]
 public readonly record struct IronCube(int MinX, int MinZ, bool Renew, StampId Stamp = default, string Id = "");
 
-/// <summary>A pre-built bedrock approach wall: a line between two block corners, <see cref="WallLine.Thickness"/>
-/// blocks thick across it at any angle, rising from y=0 up to <see cref="TopY"/> inclusive (ST4). Its columns are
-/// <see cref="WallLine.Cells"/>.</summary>
-/// <param name="X1">One end, east–west, on a block corner.</param>
-/// <param name="Z1">That end, north–south.</param>
-/// <param name="X2">The other end, east–west.</param>
-/// <param name="Z2">That end, north–south.</param>
+/// <summary>A pre-built bedrock approach wall: a line through two or more block corners, <see cref="WallLine.Thickness"/>
+/// blocks thick across every leg at any angle, rising from y=0 up to <see cref="TopY"/> inclusive (ST4). Its columns
+/// are <see cref="WallLine.Cells"/>.</summary>
+/// <param name="Points">Its corners in order, each <c>[x, z]</c> on a block corner: two for a straight wall, one
+/// more for every bend.</param>
 /// <param name="TopY">The height it rises to where the ground under it has nothing to say, inclusive.</param>
 /// <param name="Stamp">Which stamping of the structure this is.</param>
 /// <param name="Id">The piece's id, which the piece route finds it by.</param>
+/// <param name="StampsOff">The stamps switched off for it (<see cref="StampSwitches"/>) — its own bedrock, where the
+/// world has the wall already; null runs every one.</param>
 [method: JsonConstructor]
 public readonly record struct WallStructure(
-    int X1, int Z1, int X2, int Z2, int TopY, StampId Stamp = default, string Id = "")
+    int[][] Points, int TopY, StampId Stamp = default, string Id = "",
+    [property: WordSet(typeof(StampSwitches))] string[]? StampsOff = null)
 {
+    /// <summary>Its corners, in order.</summary>
+    public IReadOnlyList<(int X, int Z)> Corners() => [.. Points.Select(point => (point[0], point[1]))];
+
+    /// <summary>Its first corner.</summary>
+    [JsonIgnore] public (int X, int Z) Start => (Points[0][0], Points[0][1]);
+
+    /// <summary>Its last corner.</summary>
+    [JsonIgnore] public (int X, int Z) End => (Points[^1][0], Points[^1][1]);
+
     /// <summary>The columns the wall stands in.</summary>
-    public IEnumerable<(int X, int Z)> Cells() => WallLine.Cells(X1, Z1, X2, Z2);
+    public IEnumerable<(int X, int Z)> Cells() => WallLine.Cells(Corners());
 
     /// <summary>The block rectangle those columns span.</summary>
-    public BlockRect Bounds() => WallLine.Bounds(X1, Z1, X2, Z2);
+    public BlockRect Bounds() => WallLine.Bounds(Corners());
+
+    /// <summary>Whether <paramref name="other"/> runs through the same corners, either way along.</summary>
+    public bool SameLine(WallStructure other) =>
+        Corners().SequenceEqual(other.Corners()) || Corners().SequenceEqual(other.Corners().Reverse());
 }
 
 /// <summary>A defence chest standing on the ground at one block, fronting <see cref="Facing"/>: the supply an
@@ -373,8 +387,12 @@ public sealed record MetaIntent
 /// <param name="MaxX">Its east edge.</param>
 /// <param name="MaxZ">Its south edge.</param>
 /// <param name="Id">The piece's id.</param>
+/// <param name="StampsOff">The stamps switched off for it (<see cref="StampSwitches"/>) — a build area's outline;
+/// null runs every one.</param>
 [method: JsonConstructor]
-public readonly record struct PieceArea(double MinX, double MinZ, double MaxX, double MaxZ, string Id = "")
+public readonly record struct PieceArea(
+    double MinX, double MinZ, double MaxX, double MaxZ, string Id = "",
+    [property: WordSet(typeof(StampSwitches))] string[]? StampsOff = null)
 {
     /// <summary>Its bounds.</summary>
     [JsonIgnore] public Rect Rect => new(MinX, MinZ, MaxX, MaxZ);
@@ -543,6 +561,10 @@ public sealed record WoolIntent
 {
     /// <summary>The piece's id, unique among the intent's play pieces (<see cref="PlayIds"/>).</summary>
     public string Id { get; init; } = "";
+
+    /// <summary>The stamps switched off for it (<see cref="StampSwitches"/>); null runs every one.</summary>
+    [WordSet(typeof(StampSwitches))]
+    public string[]? StampsOff { get; init; }
 
     /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
     /// per layer, and a thing stated for a hall lands on the deck roofing it unless it says which layer it
@@ -745,7 +767,7 @@ public sealed record MonumentIntent
 /// <para><see cref="Anchor"/>.Y carries the plan's flat nominal height (or the global surface, for a marker
 /// placed with no piece) purely as information for a caller with no built world to read yet; it is never
 /// authoritative and no consumer downstream of the world build may read it. <see cref="Box"/>.MinY, once the world is built, is the real answer — resolved by
-/// <c>WorldBuilder</c> from the terrain the relief actually solved under the column, plus
+/// <c>WorldBuilder</c> from the terrain actually built under the column, plus
 /// <see cref="Float"/> — and the only place a compiled-but-unbuilt intent's height claim should be trusted at
 /// all is that it names the right ground column (Anchor.X/Z), not the right ground level.</para>
 /// </summary>
@@ -753,6 +775,10 @@ public sealed record DestroyableIntent
 {
     /// <summary>The piece's id, unique among the intent's play pieces (<see cref="PlayIds"/>).</summary>
     public string Id { get; init; } = "";
+
+    /// <summary>The stamps switched off for it (<see cref="StampSwitches"/>); null runs every one.</summary>
+    [WordSet(typeof(StampSwitches))]
+    public string[]? StampsOff { get; init; }
 
     /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
     /// per layer, and a thing stated for a hall lands on the deck roofing it unless it says which layer it
@@ -814,6 +840,10 @@ public sealed record CoreIntent
     /// <summary>The piece's id, unique among the intent's play pieces (<see cref="PlayIds"/>).</summary>
     public string Id { get; init; } = "";
 
+    /// <summary>The stamps switched off for it (<see cref="StampSwitches"/>); null runs every one.</summary>
+    [WordSet(typeof(StampSwitches))]
+    public string[]? StampsOff { get; init; }
+
     /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
     /// per layer, and a thing stated for a hall lands on the deck roofing it unless it says which layer it
     /// meant.</summary>
@@ -872,7 +902,7 @@ public sealed record CoreIntent
 }
 
 /// <summary>
-/// One capture point (CP/KotH): a square pad of ground a team owns by standing on it, paying out score for
+/// One capture point (CP/KotH): a pad of ground, square or round, a team owns by standing on it, paying out score for
 /// as long as it holds. <c>docs/pgm/control-points.md</c> is the contract; what a board should look like is
 /// the author's and is in <c>docs/gameplay/approaches.md</c>.
 ///
@@ -881,14 +911,22 @@ public sealed record CoreIntent
 /// fanned by <em>position</em>. A point standing at the board's centre of symmetry is its own orbit image
 /// and stays one point; one off the centre becomes as many as the symmetry has images.</para>
 ///
-/// <para>Only the four fields above <see cref="Anchor"/> are knobs. The rest of what PGM will read off the
-/// point — that it is not <c>required</c>, that it keeps partial progress, passes through a neutral state,
-/// shows its progress and gives a crowd no bonus — is the studio's one convention, written the same on every
-/// board by <see cref="ControlPointGenerator"/>. <c>required</c> especially is not a knob: PGM defaults it to
-/// true, and a point that keeps that default ends the match for whoever first captures it.</para>
+/// <para>The name, the anchor, the size, the shape, the points, the capture time and the capture mode are the
+/// knobs. The rest of what PGM will read off the point — that it is not <c>required</c>, that it keeps partial
+/// progress, passes through a neutral state, shows its progress and gives a crowd no bonus — is the studio's
+/// one convention, written the same on every board by <see cref="ControlPointGenerator"/>. <c>required</c>
+/// especially is not a knob: PGM defaults it to true, and a point that keeps that default ends the match for
+/// whoever first captures it.</para>
 /// </summary>
 public sealed record ControlPointIntent
 {
+    /// <summary>The piece's id, which the piece route finds it by.</summary>
+    public string Id { get; init; } = "";
+
+    /// <summary>The stamps switched off for it (<see cref="StampSwitches"/>); null runs every one.</summary>
+    [WordSet(typeof(StampSwitches))]
+    public string[]? StampsOff { get; init; }
+
     /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
     /// per layer, and a thing stated for a hall lands on the deck roofing it unless it says which layer it
     /// meant.</summary>
@@ -907,9 +945,14 @@ public sealed record ControlPointIntent
     /// build solves under it, so its height is the terrain's answer rather than the author's.</summary>
     public Pt Anchor { get; init; }
 
-    /// <summary>The pad's side, in blocks — square by the author's ruling, and bounded by
+    /// <summary>The pad's side, or a disc's diameter, in blocks, and bounded by
     /// <see cref="ObjectiveDefaults.MinControlPointSize"/>/<see cref="ObjectiveDefaults.MaxControlPointSize"/>.</summary>
     public int Size { get; init; } = ObjectiveDefaults.ControlPointSize;
+
+    /// <summary>What the pad is laid as (<see cref="ControlPointShapes"/>): a square of <see cref="Size"/> a side,
+    /// or a disc of that diameter, captured inside a cylinder over it.</summary>
+    [WordSet(typeof(ControlPointShapes))]
+    public string Shape { get; init; } = ControlPointShapes.Square;
 
     /// <summary>What holding it pays its owner, per second.</summary>
     public double Points { get; init; } = ObjectiveDefaults.ControlPointPoints;

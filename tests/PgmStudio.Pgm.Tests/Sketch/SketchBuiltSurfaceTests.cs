@@ -1,12 +1,11 @@
-using PgmStudio.Geom.Relief;
 using PgmStudio.Pgm.Sketch;
 
 namespace PgmStudio.Pgm.Tests.Sketch;
 
 /// <summary>
-/// The surface the contour overlay draws for ground no relief solves: each group's highest built top, across
-/// every layer. Anchor heights, a height mode and a layer's own <c>base_y</c> all shape ground without a
-/// relief, and an overlay that only drew reliefs said nothing about any of them.
+/// The surface the contour overlay draws: each group's highest built top, across every layer and after the
+/// modifier stack. Anchor heights, a height mode, a layer's own <c>base_y</c> and the modifiers all shape the
+/// ground, and the overlay says what they built.
 /// </summary>
 public sealed class SketchBuiltSurfaceTests
 {
@@ -36,32 +35,26 @@ public sealed class SketchBuiltSurfaceTests
           "height_mode": "drape", "base_height": 1, "floor": 0 }
         """;
 
-    private static readonly IReadOnlyDictionary<string, HeightField> NoneSolved = new Dictionary<string, HeightField>();
-
-    // A 40-wide island under a relief that climbs from 6 in the west to 26 in the east, with a wall draped 2 over
-    // it in the same group.
-    private const string Relieved = """
+    // A 40-wide flat island with a Hill of eight blocks over its middle.
+    private const string Hilled = """
     {
       "setup": { "mirror_mode": "none", "center": { "cx": 0, "cz": 0 } },
       "layers": [{ "id": "ground", "base_y": 0, "layout": {
         "shapes": [
-          { "id": "land", "type": "rectangle", "operation": "add", "min_x": 0, "max_x": 40, "min_z": 0, "max_z": 20,
-            "base_height": 6, "floor": 0 },
-          { "id": "w", "type": "rectangle", "operation": "add", "min_x": 4, "max_x": 36, "min_z": 9, "max_z": 11,
-            "height_mode": "drape", "base_height": 2, "floor": 0 }
+          { "id": "land", "type": "rectangle", "operation": "add", "min_x": 0, "max_x": 40, "min_z": 0, "max_z": 40,
+            "base_height": 6, "floor": 0 }
         ],
-        "groups": [ { "id": "land", "mirrors": false, "shapeIds": ["land", "w"] } ]
+        "groups": [ { "id": "land", "mirrors": false, "shapeIds": ["land"] } ]
       } }],
-      "relief": { "land": { "base": 6, "reach": 0, "marks": [
-        { "kind": "point", "at": [1, 10], "h": 6, "r": 2 },
-        { "kind": "point", "at": [39, 10], "h": 26, "r": 2 } ] } }
+      "modifiers": [ { "id": "hill", "op": "mound", "rise": 8,
+        "mask": { "areas": [ { "kind": "ellipse", "at": [20, 20], "rx": 12, "rz": 12 } ], "mirror": false } } ]
     }
     """;
 
     [Test]
     public async Task Ground_shaped_by_anchor_heights_is_drawn_with_the_slope_it_builds()
     {
-        var land = SketchRasterizer.BuiltSurfaces(Layout(wallOnItsOwnLayer: true), NoneSolved)["land"];
+        var land = SketchRasterizer.BuiltSurfaces(Layout(wallOnItsOwnLayer: true))["land"];
 
         await Assert.That(land.Max - land.Min).IsGreaterThanOrEqualTo(10);
     }
@@ -71,7 +64,7 @@ public sealed class SketchBuiltSurfaceTests
     {
         // Drape reads the ground of its own layer, and a layer of its own has none: the wall stands one block
         // over an empty layer at base_y 8, the whole way across a ramp that climbs twelve.
-        var wall = SketchRasterizer.BuiltSurfaces(Layout(wallOnItsOwnLayer: true), NoneSolved)["wall"];
+        var wall = SketchRasterizer.BuiltSurfaces(Layout(wallOnItsOwnLayer: true))["wall"];
 
         await Assert.That(wall.Min).IsEqualTo(wall.Max);
     }
@@ -79,7 +72,7 @@ public sealed class SketchBuiltSurfaceTests
     [Test]
     public async Task A_draped_wall_on_the_ground_layer_is_drawn_climbing_the_ramp()
     {
-        var wall = SketchRasterizer.BuiltSurfaces(Layout(wallOnItsOwnLayer: false), NoneSolved)["wall"];
+        var wall = SketchRasterizer.BuiltSurfaces(Layout(wallOnItsOwnLayer: false))["wall"];
 
         await Assert.That(wall.Max - wall.Min).IsGreaterThanOrEqualTo(10);
     }
@@ -87,7 +80,7 @@ public sealed class SketchBuiltSurfaceTests
     [Test]
     public async Task A_column_a_wall_stands_on_is_the_walls_and_not_the_grounds()
     {
-        var surfaces = SketchRasterizer.BuiltSurfaces(Layout(wallOnItsOwnLayer: false), NoneSolved);
+        var surfaces = SketchRasterizer.BuiltSurfaces(Layout(wallOnItsOwnLayer: false));
 
         await Assert.That(surfaces["wall"].Has(15, 4)).IsTrue();
         await Assert.That(surfaces["land"].Has(15, 4)).IsFalse();
@@ -95,24 +88,12 @@ public sealed class SketchBuiltSurfaceTests
     }
 
     [Test]
-    public async Task A_relief_group_is_traced_along_its_own_field_where_its_ground_is_the_relief()
+    public async Task A_group_is_traced_along_the_ground_the_modifier_stack_leaves()
     {
-        var relief = SketchRasterizer.ReliefFields(Relieved);
-        var land = SketchRasterizer.BuiltSurfaces(Relieved, relief)["land"];
-        var solved = relief["land"];
+        var land = SketchRasterizer.BuiltSurfaces(Hilled)["land"];
 
-        await Assert.That(land.Continuous[land.Footprint.Index(20, 3)])
-            .IsEqualTo(solved.Continuous[solved.Footprint.Index(20, 3)]);
-    }
-
-    [Test]
-    public async Task A_draped_wall_inside_a_relief_group_is_drawn_at_the_height_it_stands()
-    {
-        // The relief's own field says nothing about a shape standing out of it; the overlay has to show the wall.
-        var relief = SketchRasterizer.ReliefFields(Relieved);
-        var land = SketchRasterizer.BuiltSurfaces(Relieved, relief)["land"];
-
-        await Assert.That(land.At(20, 10)).IsEqualTo(relief["land"].At(20, 10) + 2);
+        await Assert.That(land.At(20, 20)).IsGreaterThan(land.At(2, 2) + 4);
+        await Assert.That(land.At(2, 2)).IsEqualTo(6);
     }
 
     [Test]
@@ -120,7 +101,7 @@ public sealed class SketchBuiltSurfaceTests
     {
         // Half a block up, a contour at a whole level crosses midway between a cell below it and one standing
         // at it — the edge of the step — rather than through the centre of the upper cell.
-        var land = SketchRasterizer.BuiltSurfaces(Layout(wallOnItsOwnLayer: true), NoneSolved)["land"];
+        var land = SketchRasterizer.BuiltSurfaces(Layout(wallOnItsOwnLayer: true))["land"];
         var footprint = land.Footprint;
         foreach (var (x, z) in footprint.Land())
             await Assert.That(land.Continuous[footprint.Index(x, z)]).IsEqualTo(land.At(x, z) + 0.5);

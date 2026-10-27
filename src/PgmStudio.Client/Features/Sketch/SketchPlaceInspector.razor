@@ -3,21 +3,24 @@
 @* The picked place: its name, the play piece it holds, and its notes under them, filling the panel. *@
 
 <Inspector Class="workspace-inspector--wide workspace-inspector--place">
-  <DetailHeader Icon="@SketchPlaces.Icon(Place.Shape)" Label="Place">
-    <span class="detail-header-badges">
-      <Button Variant="icon" Icon="trash-2" Title="Delete this place" Writes OnClick="() => OnDelete.InvokeAsync()" />
-    </span>
-  </DetailHeader>
-  <Field Label="Name">
-    <input class="field-input" value="@Place.Name" @onchange="Renamed" />
-  </Field>
-  <Field Label="Holds">
-    <Select Slim="false" Options="Pieces" Placeholder="Nothing" Value="@(Place.Holds ?? "")" ValueChanged="Held" />
-  </Field>
-  @if (!string.IsNullOrEmpty(Note))
-  {
-    <p class="field-error">@Note</p>
-  }
+  <DetailHeader Icon="@SketchPlaces.Icon(Place.Shape)" Label="Place" />
+  @* The notes fill the panel under the place's own fields, so its Delete closes those fields rather than the
+     panel's foot, where the notes' composer stands. *@
+  <Section>
+    <div class="field-grid">
+      <Field Label="Name" Half>
+        <input class="field-input" value="@Place.Name" @onchange="Renamed" />
+      </Field>
+      <Field Label="Holds" Half>
+        <Select Slim="false" Options="Pieces" Placeholder="Nothing" Value="@(Place.Holds ?? "")" ValueChanged="Held" />
+      </Field>
+    </div>
+    @if (!string.IsNullOrEmpty(Note))
+    {
+      <p class="field-error">@Note</p>
+    }
+    <InspectorDelete Title="Delete this place" OnClick="() => OnDelete.InvokeAsync()" />
+  </Section>
   @ChildContent
 </Inspector>
 

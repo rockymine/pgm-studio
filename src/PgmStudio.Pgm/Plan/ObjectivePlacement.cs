@@ -20,7 +20,7 @@ public readonly record struct GoalKeepOut(string Kind, string Name, BlockRect Fr
 /// <para>The rule is stated once and asked twice, because the two gates know different things. At
 /// <b>compile</b> the land is the plan's pieces and the rooms are the frames the compiler will stamp, which
 /// catches the fault before a build is spent. At <b>export</b> the land is the ground the rasterizer actually
-/// produced, which is the only place a subtract, a relief or a sketch edited after its compile can be seen —
+/// produced, which is the only place a subtract, a modifier or a sketch edited after its compile can be seen —
 /// a plan that passed can still export a goal over a hole somebody carved afterwards. Neither gate is
 /// redundant and neither may be the only one.</para>
 ///

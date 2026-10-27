@@ -3,9 +3,9 @@
 
 <PageTitle>Glossary · PGM Studio</PageTitle>
 
-@* Every word the studio uses, defined once (GET /api/glossary): alphabetical, filtered by what a reader types
-   against the word, the other names it is called and its definition. Each entry has an anchor, so a word links
-   as /glossary#hub; the filter lives in the address as ?q=. *@
+@* Every word the studio uses, defined once (GET /api/glossary). Browsed A to Z under a sticky letter bar, with every
+   retired name filed in its own place as a "see" entry; a search ranks the words whose name matches above those
+   whose meaning does. Each entry is an anchor (/glossary#hub), and a link to one always lands on it. *@
 
 <StudioShell>
   <Bar>
@@ -16,59 +16,115 @@
   <ChildContent>
     <Workspace>
       <ContentColumn MaxWidth="820">
+        <div id="glossary-top"></div>
         <PageHeading Title="Glossary">
           <Lead>The words the rules, the screens and the documents use, and what each one means.</Lead>
         </PageHeading>
         @if (terms is null)
         {
-          <div class="list-empty">Loading…</div>
+          <StatusLine />
         }
         else if (terms.Count == 0)
         {
-          <div class="list-empty">The studio did not answer with its glossary. Reload to ask again.</div>
+          <StatusLine>Couldn't load the glossary. Reload the page to try again.</StatusLine>
         }
         else
         {
-          <div class="glossary-search">
-            <input class="field-input" type="search" placeholder="Search a word or its meaning" aria-label="Search the glossary"
-                   value="@Query" @oninput="args => Go(args.Value?.ToString())" />
-            <span class="rules-count" role="status">@CountText</span>
+          <div class="glossary-tools">
+            <div class="glossary-search">
+              <input class="field-input" type="search" placeholder="Search the glossary" aria-label="Search the glossary"
+                     value="@Query" @oninput="args => Go(args.Value?.ToString())" />
+              <span class="rules-count" role="status">@CountText</span>
+            </div>
+            @if (!Searching)
+            {
+              <nav class="glossary-az" aria-label="Jump to a letter">
+                @foreach (var letter in Letters)
+                {
+                  @if (Filed.ContainsKey(letter))
+                  {
+                    <a class="glossary-az-letter" href="@($"glossary#letter-{letter}")">@letter</a>
+                  }
+                  else
+                  {
+                    <span class="glossary-az-letter glossary-az-letter--empty" aria-disabled="true">@letter</span>
+                  }
+                }
+              </nav>
+            }
           </div>
-          @if (Shown.Count == 0)
+
+          @if (Searching)
           {
-            <p class="rules-empty">No word matches “@Query”.</p>
+            @if (Ranked.Count == 0)
+            {
+              <EmptyState>No word matches "@Query". Try a shorter word.</EmptyState>
+            }
+            @foreach (var entry in Ranked) { @Entry(entry) }
           }
-          @foreach (var letter in Shown.GroupBy(term => Initial(term.Term)))
+          else
           {
-            <section class="glossary-letter" aria-label="@letter.Key">
-              <h2 class="section-title glossary-letter-head">@letter.Key</h2>
-              @foreach (var term in letter)
-              {
-                var slug = Slug(term.Term);
-                <article class="glossary-term@(slug == Target ? " glossary-term--target" : null)" id="@slug">
-                  <h3 class="glossary-term-name"><a href="glossary#@slug" title="Link to this word">@term.Term</a></h3>
-                  <p class="glossary-term-def">@term.Definition</p>
-                  @if (term.AlsoCalled.Count > 0)
-                  {
-                    <p class="glossary-term-meta"><span>Also called</span> @string.Join(", ", term.AlsoCalled)</p>
-                  }
-                  @if (term.Related.Count > 0)
-                  {
-                    <p class="glossary-term-meta">
-                      <span>See also</span>
-                      @foreach (var related in term.Related)
-                      {
-                        @if (Known(related)) { <a class="glossary-related" href="glossary#@Slug(related)">@related</a> }
-                        else { <span class="glossary-related">@related</span> }
-                      }
-                    </p>
-                  }
-                </article>
-              }
-            </section>
+            @foreach (var (letter, entries) in Filed)
+            {
+              <section class="glossary-letter" id="@($"letter-{letter}")" aria-label="@letter">
+                <h2 class="section-title glossary-letter-head">@letter</h2>
+                @foreach (var entry in entries) { @Entry(entry) }
+              </section>
+            }
+            <a class="glossary-top" href="glossary#glossary-top">Back to top</a>
           }
         }
       </ContentColumn>
     </Workspace>
   </ChildContent>
 </StudioShell>
+
+@code {
+    /// <summary>One entry: a term with its definition, or a retired name pointing at the term that replaced it.</summary>
+    private RenderFragment Entry(Filing entry) => __builder =>
+    {
+        if (entry.See is { } term)
+        {
+            <p class="glossary-see">
+              <span class="glossary-see-name">@Marked(entry.Name)</span>, see <a href="@($"glossary#{Slug(term.Term)}")">@term.Term</a>
+            </p>
+            return;
+        }
+        var word = entry.Term!;
+        var slug = Slug(word.Term);
+        <article class="glossary-term@(slug == Target ? " glossary-term--target" : null)" id="@slug" tabindex="-1">
+          <h3 class="glossary-term-name"><a href="@($"glossary#{slug}")">@Marked(word.Term)</a></h3>
+          <p class="glossary-term-def">@Marked(word.Definition)</p>
+          @if (word.AlsoCalled.Count > 0)
+          {
+            <p class="glossary-term-meta"><span>Also called</span> @Marked(string.Join(", ", word.AlsoCalled))</p>
+          }
+          @if (word.Related.Count > 0)
+          {
+            <p class="glossary-term-meta">
+              <span>See also</span>
+              @foreach (var related in word.Related)
+              {
+                @if (Known(related)) { <a class="glossary-related" href="@($"glossary#{Slug(related)}")">@related</a> }
+                else { <span class="glossary-related">@related</span> }
+              }
+            </p>
+          }
+        </article>
+    };
+
+    /// <summary>A text with every place the search matches it marked.</summary>
+    private RenderFragment Marked(string text) => __builder =>
+    {
+        var needle = Query?.Trim();
+        if (string.IsNullOrEmpty(needle)) { @text return; }
+        var at = 0;
+        while (at < text.Length)
+        {
+            var found = text.IndexOf(needle, at, StringComparison.OrdinalIgnoreCase);
+            if (found < 0) { @text[at..] break; }
+            @text[at..found]<mark class="glossary-match">@text.Substring(found, needle.Length)</mark>
+            at = found + needle.Length;
+        }
+    };
+}

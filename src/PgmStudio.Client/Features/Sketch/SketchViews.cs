@@ -56,7 +56,7 @@ public sealed class SketchViews(
             Changed?.Invoke();
         }
         try { Gallery = await http.GetFromJsonAsync<MapViewsDto>($"api/map/{slug}/views"); }
-        catch { Error = "Couldn't load views. Check your connection and try again."; }
+        catch { Error = "Couldn't load the views. Reload the page to try again."; }
         await setViews(JsonSerializer.Serialize((Gallery?.Views ?? []).Select(view => new
         {
             id = view.Id, kept = view.Kept, fromX = view.FromX, fromZ = view.FromZ, lookX = view.LookX, lookZ = view.LookZ,
@@ -122,7 +122,7 @@ public sealed class SketchViews(
     /// the inspector says why.</summary>
     public void BoardUnavailable(string reason)
     {
-        Note = reason is { Length: > 0 } ? $"Couldn't draw the map: {reason}" : "Couldn't draw the map.";
+        Note = reason is { Length: > 0 } ? $"Couldn't draw the map. {reason}" : "Couldn't draw the map. Try again.";
         Changed?.Invoke();
     }
 
@@ -166,13 +166,13 @@ public sealed class SketchViews(
             if (!answer.IsSuccessStatusCode)
             {
                 var refusal = await answer.Content.ReadFromJsonAsync<RefusalDto>();
-                Note = refusal?.Message is { Length: > 0 } why ? why : "Couldn't save the view.";
+                Note = refusal?.Message is { Length: > 0 } why ? why : "Couldn't save the view. Try again.";
                 return false;
             }
         }
         catch
         {
-            Note = "Couldn't save the view. Check your connection and try again.";
+            Note = "Couldn't save the view. Try again.";
             return false;
         }
         return true;
@@ -185,13 +185,13 @@ public sealed class SketchViews(
             using var answer = await http.DeleteAsync($"api/map/{slug}/views/{Uri.EscapeDataString(view.Id)}");
             if (!answer.IsSuccessStatusCode)
             {
-                Refusal = $"Couldn't remove the view: {await ServerRefusal.SentenceAsync(answer)}";
+                Refusal = $"Couldn't delete the view. {await ServerRefusal.SentenceAsync(answer)}";
                 return;
             }
         }
         catch
         {
-            Refusal = "Couldn't remove the view. Check your connection and try again.";
+            Refusal = "Couldn't delete the view. Try again.";
             return;
         }
         Refusal = null;
@@ -211,13 +211,13 @@ public sealed class SketchViews(
                 : await http.PostAsJsonAsync($"api/map/{slug}/views", request);
             if (!answer.IsSuccessStatusCode)
             {
-                Refusal = $"Couldn't set the map picture: {await ServerRefusal.SentenceAsync(answer)}";
+                Refusal = $"Couldn't set the map picture. {await ServerRefusal.SentenceAsync(answer)}";
                 return;
             }
         }
         catch
         {
-            Refusal = "Couldn't set the map picture. Check your connection and try again.";
+            Refusal = "Couldn't set the map picture. Try again.";
             return;
         }
         Refusal = null;

@@ -15,7 +15,7 @@ public static class SketchRules
     /// <summary>The extent, in columns, that <see cref="BoardTooLarge"/> refuses past.</summary>
     public const int MaxBoardColumns = 4_000_000;
 
-    /// <summary>A layout names a shape kind, mirror mode, landform, palette, shape or group that does not
+    /// <summary>A layout names a shape kind, mirror mode, palette, shape or group that does not
     /// exist.</summary>
     /// <remarks>Either change the field the finding names to a name that exists, or add the palette to
     /// <c>themes</c>.</remarks>
@@ -49,7 +49,7 @@ public static class SketchRules
     public const string NothingDrawn = "SK7";
 
     /// <summary>A sketch has no palettes, no terraform and no props.</summary>
-    /// <remarks>Either add a palette to <c>themes</c>, or add an entry for a group to <c>relief</c>, or add a prop
+    /// <remarks>Either add a palette to <c>themes</c>, or add a modifier to <c>modifiers</c>, or add a prop
     /// to <c>dressing.props</c>.</remarks>
     [Rule(RuleCategory.Unfinished, RuleConcern.Terrain, RuleConcern.World)]
     public const string NoFinish = "SK8";
@@ -92,13 +92,6 @@ public static class SketchRules
     /// blocks.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain, RuleConcern.World)]
     public const string MassUnreached = "SK11";
-
-    /// <summary>An override add states a top, and its group states terraform that sets the top of the same
-    /// columns.</summary>
-    /// <remarks>Either set the <c>relief_scope</c> of the shape to <c>hold</c> or <c>exclude</c>, or delete the
-    /// group from <c>relief</c>.</remarks>
-    [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
-    public const string ReliefOverStatedTop = "SK14";
 
     /// <summary>An override add overlaps a taller override add that covers more columns and states another
     /// palette.</summary>

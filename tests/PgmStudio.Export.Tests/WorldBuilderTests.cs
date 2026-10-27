@@ -61,12 +61,12 @@ public sealed class WorldBuilderTests
         await Assert.That(built.World.GetBlock(-10, 1, 10)).IsEqualTo((Blocks.Wool, 14));   // red = 14
     }
 
-    // ── the built-in shell ────────────────────────────────────────────────────────────────────────
+    // ── the bedrock box ────────────────────────────────────────────────────────────────────────
     private static string WithRoomStyles(string wool, string spawn) =>
         Layout.TrimEnd()[..^1] + $",\"roomStyles\":{{\"wool\":{wool},\"spawn\":{spawn}}}}}";
 
     private static List<Finding> ShellComplaints(BuiltWorld built) =>
-        [.. built.Declines.Where(finding => finding.Rule == RoomFrameRules.BuiltInShell)];
+        [.. built.Declines.Where(finding => finding.Rule == RoomFrameRules.BedrockBox)];
 
     [Test]
     public async Task A_board_that_binds_no_room_style_is_told_so_once_for_each_kind_of_room()
@@ -571,7 +571,7 @@ public sealed class WorldBuilderTests
             Meta = new MetaIntent { Name = "Test", Authors = [new AuthorIntent { Name = "alice" }] },
             Structures = new StructureIntent
             {
-                Walls = [new WallStructure(-10, 5, 15, 5, 8, new StampId("wall", "w0", 0))],
+                Walls = [new WallStructure([[-10, 5], [15, 5]], 8, new StampId("wall", "w0", 0))],
             },
         });
     }
@@ -636,5 +636,70 @@ public sealed class WorldBuilderTests
         // One column past the max-exclusive bound on either axis belongs to nothing the room stamped.
         foreach (var (x, z) in new[] { (-5, 14), (-6, 15), (-5, 15) })
             await Assert.That((x, z, built.Provenance.OwnerAt(x, z)?.Kind)).IsNotEqualTo((x, z, "wool"));
+    }
+
+    // ── a stamp switched off is not stamped ─────────────────────────────────────────────────────────────
+
+    private static int Count(VoxelWorld world, int block, int minY = 0, int maxY = 60)
+    {
+        var count = 0;
+        for (var x = -60; x <= 60; x++)
+        for (var z = -60; z <= 60; z++)
+        for (var y = minY; y <= maxY; y++)
+            if (world.GetBlock(x, y, z).Id == block) count++;
+        return count;
+    }
+
+    [Test]
+    public async Task A_build_area_with_its_outline_off_is_not_outlined()
+    {
+        var intent = SampleIntent();
+        var built = WorldBuilder.Build(Layout, intent with
+        {
+            Build = new BuildIntent { MaxHeight = 40, Areas = [new PieceArea(50, 0, 58, 8, StampsOff: [StampSwitches.Outline])] },
+        });
+
+        await Assert.That(built.World.GetBlock(48, 1, 0).Id).IsEqualTo(Blocks.Air);
+    }
+
+    [Test]
+    public async Task A_wall_with_its_bedrock_off_stands_nowhere_and_claims_nothing()
+    {
+        var walled = WallOnly();
+        var unwalled = WorldBuilder.Build(
+            """
+            {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},"layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":-40,"min_z":-40,"max_x":40,"max_z":40,"base_height":5}],"groups":[]} }]}
+            """,
+            new MapIntent
+            {
+                Teams = [new TeamDef { Id = "red", Color = "red" }],
+                Observer = new ObserverIntent { Point = new Pt(0, 20, 0), Yaw = 0 },
+                Meta = new MetaIntent { Name = "Test", Authors = [new AuthorIntent { Name = "alice" }] },
+                Structures = new StructureIntent
+                {
+                    Walls = [new WallStructure([[-10, 5], [15, 5]], 8, new StampId("wall", "w0", 0), StampsOff: [StampSwitches.Wall])],
+                },
+            });
+
+        await Assert.That(walled.World.GetBlock(14, 6, 5).Id).IsEqualTo(Blocks.Bedrock);
+        await Assert.That(unwalled.World.GetBlock(14, 6, 5).Id).IsNotEqualTo(Blocks.Bedrock);
+        await Assert.That(unwalled.Provenance.OwnerAt(14, 5)?.Kind).IsNotEqualTo("wall");
+    }
+
+    [Test]
+    public async Task A_wool_room_with_its_loot_and_marker_off_stamps_neither()
+    {
+        var intent = SampleIntent();
+        var stamped = WorldBuilder.Build(Layout, intent);
+        var bare = WorldBuilder.Build(Layout, intent with
+        {
+            Wools = [.. intent.Wools!.Select(wool => wool with { StampsOff = [StampSwitches.Loot, StampSwitches.Marker] })],
+        });
+        var ceiling = stamped.ResolvedIntent.Build!.MaxHeight!.Value + 1;
+
+        await Assert.That(Count(stamped.World, Blocks.Chest)).IsGreaterThan(0);
+        await Assert.That(Count(bare.World, Blocks.Chest)).IsEqualTo(0);
+        await Assert.That(Count(stamped.World, Blocks.Wool, ceiling, 255)).IsGreaterThan(0);
+        await Assert.That(Count(bare.World, Blocks.Wool, ceiling, 255)).IsEqualTo(0);
     }
 }

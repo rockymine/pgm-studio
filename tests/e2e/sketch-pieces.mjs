@@ -4,8 +4,9 @@
  * The board is a fresh sketch under `rot_180` whose intent states no teams — the map a person starts with. A spawn
  * and a wool room dragged out on it are stored with their images; a wall dragged on the canvas is stored and drawn
  * where it was dropped; a room is drawn with the building it is raised as, and its region and its building resize
- * from an edge, the image following; and only the authored image of an orbit is picked, the image it draws moving
- * with it.
+ * from an edge, the image following; a control point clicked down is laid round from its rail; a wall bends at a
+ * corner a shift-press adds; and only the
+ * authored image of an orbit is picked, the image it draws moving with it.
  */
 
 import { openBrowser, newPage, clearFaults, Checks, api, worldAimer, BASE } from "./lib/harness.mjs";
@@ -23,7 +24,7 @@ await api(`/map/${slug}/sketch`, {
     ], groups: [] } }],
   },
 });
-const { id: wallId } = await api(`/map/${slug}/intent/pieces`, { method: "POST", body: { kind: "wall", ends: [-40, -10, -40, 10] } });
+const { id: wallId } = await api(`/map/${slug}/intent/pieces`, { method: "POST", body: { kind: "wall", points: [[-40, -10], [-40, 10]] } });
 
 const pieces = () => api(`/map/${slug}/intent/pieces`);
 const byKind = async (kind) => (await pieces()).filter(piece => piece.kind === kind);
@@ -63,7 +64,7 @@ try {
   };
 
   checks.section("a spawn and a wool room are placed on a board stating no teams");
-  await pick("Pieces", "Spawn piece");
+  await pick("Pieces", "Spawn room");
   await drag({ x: -55, z: -6 }, { x: -45, z: 6 });
   const spawns = await byKind("spawn");
   checks.add("the spawn is stored with its image", spawns.length === 2, JSON.stringify(spawns.map(p => p.id)));
@@ -188,16 +189,16 @@ try {
   const centre = at((held.minX + held.maxX) / 2, (held.minZ + held.maxZ) / 2);
   await page.mouse.click(centre.x, centre.y);
   await page.waitForTimeout(300);
-  checks.add("a press on the room's marker picks the room", /spawn region/i.test(await pickedTitle()), await pickedTitle());
+  checks.add("a press on the room's marker picks the room", /spawn room/i.test(await pickedTitle()), await pickedTitle());
   const named = await page.$$eval(".svg-area svg text", (els, id) => els.some(el => el.textContent === id), room.id);
   checks.add("the picked room is named by its id above it", named);
   const height = page.locator(".workspace-inspector input[type=number]").first();
-  checks.add("a room stating no height shows none, and says it stands on the ground",
-    (await height.inputValue()) === "" && /stands on the ground under it/i.test(await page.locator(".workspace-inspector").innerText()),
+  checks.add("a room stating no height reads Auto, and says it stands on the ground the modifiers leave",
+    (await height.inputValue()) === "" && /Auto: stands level on the ground the modifiers leave under it/i.test(await page.locator(".workspace-inspector").innerText()),
     await height.inputValue());
   await page.mouse.click(centre.x, centre.y);
   await page.waitForTimeout(300);
-  checks.add("and the press after it picks the marker", /spawn point|marker/i.test(await pickedTitle()), await pickedTitle());
+  checks.add("and the press after it picks the marker", /spawn(?! room)|marker/i.test(await pickedTitle()), await pickedTitle());
   await page.keyboard.press("Escape");
   await page.mouse.click(centre.x, centre.y);
   await page.waitForTimeout(300);
@@ -207,6 +208,58 @@ try {
   const stored = (await api(`/map/${slug}/sketch`)).layers[0].layout.shapes.find(shape => shape.id === room.id);
   checks.add("a height given to it is stored with hold", stored?.base_height === 14 && stored?.relief_scope === "hold"
     && stored?.height_authored === true, JSON.stringify({ h: stored?.base_height, scope: stored?.relief_scope }));
+
+  checks.section("a control point is put down with a click and laid round from its rail");
+  await page.keyboard.press("Escape"); await page.keyboard.press("Escape");
+  await pick("Markers", "Capture point");
+  const hill = at(20.5, 20.5);
+  await page.mouse.click(hill.x, hill.y);
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(600);
+  const points = await byKind("controlPoint");
+  checks.add("the point is stored with its image, a 7-block square", points.length === 2
+    && points.every(point => point.maxX - point.minX === 7 && point.shape === "square"), JSON.stringify(points));
+  checks.add("and the rail names it", /capture point/i.test(await pickedTitle()), await pickedTitle());
+  await page.locator(".workspace-inspector button:has-text('disc')").first().click();
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(600);
+  const round = await byKind("controlPoint");
+  checks.add("disc on the rail lays the point and its image round", round.every(point => point.shape === "disc"),
+    JSON.stringify(round.map(point => point.shape)));
+
+  checks.section("a wall gains a corner with a shift-press on its leg, and the corner drags out into a bend");
+  await page.keyboard.press("Escape"); await page.keyboard.press("Escape");
+  const straight = (await byKind("wall")).find(piece => !piece.carried);
+  const [[ax, az], [bx, bz]] = straight.line;
+  const onLeg = (t) => at(ax + (bx - ax) * t, az + (bz - az) * t);
+  const pickAt = onLeg(0.25);
+  await page.mouse.click(pickAt.x, pickAt.y);
+  await page.waitForTimeout(300);
+  const addAt = onLeg(0.5);
+  await page.keyboard.down("Shift");
+  await page.mouse.click(addAt.x, addAt.y);
+  await page.keyboard.up("Shift");
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(600);
+  const cornered = await byKind("wall");
+  checks.add("the wall and its image are stored with a third corner", cornered.every(piece => piece.line.length === 3),
+    JSON.stringify(cornered.map(piece => piece.line)));
+  const bend = cornered.find(piece => !piece.carried).line[1];
+  await drag({ x: bend[0], z: bend[1] }, { x: bend[0] + 6, z: bend[1] });
+  const bent = (await byKind("wall")).find(piece => !piece.carried);
+  checks.add("dragging the new corner bends the wall there", bent.line[1][0] === bend[0] + 6 && bent.line.length === 3,
+    JSON.stringify(bent.line));
+
+  checks.section("a picked wall's rail switches its bedrock off");
+  const stampRow = page.locator(".workspace-inspector label.check-row", { hasText: "Its bedrock" }).first();
+  checks.add("the rail offers the wall's one stamp, on", (await stampRow.count()) === 1
+    && await stampRow.locator("input").isChecked());
+  await stampRow.locator("input").click();
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(600);
+  const switched = (await api(`/map/${slug}/intent`)).structures.walls;
+  checks.add("and switching it off writes it off on the wall and its image",
+    switched.every(wall => JSON.stringify(wall.stampsOff) === '["wall"]'), JSON.stringify(switched.map(wall => wall.stampsOff)));
 
   checks.section("Layout picks the pieces and Ground the ground");
   await page.keyboard.press("Escape"); await page.keyboard.press("Escape");
@@ -227,14 +280,14 @@ try {
   checks.add("the panel lists the spawn room by its id", (await row.count()) === 1);
   await row.click();
   await page.waitForTimeout(300);
-  checks.add("choosing it picks the room", /spawn region/i.test(await pickedTitle()), await pickedTitle());
+  checks.add("choosing it picks the room", /spawn room/i.test(await pickedTitle()), await pickedTitle());
   checks.add("and its row is lit", /list-row--selected/.test(await row.getAttribute("class") ?? ""));
   const imageRow = rail.locator(".list-row.list-row--muted").first();
   checks.add("an orbit's image is listed and muted", (await imageRow.count()) === 1);
   // The row takes no pointer, so the click is sent to it directly: what is checked is that the list refuses it.
   await imageRow.dispatchEvent("click");
   await page.waitForTimeout(300);
-  checks.add("and choosing it leaves the pick where it was", /spawn region/i.test(await pickedTitle()), await pickedTitle());
+  checks.add("and choosing it leaves the pick where it was", /spawn room/i.test(await pickedTitle()), await pickedTitle());
   await page.keyboard.press("Escape");
   await page.click(".flow-step >> text=Ground");
   await page.locator(".flow-step--active", { hasText: "Ground" }).waitFor({ timeout: 30000 });

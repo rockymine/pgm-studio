@@ -16,7 +16,7 @@ recipe by what it builds, and a biome by the ground it colours. A house's row is
 `HouseStyle`; the surface calls it what the thing is.
 
 Three routes, and the rail carries the nine kinds. `/library` is the chooser — one card per kind, grouped as
-*Terrain* (styles, themes, biomes), *Buildings* (houses, roofs, storeys, porches) and *Nature* (trees,
+*Ground* (styles, themes, biomes), *Buildings* (houses, roofs, storeys, porches) and *Nature* (trees,
 boulders), each over the pictures of the newest three entries it holds and its count. `/library/{kind}` browses that kind: a strip carrying a name search,
 whatever else the kind filters by, and **New**, over a grid of cards. `/library/{kind}/{id}`, or
 `/library/{kind}/new`, opens one entry on a page of its own.
@@ -176,29 +176,38 @@ and the one to read rather than guessing a field name off a kind's.
 
 **`layered` — a band stack read along a stated `axis`.** Grass over two dirt; a wall's banded riser. Each band
 states its thickness, and the stack states what it does where they run out: where the bucket is the stack's
-whole space it `repeat`s and a band deeper than declared never falls through to nothing. The other ending,
-`handOver`, claims nothing past the last band and leaves whatever is under the stack showing — which is what a
-band *inside* a larger space wants, and is why the ending is stated rather than assumed; `beyond` says what
-shows there.
+whole space it `hold`s the last band and a band deeper than declared never falls through to nothing. The
+ending `handOver` claims nothing past the last band and leaves whatever is under the stack showing — which is
+what a band *inside* a larger space wants, and is why the ending is stated rather than assumed; `beyond` says
+what shows there. The ending `cycle` reads the bands again from the first, so a short run of beds covers any
+distance (`terrain-painting.md`, §3.1).
 
 The axis is what the thickness is measured in. `depth` (the default) is courses down from the top of the
 bucket; `inward` is steps in from the landmass's void-facing edge, so the bands are concentric rings; `height`
 is courses up from the stack's own `from` in world Y, so the banding is pinned to the world rather than to the
 column — unless it states `follow` (0–100%), which carries the bands with the ground averaged `reach` cells either
-side, so strata rise and fall with the land (TP26); `slope` is **degrees of inclination**, which makes the stack an angle mask — one band for the flat,
+side, so strata rise and fall with the land (TP26), and which `dip` (`[east, south]` lift per block) tilts and `fold` (blocks of noise lift) bends; `slope` is **degrees of inclination**, which makes the stack an angle mask — one band for the flat,
 another for the shoulder, another for the face of the same hill.
 
 ```json POST /api/terrain/material-preview
-{ "kind": "layered", "stack": { "ending": "repeat", "bands": [
+{ "kind": "layered", "stack": { "ending": "hold", "bands": [
   { "material": { "kind": "solid", "id": 2 }, "thickness": 1 },
   { "material": { "kind": "solid", "id": 3 }, "thickness": 2 } ] } }
 ```
 
 ```json POST /api/terrain/material-preview
-{ "kind": "layered", "axis": "slope", "stack": { "ending": "repeat", "bands": [
+{ "kind": "layered", "axis": "slope", "stack": { "ending": "hold", "bands": [
   { "material": { "kind": "solid", "id": 2 }, "thickness": 20 },
   { "material": { "kind": "solid", "id": 3, "data": 1 }, "thickness": 15 },
   { "material": { "kind": "solid", "id": 4 }, "thickness": 55 } ] } }
+```
+
+Strata that recur — three courses of sandstone then six of smooth sandstone, for as high as the face goes:
+
+```json POST /api/terrain/material-preview
+{ "kind": "layered", "axis": "height", "stack": { "ending": "cycle", "bands": [
+  { "material": { "kind": "solid", "id": 24, "data": 0 }, "thickness": 3 },
+  { "material": { "kind": "solid", "id": 24, "data": 2 }, "thickness": 6 } ] } }
 ```
 
 **`teamTint` — the block tinted by the team that owns the cell**, on the same 0–15 damage scale wool uses, so
@@ -346,7 +355,11 @@ them along it the way it lips a room (TP25).
 They **fall through** in that order: an unpainted rim falls to the surface, an unpainted surface or wall to the
 fill, and the fill to nothing — which is why the fill alone cannot be switched off. Only the rim and the
 surface carry a `depth`. Both, and the wall, may be disabled outright, and disabled is not the same as unbound:
-a theme that binds no rim keeps the built-in one, while a theme whose rim is *off* paints no rim at all.
+a theme that binds no rim keeps the built-in one, while a theme whose rim is *off* paints no rim at all. The
+surface may instead state `soil`, its depth by slope — `[{"below": 25, "depth": 3}, …]`, the first entry the
+column's slope is under giving the depth and none steeper than the last — which the editor's *On steep ground*
+row, set to *Thins out*, fills with three, two and one course under 25°, 38° and 55° (`docs/world-export/terrain-painting.md`, TP27).
+It is stored on the surface's `theme_bucket` row and travels on `ThemeBucketDto.soil`.
 
 **The rim and the surface take a band, and the wall and the fill take a material.** A band is
 `{"material": …, "depth": N}`, because those two are the buckets with a depth to state; the other two are a
@@ -371,7 +384,7 @@ a sketch stores in its `themes` registry, and the form the export consumes:
   "rimEdges": "drop",
   "wallOnTerrainFaces": true,
   "rim":     { "material": { "kind": "solid", "id": 155 }, "depth": 1, "enabled": true },
-  "surface": { "material": { "kind": "layered", "stack": { "ending": "repeat", "bands": [
+  "surface": { "material": { "kind": "layered", "stack": { "ending": "hold", "bands": [
                  { "material": { "kind": "solid", "id": 2 }, "thickness": 1 },
                  { "material": { "kind": "solid", "id": 3 }, "thickness": 2 } ] } },
                "depth": 3, "enabled": true },
@@ -404,7 +417,7 @@ The preview is a sample plateau painted and cut open, plus a top-down swatch per
 `GET /themes/{id}/json` assembles the row into the painter's own theme JSON — the form the export consumes and
 a map snapshots — and `POST /themes/import` runs the other way, lifting a whole theme JSON into the library: a bucket laid in one block
 holds the block, and a bucket laid in a pattern binds the library's own copy of it, or a new pattern named for
-what it contains where the library holds none. That import is also what the editor's **Start from JSON**
+what it contains where the library holds none. That import is also what the editor's **JSON import**
 offers while a theme is being started: a whole painter theme pasted in — what an agent writes over the API,
 what a board saves out — lands as an editable row rather than a stored blob. It creates a row, so it is
 offered on a new theme and not on one that already exists.
@@ -424,8 +437,10 @@ way it takes its form and its pitch.
 
 A **storey** is one room: the `clear` a player stands in — never under three, because a room has to be stood up
 in — the floor's border width and inlay inset, its windows, and courses for the `wall` (which does stack) plus
-`post`, `ceiling`, `field`, `border` and `inlay`. A house stacks storeys in order, so a shop under two flats is
-three bindings of two presets.
+`post`, `head`, `deck`, `field`, `border` and `inlay`. The `head` is one course laid round the walls over the
+clear, such as a laid log marking where the storey ends; a storey naming one is drawn a course taller, since the
+topmost storey spends a course of its own on it (`docs/world-export/structures.md` §7.6). A house stacks storeys in
+order, so a shop under two flats is three bindings of two presets.
 
 A **porch** is the strip of footprint the walls give up and what stands on it: depth, inset, edge, roof and a
 rail block. It carries no courses at all — its deck is the house's floor, and its canopy is the house roof's
@@ -575,8 +590,8 @@ and a field with no control is exactly the one a hand-written list forgets. The 
 a field added later is added to it rather than around it.
 
 A course names its part, its ordinal (0 being the course nearest that part's own base), what it is laid in — a
-`block`, or a pattern's `styleId` — and how many courses it runs. `post`, `verge` and `canopy` take one material rather than a stack — a post
-is a post all the way up, and a canopy is one block rim and all — so only their first course is read. A part
+`block`, or a pattern's `styleId` — and how many courses it runs. `post`, `head`, `verge` and `canopy` take one material rather than a stack — a post
+is a post all the way up, a head course is one course round the walls, and a canopy is one block rim and all — so only their first course is read. A part
 with no courses keeps the built-in finish, exactly as an unbound theme bucket does, which is what makes a room
 style that only changes its roof worth storing.
 
@@ -627,7 +642,7 @@ the stamper takes, a sketch's Palette phase stores, and a placed building carrie
 ```json POST /api/room-styles/preview-snapshot
 {
   "foundation": {
-    "plate": { "extent": 1, "stack": { "ending": "repeat", "bands": [
+    "plate": { "extent": 1, "stack": { "ending": "hold", "bands": [
         { "material": { "kind": "solid", "id": 24, "data": 0 }, "thickness": 1 } ] } },
     "surface": { "field": null, "border": null, "borderWidth": 1,
                  "inlay": null, "inlayInset": 2, "isPlain": true },
@@ -642,7 +657,7 @@ the stamper takes, a sketch's Palette phase stores, and a placed building carrie
     "gableWindows": { "form": "none", "block": 102, "data": 0,
                       "hostBlock": -1, "hostData": 0,
                       "sill": 2, "width": 2, "height": 2, "spacing": 3 } },
-  "wall": { "extent": 7, "stack": { "ending": "repeat", "bands": [
+  "wall": { "extent": 7, "stack": { "ending": "hold", "bands": [
       { "material": { "kind": "solid", "id": 121, "data": 0 }, "thickness": 2 },
       { "material": { "kind": "solid", "id": 24,  "data": 0 }, "thickness": 5 } ] } },
   "post": { "kind": "solid", "id": 24, "data": 2 },
@@ -661,12 +676,13 @@ the stamper takes, a sketch's Palette phase stores, and a placed building carrie
 Read it against the levels above and the whole model is visible in one object. **A part the building has more
 than one statement about is an object of its own**: `foundation` is what the building stands on — its plate,
 the footing round it and how the plate's top course is zoned; `roof` is everything above the eave, its three
-materials and the seven numbers that shape them; and `doorway` is the way in, its size, what fills it and the
-beam over it. None of the three appears as a field beside the rest. Which wall the doorway is cut through is
+materials and the seven numbers that shape them; and `doorway` is the way in, its size, what fills it — open,
+cobweb, glass, panes, or an oak, spruce or dark oak door, the choices `GET /api/room-styles/doors` serves — and
+the beam over it. None of the three appears as a field beside the rest. Which wall the doorway is cut through is
 **not** one of them: that is `front`, the wall the whole building fronts on and the one a shed roof falls
 toward, which is why it is the style's own. `wall` and the foundation's `plate` are **band stacks** — a
 material and how many courses it runs, counted from the part's own base, with an `ending` saying what happens
-past the last band — while `post` and the roof's `body`, `verge` and `gable` are **single materials**, which
+past the last band — while `post`, `head` and the roof's `body`, `verge` and `gable` are **single materials**, which
 is why the two end-stone-and-sandstone courses are a list and the brick roof is not. `footing: null` is the
 absence of a part, not an empty one — the course a building would otherwise stand proud of the ground on, which
 no style is saved with. `storeys` is empty because the shell is one room rather than a stack, and `porch` is
@@ -691,9 +707,9 @@ seconds, and a failure worded into that gap accuses the library of losing a docu
 handing over.
 
 **The outline is the document, not a menu.** Each row carries what its piece states without being opened — a
-part names its block or pattern or keeps the *default* finish, a stack says how many courses it runs, a theme
-bucket names its block or pattern or says it is *off*. Every slot is filled through one control, `SlotSelect`:
-one list offering nothing, *A single block* or a saved pattern by kind, with the block picker under it once a
+part names its block or pattern or keeps the *Default* look, a stack says how many courses it runs, a theme
+bucket names its block or pattern, says *Stone* while unbound, or says it is *Off*. Every slot is filled through one control, `SlotSelect`:
+one list offering the unset value (*Default look* unless the slot names its own), *Single block* or a saved pattern by kind, with the block picker under it once a
 block is chosen and, for a log, whether it is laid along the run. A material's outline is its own nest: a voronoi's bands, a
 stack's layers and a field's stops are each a row, indented by how deep they sit, so a five-entry pattern is
 five rows rather than five boxes inside one another.

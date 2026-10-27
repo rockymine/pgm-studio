@@ -17,23 +17,21 @@ namespace PgmStudio.Api.Endpoints;
 // which stack they are on and which ground they share. Every route answers the drawing's own types, which is
 // what puts a shape's 28 fields, a layer's stacking words and a group's orbit flag in the published schema.
 //
-// Ids are the address. A shape id is unique across the whole document — the relief is keyed by group id, a
-// group lists shape ids, and a placement names one — so a shape answers to its id wherever it is drawn, and a
-// group answers under the layer that carries it.
+// Ids are the address. A shape id is unique across the whole document — a group lists shape ids and a
+// placement names one — so a shape answers to its id wherever it is drawn, and a group answers under the layer
+// that carries it.
 
-/// <summary>One group of one layer, with the layer it is on and whether a relief is stated over it — the
-/// registry a caller reads before keying a relief or naming a group to draw into.</summary>
-/// <param name="Layer">The layer that carries the group. A group belongs to one layer, because the fan and
-/// the relief are both solved over the shapes of one slab.</param>
-/// <param name="Id">What the relief is keyed under and what a shape names to join it.</param>
+/// <summary>One group of one layer, with the layer it is on — the registry a caller reads before naming a group
+/// to draw into.</summary>
+/// <param name="Layer">The layer that carries the group. A group belongs to one layer, because the fan is read
+/// over the shapes of one slab.</param>
+/// <param name="Id">What a shape names to join the group.</param>
 /// <param name="Name">What the group is called on screen, or null where it states none.</param>
 /// <param name="Mirrors">Whether the group's shapes are fanned onto the symmetry orbit. A group that does not
 /// mirror is built once, where it was drawn.</param>
 /// <param name="ShapeIds">The shapes that share this ground, in the order they were listed.</param>
-/// <param name="HasRelief">Whether the layout states an interior elevation for this group — what tells a flat
-/// island from one whose surface is solved.</param>
 public sealed record SketchGroupAt(
-    string Layer, string Id, string? Name, bool Mirrors, IReadOnlyList<string> ShapeIds, bool HasRelief);
+    string Layer, string Id, string? Name, bool Mirrors, IReadOnlyList<string> ShapeIds);
 
 /// <summary>GET /api/map/{slug}/sketch/layers — the stack in draw order, each layer with the shapes and
 /// groups drawn on it. A layer that named itself keeps its id; one that did not is answered under its
@@ -113,8 +111,8 @@ public sealed class SketchLayerWriteEndpoint(MapRepository repo, MapArtifactStor
     }
 }
 
-/// <summary>DELETE /api/map/{slug}/sketch/layers/{layerId} — take one layer, everything drawn on it and the
-/// relief of every group that lived only there off the board.</summary>
+/// <summary>DELETE /api/map/{slug}/sketch/layers/{layerId} — take one layer and everything drawn on it
+/// off the board.</summary>
 public sealed class SketchLayerDeleteEndpoint(MapRepository repo, MapArtifactStore artifacts)
     : EndpointWithoutRequest<PartWrittenDto>
 {
@@ -135,9 +133,8 @@ public sealed class SketchLayerDeleteEndpoint(MapRepository repo, MapArtifactSto
     }
 }
 
-/// <summary>GET /api/map/{slug}/sketch/groups — every group the board carries, across all its layers, with
-/// whether a relief is keyed over it. The list a caller reads before naming a group to draw into or to state
-/// terrain for.</summary>
+/// <summary>GET /api/map/{slug}/sketch/groups — every group the board carries, across all its layers. The
+/// list a caller reads before naming a group to draw into.</summary>
 public sealed class SketchGroupListEndpoint(MapRepository repo, MapArtifactStore artifacts)
     : EndpointWithoutRequest<IReadOnlyList<SketchGroupAt>>
 {
@@ -151,11 +148,9 @@ public sealed class SketchGroupListEndpoint(MapRepository repo, MapArtifactStore
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
         var layout = await SketchGeometryWrite.ReadAsync(artifacts, map.Id, ct);
-        var relief = layout?.Relief ?? [];
         var groups = SketchLayout.Stack(layout)
             .SelectMany(layer => layer.Groups.Select(group => new SketchGroupAt(
-                layer.Id ?? "", group.Id ?? "", group.Name, group.Mirrors, group.ShapeIds,
-                group.Id is { Length: > 0 } id && relief.ContainsKey(id))))
+                layer.Id ?? "", group.Id ?? "", group.Name, group.Mirrors, group.ShapeIds)))
             .ToList();
         if (await artifacts.RevisionAsync(map.Id, ArtifactKind.SketchLayoutJson, ct) is { } revision)
             Revisions.Answer(HttpContext, revision);
@@ -167,9 +162,8 @@ public sealed class SketchGroupListEndpoint(MapRepository repo, MapArtifactStore
 /// called, whether it is fanned onto the symmetry orbit, and which shapes share its ground. Creates it where
 /// the layer carries none under that id.
 ///
-/// <para>The group is the unit the ground is decided over: the orbit fan is read off each mirroring group's
-/// list, and so is the relief. A shape listed in no group is built once, where it was drawn, on flat
-/// ground.</para></summary>
+/// <para>The orbit fan is read off each mirroring group's list. A shape listed in no group is built once,
+/// where it was drawn.</para></summary>
 public sealed class SketchGroupWriteEndpoint(MapRepository repo, MapArtifactStore artifacts)
     : EndpointWithoutRequest<PartWrittenDto>
 {
@@ -194,8 +188,7 @@ public sealed class SketchGroupWriteEndpoint(MapRepository repo, MapArtifactStor
 }
 
 /// <summary>DELETE /api/map/{slug}/sketch/layers/{layerId}/groups/{groupId} — ungroup. The shapes stay on the
-/// layer and are drawn where they were drawn; what goes with the group is the orbit fan and the relief keyed
-/// under its id.</summary>
+/// layer and are drawn where they were drawn; what goes with the group is the orbit fan.</summary>
 public sealed class SketchGroupDeleteEndpoint(MapRepository repo, MapArtifactStore artifacts)
     : EndpointWithoutRequest<PartWrittenDto>
 {
@@ -246,9 +239,8 @@ public sealed class SketchShapeListEndpoint(MapRepository repo, MapArtifactStore
 /// it was given.
 ///
 /// <para><c>?group=</c> names the ground it joins, and a name the layer does not carry yet opens a group. A
-/// layer that already groups its shapes takes no shape that names none: the orbit fan and the relief are both
-/// read off a group's list, so an ungrouped shape on a grouped layer is built once, where it was drawn, on
-/// flat ground — which is <c>SK17</c>, and a refusal here is cheaper than a complaint after the save.</para>
+/// layer that already groups its shapes takes no shape that names none: the orbit fan is
+/// read off a group's list, so an ungrouped shape on a grouped layer is built once, where it was drawn — which is <c>SK17</c>, and a refusal here is cheaper than a complaint after the save.</para>
 ///
 /// <para>A body stating a free id keeps it; one stating none, or one already drawn, is minted
 /// <c>{type}-{n}</c>. The shape goes on the end of the layer, which is the order the rasterizer draws

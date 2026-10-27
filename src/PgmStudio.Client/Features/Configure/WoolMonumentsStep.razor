@@ -3,27 +3,25 @@
 @using Ctx = PgmStudio.Client.Features.Configure.AuthoringContext
 
 @* Wools · monuments: every wool is captured by all teams except its owner (N−1). The scan pre-fills the
-   signed pedestals; box a cluster to detect more (routed by colour) or drop a manual one, and confirm the
+   signed wool monuments; box a cluster to detect more (routed by colour) or drop a manual one, and confirm the
    capturing team per row. *@
 
 <Workspace>
 
   <Sidebar>
-      <Section Title="Wool monuments">
-        <p class="section-desc">Drag a box on the canvas to find monuments inside it. A box with none places a
-          monument for the selected wool. Each wool needs <strong>@Expected</strong>, one per enemy team.</p>
+      <Section Title="Wool monuments" Description="@($"Drag a rectangle on the canvas to find wool monuments in it, or to place one where there are none. Each wool needs {Expected}.")">
         <Button Writes Full Class="action-btn--separated" Busy="@detecting" BusyLabel="Searching…"
                 OnClick="DetectMapWide">
-          <i data-lucide="scan-search"></i> Find all monuments
+          <i data-lucide="scan-search"></i> Find all wool monuments
         </Button>
         <div class="panel-list panel-list--separated">
-          @if (wools.Count == 0) { <div class="list-empty">No wools yet. Confirm them in the Objectives step first.</div> }
+          @if (wools.Count == 0) { <EmptyState>No wools yet. Confirm them in the Objectives step first.</EmptyState> }
           @foreach (var w in wools)
           {
             var have = Capturers(w).Count(t => MonumentFor(w, t.Id) is not null);
             <ListRow Compact Selected="selectedColor == w.Color" @key="w.Color" OnClick="() => SelectWool(w.Color)">
               <span class="geo-type-icon" style="--icon-tint: @W.Hex(w.Color)"><i data-lucide="@PointIcon"></i></span>
-              <span class="list-label list-label--mono">@w.Color</span>
+              <span class="list-label">@W.Name(w.Color)</span>
               <Badge Class="@(have >= Expected ? "badge--success" : "badge--warning")">@have / @Expected</Badge>
             </ListRow>
           }
@@ -42,19 +40,16 @@
       @if (Selected is { } sel)
       {
         <Section @key="sel.Color">
-          <DetailHeader Icon="@PointIcon" IconTint="@W.Hex(sel.Color)" Mono Label='@($"{sel.Color} monuments")'>
-            <Badge Kind="neutral">@sel.Color wool</Badge>
-          </DetailHeader>
+          <DetailHeader Icon="@PointIcon" IconTint="@W.Hex(sel.Color)" Label="@($"{W.Name(sel.Color)} wool monuments")" />
           <div class="section-body">
-            <p class="section-desc">@if (string.IsNullOrEmpty(sel.Owner)) { <text>Captured by every team except its owner. Set the owner in the Objectives step.</text> } else { <text>Captured by every team except its owner, <strong>@TeamName(sel.Owner)</strong>.</text> }</p>
+            <Readout>@(string.IsNullOrEmpty(sel.Owner) ? "Captured by every team but its own. Set its team in the Objectives step." : $"Captured by every team but {TeamName(sel.Owner)}.")</Readout>
             @foreach (var cap in Capturers(sel))
             {
               var m = MonumentFor(sel, cap.Id);
-              <Field @key="cap.Id">
-                <LabelHint>
+              <Field @key="cap.Id" Label="@($"{cap.Name} captures")">
+                <LabelEnd>
                   <span class="list-swatch list-swatch--sm" style="--swatch: @W.Hex(TeamColorOf(cap.Id))"></span>
-                  @cap.Name captures
-                </LabelHint>
+                </LabelEnd>
                 <ChildContent>
                 @if (m is not null)
                 {
@@ -62,17 +57,20 @@
                     <CoordField Prefix="X"><NumberField Value="m.X" ValueChanged="@(v => SetCoord(m, "x", v))" Step="1" CssClass="coord-input" /></CoordField>
                     <CoordField Prefix="Y"><NumberField Value="m.Y" ValueChanged="@(v => SetCoord(m, "y", v))" Step="1" CssClass="coord-input" /></CoordField>
                     <CoordField Prefix="Z"><NumberField Value="m.Z" ValueChanged="@(v => SetCoord(m, "z", v))" Step="1" CssClass="coord-input" /></CoordField>
-                    <Button Writes Title="Remove" OnClick="() => DeleteMonument(sel, m)"><i data-lucide="trash-2"></i></Button>
+                    <Button Writes Variant="icon" Icon="trash-2" Title="Delete this wool monument" OnClick="() => DeleteMonument(sel, m)" />
                   </div>
                   @if (selectedTeam == cap.Id)
                   {
                     <SliceView Slug="@Slug" Node="@MonumentNode(m)" OnYChanged="@(y => SetY(m, y))" />
-                    <p class="section-desc @SeatClass">@SeatMessage</p>
+                    @if (SeatMessage.Length > 0)
+                    {
+                      <Readout Class="@SeatClass">@SeatMessage</Readout>
+                    }
                   }
                 }
                 else
                 {
-                  <div class="field-value text-muted">Not placed. Drag a box around its pedestal on the canvas.</div>
+                  <div class="field-value text-muted">Not placed. Drag a rectangle around its wool monument on the canvas.</div>
                 }
                 </ChildContent>
               </Field>
@@ -80,15 +78,14 @@
             @{ var stray = sel.Monuments.Where(m => Capturers(sel).All(t => t.Id != m.Team)).ToList(); }
             @if (stray.Count > 0)
             {
-              <Field>
-                <LabelHint><span class="text-warning">No team assigned</span></LabelHint>
+              <Field Label="No team">
                 <ChildContent>
                 @foreach (var m in stray)
                 {
                   <div class="ctrl-row" @key="m">
                     <Select Slim="false" Options="@AuthoringContext.TeamOptions(Capturers(sel))" Placeholder="Choose a team"
                             Value="" ValueChanged="@(team => SetMonumentTeam(sel, m, team))" />
-                    <Button Writes Title="Remove" OnClick="() => DeleteMonument(sel, m)"><i data-lucide="trash-2"></i></Button>
+                    <Button Writes Variant="icon" Icon="trash-2" Title="Delete this wool monument" OnClick="() => DeleteMonument(sel, m)" />
                   </div>
                 }
                 </ChildContent>
@@ -100,8 +97,8 @@
       else
       {
         <Section>
-          <DetailHeader Icon="@PointIcon" IconMuted Label="Monuments" />
-          <p class="section-desc">Select a wool to see its monuments.</p>
+          <DetailHeader Icon="@PointIcon" IconMuted Label="Wool monuments" />
+          <EmptyState>No wool selected. Pick one to see its wool monuments.</EmptyState>
         </Section>
       }
   </Inspector>

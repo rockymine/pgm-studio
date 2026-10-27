@@ -49,6 +49,11 @@ namespace PgmStudio.Minecraft.Dressing;
 /// <param name="CliffAngleAt">The angle from which the theme painting a cell calls its ground a face, by layer
 /// and cell — what a prop is kept off a cliff against (<see cref="Incline"/>). Absent, no ground is a
 /// cliff.</param>
+/// <param name="StackWater">The water the sketch's modifier stack made (<see cref="StackedWater"/>): each wet cell
+/// and the height its surface stands at, in the unit of <paramref name="SurfaceTop"/>, so the fill reaches the
+/// block under it. It is filled the way a basin is — only the ground lower than the surface, writing into air —
+/// over the bed its modifier states, before any prop is placed, and a wet column beside a cell with no ground
+/// pours down past it. Absent, none.</param>
 public sealed record DressingContext(
     IReadOnlyDictionary<(int X, int Z), int> SurfaceTop,
     IReadOnlyList<PlacedProp> Props,
@@ -58,7 +63,8 @@ public sealed record DressingContext(
     Func<int, int, bool>? IsGoalClearance = null,
     IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>>? SurfaceByLayer = null,
     IReadOnlyList<(int X, int Z)>? Waypoints = null,
-    Func<string?, int, int, int>? CliffAngleAt = null)
+    Func<string?, int, int, int>? CliffAngleAt = null,
+    StackedWater? StackWater = null)
 {
     public DressingContext(IReadOnlyDictionary<(int X, int Z), int> surfaceTop, IReadOnlyList<PlacedProp> props)
         : this(surfaceTop, props, (_, _) => null, DressingSymmetry.None) { }
@@ -219,6 +225,14 @@ public static class Decorator
                 Severity.Decline, Subjects: [stranded.Id]));
 
         UnheldFaces(context, declined);
+
+        if (context.StackWater is { Columns.Count: > 0 } stackWater)
+        {
+            var result = PlaceStackWater(world, context, stackWater, claims.On(null), declined);
+            Cover(result, PropKinds.Fluid, StackWaterId);
+            placed = placed with { FluidCells = placed.FluidCells + result.Count };
+            propIndex++;
+        }
 
         foreach (var prop in context.Props.OfType<FluidProp>())
         {
@@ -523,18 +537,84 @@ public static class Decorator
                                      GroundClaims.Storey claims, List<Finding> declined)
     {
         if (fluid.Points.Count < 3 || fluid.Level is not { } level) return Placed.None;
-        var ground = context.GroundFor(fluid);
         var line = (int)Math.Floor(level);
         var ring = FluidBed.BasinCells(fluid.Points, fluid.Edge, fluid.Seed).ToList();
+        return Flood(world, context, fluid, claims, declined, ring, (_, _) => line, context.Symmetry);
+    }
+
+    /// <summary>The id the water the modifier stack made is claimed under.</summary>
+    private const string StackWaterId = "terraform-water";
+
+    /// <summary>The data bit that makes flowing water a falling column.</summary>
+    private const int FallingWater = 8;
+
+    /// <summary>Fill the water the modifier stack made: each wet cell to the block under its surface, through the
+    /// same flood a basin uses, then pour it down past any edge of the ground. The cells already stand at every
+    /// image of a symmetric board, so nothing is fanned.
+    ///
+    /// <para>The cells are flooded one bed at a time. A body whose modifier states a bed lies on it, with its beach
+    /// measured from its own water; every other body lies on a fluid prop's default bank.</para></summary>
+    private static Placed PlaceStackWater(VoxelWorld world, DressingContext context, StackedWater water,
+                                          GroundClaims.Storey claims, List<Finding> declined)
+    {
+        var covered = new List<(int X, int Z)>();
+        var beds = water.Beds;
+        var bedded = water.Columns.GroupBy(column => beds?.ContainsKey(column.Value.Body) == true ? column.Value.Body : null)
+                                  .OrderBy(group => group.Key, StringComparer.Ordinal);
+        foreach (var group in bedded)
+        {
+            var fluid = new FluidProp { Id = StackWaterId, Shape = FluidShape.Basin };
+            if (group.Key is { } body) fluid = fluid with { Bank = beds![body] };
+            var cells = group.Select(column => column.Key).OrderBy(cell => cell.X).ThenBy(cell => cell.Z).ToList();
+            var flooded = Flood(world, context, fluid, claims, declined, cells,
+                                (x, z) => water.Columns[(x, z)].Surface - 1, DressingSymmetry.None);
+            foreach (var image in flooded.Images) covered.AddRange(image);
+        }
+        PourOffEdges(world, context, water);
+        return new Placed(covered.Count, [covered]);
+    }
+
+    /// <summary>Water running off the ground. Each wet column whose water stands in the world and which has a
+    /// side with no ground drops a falling column of flowing water into the cell past it, from the height of its
+    /// surface down through air to <see cref="StackedWater.FallFloor"/>, stopping on whatever stands in the way.
+    /// Nothing is claimed: the fall is in the void, outside the ground every claim and count is made over.</summary>
+    private static void PourOffEdges(VoxelWorld world, DressingContext context, StackedWater water)
+    {
+        foreach (var ((x, z), wet) in water.Columns)
+        {
+            var lip = wet.Surface - 1;
+            if (world.GetBlock(x, lip, z).Id != Blocks.StationaryWater) continue;
+            foreach (var (dx, dz) in Sides)
+            {
+                var (pastX, pastZ) = (x + dx, z + dz);
+                if (context.SurfaceTop.ContainsKey((pastX, pastZ))) continue;
+                for (var y = lip; y >= water.FallFloor; y--)
+                {
+                    if (world.GetBlock(pastX, y, pastZ).Id != Blocks.Air) break;
+                    world.SetBlock(pastX, y, pastZ, Blocks.Water, FallingWater);
+                }
+            }
+        }
+    }
+
+    /// <summary>The flood a basin and the modifier stack's water share. Each cell of <paramref name="ring"/>, at
+    /// every image of <paramref name="symmetry"/>, whose ground stands lower than <paramref name="lineAt"/>'s
+    /// answer there takes the fluid from its surface up to that line; the floor it covers is laid with the fluid's
+    /// bank, and a beach follows the fluid's own contour.</summary>
+    private static Placed Flood(VoxelWorld world, DressingContext context, FluidProp fluid, GroundClaims.Storey claims,
+                                List<Finding> declined, IReadOnlyList<(int X, int Z)> ring,
+                                Func<int, int, int> lineAt, DressingSymmetry symmetry)
+    {
+        var ground = context.GroundFor(fluid);
 
         (int Id, int Data) Bank(int x, int y, int z) => fluid.Bank.Resolve(
-            new BucketContext(x, y, z, TerrainBucket.Surface, 0) { Sample = context.Symmetry.Canonical(x, z) });
+            new BucketContext(x, y, z, TerrainBucket.Surface, 0) { Sample = symmetry.Canonical(x, z) });
 
         // Every image is filled before any beach is laid, so a beach never covers fluid another image put there.
         var images = new List<List<(int X, int Z)>>();
         var flooded = new List<HashSet<(int X, int Z)>>();
         var wet = new List<(int X, int Z, int Line)>();
-        for (var image = 0; image < context.Symmetry.Order; image++)
+        for (var image = 0; image < symmetry.Order; image++)
         {
             var covered = new List<(int X, int Z)>();
             var drawn = new HashSet<(int X, int Z)>();
@@ -542,9 +622,10 @@ public static class Decorator
             flooded.Add(drawn);
             foreach (var (cellX, cellZ) in ring)
             {
-                var (x, z) = context.Symmetry.ImageCell(cellX, cellZ, image);
+                var (x, z) = symmetry.ImageCell(cellX, cellZ, image);
                 if (!ground.TryGetValue((x, z), out var top) || top < 2) continue;
                 var surfaceSolid = top - 1;
+                var line = lineAt(cellX, cellZ);
                 if (surfaceSolid >= line) continue;
                 if (DressingPalette.IsStamp(world.GetBlock(x, surfaceSolid, z).Id)) continue;
 
@@ -571,10 +652,10 @@ public static class Decorator
 
         // The beach is measured in the author's own cells and carried to each image, so the two teams' shores
         // wander alike wherever their ground floods alike.
-        for (var image = 0; image < context.Symmetry.Order; image++)
+        for (var image = 0; image < symmetry.Order; image++)
             foreach (var (cellX, cellZ) in FluidBed.BasinShoreCells(flooded[image], fluid.Shore, fluid.ShoreWander, fluid.Seed))
             {
-                var (x, z) = context.Symmetry.ImageCell(cellX, cellZ, image);
+                var (x, z) = symmetry.ImageCell(cellX, cellZ, image);
                 if (claims.Holds(x, z) || context.IsKeptClear(x, z)) continue;
                 if (!ground.TryGetValue((x, z), out var top) || top < 1) continue;
                 var surfaceSolid = top - 1;
@@ -630,7 +711,7 @@ public static class Decorator
     /// <summary>DR-DRY — a fluid standing against a hole in its own basin.
     ///
     /// <para>A pool fills the bed it carves. The hollow it sits in was very often dug by something else — a
-    /// relief mark, a shape's own floor — and the two are separate statements about one lake, so where the
+    /// modifier, a shape's own floor — and the two are separate statements about one lake, so where the
     /// hollow reaches further than the bed does the extra is excavated and never filled: a trench as deep as
     /// the fluid is, running alongside it, with the fluid standing against open air.</para>
     ///
@@ -1324,9 +1405,9 @@ public static class Decorator
     }
 
     /// <summary>Carve the terrain standing above a building's floor out of its footprint, before the stamp.
-    /// A building seats on the lowest column of its plan, so on a hillside or a relief mark the higher ground
+    /// A building seats on the lowest column of its plan, so on a hillside or a Hill the higher ground
     /// runs straight through where its rooms will be — and the stamper deliberately never cuts terrain (air
-    /// out of a material is a gap left open, not a hole punched), so without this the relief stands inside
+    /// out of a material is a gap left open, not a hole punched), so without this the hill stands inside
     /// the house. The building wins the ground it was drawn on (the author's ruling, the same rule that keeps
     /// a tree from rooting in one): every footprint column is cleared from the floor's own course up to its
     /// old surface, so the house sinks into the slope with its interior intact. Only the wall plan is carved —

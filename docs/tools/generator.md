@@ -52,7 +52,7 @@ A composed board is named by five values and no geometry.
 
 | Field | Default | Is |
 |---|---|---|
-| `players` | 12 | Players per team, clamped 6–47. The only size input, and its job is to name a **size band** — nano 6–13, micro 14–21, milli 22–31, centi 32 and up — which is what the land budget and every structural ladder read. Two counts in one band compose the **same board** from the same seed, differing only in the plan's name and `maxPlayers` (`Composer.Label`), so the library holds a board once per band and a card is labelled with the count asked for. A count above centi's range is clamped into it because centi is the top of the ladder. |
+| `players` | 12 | The team size, clamped 6–47. The only size input, and its job is to name a **size band** — nano 6–13, micro 14–21, milli 22–31, centi 32 and up — which is what the land budget and every structural ladder read. Two counts in one band compose the **same board** from the same seed, differing only in the plan's name and `maxPlayers` (`Composer.Label`), so the library holds a board once per band and a card is labelled with the count asked for. A count above centi's range is clamped into it because centi is the top of the ladder. |
 | `teams` | 2 | 2 or 4 at the plan tier. The library holds two-team boards only and the feed answers 400 `RQ1` on any other count, naming the field — a board that is not the one asked for is worse than no board. |
 | `symmetry` | `rot_180` | `rot_180` or `mirror_z`, the two the library holds. `mirror_x` and `rot_90` are legal `ComposeRequest` values but the feed answers 400. |
 | `cell` | 4 | Blocks per proxy cell — the plan grid's scale. The library holds the default cell only. |
@@ -144,7 +144,7 @@ attack crosses twelve blocks in front of the room. The intent carries two spawns
 named *Composed p12 t2 #2* for twelve players a team.
 
 It also shows what a composed board invariably lacks. **Every shape stands at the global 9**, so a generated
-board is flat and every height on it arrives later, in the Sketch tool's relief phase. **No iron, no destroyable
+board is flat and every height on it arrives later, in the Sketch tool's Terraform phase. **No iron, no destroyable
 and no core**: the composer makes CTW boards and places wools and one spawn, nothing else. There is exactly **one
 build zone**, the mid band — no water lanes and no centre island.
 
@@ -214,19 +214,19 @@ passes none of them.
 
 One workspace, no phases. The rail on the left holds the filters and the grid in the middle holds the cards.
 
-**The rail has two sections, and both apply at once.** *Layout settings* — players per team, symmetry and
-wools per team — restart the page from the library's first board when a value changes. Players per team is
-one chip per **size band**, labelled with the band's name and its range (`Nano · 6–13`, `Centi · 32+`), read
+**The rail has two sections, and both apply at once.** *Layout settings* — team size, symmetry and
+wools per team — restart the page from the library's first board when a value changes. Team size is
+one chip per **size band**, labelled with the band's name and its range (*Nano · 6 to 13*, *Centi · 32 and up*), read
 from `SizeBands` in the vocabulary leaf rather than restated in the client; exactly one band holds, and the
 request names it by the count in the middle of its range. A band is one at a time because the feed is one band's
 library; a request is still bound only by the endpoint's own clamp, 6–47. Wools per team is one chip per count, `1` to `3` (`WoolCounts` in the vocabulary leaf, the range the composer draws from), and
 several may be ticked at once: a board matches any one ticked count, and none ticked takes any. The chips carry no
-counts, because the census holds forms, not wool counts. *Filter by shape* — wool shapes, hub and front line — is a set of ticked
-chips, each with the count of boards in the library that have it, and *Clear* empties all three. Wool shapes
+counts, because the census holds forms, not wool counts. *Shape filters* — *Approach*, *Hub* and *Front line* — is a set of ticked
+chips, each with the count of boards in the library that have it, and *Clear* empties all three. Approach shapes
 are **must-include**: every family ticked has to be present on the board. Hub and front line are **any-of**.
 A side always has a front line; where the composer places no piece for it (the `none` form) the hub's own edge
 facing the mid is that front line, so its chip reads *Hub edge*.
-Under the shape chips a link, *Browse every shape in the catalog*, opens `/catalog`, the vocabulary the
+Under the shape chips a link, *Every shape in the catalog*, opens `/catalog`, the vocabulary the
 composer fills boxes from.
 
 The Z and scythe chips render disabled with the reason on the tooltip, because neither is in the production
@@ -243,8 +243,8 @@ at the last matching board, and the page says *No more layouts for these setting
 **The census is what makes an empty grid legible.** Every page carries the census over every board the library
 holds for the band and symmetry, counted before the filters, so picking a filter cannot hide the forms it
 filters against. Past 150 boards an absence is reported as an absence: a chip nothing in the library has is
-dimmed, and an empty grid says *these players and symmetry don't produce it* rather than *none of the layouts
-match these filters*. A library with nothing for the settings says it is still being generated.
+dimmed, and an empty grid says *these players and symmetry don't produce it* rather than *no layout of the N for these settings
+matches these filters*. A library with nothing for the settings says it is still being generated.
 
 **A card is the board and its id.** The picture is the whole fanned board in a square frame on the
 theme's board ground (`--board-bg`: white in the light theme, near-black in the dark one), server-rendered from
@@ -261,15 +261,15 @@ live in the structure line of the detail drawer, not in colour. The inks are `Pl
 `--board-zone`, `--board-iron`) and falls back to the paper values, which is why one SVG serves both themes. A
 water lane draws exactly as a build zone: the composer builds none, and the key has one outline.
 The picture carries no text: the page draws the key once above the grid (*Spawn*, *Wool room*, *Ground (rest)*,
-*Build zone*), from the `key` the feed returns. Under the picture the card shows only the layout's id,
-`composed-p{players}-t{teams}-{seed}`, in the same name label the library's cards carry (`PictureCard`); the
+*Build zone*), from the `key` the feed returns. Under the picture the card shows only the layout's name,
+*Layout {seed}*, in the same name label the library's cards carry (`PictureCard`); the
 score, wool count and structure line are not on the card, and the score is shown nowhere on the page.
 
 **The drawer is the larger view, and it can tint one role at a time.** Opening a card gives a drawer 600 px wide that
-reads top to bottom. The header carries the layout's name (`composed-p{players}-t{teams}-{seed}`) as its title,
-with the close button at its right. Under it sit the picture, at most 48% of the viewport high; a *Highlight* row of six toggles (*Hub*, *Front line*,
-*Approaches*, *Spawn*, *Wool rooms*, *Build zone*) with the key below it; a written description of the layout;
-three facts (players per team, wools per team, symmetry); and a footer with the one primary action, *Open in Sketch*, a text button
+reads top to bottom. The header carries the layout's name (*Layout {seed}*) as its title,
+with the close button at its right. Under it sit the picture, at most 48% of the viewport high; a *Highlight* row of six toggles (*Hubs*, *Front lines*,
+*Approaches*, *Spawns*, *Wool rooms*, *Build regions*) with the key below it; a written description of the layout;
+three facts (team size, wools per team, symmetry); and a footer with the one primary action, *Make a map*, a text button
 beside a note saying it makes a new map of the layout and opens it in the Sketch tool.
 Every piece in the SVG carries a `role-*` class from `BoardRoles` (`hub`, `frontline`, `approach`, `spawn`,
 `wool`, `other`, and `zone` for a zone), and a toggle adds `board-hl-{role}` to the picture's frame, which
@@ -308,7 +308,7 @@ stands nearer the wool at the back than the one across the hub, however squarely
 one board in five crosses a middle thinner than its size's floor or longer than twice its width (`MD7`, `MD8`). A hard violation would add 1000 and dominate any
 soft sum.
 
-**Making a map is the one exit.** *Open in Sketch* makes a map of the library board the descriptor names
+**Making a map is the one exit.** *Make a map* makes a map of the library board the descriptor names
 (`POST /api/compose/map`) and opens it at `/maps/{slug}/sketch`; the button says *Making the map…* while the
 world is built, and a refusal leaves the drawer open with a sentence saying the map could not be made.
 

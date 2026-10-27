@@ -142,12 +142,12 @@ test("a request that cannot be made reaches onUnreachable, and is silent without
   await liveFeed({ url: "/x", body: () => "doc", onAnswer: () => assert.fail("answered") }).request();
 });
 
-test("refusalText falls back from message to error to the status", async () => {
+test("refusalText falls back from message to error to one sentence", async () => {
   assert.equal(await refusalText(reply(400, { message: "m", error: "e" })), "m");
   assert.equal(await refusalText(reply(400, { error: "e" })), "e");
-  assert.equal(await refusalText(reply(502, {})), "The studio returned an error (HTTP 502).");
+  assert.equal(await refusalText(reply(502, {})), "Couldn't get an answer from the studio. Try again.");
   assert.equal(await refusalText({ status: 500, json: async () => { throw new Error("not json"); } }),
-    "The studio returned an error (HTTP 500).");
+    "Couldn't get an answer from the studio. Try again.");
 });
 
 // ── the iso preview ──────────────────────────────────────────────────────────

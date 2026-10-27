@@ -1,0 +1,25 @@
+@namespace PgmStudio.Client.Components
+@using PgmStudio.Vocabulary
+
+@* What a "?" opens: a glossary term's own definition with a link to its entry, or the help a field or section
+   writes for what no term covers. *@
+
+<div class="help-note-body">
+    @if (Defined(Term) is { } term)
+    {
+        @term.Definition <a class="help-note-link" href="@($"/glossary#{Glossary.Slug(term.Term)}")" target="_blank">In the glossary</a>
+    }
+    else
+    {
+        @Help
+    }
+</div>
+
+@code {
+    [Parameter] public string? Help { get; set; }
+    [Parameter] public string? Term { get; set; }
+
+    /// <summary>The glossary entry a term names exactly, or none.</summary>
+    public static GlossaryTerm? Defined(string? term) => term is null ? null
+        : Glossary.Terms.FirstOrDefault(entry => string.Equals(entry.Term, term, StringComparison.OrdinalIgnoreCase));
+}

@@ -1,0 +1,10 @@
+@namespace PgmStudio.Client.Components
+
+@* That a list is empty, and how to fill it: "No modifier yet. Pick one in the dock and drag its outline on the
+   canvas." One sentence opening "No", and the action after it (docs/client/writing-for-the-ui.md). *@
+
+<p class="empty-state">@ChildContent</p>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

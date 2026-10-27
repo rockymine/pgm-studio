@@ -12,7 +12,7 @@ namespace PgmStudio.Pgm.Plan;
 ///
 /// <para><b>A hole is never scenery.</b> What a compound encircles is ground players go round — the middle of a
 /// <c>donut</c> wool room, the yard of a ring hub — and a board's walls are drawn to guard it, so it is stated
-/// as negative space and a later shape may not quietly put ground back in it (<c>SK13</c>).</para>
+/// as negative space and a later shape that puts ground back in it is named (<c>SK13</c>).</para>
 ///
 /// <para>An author may draw those buffers and need not: the step runs on every compile and adds whatever is
 /// missing, so a hole is declared whether or not anyone declared it. It is <b>idempotent</b> — a plan that

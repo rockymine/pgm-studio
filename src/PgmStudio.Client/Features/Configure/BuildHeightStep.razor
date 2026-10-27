@@ -1,16 +1,14 @@
 @namespace PgmStudio.Client.Features.Configure
 
-@* Build · height step: the max-build-height cap, set on the BuildHeightSideview. Writes the build slice's maxHeight; the generator applies it. *@
+@* Build · ceiling step: the build ceiling, set on the BuildHeightSideview. Writes the build slice's maxHeight; the generator applies it. *@
 
 <Workspace>
 
   <Sidebar>
-      <Section Title="Build height" Writes>
-        <p class="section-desc">Players can't place blocks above this Y level. Drag the line in the side view
-          or type a value up to 100. Leave it blank for no limit.</p>
-        <Field Label="Y level">
+      <Section Title="Build ceiling" Description="Drag the line in the side view or type a value up to 100." Writes>
+        <Field Label="Build ceiling" Unit="world y" Term="build ceiling">
           <NumberField Min="0" Max="MaxHeight" Value="height" ValueChanged="OnHeightInput" OnCleared="ClearHeight"
-                       placeholder="None" />
+                       placeholder="No ceiling" />
         </Field>
       </Section>
   </Sidebar>

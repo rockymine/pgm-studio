@@ -118,7 +118,7 @@ carry it (`B128`).
 | `observerY` | `surface + 15` | The observer's height, as a nominal starting point: the plan states neither the relief that rolls under the centre nor anything drawn over it, so the export seats the platform clear of what the world actually builds there and writes the height it settled on back into the intent (`EX5`). No control writes it; it is honoured when hand-authored, and a stated height that would be buried is seated the same way. |
 
 **The build ceiling is not a global, and that is the correction.** It was `headroom`, a slack added to
-`surface`, so the cap was computed from the plan's flat nominal world — a ground level the relief solve then
+`surface`, so the cap was computed from the plan's flat nominal world — a ground level the terraforming then
 abandons, which produced boards whose ceiling sat below their own terrain. The author's rule measures it where
 the answer exists: **twenty blocks over the mean top of the built terrain columns** (`G6`, amendments 14, 25
 and 42) — the ground the match is played on, taken whole rather than at its highest point, with nothing
@@ -182,7 +182,7 @@ piece into is a plateau and is never declared.
 
 **And a hole is never scenery.** What the buffer compiles to is a `subtract`, which the sketch tool then holds
 as the board's own statement of its negative space: it may be *redrawn* — rounded off, narrowed, moved — and
-never papered over with an add (`docs/tools/sketch.md`, `SK13`).
+and an add papered over it is named (`docs/tools/sketch.md`, `SK13`).
 
 ### Zones
 
@@ -251,10 +251,10 @@ that spawn and is resolved beside the room — which is how an iron marker besid
 size of the spawn building. Elsewhere it stamps a standalone iron cube, renewing only if its piece is a spawn.
 
 A **destroyable** and a **core** are the DTM and DTC goals. Both are anchored on a marker with no Y: the
-structure floats `float` blocks above the ground the relief actually leaves under it, which is the design — a
+structure floats `float` blocks above the ground the modifiers actually leave under it, which is the design — a
 core on the ground cannot leak, and a destroyable on the ground is trivially covered. `float` is an offset over
 the ground **as built**, not the plan's flat nominal surface, and it is resolved where the ground is actually
-known — the world-export path, once the layout is rasterized and the relief solved — never at compile time,
+known — the world-export path, once the layout is rasterized and the modifier stack run — never at compile time,
 which only knows the plan's rectangles. That is also why `piece` may be empty for these two markers alone
 (above): the goal's Y was never the piece's to give. Every structure field is optional and defaulted by the
 compiler, so a bare `{ piece, at }` or `{ at }` is a valid, typical goal, and setting a field back to its
@@ -299,8 +299,8 @@ capped at **12**: the defaults are floors, and a goal higher than that is reache
 ### Walls
 
 An interface between two pieces is authored for exactly one reason, and this is it. Everything else a seam
-does — a step, a drop, a cliff — is decided by the ground: a plan states a surface per piece, the relief
-carves the rest, and what happens where two surfaces meet follows from them rather than from a mark.
+does — a step, a drop, a cliff — is decided by the ground: a plan states a surface per piece, the modifiers
+carve the rest, and what happens where two surfaces meet follows from them rather than from a mark.
 
 `walls` marks a pair whose interface carries a pre-built approach
 wall: a bedrock barrier two blocks thick and three courses tall down the middle of the interface, its full
@@ -385,8 +385,8 @@ compile: the strait is the sketch's own `CT12`, measured on the drawn ground (`d
 rectangle for a spawn or a wool room: the Sketch tool draws each one from the intent, with its building — the
 placement's footprint, or `WX1`'s default where it states none (`docs/tools/sketch.md`). What the compile writes for the authored image of a
 spawn-role or wool-room-role piece is its entry in the layout's `rooms` record, under the piece's id — the
-piece's surface as its top, `relief_scope: follow`, and the sides its doors stand on — which pins its group's
-relief solve at the piece's own surface, so the ground is solved knowing the floor must arrive there.
+piece's surface as its top and the sides its doors stand on. A room's ground is held against the modifier
+stack, so the floor stays at the piece's own surface and the ground round it is shaped up to its edge.
 
 **The intent** (`MapIntent`) is the gameplay. Teams come from the red/blue/yellow/green palette in orbit order.
 Each spawn fans to one per team, with its yaw fanned from the facing; each wool fans team-outer, its entries
@@ -547,7 +547,7 @@ axis-aligned cell rect, so the smallest thing a plan can say is one cell wide �
 scale — and nothing it draws has a diagonal, a curve or a notch. Refining the shape of the ground is the Sketch
 tool's, which takes the compiled layout and works on the fused outline. Height is the one property a plan
 states finely, and it states one flat surface per piece: valleys, slopes, contours and any interior elevation
-belong to the relief downstream.
+belong to the modifier stack downstream.
 
 **A plan states no stack.** The plan model is flat by decision rather than by omission — a storey is a fact
 about ground that has been drawn, and the sketch is where ground is drawn — so `layers[]` has no counterpart

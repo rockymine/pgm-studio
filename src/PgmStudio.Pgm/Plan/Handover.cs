@@ -16,8 +16,8 @@ public static class Handover
     private static readonly string[] PlayMembers = ["controlPoints", "scoreLimit", "spawners", "shops"];
 
     /// <summary>The layout's members a refinement states entry by entry, and the ones it states whole.</summary>
-    private static readonly string[] Registries = ["themes", "relief", "roomStyles"];
-    private static readonly string[] Wholes = ["mapTheme", "biome"];
+    private static readonly string[] Registries = ["themes", "roomStyles"];
+    private static readonly string[] Wholes = ["mapTheme", "biome", "modifiers"];
 
     /// <summary>The fields of a shape that draw its outline.</summary>
     private static readonly string[] OutlineFields = ["vertices", "controls"];
@@ -245,7 +245,7 @@ public static class Handover
         return end < 0 ? path : path[..end];
     }
 
-    // The member after the head: `relief.team.base` → `team`.
+    // The member after the head: `themes.moor.base` → `moor`.
     private static string? Entry(string path)
     {
         var dot = path.IndexOf('.');

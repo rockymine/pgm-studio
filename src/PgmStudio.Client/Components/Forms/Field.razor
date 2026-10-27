@@ -1,34 +1,54 @@
 @namespace PgmStudio.Client.Components
 
-@* The label+input atom — the field .label (with optional required mark and a right-aligned LabelEnd
-   value), the control (ChildContent — an <input class="field-input">, a NumberField, a chip row, …),
-   and an optional .field-error line. When LabelEnd is set the label row splits (label left, value
-   right) via .field-label--split. *@
+@* The label+input atom, and the one place a field's words are written (docs/client/writing-for-the-ui.md): the Label names
+   it, the Unit qualifies its value, Help or a glossary Term explains it behind a "?", the Note under the control
+   says what its value does, and Error says what went wrong. LabelEnd is the label row's right end, for a live
+   value. *@
 
 <div class="@Cls">
-    @if (!string.IsNullOrEmpty(Label) || LabelEnd is not null || LabelHint is not null)
+    @if (!string.IsNullOrEmpty(Label) || LabelEnd is not null)
     {
         <label class="@LabelCls" for="@For">
-            @* The hint is spaced and muted here rather than at each call site — see .field-hint for why the
-               separator is a margin and not a space. *@
-            <span>@Label @if (Required) { <span class="field-required">*</span> }@if (LabelHint is not null) { <span class="field-hint">@LabelHint</span> }</span>
+            <span>@Label @if (Required) { <span class="field-required">*</span> }@if (Unit is not null || HasHelp) { <span class="field-label-tail">@if (Unit is not null) { <span class="field-hint">(@Unit)</span> }@if (HasHelp) { <HelpMark Open="helpOpen" Title="@($"About {Label}")" OnClick="() => helpOpen = !helpOpen" /> }</span> }</span>
             @if (LabelEnd is not null) { @LabelEnd }
         </label>
     }
+    @if (HasHelp && helpOpen) { <HelpNote Help="@Help" Term="@Term" /> }
     @ChildContent
+    @if (!string.IsNullOrEmpty(Note)) { <p class="field-note">@Note</p> }
     @if (!string.IsNullOrEmpty(Error)) { <div class="field-error">@Error</div> }
 </div>
 
 @code {
     [Parameter] public string? Label { get; set; }
-    [Parameter] public RenderFragment? LabelHint { get; set; }  // inline helper markup after the label text (e.g. a muted note)
-    [Parameter] public RenderFragment? LabelEnd { get; set; }   // right-aligned value in the label row
+    [Parameter] public RenderFragment? LabelEnd { get; set; }   // right-aligned live value in the label row
     [Parameter] public bool Required { get; set; }
     [Parameter] public string? Error { get; set; }
     [Parameter] public string? For { get; set; }
     [Parameter] public string? Class { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
-    private string Cls => string.Join(' ', new[] { "field", Class }.Where(c => !string.IsNullOrEmpty(c)));
+    /// <summary>The unit of the value, one of <see cref="FieldUnits"/>, read after the label in parentheses.</summary>
+    [Parameter] public string? Unit { get; set; }
+
+    /// <summary>What the label cannot say — a definition, a behaviour — behind a "?" beside it. Never on a field that
+    /// explains itself, and never where the label is a glossary term: that is <see cref="Term"/>.</summary>
+    [Parameter] public string? Help { get; set; }
+
+    /// <summary>The glossary term the label names; its "?" shows the glossary's own definition and links to it.</summary>
+    [Parameter] public string? Term { get; set; }
+
+    /// <summary>One sentence under the control: what an empty value stands for, or what a value does.</summary>
+    [Parameter] public string? Note { get; set; }
+
+    /// <summary>A short field — a number, a short select — that takes half a row inside a <c>field-grid</c>.</summary>
+    [Parameter] public bool Half { get; set; }
+
+    private bool HasHelp => Help is not null || HelpNote.Defined(Term) is not null;
+
+    private bool helpOpen;
+
+    private string Cls => string.Join(' ', new[] { "field", Half ? "field--half" : null, helpOpen ? "field--help-open" : null, Class }
+        .Where(c => !string.IsNullOrEmpty(c)));
     private string LabelCls => LabelEnd is null ? "field-label" : "field-label field-label--split";
 }

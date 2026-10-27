@@ -934,6 +934,21 @@ public sealed class TerrainPainterTests
                         .IsEqualTo(level.Resolve(new BucketContext(5, y, 5, TerrainBucket.Fill, 0)));
     }
 
+    /// <summary><b>A dip adds to the ground a stack follows.</b> Fully following a ramp that climbs one block a
+    /// column, with a dip of −1 east, the datum is the ground less the climb: the same bands a level stack
+    /// starting at the ground's height at the origin lays, in every column the window is clear of the ends.</summary>
+    [Test]
+    public async Task A_dip_adds_to_the_ground_a_following_stack_reads()
+    {
+        var dipped = Beds(follow: 100, from: -12) with { Dip = new BedDip(-1, 0) };
+        for (var depth = 0; depth < 9; depth++)
+        {
+            var row = AtDepth(dipped, depth);
+            var level = AtDepth(Beds(follow: 0, from: -12 + 10), depth);
+            await Assert.That(row.Zip(level).Count(pair => pair.First != pair.Second)).IsLessThanOrEqualTo(2);
+        }
+    }
+
     // ── the angle mask (TP24) ──────────────────────────────────────────────────────────────────────────
 
     /// <summary>A board 27 wide: a level field at x 0..8, a ramp climbing one block a cell at x 9..17, and a
@@ -958,6 +973,57 @@ public sealed class TerrainPainterTests
         for (var z = 0; z < 15; z++)
             columns.Add(Seg(x, z, 1, 10 + x / tread));
         return TerrainBuilder.Build(columns);
+    }
+
+    private static ColumnProfile Interior(int top, int slope) =>
+        new(top, VoidEdge: false, OpenEdge: false, ClosedEdge: false, VoidDrop: -1, TerrainDrop: -1, Slope: slope);
+
+    [Test]
+    public async Task A_surface_that_thins_with_the_slope_lies_three_deep_on_level_ground_and_none_on_a_cliff()
+    {
+        var theme = TerrainTheme.Default with { Surface = TerrainTheme.Default.Surface with { Depth = 1, Soil = SoilDepth.Thinning } };
+        int Courses(int slope) => TerrainPainter.Resolve(Interior(40, slope), theme)
+            .Where(band => band.Bucket == TerrainBucket.Surface).Sum(band => band.HiY - band.LoY);
+
+        await Assert.That(Courses(0)).IsEqualTo(3);
+        await Assert.That(Courses(24)).IsEqualTo(3);
+        await Assert.That(Courses(25)).IsEqualTo(2);
+        await Assert.That(Courses(40)).IsEqualTo(1);
+        await Assert.That(Courses(55)).IsEqualTo(0).Because("steeper than every entry, the rock shows");
+        await Assert.That(TerrainPainter.Resolve(Interior(40, 70), theme)[^1].Bucket).IsEqualTo(TerrainBucket.Fill);
+        await Assert.That(TerrainPainter.Resolve(Interior(40, 70), TerrainTheme.Default)[^1].Bucket)
+            .IsEqualTo(TerrainBucket.Surface).Because("a surface that states no soil keeps its depth at any slope");
+    }
+
+    [Test]
+    public async Task A_tread_beside_a_step_reads_as_a_ledge_and_a_ramp_keeps_its_angle()
+    {
+        var columns = new List<ColumnSegment>();
+        for (var x = 0; x < 21; x++)
+        for (var z = 0; z < 15; z++)
+            columns.Add(Seg(x, z, 1, x < 10 ? 10 : 14));
+        var terrain = TerrainBuilder.Build(columns);
+        var profile = new TerrainProfile(terrain.World, terrain.SurfaceTop);
+
+        foreach (var cell in new[] { (9, 7), (10, 7), (11, 7) })
+        {
+            await Assert.That(profile.TryGetColumn(cell, out var tread)).IsTrue();
+            await Assert.That((cell, tread.Slope)).IsEqualTo((cell, TerrainProfile.LedgeTread))
+                .Because("three of its four neighbours stand level with it");
+        }
+        var ramp = new TerrainProfile(Hillside().World, Hillside().SurfaceTop);
+        await Assert.That(ramp.TryGetColumn((13, 7), out var climbing)).IsTrue();
+        await Assert.That(climbing.Slope).IsEqualTo(45);
+    }
+
+    [Test]
+    public async Task A_surfaces_soil_survives_the_theme_json_and_the_library_decomposition()
+    {
+        var theme = TerrainTheme.Default with { Surface = TerrainTheme.Default.Surface with { Soil = SoilDepth.Thinning } };
+
+        await Assert.That(TerrainThemeJson.Deserialize(TerrainThemeJson.Serialize(theme))).IsEqualTo(theme);
+        await Assert.That(TerrainThemeComposer.Compose(TerrainThemeComposer.Decompose(theme))).IsEqualTo(theme);
+        await Assert.That(TerrainThemeJson.Serialize(theme)).Contains("\"below\":25");
     }
 
     [Test]
@@ -1039,11 +1105,13 @@ public sealed class TerrainPainterTests
         var terrain = TerrainBuilder.Build(columns);
 
         foreach (var (window, expected) in new[] { (1, 72), (2, 56), (3, 45) })
-        {
-            var profile = new TerrainProfile(terrain.World, terrain.SurfaceTop, slopeWindow: window);
-            await Assert.That(profile.TryGetColumn((11, 7), out var lip)).IsTrue();
-            await Assert.That((window, lip.Slope)).IsEqualTo((window, expected));
-        }
+            await Assert.That((window, TerrainProfile.SlopeAt(terrain.SurfaceTop, 11, 7, window))).IsEqualTo((window, expected));
+
+        // The paint reads the lip as the ledge it is: three of its four neighbours stand level with it, so the
+        // top of the face keeps its turf and the face itself is the wall under it.
+        var painted = new TerrainProfile(terrain.World, terrain.SurfaceTop);
+        await Assert.That(painted.TryGetColumn((11, 7), out var lip)).IsTrue();
+        await Assert.That(lip.Slope).IsEqualTo(TerrainProfile.LedgeTread);
     }
 
     [Test]

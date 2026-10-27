@@ -22,7 +22,7 @@ public static class RoomStyleScope
     /// building over it, which is what a spawn on a plateau the plan already shaped often wants to be.
     ///
     /// <para>Three answers, because absent and none are different questions. A snapshot that is absent — or
-    /// unreadable, since it is a hand-editable leaf — falls back to that kind's built-in shell, so a sketch
+    /// unreadable, since it is a hand-editable leaf — falls back to that kind's bedrock box, so a sketch
     /// that never opened the step exports the shipped rooms. A snapshot that is explicitly null asked for no
     /// building, and gets none.</para>
     ///
@@ -81,7 +81,7 @@ public static class RoomStyleScope
 }
 
 /// <summary>The shell each kind of room is stamped in, as <see cref="RoomStyleScope.StylesOf(string)"/> resolves it
-/// from a board's finish: a bound style, that kind's built-in shell, or <b>null</b> for open ground.
+/// from a board's finish: a bound style, that kind's bedrock box, or <b>null</b> for open ground.
 ///
 /// <para>It travels rather than being re-asked because a room with no building over it takes its whole
 /// region, while one with a shell is inset by a wall (<see cref="RoomFrames"/>) and sizes a different default
@@ -90,7 +90,7 @@ public static class RoomStyleScope
 public readonly record struct RoomShells(HouseStyle? Wool, HouseStyle? Spawn)
 {
 
-    /// <summary>Both kinds on their built-in shell: what a board that bound nothing is stamped with, and the
+    /// <summary>Both kinds on their bedrock box: what a board that bound nothing is stamped with, and the
     /// pair to state where there is no board to read one from.</summary>
     public static RoomShells BuiltIn { get; } = new(HouseStyle.Wool, HouseStyle.Spawn);
 }

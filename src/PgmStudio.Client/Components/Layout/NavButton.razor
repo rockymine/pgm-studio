@@ -1,16 +1,17 @@
 @namespace PgmStudio.Client.Components
 
-@* One nav-rail button — a single Lucide glyph, Active when it is the current activity. Renders an
-   <a> when Href is set (navigation), else a <button> (state switch) that can be Disabled and carry a
-   status dot (Status = green | yellow | red → data-status). *@
+@* One nav-rail button — a Lucide glyph over its name, Active when it is the current activity. The name is always
+   on show rather than left to a hover, because a rail of glyphs alone asks the author to remember which
+   is which. Renders an <a> when Href is set (navigation), else a <button> (state switch) that can be Disabled and
+   carry a status dot (Status = green | yellow | red → data-status). *@
 
 @if (Href is not null)
 {
-    <a class="@Cls" href="@Href" title="@Title" data-status="@Status"><i data-lucide="@Icon"></i></a>
+    <a class="@Cls" href="@Href" data-status="@Status"><i data-lucide="@Icon"></i><span class="nav-btn-caption">@Title</span></a>
 }
 else
 {
-    <button class="@Cls" title="@Title" disabled="@Disabled" data-status="@Status" @onclick="OnClick"><i data-lucide="@Icon"></i></button>
+    <button class="@Cls" disabled="@Disabled" data-status="@Status" @onclick="OnClick"><i data-lucide="@Icon"></i><span class="nav-btn-caption">@Title</span></button>
 }
 
 @code {

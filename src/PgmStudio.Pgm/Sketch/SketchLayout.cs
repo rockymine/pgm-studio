@@ -2,6 +2,7 @@
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using PgmStudio.Geom;
+using PgmStudio.Geom.Relief;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Vocabulary;
 
@@ -44,7 +45,7 @@ public sealed class SketchLayout
 
     /// <summary>The finish of the map's stamped rooms: one style for every wool room and one for every spawn
     /// room. Map-wide on purpose — a shell that differed between teams would be a sightline that differed
-    /// between teams. Snapshots, like the themes. Absent stamps the built-in shells.</summary>
+    /// between teams. Snapshots, like the themes. Absent stamps the bedrock boxes.</summary>
     [JsonPropertyName("roomStyles")] public SketchRoomStyles? RoomStyles { get; set; }
 
     /// <summary>What the author put on the map — paths, trees, boulders, areas of cover — each carrying its
@@ -68,13 +69,18 @@ public sealed class SketchLayout
     /// the note a copied theme carries in <see cref="ThemeSources"/>, for one field rather than a registry.</summary>
     [JsonPropertyName("biomeSource")] public long? BiomeSource { get; set; }
 
-    /// <summary>Interior elevation, keyed by group id. It rides at the top level rather than inside the
-    /// shapes because it is stated of a group, which several shapes fuse into.</summary>
-    [JsonPropertyName("relief")] public Dictionary<string, SketchReliefJson>? Relief { get; set; }
+    /// <summary>The board's paint rules, in the order they are read: a material laid over a column's top courses
+    /// where its slope, height, noise or nearness to a modifier say so, the first rule a column meets winning over
+    /// its theme (<see cref="SketchPaintRuleJson"/>). Absent, every column paints its theme.</summary>
+    [JsonPropertyName("paint")] public List<SketchPaintRuleJson>? Paint { get; set; }
+
+    /// <summary>The terraform operations run over the built ground, in the order they run
+    /// (<see cref="SketchModifierJson"/>).</summary>
+    [JsonPropertyName("modifiers")] public List<SketchModifierJson>? Modifiers { get; set; }
 
     /// <summary>What the layout states about the ground under each play room, by the id of the shape the room
     /// is drawn as (<see cref="RoomGround"/>). The rooms themselves are the intent's, drawn in by
-    /// <see cref="RoomShapes.Project"/>; absent, every room is ordinary ground the relief does not pin.</summary>
+    /// <see cref="RoomShapes.Project"/>; absent, every room holds its own ground against the modifiers.</summary>
     [JsonPropertyName("rooms")] public Dictionary<string, RoomGround>? Rooms { get; set; }
 
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -93,10 +99,10 @@ public sealed class SketchLayout
 
     /// <summary>The keys that hold a map's finish rather than its shape: the terrain-theme registry, where
     /// each of its themes was copied from and the map default, the two bound room shells, every placed prop,
-    /// and the biome the ground is tinted by. A plan states where the ground is and nothing about how it
-    /// looks, so a layout compiled from one carries none of them.</summary>
+    /// the biome the ground is tinted by, and the paint rules. A plan states where the ground is and nothing about
+    /// how it looks, so a layout compiled from one carries none of them.</summary>
     public static readonly string[] FinishKeys =
-        ["themes", "themeSources", "mapTheme", "roomStyles", "dressing", "biome", "biomeSource"];
+        ["themes", "themeSources", "mapTheme", "roomStyles", "dressing", "biome", "biomeSource", "paint"];
 
     /// <summary>The layers a document draws, in draw order — the one place the stack is read, so a gate, a
     /// rasterizer and a theme scope cannot disagree about which shapes a document holds. A document stating
@@ -134,7 +140,7 @@ public sealed class SketchLayout
 ///
 /// <para>Each answers in one of <b>three</b> states, which is why these are bare <see cref="JsonElement"/>s
 /// rather than nullable ones: an <b>object</b> is the bound style; <b>absent</b> is a sketch that never picked
-/// one, which stamps that kind's built-in shell; and an explicit <b>null</b> is no building at all — a pad on
+/// one, which stamps that kind's bedrock box; and an explicit <b>null</b> is no building at all — a pad on
 /// open ground, which the stampers have always accepted and nothing could ask them for. A nullable property
 /// collapses the last two into one, and the collapse is not harmless: loading a map that bound nothing and
 /// saving it again would write the null and turn every one of its rooms into open ground.</para>
@@ -208,6 +214,13 @@ public sealed class SketchLayer
     /// footprint, so a made thing settles into a slope instead of floating over it or being buried by
     /// it.</summary>
     [JsonPropertyName("seat")]   public string? Seat { get; set; }
+
+    /// <summary>The rock hanging under this layer's ground: absent, every column is the flat slab its shapes
+    /// state; stated, each column's floor is lowered to an underside that tapers in from the rim
+    /// (<see cref="UndersideSpec"/>), and rests on the terrain below where less than
+    /// <see cref="PgmStudio.Geom.Relief.Underside.Clear"/> blocks would stand clear of it. One layer is one landmass, so the underside
+    /// is the layer's and not a shape's: two shapes of a layer that touch hang as one island.</summary>
+    [JsonPropertyName("underside")] public UndersideSpec? Underside { get; set; }
 
     /// <summary>Whether this layer is a made thing rather than terrain.</summary>
     [JsonIgnore] public bool IsMade => string.Equals(Kind, MadeKind, StringComparison.OrdinalIgnoreCase);
@@ -294,7 +307,7 @@ public sealed class SketchShapes
 /// <summary>Groups shapes into a landmass and records whether the group is copied onto the mirror.</summary>
 public sealed class SketchGroup
 {
-    /// <summary>What the rest of the document names the group by — a relief is keyed on it.</summary>
+    /// <summary>What the rest of the document names the group by.</summary>
     [JsonPropertyName("id")]       public string? Id { get; set; }
 
     /// <summary>What the group is called on screen.</summary>
@@ -324,8 +337,9 @@ public sealed class SketchShape
     /// <summary>What the group lists and the theme scope names this shape by.</summary>
     [JsonPropertyName("id")]        public string Id { get; set; } = "";
 
-    /// <summary>What it is: <c>rectangle</c>, <c>circle</c>, <c>polygon</c>, <c>lasso</c>, <c>polyline</c> —
-    /// which says which of the numbers below it carries.</summary>
+    /// <summary>What it is: <c>rectangle</c>, <c>circle</c>, <c>polygon</c>, <c>lasso</c>, <c>polyline</c>, or a
+    /// solid — <c>box</c>, <c>wedge</c>, <c>cylinder</c>, <c>sphere</c>, <c>torus</c>, <c>arch</c> — which says
+    /// which of the numbers below it carries.</summary>
     [WordSet(typeof(ShapeKinds))]
     [JsonPropertyName("type")]      public string Type { get; set; } = "";
 
@@ -388,9 +402,10 @@ public sealed class SketchShape
     // spans [Floor, Floor + BaseHeight]. For a polygon/lasso whose AnchorHeights line up with its Vertices,
     // the thickness varies per vertex (TIN-interpolated across the footprint). All optional; absent = the
     // flat one-block Y=0 behaviour.
-    /// <summary>How this shape's top is decided, once a group carries a relief. Absent, the shape is
-    /// ordinary ground and the relief is the ground — which is what a shape drawn to make a landmass wants.
-    /// The words are for a shape that is meant to stand OUT of the field rather than be part of it:
+    /// <summary>How this shape's top is decided. Absent, the shape is ordinary ground, its top the height
+    /// it states, and the modifier stack shapes it — which is what a shape drawn to make a landmass wants.
+    /// The words are for a shape that is meant to stand OUT of the ground rather than be part of it, and the
+    /// modifiers leave its columns out:
     /// <c>level</c> cuts a flat top at an absolute height (a mesa, whose faces are cliffs), <c>raise</c> holds
     /// it a fixed amount above the middle of the ground under it (a monolith or a plinth, which keeps its
     /// prominence wherever it is dragged), <c>sink</c> the same downward (a quarry, a sunken arena), and
@@ -405,20 +420,11 @@ public sealed class SketchShape
     /// sits it IN the terrain instead of on it.</summary>
     [JsonPropertyName("skirt")]          public int? Skirt { get; set; }
 
-    /// <summary>Whether this shape's ground takes part in its group's relief. The group is the unit a relief
-    /// is solved over, because a relief solved per shape leaves a seam wherever two of them meet and disagree
-    /// about the height they share. The fusion is not always what an author wants, and the case that decides
-    /// it is a built thing standing on the ground — a city, a keep, a walled compound — whose floor is not
-    /// terrain and which is themed as a unit. The three words are <see cref="ReliefScopes"/>:
-    /// <c>follow</c> takes the height the field settles on under the shape and holds it flat there, so the
-    /// shape moves with the terrain and keeps a level floor; <c>hold</c> pins it at its own stated top
-    /// whatever the relief wants, so the surrounding surface is solved knowing where it has to arrive and
-    /// ground that disagrees meets it as a face; <c>exclude</c> pins nothing and takes the footprint out of
-    /// the solve entirely, so the land is whatever that outline would have produced and the shape keeps its
-    /// own height. Absent is <c>inherit</c> — the shape is part of the group's ground.
-    /// <para>Not read on a shape that declares a <see cref="HeightMode"/>: such a shape already stands out of
-    /// the field, and <c>raise</c>/<c>sink</c> read the ground under their own footprint to know where to
-    /// stand, which an excluded footprint would not have.</para></summary>
+    /// <summary>Whether the modifier stack leaves this shape's ground alone. <c>hold</c> keeps its columns at
+    /// the top the shape states — a city, a keep, a walled compound, whose floor is not terrain and is themed as
+    /// a unit — and the ground round it is shaped up to its edge. Absent, the shape is part of the ground and
+    /// the modifiers shape it (<see cref="ReliefScopes"/>).
+    /// <para>A shape that declares a <see cref="HeightMode"/> is held whatever this says.</para></summary>
     [JsonPropertyName("relief_scope")]   public string? ReliefScope { get; set; }
 
     /// <summary>The shape's thickness: its column spans <c>[floor, floor + base_height]</c>. Absent is the
@@ -480,4 +486,34 @@ public sealed class SketchShape
     /// same question and a document that states both says nothing about which was meant.</para></summary>
     [JsonPropertyName("material")]   public JsonElement? Material { get; set; }
 
+    // The solids. A box and a wedge read a rectangle's bounds; a cylinder, a sphere and a torus a circle's
+    // centre and radius; an arch a polyline's vertices and radius. Height is `floor` and `base_height`.
+    /// <summary>Degrees a solid is turned about the vertical through its centre, clockwise as the canvas draws
+    /// it: its width axis points <c>(cos turn, sin turn)</c> on the plan. Absent is none.</summary>
+    [JsonPropertyName("turn")]  public double? Turn { get; set; }
+
+    /// <summary>Degrees a solid is tilted about its own width axis, after <c>turn</c>: its depth end rises, so
+    /// a box of tilt 45 is a ramp climbing along its depth and a torus of tilt 90 stands on its edge. Absent is
+    /// upright.</summary>
+    [JsonPropertyName("tilt")]  public double? Tilt { get; set; }
+
+    /// <summary>Blocks a solid is bedded below its <c>floor</c>: its lowest point stands <c>floor − sunk</c>,
+    /// so a sphere floored at the ground's top and sunk by 3 has three blocks of it under the surface.</summary>
+    [JsonPropertyName("sunk")]  public double? Sunk { get; set; }
+
+    /// <summary>A torus's tube radius, in blocks. The ring's outer edge is the shape's <c>radius</c>.</summary>
+    [JsonPropertyName("tube")]  public double? Tube { get; set; }
+
+    /// <summary>An arch's deck as <c>[crown, end]</c> or <c>[crown, end, power]</c>: the height, over the
+    /// layer's base, of the walkable surface at the middle of the span and at its feet, eased by the power
+    /// (1 is straight). Absent is a flat deck at <c>floor + base_height</c>.</summary>
+    [JsonPropertyName("deck")]  public double[]? Deck { get; set; }
+
+    /// <summary>The rock under an arch's deck as <c>[crown, end]</c> or <c>[crown, end, power]</c>, in blocks
+    /// thick. Absent is <c>[4, 12, 1.5]</c>: thin at the crown and heavy at the feet.</summary>
+    [JsonPropertyName("thick")] public double[]? Thick { get; set; }
+
+    /// <summary>Blocks an arch's deck falls towards its two sides, as the square of the distance from the
+    /// centreline over the half-width. Absent is a deck level across.</summary>
+    [JsonPropertyName("camber")] public double? Camber { get; set; }
 }

@@ -11,7 +11,7 @@ namespace PgmStudio.Api.Tests;
 ///
 /// <para><b>Both halves are the test.</b> A misspelled property is dropped by the deserializer and the request
 /// answers 200, so the loss is invisible from the response: fourteen rectangles keyed <c>x</c>/<c>z</c>/
-/// <c>w</c>/<c>h</c> covered no ground under an <c>{"ok": true}</c>, and a <c>relief</c> written one level too
+/// <c>w</c>/<c>h</c> covered no ground under an <c>{"ok": true}</c>, and a <c>modifiers</c> list written one level too
 /// deep dropped without a word. But a check that fires on a correct document is worse than none, because an
 /// author learns to ignore the warnings and then misses the real one — so the silence is asserted at least as
 /// hard as the complaint.</para>
@@ -89,10 +89,25 @@ public sealed class UnreadFieldTests
         using var client = ApiTestFactory.Shared.CreateClient();
         var slug = await OriginateAsync(client);
 
-        var layout = Layout.Replace("\"groups\":[", "\"relief\":{\"i\":{\"kind\":\"ridge\"}},\"groups\":[");
+        var layout = Layout.Replace("\"groups\":[", "\"modifiers\":[],\"groups\":[");
 
         await Assert.That(await Unread(await client.PutAsync($"/api/map/{slug}/sketch", Json(layout)), "PUT sketch"))
-            .IsEquivalentTo(["layers[0].layout.relief"]);
+            .IsEquivalentTo(["layers[0].layout.modifiers"]);
+    }
+
+    /// <summary>The group-keyed <c>relief</c> a layout used to carry is a name nothing reads any more, so a document
+    /// still stating it is told so rather than built without it in silence.</summary>
+    [Test]
+    public async Task A_relief_at_the_root_of_a_layout_is_named_unread()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var slug = await OriginateAsync(client);
+
+        var layout = Layout.Replace("\"layers\":[", "\"relief\":{\"i\":{\"base\":6}},\"layers\":[");
+
+        await Assert.That(await Unread(await client.PutAsync($"/api/map/{slug}/sketch", Json(layout)), "PUT sketch"))
+            .IsEquivalentTo(["relief"]);
     }
 
     [Test]

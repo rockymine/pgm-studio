@@ -5,6 +5,7 @@ using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Dressing;
+using PgmStudio.Minecraft.Palette;
 using PgmStudio.Minecraft.Stamping;
 using PgmStudio.Pgm;
 using PgmStudio.Pgm.Authoring;
@@ -147,7 +148,7 @@ public static class MapExportComposer
         var goals = built.ResolvedIntent;
 
         // The ground this export ships, as the build itself read it. A sketch map's stored segments are
-        // whatever the last `sketch/finish` rasterized, and a subtract cut, a relief solve or an edit after
+        // whatever the last `sketch/finish` rasterized, and a subtract cut, a modifier or an edit after
         // the finish each move where ground is without re-entering that stage — so the layout in hand is the
         // only reading that describes the world about to be written, and it is the build's reading rather
         // than a second one taken beside it.
@@ -157,6 +158,9 @@ public static class MapExportComposer
         // begun in Sketch never passes the compile gate at all, so this is the only place every export is
         // checked.
         if (RefuseObjectivePlacement(columns, goals, built.Shells) is { } placementRefusal) return placementRefusal;
+
+        // OB37, OB38 — every monument and core floats over the world just built, and stands over ground at y 0.
+        if (CheckGoalsFloat(built.World, goals) is { Count: > 0 } floating) return Refuse("objectives do not float", [.. floating]);
 
         IntentGenerator.Apply(doc, goals);
         decorate?.Invoke(doc);
@@ -534,13 +538,10 @@ public static class MapExportComposer
     /// <para><b>surface</b> — The <b>terrain's</b> tops, cell by cell — <see cref="BuiltWorld.Surface"/>. Not the
     /// board's highest: what stands over a cell is not what a building beside it steps down to, and a balloon
     /// flying over a field would read as a fifty-block plinth under the room beside it.</para></summary>
-    /// <para><b>groupAt</b> — The relief group a cell's ground is solved under, where the caller holds the
-    /// layout to say. With it, the finding states the edit that settles it: an <c>area</c> mark held flat at
-    /// the structure's own floor, two cells past its footprint on every side, on that group's relief. Without
-    /// it the finding carries the sentence alone.</para>
+    /// <para>Each finding states the edit that settles it: a Level modifier at the structure's own floor over
+    /// a ring two cells past its footprint on every side.</para>
     public static Findings CheckStructureSites(
-        IReadOnlyDictionary<(int X, int Z), int> surface, WorldProvenance provenance,
-        Func<(int X, int Z), string?>? groupAt = null)
+        IReadOnlyDictionary<(int X, int Z), int> surface, WorldProvenance provenance)
     {
         var byOwner = new Dictionary<string, List<(int X, int Z)>>();
         foreach (var (cell, pass, owner) in provenance.Claims)
@@ -578,31 +579,38 @@ public static class MapExportComposer
             findings.Add(new Finding(RoomFrameRules.StructureOnAPlinth,
                 $"{identity.Replace(":", " ")} stands {worst} blocks above the ground beside it at "
                 + $"({atX}, {atZ}), more than 1 block",
-                Severity.Complaint, Subjects: [identity], Edit: BenchEdit(identity, cells, floor, groupAt)));
+                Severity.Complaint, Subjects: [identity], Edit: BenchEdit(identity, cells, floor)));
         }
         return findings;
     }
 
-    /// <summary>The change that meets a structure on falling ground: an <c>area</c> mark on its group's
-    /// relief, held at the structure's own floor over a ring two cells past its footprint, so the ground
-    /// beside it is level with it rather than under it. Null where no group owns the footprint's cells.</summary>
-    private static DocumentEdit? BenchEdit(string identity, List<(int X, int Z)> cells, int floor,
-                                          Func<(int X, int Z), string?>? groupAt)
+    /// <summary>The change that meets a structure on falling ground: a Level modifier at the structure's own
+    /// floor over a ring two cells past its footprint, so the ground beside it is level with it rather than
+    /// under it. It does not fan under the symmetry: every image of a structure states its own.</summary>
+    private static DocumentEdit BenchEdit(string identity, List<(int X, int Z)> cells, int floor)
     {
-        if (groupAt is null || cells.Count == 0) return null;
-        var group = cells.Select(groupAt).FirstOrDefault(found => found is not null);
-        if (group is null) return null;
         int minX = cells.Min(cell => cell.X) - 2, maxX = cells.Max(cell => cell.X) + 2;
         int minZ = cells.Min(cell => cell.Z) - 2, maxZ = cells.Max(cell => cell.Z) + 2;
         var unit = identity.Split(':') is { Length: 3 } parts ? $"{parts[1]}-{parts[2]}" : identity;
-        return DocumentEdit.Of(MapDocuments.Layout, $"relief.{group}.marks", DocumentEdit.Add,
+        return DocumentEdit.Of(MapDocuments.Layout, "modifiers", DocumentEdit.Add,
             new
             {
-                id = $"bench-{unit}", kind = "area", h = floor,
-                ring = new[] { new[] { minX, minZ }, new[] { maxX, minZ }, new[] { maxX, maxZ }, new[] { minX, maxZ } },
+                id = $"bench-{unit}", op = ModifierOps.Level, top = floor,
+                mask = new
+                {
+                    areas = new[]
+                    {
+                        new
+                        {
+                            kind = MaskKinds.Polygon,
+                            points = new[] { new[] { minX, minZ }, new[] { maxX, minZ }, new[] { maxX, maxZ }, new[] { minX, maxZ } },
+                        },
+                    },
+                    mirror = false,
+                },
             },
-            $"add an area mark held at {floor} over x between {minX} and {maxX}, z between {minZ} and {maxZ} "
-            + $"to `relief.{group}.marks`");
+            $"add a Level modifier at {floor} over x between {minX} and {maxX}, z between {minZ} and {maxZ} "
+            + "to `modifiers`");
     }
 
     /// <summary>
@@ -634,6 +642,49 @@ public static class MapExportComposer
                         Subjects: [wool.Owner]));
 
         findings.AddRange(GoalsSharingGround(goals));
+        return findings;
+    }
+
+    /// <summary><b><c>OB37</c>, <c>OB38</c> — every monument and core floats over the ground under it.</b> A goal on
+    /// the floor is trivially covered and a core on it cannot leak, so under each column of its structure there is at
+    /// least its <c>float</c> of air before whatever stands below; and every one of those columns has a block at y 0,
+    /// or PGM's void rule refuses breaking the goal's block and placing the lava it lets out. Asked of the world as
+    /// built, so a tree, a house or a wall standing under a goal is seen, and skipped for a goal switching its
+    /// <c>floatCheck</c> off. The defence chest the build stands on the ground under every goal is the goal's own
+    /// supply, reached through the gap, so it counts as the gap.</summary>
+    public static Findings CheckGoalsFloat(VoxelWorld world, MapIntent goals)
+    {
+        var findings = new List<Finding>();
+        void Ask(string kind, string name, BlockBox? structure, int floats, string[]? off)
+        {
+            if (structure is not { } box || !StampSwitches.On(off, StampSwitches.FloatCheck)) return;
+            var shortest = int.MaxValue;
+            var bare = new List<(int X, int Z)>();
+            for (var x = box.MinX; x <= box.MaxX; x++)
+            for (var z = box.MinZ; z <= box.MaxZ; z++)
+            {
+                var lowest = Enumerable.Range(box.MinY, box.MaxY - box.MinY + 1)
+                    .Where(y => world.GetBlock(x, y, z).Id != Blocks.Air).DefaultIfEmpty(-1).Min();
+                if (lowest < 0) continue;
+                var air = 0;
+                for (var y = lowest - 1; y > 0 && Clear(world.GetBlock(x, y, z).Id); y--) air++;
+                shortest = Math.Min(shortest, air);
+                if (world.GetBlock(x, 0, z).Id == Blocks.Air) bare.Add((x, z));
+            }
+            if (shortest < floats)
+                findings.Add(new Finding(ObjectiveRules.FloatShort,
+                    $"{kind} '{name}' at ({box.MinX}, {box.MinY}, {box.MinZ}) has {shortest} blocks of air under it, "
+                    + $"less than its float of {floats}", Subjects: [name], Measured: new Measurement(shortest, Low: floats)));
+            if (bare.Count > 0)
+                findings.Add(new Finding(ObjectiveRules.VoidUnderGoal,
+                    $"{kind} '{name}' has {bare.Count} of its columns with nothing at y 0, first at ({bare[0].X}, 0, {bare[0].Z})",
+                    Subjects: [name]));
+        }
+        static bool Clear(int block) => block is Blocks.Air or Blocks.Chest;
+        foreach (var goal in goals.Destroyables ?? [])
+            Ask("monument", goal.Id.Length > 0 ? goal.Id : goal.Name, goal.Box, goal.Float, goal.StampsOff);
+        foreach (var core in goals.Cores ?? [])
+            Ask("core", core.Id.Length > 0 ? core.Id : core.Name, core.Box, core.Float, core.StampsOff);
         return findings;
     }
 

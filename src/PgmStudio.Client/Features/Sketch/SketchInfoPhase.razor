@@ -14,7 +14,7 @@
       {
         <Section Title="Details">
           <Field Label="Map name" Required For="sk-name">
-            <input id="sk-name" class="field-input" type="text" placeholder="e.g. Harbour Run"
+            <input id="sk-name" class="field-input" type="text"
                    value="@name" @oninput="e => { name = e.Value?.ToString() ?? string.Empty; Dirty(); }" />
           </Field>
         </Section>
@@ -26,7 +26,7 @@
       else
       {
         <Section Title="Symmetry">
-          <Field Label="Symmetry">
+          <Field Label="Mode">
             <Select Slim="false" Options="ModeOptions" Value="@Mode" ValueChanged="OnModeChange" />
           </Field>
           @* With no symmetry nothing turns about the centre, so there is no centre to state. *@

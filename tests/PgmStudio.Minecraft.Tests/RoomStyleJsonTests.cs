@@ -29,14 +29,14 @@ public sealed class RoomStyleJsonTests
         await Assert.That(members).IsEquivalentTo(new[]
         {
             "Beams", "Doorway", "Front", "Foundation",
-            "Porch", "Post", "Roof", "Storeys", "Wall", "Windows",
+            "Head", "Porch", "Post", "Roof", "Storeys", "Wall", "Windows",
         }.Order().ToList());
     }
 
     /// <summary>
     /// <b>A snapshot outlives the shape it was written in.</b> A map keeps its bound style rather than a key
     /// into the library, so every style ever stored is still out there in a layout blob — and the reader falls
-    /// back to the built-in shell on anything it cannot make sense of, which turns a shape change without an
+    /// back to the bedrock box on anything it cannot make sense of, which turns a shape change without an
     /// upgrade into a map that quietly stops looking like itself rather than into an error.
     ///
     /// <para>The sill, the floor and its zoning were three fields beside everything else; they are the one
@@ -165,7 +165,7 @@ public sealed class RoomStyleJsonTests
         // not before, since a style ran no material upgrade at all.
         var nested = (LayeredMaterial)style.Wall.Stack.Bands[1].Material;
         await Assert.That(nested.Stack.Bands.Select(band => band.Thickness)).IsEquivalentTo([1, 2]);
-        await Assert.That(nested.Stack.Ending).IsEqualTo(BandEnding.Repeat);
+        await Assert.That(nested.Stack.Ending).IsEqualTo(BandEnding.Hold);
     }
 
     /// <summary>The material walk runs over a style, so a pattern stored before it had bands reads forward

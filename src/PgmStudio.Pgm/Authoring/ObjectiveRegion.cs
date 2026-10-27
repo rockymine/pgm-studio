@@ -34,6 +34,26 @@ internal static class ObjectiveRegion
         return regionId;
     }
 
+    /// <summary>
+    /// Emit a <c>&lt;cylinder&gt;</c> standing in <paramref name="box"/> — its base the middle of the box's floor,
+    /// its radius half the box's width, as tall as the box — and return its id. What a round pad is captured in.
+    /// </summary>
+    public static string EmitCylinder(Dict doc, string objectiveId, BlockBox box, string suffix)
+    {
+        var regionId = $"{objectiveId}-{suffix}";
+        RegionEditor.CreateRegion(doc, new Dict
+        {
+            ["type"] = "cylinder", ["id"] = regionId, ["category"] = "objective",
+            ["coords"] = new Dict
+            {
+                ["base_x"] = (box.MinX + box.MaxX + 1) / 2.0, ["base_y"] = (double)box.MinY,
+                ["base_z"] = (box.MinZ + box.MaxZ + 1) / 2.0, ["radius"] = (box.MaxX - box.MinX + 1) / 2.0,
+                ["height"] = (double)(box.MaxY - box.MinY + 1),
+            },
+        });
+        return regionId;
+    }
+
     /// <summary>An id not already taken by a sibling objective. A duplicate id silently re-points every
     /// reference to whichever won, so a collision must resolve rather than land.</summary>
     public static string UniqueId(List<object?> siblings, string baseId, string fallback)

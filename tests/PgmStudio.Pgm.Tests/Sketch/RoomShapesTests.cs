@@ -19,7 +19,7 @@ public sealed class RoomShapesTests
         {"layers":[{"id":"ground","base_y":0,"layout":{"shapes":[
             {"id":"land","type":"rectangle","operation":"add","min_x":0,"min_z":0,"max_x":60,"max_z":60}],
           "groups":[]}}],
-         "rooms":{"spawn-red":{"base_height":9,"relief_scope":"follow","doors":["-z"]},
+         "rooms":{"spawn-red":{"base_height":9,"relief_scope":"hold","doors":["-z"]},
                   "spawn-red-building":{"theme":"stone"}}}
         """;
 
@@ -50,10 +50,10 @@ public sealed class RoomShapesTests
         await Assert.That((spawn.MinX, spawn.MinZ, spawn.MaxX, spawn.MaxZ)).IsEqualTo((10.0, 10.0, 20.0, 20.0));
         await Assert.That(spawn.Role).IsEqualTo(StructuralRoles.Spawn);
         await Assert.That(spawn.Color).IsEqualTo("red");
-        await Assert.That(spawn.ReliefScope).IsEqualTo(ReliefScopes.Follow);
+        await Assert.That(spawn.ReliefScope).IsEqualTo(ReliefScopes.Hold);
         await Assert.That(spawn.Doors).IsEquivalentTo(new[] { "-z" });
         await Assert.That(rooms.Single(room => room.Id == "spawn-red-building").Theme).IsEqualTo("stone");
-        // A room with no record is ordinary ground the relief does not pin.
+        // A room with no record states nothing about its ground.
         await Assert.That(rooms.Single(room => room.Id == "wool-red-lime").ReliefScope).IsNull();
     }
 

@@ -47,7 +47,6 @@ public partial class SketchDressingInspector
     private int pickedWing;                   // which wing of a picked building the wing settings are for
     private string kind = "";
 
-    private DressingPreviewDto? preview;
     private RefusalDto? refusal;              // why the gate would not take this prop, in its own findings
     private List<Problem> refused = [];       // those findings as the list shows them
     private string? note;                     // what the last canvas operation did, or would not do
@@ -298,36 +297,13 @@ public partial class SketchDressingInspector
     /// is, or nothing where it is neither — a material edited by hand before patterns were picked.</summary>
     private SlotFill SlotOf(string field) => SlotOfMaterial(Material(field));
 
-    private SlotFill SlotOfMaterial(JsonObject? material)
-    {
-        if (material is null) return SlotFill.None;
-        var kindWord = material["kind"]?.GetValue<string>();
-        if (kindWord is "solid" or "laidLog" && material["id"] is { } id)
-            return new SlotFill(0, new SlotBlockDto(id.GetValue<int>(), material["data"]?.GetValue<int>() ?? 0, kindWord == "laidLog"));
-        var canonical = Canonical(material);
-        foreach (var style in styles)
-        {
-            JsonNode? parsed;
-            try { parsed = JsonNode.Parse(style.Params); } catch (JsonException) { continue; }
-            if (parsed is not null && Canonical(parsed) == canonical) return new SlotFill(style.Id, null);
-        }
-        return SlotFill.None;
-    }
+    private SlotFill SlotOfMaterial(JsonObject? material) => SlotFill.Of(material, styles);
 
     /// <summary>The unbound row of a slot that is always filled: offered only where the material is one no
     /// block or pattern names, which is then what it reads as.</summary>
     private string? UnboundLabel(string field) => Material(field) is not null && !SlotOf(field).Bound ? "Custom" : null;
 
-    private JsonObject? MaterialOf(SlotFill fill)
-    {
-        if (fill.Block is { } block)
-            return new JsonObject { ["kind"] = block.Laid ? "laidLog" : "solid", ["id"] = block.Id, ["data"] = block.Data };
-        if (styles.FirstOrDefault(style => style.Id == fill.StyleId) is { } picked)
-        {
-            try { return JsonNode.Parse(picked.Params) as JsonObject; } catch (JsonException) { return null; }
-        }
-        return null;
-    }
+    private JsonObject? MaterialOf(SlotFill fill) => fill.ToMaterial(styles);
 
     /// <summary>Copy the picked block or pattern onto the prop. The unbound row of an always-filled slot keeps
     /// what is there.</summary>
@@ -337,18 +313,6 @@ public partial class SketchDressingInspector
         await Set(field, material);
         if (field == PropFields.Pave) strokeStyles = await Library.StrokeStylesAsync(Spec(field));
     }
-
-    /// <summary>A JSON value with every object's keys in order, so two materials stated in different key orders
-    /// compare equal.</summary>
-    private static string Canonical(JsonNode node) => Sorted(node)?.ToJsonString() ?? "null";
-
-    private static JsonNode? Sorted(JsonNode? node) => node switch
-    {
-        JsonObject obj => new JsonObject(obj.OrderBy(entry => entry.Key, StringComparer.Ordinal)
-            .Select(entry => KeyValuePair.Create(entry.Key, Sorted(entry.Value)))),
-        JsonArray array => new JsonArray([.. array.Select(Sorted)]),
-        _ => node?.DeepClone(),
-    };
 
     /// <summary>Whether this kind reads its seed: a hand-built tree, a chest and a building build the same
     /// whatever it is.</summary>
@@ -360,7 +324,7 @@ public partial class SketchDressingInspector
     /// literal.</summary>
     private static readonly (string Key, string Label)[] Sides =
     [
-        ("negZ", "−z"), ("posZ", "+z"), ("negX", "−x"), ("posX", "+x"),
+        ("negZ", "North"), ("posZ", "South"), ("negX", "West"), ("posX", "East"),
     ];
 
     /// <summary>One of the prop's materials as a query parameter, so a shape card is drawn in the material the
@@ -383,12 +347,17 @@ public partial class SketchDressingInspector
         if (Handle is not null) await Handle.InvokeVoidAsync("updateWing", change.Wing, change.Spec.ToJsonString());
     }
 
-    /// <summary>Redraw the picture when the prop changed, one request at a time. The preview is a round trip
-    /// that runs the real pass and a dragged slider changes the prop faster than that, so a change made while
-    /// one is out is drawn when it lands — only the newest, never every step in between.</summary>
+    /// <summary>A building in hand before its rectangle is dragged has no wing to draw, so it asks for no picture
+    /// and raises no refusal: the header says how to place it.</summary>
+    private bool UnplacedBuilding
+        => !editingSelection && kind == PropKinds.House && prop?["wings"] is not JsonArray { Count: > 0 };
+
+    /// <summary>Ask the pass whether it takes the prop as it now stands, one request at a time: the answer's refusal
+    /// is what the inspector shows. The request runs the real pass and a dragged slider changes the prop faster than
+    /// that, so a change made while one is out is asked when it lands — only the newest, never every step.</summary>
     private async Task RefreshPreview()
     {
-        if (prop is null) { preview = null; previewedFor = ""; return; }
+        if (prop is null || UnplacedBuilding) { refusal = null; refused = []; previewedFor = ""; return; }
         // The prop plus the recipes it names: the preview reads a registry of one off the prop itself, which
         // is how a placement is drawn without the document it belongs to.
         var asked = (JsonObject)prop.DeepClone();
@@ -406,7 +375,6 @@ public partial class SketchDressingInspector
                 drawn = previewedFor;
                 var answered = await Library.PropPreviewAsync(drawn, themeJson);
                 if (previewedFor.Length == 0) return;
-                preview = answered.Pictures;
                 refusal = answered.Refusal;
                 refused = Problem.Of(refusal?.Findings ?? []);
                 StateHasChanged();
@@ -421,8 +389,9 @@ public partial class SketchDressingInspector
     /// same edit lands on the tool's starting values, so the next prop placed already carries it.</summary>
     private async Task Set(string field, JsonNode? value)
     {
-        if (prop is null || Handle is null) return;
-        prop[field] = value;
+        if (Handle is null) return;
+        if (prop is not null) prop[field] = value;
+        else if (editingSelection || kind.Length == 0) return;
         await Push(new JsonObject { [field] = value?.DeepClone() });
     }
 
@@ -546,13 +515,6 @@ public partial class SketchDressingInspector
         return list;
     }
 
-    /// <summary>A new seed for the same knobs — the one control that changes the result without changing the
-    /// recipe, so an author who likes the shape but not this particular rock can roll again.</summary>
-    private Task Reroll() => Set(PropFields.Seed, JsonValue.Create(Number(prop) + 1));
-
-    private static int Number(JsonObject? prop)
-        => prop?["seed"]?.GetValue<int>() ?? 0;
-
     // ── reading ────────────────────────────────────────────────────────────────
     private double Num(string field, double fallback = 0)
         => prop?[field] is { } node && double.TryParse(node.ToString(), out var value) ? value : fallback;
@@ -587,20 +549,19 @@ public partial class SketchDressingInspector
         await Push(patch);
     }
 
-    private static readonly IReadOnlyDictionary<string, (string Icon, string Title)> KindInfo =
-        new Dictionary<string, (string, string)>
-        {
-            [PropKinds.Stroke] = ("spline", "Stroke"),
-            [PropKinds.Fluid] = ("waves", "Fluid"),
-            [PropKinds.Flora] = ("flower", "Ground cover"),
-            [PropKinds.Tree] = ("trees", "Tree"),
-            [PropKinds.Boulder] = ("mountain", "Boulder"),
-            [PropKinds.House] = ("home", "Building"),
-            [PropKinds.Chest] = ("box", "Chest"),
-        };
+    private PropKindNames.Names Info => PropKindNames.Of(kind);
 
-    private (string Icon, string Title) Info
-        => KindInfo.TryGetValue(kind, out var info) ? info : ("shapes", "Decoration");
+    /// <summary>What a house picked from the library becomes, said wherever one is picked.</summary>
+    internal const string HouseCopyNote = "Picking one copies it here, and later edits in the library do not change it.";
+
+    /// <summary>What a change does: to the picked prop and the next one placed, or, with one in hand, how the
+    /// next is placed.</summary>
+    private string HeadLine => editingSelection
+        ? $"Changes apply to this {Info.One.ToLowerInvariant()} and carry to the next one placed."
+        : $"{Info.Gesture} Hold Shift to place several.";
+
+    private static string Capitalised(string word) =>
+        word.Length == 0 ? word : char.ToUpperInvariant(word[0]) + word[1..];
 
     /// <summary>The recipe an unnamed tree placement builds: <c>TreeStyle</c>'s own defaults.</summary>
     private const string DefaultSpecies = "oak";

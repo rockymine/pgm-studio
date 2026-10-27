@@ -1,6 +1,6 @@
 @namespace PgmStudio.Client.Features.Sketch
 
-@* The board's theme registry, as canvas chrome beside the layer strip. A theme belongs to the board rather
+@* The map's palette registry, as canvas chrome beside the layer strip. A palette belongs to the map rather
    than to a phase, and every click in the Theme phase is addressed to whichever one is in hand — so it hangs
    off the canvas where a thing in hand belongs, rather than in a column the eye has to leave the board to
    read.
@@ -11,10 +11,10 @@
    round-trip per theme on every entry to the phase. *@
 
 <div class="canvas-theme-strip" role="group" aria-label="Palettes">
-  <span class="canvas-theme-strip-label">Paint</span>
+  <span class="canvas-theme-strip-label">Palettes</span>
   @if (Themes.Ids.Count == 0)
   {
-    <span class="canvas-theme-strip-empty">No palettes yet</span>
+    <span class="canvas-theme-strip-empty">No palette yet</span>
   }
   else
   {
@@ -25,7 +25,7 @@
                 class="canvas-theme-swatch @(id == Brush ? "canvas-theme-swatch--on" : null)"
                 title="@Title(id)" @onclick="() => OnTake.InvokeAsync(id)">
           <span class="canvas-theme-swatch-name">@id</span>
-          @if (id == Themes.MapTheme) { <span class="canvas-theme-swatch-tag" title="Default palette: paints ground that no shape covers">default</span> }
+          @if (id == Themes.MapTheme) { <span class="canvas-theme-swatch-tag">default</span> }
         </button>
       }
     </div>
@@ -51,6 +51,6 @@
     [Parameter] public EventCallback OnAdd { get; set; }
 
     private string Title(string id) => id == Brush
-        ? $"Stop painting with “{id}”"
-        : $"Paint with “{id}”. Shift keeps it in hand; Ctrl paints the whole group.";
+        ? $"Stop painting with {id}"
+        : $"Paint with {id} (Shift holds it, Ctrl paints the group)";
 }

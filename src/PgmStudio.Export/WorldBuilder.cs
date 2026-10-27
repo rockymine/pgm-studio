@@ -193,6 +193,7 @@ public static class WorldBuilder
             WoolStructureStamper.Stamp(world, new WoolStructure
             {
                 Frame = frame, FloorY = fy, WoolSlug = slug, Ground = woolGround, Shell = shell, Wings = wings,
+                Chests = StampSwitches.On(w.StampsOff, StampSwitches.Loot),
             });
             Raise(plinths, StructureStamper.FoundationTops(
                 woolGround, frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ));
@@ -210,8 +211,9 @@ public static class WorldBuilder
                              ProvenancePass.Structure, w.Stamp);
             // One marker per wool room — the room is already one entry per orbit image (PlanCompiler fans
             // team-outer), so no orbit math is needed here to keep a mirrored board's markers matching.
-            pendingMarkers.Add(((frame.MinX + frame.MaxX) / 2, (frame.MinZ + frame.MaxZ) / 2,
-                BlockColors.BlockDamage(slug), GoalMarkerShape.Cube));
+            if (StampSwitches.On(w.StampsOff, StampSwitches.Marker))
+                pendingMarkers.Add(((frame.MinX + frame.MaxX) / 2, (frame.MinZ + frame.MaxZ) / 2,
+                    BlockColors.BlockDamage(slug), GoalMarkerShape.Cube));
             provenance.Claim((frame.MinX + frame.MaxX) / 2, (frame.MinZ + frame.MaxZ) / 2, ProvenancePass.Structure, w.Stamp);
             woolFrame[i] = frame;
             woolFloor[i] = fy;
@@ -281,7 +283,7 @@ public static class WorldBuilder
             });
         }
 
-        built.AddRange(BuiltInShells(wools, woolStyle, intent.Spawns, spawnStyle));
+        built.AddRange(BedrockBoxes(wools, woolStyle, intent.Spawns, spawnStyle));
 
         // Fill each wool's monuments with the derived world locations.
         for (var i = 0; i < wools.Count; i++)
@@ -314,7 +316,9 @@ public static class WorldBuilder
         // region and of the terrain. Derived here rather than in the compiler because the clearance rule reads
         // the terrain the world actually placed; the areas arrive already fanned, so the marker is symmetric.
         if (intent.Build is { } build)
-            BuildMarkerStamper.Stamp(world, BlockRects(build.Areas.Select(area => area.Rect)), BlockRects(build.Holes), terrain.Ground);
+            BuildMarkerStamper.Stamp(world,
+                BlockRects(build.Areas.Where(area => StampSwitches.On(area.StampsOff, StampSwitches.Outline)).Select(area => area.Rect)),
+                BlockRects(build.Holes), terrain.Ground);
 
         // ── Destroyables (DTM) — the box is computed once here and carried on the resolved intent, so the
         // region the generator emits is the volume these blocks were stamped into (OB8).
@@ -376,6 +380,15 @@ public static class WorldBuilder
                              TeamTerritory.DamageAt(terrain.SurfaceTop.Keys, intent), symmetry.Canonical,
                              terrain.FloorByLayer, madeLayers);
 
+        // ── Carves — the stack's tunnels, chambers and shafts, cut into the finished ground so a cave's walls are
+        // the theme's fill and the relief over it stays. Before the dressing, which plants on what is left; never
+        // through a column a stamp above claimed.
+        var carveGround = terrain.Ground;
+        CaveCarver.Carve(world, SketchRasterizer.CarvesOf(SketchLayout.Stated(layoutJson)),
+                         (x, z) => carveGround.TryGetValue((x, z), out var top) ? top : null,
+                         (x, z) => provenance.PassAt(x, z) is { } pass && pass != ProvenancePass.Ground,
+                         symmetry.Canonical);
+
         // ── The generators' ground — the block each spawner's stack lands on, laid into the course under its
         // drop. After the finish for the reason a room's pad is stamped after its shell: the pad is the floor
         // the point sits on rather than whatever the painter laid, and a generator is a place before it is a
@@ -409,7 +422,9 @@ public static class WorldBuilder
             // Where the ground a cell is painted from stops being a meadow and becomes a face (DR-STEEP). The
             // paint is what states it, so the pass is handed the same resolver the painter just ran.
             (layer, x, z) => Materials.CliffAngle(
-                themeAt(layer is { Length: > 0 } named ? named : SketchLayer.GroundId, x, z).Theme.Surface.Material)));
+                themeAt(layer is { Length: > 0 } named ? named : SketchLayer.GroundId, x, z).Theme.Surface.Material),
+            // The water the modifier stack made, filled before any prop is placed.
+            DressingScope.StackWaterOf(layoutJson)));
         // A dressing-placed building is a structure the author chose, not scenery the way a tree or a boulder
         // is (docs/world-export/decoration.md) — its footprint claims Structure last, over whatever ground
         // provenance the terrain under it carried, the same "later pass wins" rule every stamp above follows.
@@ -595,7 +610,7 @@ public static class WorldBuilder
     {
         var said = new List<Finding>();
         if (s is null) return said;
-        foreach (var w in s.Walls)
+        foreach (var w in s.Walls.Where(wall => StampSwitches.On(wall.StampsOff, StampSwitches.Wall)))
         {
             var cells = w.Cells().ToList();
             var top = StructureStamper.StampWall(world, surface, cells, w.TopY);
@@ -606,7 +621,7 @@ public static class WorldBuilder
             var proud = StructureStamper.WallCoursesProud(surface, cells, top);
             if (proud > RoomFrames.WallCoursesMax)
                 said.Add(new Finding(LayoutRules.WallHeight,
-                    $"approach wall '{w.Stamp.Unit}' from ({w.X1}, {w.Z1}) to ({w.X2}, {w.Z2}) "
+                    $"approach wall '{w.Stamp.Unit}' from ({w.Start.X}, {w.Start.Z}) to ({w.End.X}, {w.End.Z}) "
                     + $"stands {proud} blocks above the ground at its lowest column, "
                     + $"more than {RoomFrames.WallCoursesMax} blocks",
                     Severity.Complaint, Subjects: [w.Stamp.Unit]));
@@ -626,7 +641,7 @@ public static class WorldBuilder
     private static void ClaimStructures(WorldProvenance provenance, StructureIntent? s)
     {
         if (s is null) return;
-        foreach (var wall in s.Walls)
+        foreach (var wall in s.Walls.Where(wall => StampSwitches.On(wall.StampsOff, StampSwitches.Wall)))
             provenance.Claim(wall.Cells(), ProvenancePass.Structure, wall.Stamp);
         foreach (var chest in s.Chests)
             provenance.ClaimRect(chest.X, chest.Z, chest.X, chest.Z, ProvenancePass.Structure, chest.Stamp);
@@ -706,7 +721,8 @@ public static class WorldBuilder
             provenance.ClaimRect(platformMinX, platformMinZ, platformMaxX, platformMaxZ, ProvenancePass.Structure, owner);
 
             // One marker per destroyable — already one orbit image per entry (PlanCompiler fans team-outer).
-            markers.Add((ax, az, WoolDataForTeam(b.Owner, teams), GoalMarkerShape.Cross));
+            if (StampSwitches.On(b.StampsOff, StampSwitches.Marker))
+                markers.Add((ax, az, WoolDataForTeam(b.Owner, teams), GoalMarkerShape.Cross));
             provenance.Claim(ax, az, ProvenancePass.Structure, owner);
 
             resolved.Add(new DestroyableIntent
@@ -742,11 +758,12 @@ public static class WorldBuilder
             var (ax, az) = ObjectiveFootprint.AnchorCell(point.Anchor.X, point.Anchor.Z);
             var size = Math.Clamp(point.Size, ObjectiveDefaults.MinControlPointSize, ObjectiveDefaults.MaxControlPointSize);
 
+            var round = point.Shape == ControlPointShapes.Disc;
             var pad = ControlPointStamper.PadBox(surface, ax, az, size);
             var capture = ControlPointStamper.CaptureBox(pad);
             ControlPointStamper.StampPad(world, pad, surface, Blocks.StainedClay,
-                                         BlockColors.BlockDamage(ObjectiveDefaults.ControlPointColor));
-            ControlPointStamper.ClearCaptureVolume(world, capture);
+                                         BlockColors.BlockDamage(ObjectiveDefaults.ControlPointColor), round);
+            ControlPointStamper.ClearCaptureVolume(world, capture, round);
             provenance.ClaimRect(pad.MinX, pad.MinZ, pad.MaxX, pad.MaxZ, ProvenancePass.Structure, point.Stamp);
 
             resolved.Add(point with { Size = size, PadBox = pad, CaptureBox = capture });
@@ -897,6 +914,7 @@ public static class WorldBuilder
         var resolved = new List<ControlPointIntent>(points.Count);
         foreach (var point in points)
         {
+            if (!StampSwitches.On(point.StampsOff, StampSwitches.Marker)) { resolved.Add(point); continue; }
             var (ax, az) = ObjectiveFootprint.AnchorCell(point.Anchor.X, point.Anchor.Z);
             GoalMarkerStamper.Stamp(world, ax, az, markerFloor, neutral, GoalMarkerShape.Cross);
             resolved.Add(point with { MarkerBox = GoalMarkerStamper.Box(ax, az, markerFloor) });
@@ -934,7 +952,8 @@ public static class WorldBuilder
             provenance.ClaimRect(plateMinX, plateMinZ, plateMaxX, plateMaxZ, ProvenancePass.Structure, owner);
 
             // One marker per core — same already-fanned-per-orbit-image reasoning as the destroyable's.
-            markers.Add((ax, az, WoolDataForTeam(c.Owner, teams), GoalMarkerShape.Cross));
+            if (StampSwitches.On(c.StampsOff, StampSwitches.Marker))
+                markers.Add((ax, az, WoolDataForTeam(c.Owner, teams), GoalMarkerShape.Cross));
             provenance.Claim(ax, az, ProvenancePass.Structure, owner);
 
             resolved.Add(new CoreIntent
@@ -1130,7 +1149,7 @@ public static class WorldBuilder
     /// <summary>The complaint each kind of room raises when it stands in the studio's own shell (<c>WX14</c>):
     /// one per kind, counting its rooms and naming their units. The shell is compared by what it builds, so a binding
     /// that copies the shipped shell is the shipped shell; open ground (a null shell) raises none.</summary>
-    private static IEnumerable<Finding> BuiltInShells(
+    private static IEnumerable<Finding> BedrockBoxes(
         IReadOnlyList<WoolIntent> wools, HouseStyle? woolStyle, IReadOnlyList<SpawnIntent> spawns, HouseStyle? spawnStyle)
     {
         var shippedWools = wools.Where(w => IsShipped(RoomStyleScope.StyleOf(w.House, woolStyle, HouseStyle.Wool), HouseStyle.Wool)).ToList();
@@ -1149,7 +1168,7 @@ public static class WorldBuilder
             var units = stamps.Distinct().ToList();
             var rooms = count == 1 ? $"1 {kind} room has no house of its own"
                                    : $"{count} {kind} rooms have no house of their own";
-            return new Finding(RoomFrameRules.BuiltInShell,
+            return new Finding(RoomFrameRules.BedrockBox,
                 rooms,
                 Severity.Complaint, Field: $"roomStyles.{kind}", Subjects: units);
         }

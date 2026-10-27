@@ -23,7 +23,7 @@
       <Trailing>
         @if (Wings.Count > 1 && !(KeepsFirst && wing == 0))
         {
-          <Button Variant="icon" Icon="trash-2" Title="@($"Delete {Name(wing).ToLowerInvariant()}")" Writes
+          <Button Variant="icon" Icon="trash-2" Title="Delete this wing" Writes
                   OnClick="() => OnDelete.InvokeAsync(wing)" />
         }
       </Trailing>
@@ -81,7 +81,7 @@
         [new("", "All"), new("1", "1"), new("2", "2"), new("3", "3")];
 
     private static readonly SelectOption[] RoofOptions =
-        [new("", "The house's"), .. RoofForms.Offered.Select(form => new SelectOption(form, char.ToUpperInvariant(form[0]) + form[1..]))];
+        [new("", "Same as house"), .. RoofForms.Offered.Select(form => new SelectOption(form, char.ToUpperInvariant(form[0]) + form[1..]))];
 
     private static readonly (string Word, string Label)[] Ridges = [("", "Follows shape"), ("alongX", "Along x"), ("alongZ", "Along z")];
 

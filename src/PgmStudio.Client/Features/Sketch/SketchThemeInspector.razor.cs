@@ -18,7 +18,7 @@ public partial class SketchThemeInspector
     /// <summary>The value <see cref="SelectionTheme"/> answers when a group's shapes disagree.</summary>
     private const string Mixed = "~mixed~";
 
-    /// <summary>The room select's value for the third answer. A style is picked by row id and the built-in by
+    /// <summary>The room select's value for the third answer. A style is picked by row id and the bedrock box by
     /// <c>0</c>, so no building needs a word rather than a number.</summary>
     private const string NoBuilding = "none";
 
@@ -70,6 +70,11 @@ public partial class SketchThemeInspector
     /// claiming the board has none.</summary>
     private bool BiomeOffLibrary => !string.IsNullOrWhiteSpace(Themes.BiomeJson) && HeldBiome is null;
 
+    /// <summary>What the biome select reads where it holds no row.</summary>
+    private string BiomePlaceholder =>
+        !loaded && !string.IsNullOrWhiteSpace(Themes.BiomeJson) ? Loading
+        : BiomeOffLibrary ? "Not in library" : "Plains";
+
     private IReadOnlyList<SelectOption> BiomePatterns =>
         [.. biomePatterns.Select(pattern => new SelectOption(pattern.Id.ToString(), pattern.Name))];
 
@@ -93,15 +98,34 @@ public partial class SketchThemeInspector
     private string? note;
 
     private string? InHand => string.IsNullOrEmpty(Brush) ? null : Brush;
+
+    /// <summary>Where the palette in hand was copied from, and whether it still matches that library row; null
+    /// where it came from no row.</summary>
+    private string? HeldSourceLine => HeldSource is not { } source ? null : heldMatchesSource switch
+    {
+        true => $"Copied from {source.Name} in the library, and it still matches.",
+        false => $"Copied from {source.Name} in the library, and one of the two has since been edited.",
+        _ => $"Copied from {source.Name} in the library.",
+    };
     private bool HasSelection => SelectedGroupId is not null || SelectedShapeId is not null;
+
+    /// <summary>Whether the library's lists have arrived. Until they have, a binding cannot be matched to a row, so
+    /// a select holding one says it is loading rather than that the library does not hold it.</summary>
+    private bool loaded;
 
     protected override async Task OnInitializedAsync()
     {
-        libraryThemes = await Library.ListAsync<ThemeSummary>(LibraryKinds.Themes);
-        rooms = await Library.ListAsync<RoomStyleSummary>(LibraryKinds.Houses);
+        var themesRead = Library.ListAsync<ThemeSummary>(LibraryKinds.Themes);
+        var roomsRead = Library.ListAsync<RoomStyleSummary>(LibraryKinds.Houses);
+        var biomesRead = Library.ListAsync<BiomePatternSummary>(LibraryKinds.Biomes);
+        await Task.WhenAll(themesRead, roomsRead, biomesRead);
+        (libraryThemes, rooms, biomePatterns) = (themesRead.Result, roomsRead.Result, biomesRead.Result);
         roomOfSnapshot.Clear();
-        biomePatterns = await Library.ListAsync<BiomePatternSummary>(LibraryKinds.Biomes);
+        loaded = true;
     }
+
+    private const string Loading = "Loading…";
+
 
     /// <summary>The material document of the theme in hand, or null where none is held or the board no longer
     /// has it.</summary>
@@ -135,7 +159,7 @@ public partial class SketchThemeInspector
     {
         if (Handle is null) return;
         var themeJson = await Library.DocumentAsync(LibraryKinds.Themes, picked.Id);
-        if (themeJson is null) { note = "Couldn't read that palette."; return; }
+        if (themeJson is null) { note = "Couldn't read the palette. Try again."; return; }
 
         // The copy this row already made is what a second copy refreshes, whatever either side has since been
         // renamed to. Only a row nothing on the board came from defines a theme, and that theme records where
@@ -219,11 +243,11 @@ public partial class SketchThemeInspector
         [.. Themes.Ids.Select(id => new SelectOption(id, id))];
 
     /// <summary>What a room kind's select offers: no building at all, then every style the library holds. The
-    /// built-in shell is the placeholder rather than an option, because it is also what the select falls back
+    /// bedrock box is the placeholder rather than an option, because it is also what the select falls back
     /// to for a snapshot no row matches, and those two read differently.</summary>
     private IReadOnlyList<SelectOption> RoomOptions =>
     [
-        new(NoBuilding, "(no building)"),
+        new(NoBuilding, "No building", "The pad stands on open ground."),
         .. rooms.Select(room => new SelectOption(room.Id.ToString(), room.Name)),
     ];
 
@@ -260,18 +284,19 @@ public partial class SketchThemeInspector
     private readonly Dictionary<string, RoomStyleSummary?> roomOfSnapshot = [];
 
     /// <summary>Whether the board binds a shell the library does not hold — what the select says instead of
-    /// claiming the room is on its built-in one.</summary>
+    /// claiming the room is on its bedrock box.</summary>
     private bool RoomOffLibrary(string kind) => Themes.RoomStyles.ContainsKey(kind) && HeldRoom(kind) is null;
 
-    /// <summary>What the select shows: a row id, <c>0</c> for the built-in shell, or
+    /// <summary>What the select shows: a row id, <c>0</c> for the bedrock box, or
     /// <see cref="NoBuilding"/>.</summary>
     private string RoomChoice(string kind) =>
         Themes.OpenRooms.Contains(kind) ? NoBuilding : (HeldRoom(kind)?.Id ?? 0).ToString();
 
-    /// <summary>What the select reads where it holds no row: the built-in shell, or a shell the library
-    /// cannot name.</summary>
+    /// <summary>What the select reads where it holds no row: the bedrock box every room stands in until one is
+    /// bound, or a shell the library cannot name.</summary>
     private string RoomPlaceholder(string kind) =>
-        RoomOffLibrary(kind) ? "(not in the library)" : "(built-in shell)";
+        !loaded && Themes.RoomStyles.ContainsKey(kind) ? Loading
+        : RoomOffLibrary(kind) ? "Not in library" : "Bedrock box";
 
     /// <summary>Whether this kind is bound to no building.</summary>
     private bool IsOpenRoom(string kind) => Themes.OpenRooms.Contains(kind);
@@ -283,7 +308,7 @@ public partial class SketchThemeInspector
 
         // The snapshot is taken here: from now on the board holds the style, not a pointer at the row.
         var styleJson = await Library.DocumentAsync(LibraryKinds.Houses, id);
-        if (styleJson is null) { note = "Couldn't read that room style."; return; }
+        if (styleJson is null) { note = "Couldn't read the house. Try again."; return; }
 
         note = null;
         if (Handle is not null) await Handle.InvokeVoidAsync("setRoomStyle", kind, styleJson);

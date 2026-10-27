@@ -44,6 +44,25 @@ public sealed class ControlPointStamperTests
         await Assert.That(pad.Depth).IsEqualTo(size);
     }
 
+    // A disc is centred on its pad's middle, so the pie PGM sweeps about the middle of the colour-affected blocks
+    // sweeps about the disc's: every side is laid as far out as its opposite, and the corners stay ground.
+    [Test]
+    [Arguments(7)]
+    [Arguments(8)]
+    [Arguments(9)]
+    public async Task A_disc_pad_is_round_about_its_middle_and_leaves_the_corners(int size)
+    {
+        var pad = ControlPointStamper.PadBox(FlatSurface(), 0, 0, size);
+        var cells = ControlPointStamper.Cells(pad, round: true).ToHashSet();
+
+        await Assert.That(cells.Contains((pad.MinX, pad.MinZ))).IsFalse();
+        await Assert.That(cells.Contains((pad.MaxX, pad.MaxZ))).IsFalse();
+        await Assert.That(cells.Min(cell => cell.X) + cells.Max(cell => cell.X)).IsEqualTo(pad.MinX + pad.MaxX);
+        await Assert.That(cells.Min(cell => cell.Z) + cells.Max(cell => cell.Z)).IsEqualTo(pad.MinZ + pad.MaxZ);
+        await Assert.That(cells.Max(cell => cell.X) - cells.Min(cell => cell.X) + 1).IsEqualTo(size);
+        await Assert.That(ControlPointStamper.Cells(pad, round: false).Count()).IsEqualTo(size * size);
+    }
+
     // The whole point of the volume: a player standing on the pad occupies the block above it, so a capture
     // region that does not reach there is a hill nobody can take.
     [Test]

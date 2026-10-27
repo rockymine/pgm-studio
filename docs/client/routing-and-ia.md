@@ -35,7 +35,7 @@ shown, never name one.
 | `/library/{kind}` | `LibraryTool` | one library's browse grid; `kind` is `styles\|themes\|roofs\|storeys\|porches\|houses` |
 | `/library/{kind}/{entry}` | `LibraryTool` | one entry's editor; `entry` is a row id or `new` |
 | `/rules` | `Rules` | every rule the studio can cite, filtered and opened one at a time; `?rule=` opens on one (`docs/refusals.md`) |
-| `/glossary` | `Glossary` | every word the studio uses, defined once (`GET /api/glossary`): alphabetical, `?q=` filters by word, other name and definition, and `#hub` opens on a term |
+| `/glossary` | `Glossary` | every word the studio uses, defined once (`GET /api/glossary`): A to Z under a letter bar, every retired name filed as a see entry, `?q=` searches name first, and `#hub` lands on a term through any search |
 | `/tokens` | `Tokens` | the signed-in person's API tokens |
 | `/admin/users` | `Users` | who may sign in, and with which role |
 | `/design` | `Design` | the design system: tokens and every shared component, grouped by role |
@@ -76,7 +76,7 @@ the **Clear** beside the sidebar's *Filters* heading drops them all. The sidebar
 |---|---|---|
 | **Stage** | `?stage=sketch\|configure` | the maps standing at that stage |
 | **Author** | `?author=` (repeated) | maps credited to any one of the ticked authors |
-| **Gamemode** | `?gamemode=ctw\|dtm\|dtc\|none` (repeated) | maps played for any one of the ticked gamemodes, `none` for a map with none |
+| **Game mode** | `?gamemode=ctw\|dtm\|dtc\|none` (repeated) | maps played for any one of the ticked game modes, each shown by its full name, `none` for a map with none |
 | **Sort** | `?sort=name\|author\|stage` | the order; absent is last changed |
 
 **A map's gamemodes are read off its objectives, never off its `<gamemode>` label.** Its wools, shown
@@ -95,14 +95,14 @@ left out of the filter and the column. The Author column shows the first credite
 rest.
 
 A search box over the table narrows it by name, slug or author and stays out of the address. The header
-carries **New sketch** and **Import a world** whatever the filters are.
+carries **New map** and **Import a world** whatever the filters are.
 
 **A row opens the tool at its map's stage.** A map at `edit` has no tool at its stage, so its row opens the
 last layer it holds — Configure, where it has a world — and one holding no layer opens nothing. The **Open in**
 column is two fixed slots, Sketch · Configure, in the same place on every row. A layer the map holds is
 a link straight into its tool, so a configured map's sketch is one click away whatever stage filter is
 on; the one the row opens is outlined and carries the stage's dot, which is how the table says where a map
-stands; a layer it lacks is an empty dashed slot. Below 1200px the table drops Gamemode and keeps the slots.
+stands; a layer it lacks is an empty dashed slot. Below 1200px the table drops Game mode and keeps the slots.
 
 `GET /api/maps` serves the table: every map, each with its stage, layers, credited authors, when it was last
 written, and `youWroteAt` — when the caller last changed its documents themselves, in a browser rather than
@@ -118,7 +118,7 @@ it.
 **The landing is not a tool, so its shell has no tool bar.** `Index` gives `StudioShell` no `Bar`, which leaves
 only the studio's own bar above the page. The page is one centred column, 1240px wide, with sections 56px apart.
 
-**The hero names what the studio makes and offers two ways in.** Two equal columns: an eyebrow naming the three
+**The hero names what the studio makes and offers two ways in.** Two equal columns: an eyebrow naming the game
 modes, a title and lead describing the pipeline from layout to `map.xml`, and two 44px buttons (`Button` with
 `Size="lg"`) — **New map** opens the maps page at the sketch stage (`maps?stage=sketch`), **Browse maps** opens it unfiltered. Beside the
 text sits a 16:9 `MapThumb` of the newest built map — a sketch layout and its world — drawn in game; with no such map it is
@@ -130,7 +130,7 @@ layout and the world compiled from it) asks for no picture, since only a built o
 placeholder, and a 429 from the build queue is asked again after its `Retry-After`, so a broken-image icon never
 shows.
 
-**Continue working lists up to three maps.** They are the ones the reader changed themselves, newest first
+**Your recent maps lists up to three maps.** They are the ones the reader changed themselves, newest first
 (`youWroteAt` from `GET /api/maps`), each card linking into the tool its row on the maps page opens, with the
 stage pill of its furthest layer and a line of first credited author and when it was edited. A reader who has
 changed none, or is signed out, sees the three most recently updated maps under *Latest maps*.
@@ -150,7 +150,7 @@ The visible label is deliberately decoupled from the concept the code is built o
 | **Sketch** | sketch | `/maps/{slug}/sketch` |
 | **Pattern** | **style** — `StyleDto`, `LibraryKinds.Styles` | `/library/styles` |
 | **Palette** | **theme** — `TerrainTheme`, `../world-export/terrain-painting.md` | `/library/themes`, the sketch's `theme` phase |
-| **Terraform** | **relief** — `../world-export/relief.md` | the sketch's `relief` phase |
+| **Terraform** | **modifiers** — `../tools/sketch.md` | the sketch's terraform phase |
 | **Decoration** | **dressing** — `../world-export/decoration.md` | the sketch's `dressing` phase |
 
 The reason is that "authoring" names what the tool *does* to a map and "Configure" names what a person came to

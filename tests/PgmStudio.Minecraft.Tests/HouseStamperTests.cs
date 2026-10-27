@@ -105,6 +105,46 @@ public sealed class HouseStamperTests
     }
 
     [Test]
+    public async Task A_wooden_door_seals_the_house()
+    {
+        var world = House(11, 9, new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.SpruceDoor } });
+        await Assert.That(Leaks(world, 11, 9)).IsFalse();
+    }
+
+    /// <summary>A two-wide wooden door is a pair hung from outside: both lower halves face into the house, and
+    /// each upper half hinges on the side away from the middle, so the pair opens from the centre.</summary>
+    [Test]
+    public async Task A_wooden_door_is_a_pair_facing_in_and_hinged_at_its_outer_sides()
+    {
+        var world = new VoxelWorld();
+        var style = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.SpruceDoor, Width = 2, Height = 3 } };
+        HouseStamper.Stamp(world, 0, 0, 11, 9, FloorY, style, doors: [new RoomDoor(RoomEdge.NegZ, 4, 2)]);
+
+        foreach (var x in new[] { 4, 5 })
+        {
+            await Assert.That(world.GetBlock(x, FloorY + 1, 0).Id).IsEqualTo(193);
+            await Assert.That(world.GetBlock(x, FloorY + 1, 0).Data).IsEqualTo(BlockGeometry.DoorLower(RoomEdge.PosZ));
+            await Assert.That(world.GetBlock(x, FloorY + 2, 0).Id).IsEqualTo(193);
+        }
+        // Facing south into the house, the right hand is west: the west leaf hinges right, the east one left.
+        await Assert.That(world.GetBlock(4, FloorY + 2, 0).Data).IsEqualTo(BlockGeometry.DoorUpper(hingeRight: true));
+        await Assert.That(world.GetBlock(5, FloorY + 2, 0).Data).IsEqualTo(BlockGeometry.DoorUpper(hingeRight: false));
+    }
+
+    [Test]
+    public async Task The_wall_stands_over_a_wooden_door()
+    {
+        var world = new VoxelWorld();
+        var style = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.OakDoor, Width = 2, Height = 4 } };
+        HouseStamper.Stamp(world, 0, 0, 11, 9, FloorY, style, doors: [new RoomDoor(RoomEdge.NegZ, 4, 2)]);
+
+        await Assert.That(world.GetBlock(4, FloorY + 2, 0).Id).IsEqualTo(64);
+        await Assert.That(world.GetBlock(4, FloorY + 3, 0).Id).IsNotEqualTo(Blocks.Air);
+        await Assert.That(world.GetBlock(4, FloorY + 3, 0).Id).IsNotEqualTo(64);
+        await Assert.That(style.Doorway.Clearance).IsEqualTo(2m);
+    }
+
+    [Test]
     public async Task An_open_doorway_is_the_only_way_out()
     {
         // The same house with the door open must leak, or the doorway was never cut.
@@ -771,7 +811,7 @@ public sealed class HouseStamperTests
     [Test]
     public async Task A_tower_is_a_tall_wall_and_nothing_else()
     {
-        // Height is the wall part's extent and its last course repeats, so a tower needs no form of its own —
+        // Height is the wall part's extent and its last course holds, so a tower needs no form of its own —
         // and a hip over a square footprint comes to a point, which is the cap one wants.
         var style = new HouseStyle
         {

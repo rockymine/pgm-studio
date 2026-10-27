@@ -42,7 +42,7 @@ public sealed class ComplaintsCarriedTests
         await Assert.That(stored.IsSuccessStatusCode).IsTrue();
         await Rules(stored, "PUT /sketch");
 
-        foreach (var route in (string[])["paint", "columns", "relief", "relief/read"])
+        foreach (var route in (string[])["paint", "columns", "relief"])
             await Rules(await client.PostAsync($"/api/map/{slug}/sketch/{route}", Body()), route);
 
         // Finish reads the stored layout rather than a posted one, and is the stage that says the drawing is

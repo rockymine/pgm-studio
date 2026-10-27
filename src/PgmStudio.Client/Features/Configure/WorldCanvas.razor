@@ -18,28 +18,28 @@
      Sketch's and Plan's. *@
   <CanvasLayerBar>
     @* Blocks overlay is a mode-independent visual aid (renders below the regions/markers); offered on every
-       canvas so placement can be lined up against the real terrain. No-op when the map has no scan data. *@
+       canvas so a marker can be lined up against the real ground. No-op when the map has no scan data. *@
     <LayerChip Icon="box" Active="blocksOn" Title="Show the surface blocks"
                OnClick="ToggleBlocks">Blocks</LayerChip>
     @if (ShowEditZones)
     {
       <LayerChip Icon="hammer" Active="editZonesOn"
-                 Title="Show where players can build. Green: build zone. Light green: ground at y=0. Yellow: behind a filter. Red: nobody."
-                 OnClick="ToggleEditZones">Editable</LayerChip>
+                 Title="Show where players can build"
+                 OnClick="ToggleEditZones">Buildable</LayerChip>
     }
     @if (islandIds.Count > 0)
     {
-      <Select Canvas Title="Zoom to fit an island" Options="IslandOptions" Placeholder="Fit island…"
+      <Select Canvas Title="Zoom to fit an island" Options="IslandOptions" Placeholder="Zoom to island"
               Value="@islandSel" ValueChanged="OnFitIslandSelect" />
     }
-    <CanvasRoundButton Icon="scan" Title="Fit whole map" OnClick="OnResetClick" />
+    <CanvasRoundButton Icon="scan" Title="Zoom to fit" OnClick="OnResetClick" />
   </CanvasLayerBar>
 
   <CanvasDock>
     <DockGroup Viewing>
       <DockButton Icon="mouse-pointer-2" Title="Select" Active="@(tool == "select")"
                   OnClick='() => SetTool("select")' />
-      <DockButton Icon="hand" Title="Move" Active="@(tool == "move")"
+      <DockButton Icon="hand" Title="Pan" Active="@(tool == "move")"
                   OnClick='() => SetTool("move")' />
     </DockGroup>
     @if (PointPick)

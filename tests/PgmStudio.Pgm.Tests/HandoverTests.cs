@@ -24,7 +24,7 @@ public sealed class HandoverTests
            {"id":"deck","name":"Deck","base_y":30,"layout":{
              "shapes":[{"id":"plank","type":"rectangle","operation":"add","min_x":0,"max_x":4,"min_z":0,"max_z":4}],
              "groups":[{"id":"boards","name":"Boards","shapeIds":["plank"]}]}}],
-         "relief":{"moor":{"base":6,"reach":10}},
+         "modifiers":[{"id":"hill","op":"mound","rise":6,"mask":{"areas":[],"mirror":true}}],
          "themes":{"heath":{"surface":{"material":{"kind":"solid","id":2}}}},
          "dressing":{"props":[{"kind":"tree","id":"fir-1","x":10,"z":4,"seed":3}]}}
         """;
@@ -104,19 +104,19 @@ public sealed class HandoverTests
     }
 
     [Test]
-    public async Task A_relief_edited_inside_a_group_hands_over_the_whole_group()
+    public async Task A_modifier_edited_in_the_stack_hands_over_the_whole_stack()
     {
         var handed = HandedOver(Edited(Layout, root =>
         {
-            root["relief"]!["moor"]!["base"] = 8;
-            root["relief"]!["moor"]!["reach"] = 12;
+            root["modifiers"]![0]!["rise"] = 8;
+            root["modifiers"]![0]!["power"] = 2;
         }));
 
         var edit = handed.Single();
-        await Assert.That((edit.Path, edit.Op)).IsEqualTo(("relief.moor", DocumentEdit.Set))
-            .Because("a refinement stating `relief.moor.base` alone would lose the group's other fields");
-        await Assert.That(edit.Value.GetProperty("reach").GetDouble()).IsEqualTo(12d);
-        await Assert.That(edit.Before!.Value.GetProperty("base").GetDouble()).IsEqualTo(6d);
+        await Assert.That((edit.Path, edit.Op)).IsEqualTo(("modifiers", DocumentEdit.Set))
+            .Because("a refinement states the stack whole, so a field of one modifier alone would lose the rest");
+        await Assert.That(edit.Value[0].GetProperty("rise").GetDouble()).IsEqualTo(8d);
+        await Assert.That(edit.Before!.Value[0].GetProperty("rise").GetDouble()).IsEqualTo(6d);
     }
 
     [Test]

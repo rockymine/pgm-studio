@@ -69,7 +69,7 @@ public static class SketchMaterialGate
     }
 
     /// <summary>A bound room style holding a part the record cannot — a null where it has none, or a part
-    /// written without its courses — refused by its path (<c>RQ1</c>), because the export's reader falls back to the built-in shell on a snapshot it
+    /// written without its courses — refused by its path (<c>RQ1</c>), because the export's reader falls back to the bedrock box on a snapshot it
     /// cannot read and would stamp a building the author did not describe.</summary>
     private static Findings UnreadableRooms(string layoutJson)
     {

@@ -78,12 +78,12 @@ public partial class ThemeEditor
             {
                 var binding = Binding(info.Id);
                 return new EditorPart(info.Id, info.Title, "layers",
-                    Badge: !binding.Enabled ? "off" : FilledWith(binding) ?? "default");
+                    Badge: !binding.Enabled ? "Off" : FilledWith(binding) ?? "Stone");
             })];
             // The row names the section; what the section says is in the section, so the badge is the one
             // word that tells two themes apart at a glance rather than the whole sentence.
             rows.Add(new EditorPart(GroundPart, "Ground and edges", "mountain",
-                Badge: RimEdgeModes.Canonical(draft.RimEdges)));
+                Badge: RimEdgeModes.Name(draft.RimEdges)));
             return rows;
         }
     }
@@ -121,7 +121,7 @@ public partial class ThemeEditor
         {
             if (await Library.GetAsync<ThemeDetail>(LibraryKinds.Themes, id) is not { } detail)
             {
-                note = "Couldn't load this palette. Reload the page to try again.";
+                note = "Couldn't load the palette. Reload the page to try again.";
                 draft = null;
                 return;
             }
@@ -163,7 +163,7 @@ public partial class ThemeEditor
     {
         importError = null;
         var id = await Library.ImportThemeAsync(draftName.Trim(), importJson);
-        if (id is null) { importError = "Couldn't import this JSON. Check that it is a valid palette."; return; }
+        if (id is null) { importError = "Couldn't import the JSON. Check that it is a valid palette."; return; }
         await OnSaved.InvokeAsync("saved");
         Nav.NavigateTo($"/library/{LibraryKinds.ThemesSlug}/{id}");
     }
@@ -179,6 +179,20 @@ public partial class ThemeEditor
 
     private Task SetDepth(string bucket, double value)
         => Rebind(bucket, binding => binding with { Depth = Math.Max(1, (int)value) });
+
+    /// <summary>Three courses under 25°, two under 38°, one under 55°, rock steeper.</summary>
+    private static readonly IReadOnlyList<SoilDepthDto> Thinning = [new(25, 3), new(38, 2), new(55, 1)];
+
+    private Task SetThinning(string bucket, bool on)
+        => Rebind(bucket, binding => binding with { Soil = on ? Thinning : null });
+
+    private Task SetSoil(string bucket, int index, int? below = null, int? depth = null)
+        => Rebind(bucket, binding => binding with
+        {
+            Soil = [.. (binding.Soil ?? []).Select((entry, at) => at != index ? entry
+                       : new SoilDepthDto(Math.Clamp(below ?? entry.Below, 1, 90), Math.Max(0, depth ?? entry.Depth)))
+                       .OrderBy(entry => entry.Below)],
+        });
 
     private Task Rebind(string bucket, Func<ThemeBucketDto, ThemeBucketDto> edit)
     {
@@ -197,8 +211,8 @@ public partial class ThemeEditor
     /// not claim.</summary>
     private static readonly IReadOnlyList<SelectOption> BedrockModes =
     [
-        new(AbsoluteBedrock, "Blocks up from the bottom"),
-        new(RelativeBedrock, "Everything under the painted depth"),
+        new SelectOption(AbsoluteBedrock, "Fixed count", "Blocks up from the bottom of the world."),
+        new SelectOption(RelativeBedrock, "Under the paint", "Everything under the painted depth."),
     ];
 
     private Task SetBedrockMode(string mode)
@@ -210,8 +224,8 @@ public partial class ThemeEditor
     private Task SetRimEdges(string edges)
         => Knob(theme => theme with { RimEdges = RimEdgeModes.Canonical(edges) });
 
-    private Task ToggleWallFaces()
-        => Knob(theme => theme with { WallOnTerrainFaces = !theme.WallOnTerrainFaces });
+    private Task SetWallFaces(bool towardGround)
+        => Knob(theme => theme with { WallOnTerrainFaces = towardGround });
 
     private Task Knob(Func<ThemeSaveRequest, ThemeSaveRequest> edit)
     {
@@ -246,7 +260,7 @@ public partial class ThemeEditor
         var saved = editingId is { } id
             ? await Library.UpdateAsync<ThemeDetail>(LibraryKinds.Themes, id, request)
             : await Library.CreateAsync<ThemeDetail>(LibraryKinds.Themes, request);
-        if (saved is null) { note = "Couldn't save this palette. Try again."; return; }
+        if (saved is null) { note = "Couldn't save the palette. Try again."; return; }
         note = editingId is null ? "Added to the library." : "Saved.";
         await OnSaved.InvokeAsync("saved");
         if (editingId is null) Nav.NavigateTo($"/library/{LibraryKinds.ThemesSlug}/{saved.Id}");
@@ -258,7 +272,7 @@ public partial class ThemeEditor
         if (draft is null) return;
         var copy = await Library.CreateAsync<ThemeDetail>(LibraryKinds.Themes,
             Saveable(draft) with { Name = $"{draftName.Trim()} copy" });
-        if (copy is null) { note = "Couldn't save a copy of this palette. Try again."; return; }
+        if (copy is null) { note = "Couldn't save a copy of the palette. Try again."; return; }
         Nav.NavigateTo($"/library/{LibraryKinds.ThemesSlug}/{copy.Id}");
     }
 

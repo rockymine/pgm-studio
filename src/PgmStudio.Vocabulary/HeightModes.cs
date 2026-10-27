@@ -1,8 +1,8 @@
 namespace PgmStudio.Vocabulary;
 
 /// <summary>
-/// How a sketch shape's top is decided once its group carries a relief. Absent, a shape is ordinary ground and
-/// the relief decides it; each of these makes it stand out of the field instead. The gate, the rasterizer and
+/// How a sketch shape's top is decided. Absent, a shape is ordinary ground, its top the height it states, and
+/// the modifier stack shapes it; each of these makes it stand at its own statement, out of the stack. The gate, the rasterizer and
 /// the canvas all spell them, so they are one set.
 /// </summary>
 public static class HeightModes

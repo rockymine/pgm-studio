@@ -1,34 +1,31 @@
 @namespace PgmStudio.Client.Features.Configure
 @using D = PgmStudio.Client.Features.Configure.DestroyableAuthoring
 
-@* Destroyables · objectives: the ingest scan proposed this map's destroyables from what surrounds them —
+@* Monuments · objectives: the ingest scan proposed this map's monuments from what surrounds them —
    how alone the mass is, and how far it stands over the ground around it. About two proposals in three are
    real, so this is a list to confirm from: adopt one, or box a footprint to place a goal the scan missed. *@
 
 <Workspace>
 
   <Sidebar>
-      <Section Title="Destroyables">
-        <Actions><Badge Class="@(destroyables.Count > 0 ? "badge--success" : "badge--dim")">@destroyables.Count goal@(destroyables.Count == 1 ? "" : "s")</Badge></Actions>
+      <Section Title="Monuments" Term="monument" Description="Confirm a suggestion below, or drag a rectangle on the canvas to add a monument.">
+        <Actions><Badge Class="@(destroyables.Count > 0 ? "badge--success" : "badge--dim")">@destroyables.Count objective@(destroyables.Count == 1 ? "" : "s")</Badge></Actions>
         <ChildContent>
-        <p class="section-desc">One team defends a destroyable and the others try to break it. Confirm a
-          suggested one below, or drag a box on the canvas to add one.</p>
-
         @if (loading)
         {
-          <div class="list-empty">Loading suggestions…</div>
+          <StatusLine>Loading suggestions…</StatusLine>
         }
         else
         {
           <div class="panel-list">
-            @if (destroyables.Count == 0) { <div class="list-empty">No destroyables yet.</div> }
+            @if (destroyables.Count == 0) { <EmptyState>No monuments yet.</EmptyState> }
             @for (var i = 0; i < destroyables.Count; i++)
             {
               var index = i;
               var goal = destroyables[index];
               <ListRow Compact Selected="selected == index" @key="index" OnClick="() => Select(index)">
                 <span class="geo-type-icon" style="--icon-tint: @TeamHex(goal.Owner)"><i data-lucide="gem"></i></span>
-                <span class="list-label">@(string.IsNullOrEmpty(goal.Name) ? "Destroyable" : goal.Name)</span>
+                <span class="list-label">@(string.IsNullOrEmpty(goal.Name) ? "Monument" : goal.Name)</span>
                 <Badge Kind="@(string.IsNullOrEmpty(goal.Owner) ? "dim" : "neutral")">@(string.IsNullOrEmpty(goal.Owner) ? "No team" : TeamName(goal.Owner))</Badge>
               </ListRow>
             }
@@ -37,10 +34,7 @@
           var proposals = Unconfirmed.ToList();
           @if (proposals.Count > 0)
           {
-            <p class="section-desc section-desc--separated">
-              <strong>@proposals.Count</strong> suggested destroyable@(proposals.Count == 1 ? "" : "s") to
-              confirm. Click one to add it.
-            </p>
+            <Readout Class="section-desc--separated">Suggestions to confirm: @proposals.Count. Click one to add it.</Readout>
             <div class="panel-list">
               @foreach (var proposal in proposals)
               {
@@ -75,12 +69,11 @@
       @if (Selected is { } sel)
       {
         <Section @key="selected">
-          <DetailHeader Icon="gem" IconTint="@TeamHex(sel.Owner)" Label="@(string.IsNullOrEmpty(sel.Name) ? "Destroyable" : sel.Name)">
+          <DetailHeader Icon="gem" IconTint="@TeamHex(sel.Owner)" Label="@(string.IsNullOrEmpty(sel.Name) ? "Monument" : sel.Name)">
             <Badge Class="@(sel.Volume is null ? "badge--warning" : "badge--success")">@(sel.Volume is null ? "Not built yet" : "In the world")</Badge>
           </DetailHeader>
           <div class="section-body">
-            <Field Label="Defending team">
-              <LabelHint>(the others break it)</LabelHint>
+            <Field Label="Defending team" Note="@AuthoringContext.DefendingTeamNote">
               <ChildContent>
                 <div class="field-pick-row">
                   <span class="field-swatch" style="--swatch: @(string.IsNullOrEmpty(sel.Owner) ? "transparent" : TeamHex(sel.Owner))"></span>
@@ -90,29 +83,27 @@
               </ChildContent>
             </Field>
 
-            <Field Label="Name">
-              <LabelHint>(required)</LabelHint>
+            <Field Label="Name" Required>
               <ChildContent>
-                <input class="field-input" value="@sel.Name" placeholder="e.g. Monument"
+                <input class="field-input" value="@sel.Name"
                        @onchange="@(e => SetName(sel, e.Value?.ToString() ?? string.Empty))" />
               </ChildContent>
             </Field>
 
-            <Field Label="Shape">
+            <Field Label="Design">
               <div class="field-pick-row">
                 <Select Slim="false" Options="StyleOptions" Value="@sel.Style" ValueChanged="@(style => SetStyle(sel, style))" />
               </div>
             </Field>
 
-            <Field Label="Built of">
+            <Field Label="Material">
               <div class="field-pick-row">
                 <Select Slim="false" Options="MaterialOptions" Value="@sel.Materials"
                         ValueChanged="@(materials => SetMaterials(sel, materials))" />
               </div>
             </Field>
 
-            <Field Label="Float">
-              <LabelHint>(blocks of air under it)</LabelHint>
+            <Field Label="Float" Unit="blocks" Note="Air left under the monument.">
               <ChildContent>
                 <div class="ctrl-row">
                   <CoordField Prefix="▲"><NumberField Value="sel.Float" ValueChanged="@(v => SetFloat(sel, v))" Min="0" Max="16" Step="1" CssClass="coord-input" /></CoordField>
@@ -120,7 +111,7 @@
               </ChildContent>
             </Field>
 
-            <Field Label="Structure">
+            <Field Label="Position">
               <div class="field-value">
                 @if (sel.Volume is { } vol)
                 {
@@ -135,25 +126,22 @@
 
             @if (sel.Detected)
             {
-              <Field Label="Why it was suggested">
+              <Field Label="Evidence">
                 <ChildContent>
                   <div class="field-value">@Evidence(sel)</div>
                 </ChildContent>
               </Field>
             }
 
-            <div class="ctrl-row ctrl-row--separated">
-              <Button Writes Fill OnClick="() => Remove(sel)" Title="Remove destroyable"><i data-lucide="trash-2"></i> Remove</Button>
-            </div>
           </div>
         </Section>
+        <InspectorDelete Title="Delete this monument" OnClick="() => Remove(sel)" />
       }
       else
       {
         <Section>
-          <DetailHeader Icon="gem" IconMuted Label="Destroyable" />
-          <p class="section-desc">Select a destroyable to set the team that defends it. A map can have wools,
-            cores, and destroyables at the same time.</p>
+          <DetailHeader Icon="gem" IconMuted Label="Monument" />
+          <EmptyState>No monument selected. Pick one to set the team that defends it.</EmptyState>
         </Section>
       }
   </Inspector>

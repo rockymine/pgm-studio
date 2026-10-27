@@ -14,10 +14,10 @@ public partial class Index
     /// <summary>The tools a map is not needed to reach, in the order the studio's bar lists them.</summary>
     private static readonly (string Name, string Text, string Icon, string Href)[] Tools =
     [
-        ("Generator", "Generate whole layouts from players, size and symmetry.", "sparkles", "generator"),
+        ("Generator", "Creates whole layouts from players, symmetry and size.", "sparkles", "generator"),
         ("Shape catalog", "Every shape the generator can place, and the settings that draw it.", "shapes", "catalog"),
-        ("Library", "Materials, themes and buildings shared by every map.", "library", "library"),
-        ("Rules", "Every refusal the studio can raise, and what each one asks of the map.", "scale", "rules"),
+        ("Library", "Patterns, palettes, houses and trees to reuse in any map.", "library", "library"),
+        ("Rules", "Every problem the studio can raise, and what each one asks of the map.", "scale", "rules"),
     ];
 
     /// <summary>The maps offered on the page, newest first, each with the tool it opens in and the moment shown.</summary>

@@ -5,11 +5,12 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Pgm.Authoring;
 
 /// <summary>
-/// Move one play piece — a spawn, a wool, a destroyable, a core, a build area, a water lane, an iron cube, an
-/// approach wall, a defence chest or the observer — by its id, and every orbit image of it with it. The sketch draws the pieces out of the intent, so a drag on the canvas arrives here or the picture
+/// Move one play piece — a spawn, a wool, a destroyable, a core, a control point, a build area, a water lane, an
+/// iron cube, an approach wall, a defence chest or the observer — by its id, and every orbit image of it with it. The sketch draws the pieces out of the intent, so a drag on the canvas arrives here or the picture
 /// and the world build answer differently.
 ///
-/// <para><b>A room's region, a build area and a water lane also resize.</b> A placed rectangle of another span
+/// <para><b>A room's region, a control point, a build area and a water lane also resize.</b> A control point takes
+/// the longer side of the placed rectangle as its size, centred on the rectangle's middle, from 3 to 15 blocks. A placed rectangle of another span
 /// is the piece's new size: a room keeps everything on its region — the marker, the building, the iron, the
 /// doors — at the same fraction across it, and is refused under <see cref="RoomFrames.MinFootprintSpan"/> blocks
 /// across (<c>WX2</c>) or over a room region's 20×30 (<c>ST10</c>). Every image takes the image of the new
@@ -144,6 +145,30 @@ public static class PlayPieceMove
             return (intent with { Cores = moved }, Findings.None);
         }
 
+        var points = intent.ControlPoints ?? [];
+        if (points.FindIndex(point => point.Id == id) is var pointAt and >= 0)
+        {
+            if (Unpartable(part, null) is { } unpartable) return (null, unpartable);
+            var standing = PlayPieces.ControlPoint(points[pointAt]);
+            var size = points[pointAt].Size;
+            if (OffGrid(placed) is { } offGrid) return (null, offGrid);
+            if (SpanOf(standing) != SpanOf(placed))
+            {
+                size = (int)Math.Max(placed.MaxX - placed.MinX, placed.MaxZ - placed.MinZ);
+                if (size < ObjectiveDefaults.MinControlPointSize || size > ObjectiveDefaults.MaxControlPointSize)
+                    return Refuse(RequestRules.Unreadable, "placed",
+                        $"a control point is {ObjectiveDefaults.MinControlPointSize} to {ObjectiveDefaults.MaxControlPointSize} blocks across, and the request's `placed` is {size}", id);
+            }
+            var (fromX, fromZ) = ObjectiveFootprint.AnchorCell(points[pointAt].Anchor.X, points[pointAt].Anchor.Z);
+            var (toX, toZ) = (PadCell(placed.MinX, placed.MaxX, size), PadCell(placed.MinZ, placed.MaxZ, size));
+            var moved = Orbit(points, pointAt, entry => entry.Stamp, mode, alone, toX - fromX, toZ - fromZ,
+                (entry, x, z) => entry with
+                {
+                    Anchor = Slide(entry.Anchor, x, z), Size = size, PadBox = null, CaptureBox = null, MarkerBox = null,
+                });
+            return (intent with { ControlPoints = moved }, Findings.None);
+        }
+
         if (intent.Build is { } build && build.Areas.FindIndex(area => area.Id == id) is var areaAt and >= 0)
         {
             if (Unpartable(part, null) is { } unpartable) return (null, unpartable);
@@ -183,18 +208,11 @@ public static class PlayPieceMove
 
             if (structures.Walls.FindIndex(wall => wall.Id == id) is var wallAt and >= 0)
             {
-                if (part is PieceParts.Start or PieceParts.End)
-                    return WallEnd(intent, structures, wallAt, part == PieceParts.End, placed, symmetry, alone);
-                if (!string.IsNullOrEmpty(part))
-                    return Refuse(RequestRules.Unreadable, "part",
-                        $"the request's `part` is '{part}', and a wall takes '{PieceParts.Start}', '{PieceParts.End}' or none");
+                if (Unpartable(part, null) is { } unpartable) return (null, unpartable);
                 if (BlockShift(PlayPieces.Wall(structures.Walls[wallAt]), placed, out var dx, out var dz) is { } stopped)
                     return (null, stopped);
                 var moved = Orbit(structures.Walls, wallAt, entry => entry.Stamp, mode, alone, dx, dz,
-                    (entry, x, z) => entry with
-                    {
-                        X1 = entry.X1 + (int)x, Z1 = entry.Z1 + (int)z, X2 = entry.X2 + (int)x, Z2 = entry.Z2 + (int)z,
-                    });
+                    (entry, x, z) => entry with { Points = [.. entry.Points.Select(point => new[] { point[0] + (int)x, point[1] + (int)z })] });
                 return (intent with { Structures = structures with { Walls = moved } }, Findings.None);
             }
 
@@ -219,42 +237,6 @@ public static class PlayPieceMove
 
         return Refuse(RequestRules.NoSuchSubject, "id", $"the map has no play piece with the id '{id}'", id);
     }
-
-    /// <summary>The intent with one end of the wall at <paramref name="at"/> — its second where
-    /// <paramref name="second"/> — moved to the block corner <paramref name="placed"/> states, the other end left
-    /// standing, and the matching end of every image moved by the displacement turned through the step to it.</summary>
-    private static (MapIntent? Intent, Findings Refused) WallEnd(
-        MapIntent intent, StructureIntent structures, int at, bool second, Rect placed, SymmetryIntent? symmetry,
-        bool alone)
-    {
-        if (placed.MinX != placed.MaxX || placed.MinZ != placed.MaxZ)
-            return Refuse(RequestRules.Unreadable, "placed",
-                "a wall's end is one block corner, and the request's `placed` spans blocks");
-        if (placed.MinX != Math.Floor(placed.MinX) || placed.MinZ != Math.Floor(placed.MinZ))
-            return Refuse(RequestRules.Unreadable, "placed", "a wall's end stands on a block corner, and the request's `placed` is off the block grid");
-        var wall = structures.Walls[at];
-        var (oldX, oldZ) = second ? (wall.X2, wall.Z2) : (wall.X1, wall.Z1);
-        var (otherX, otherZ) = second ? (wall.X1, wall.Z1) : (wall.X2, wall.Z2);
-        if ((int)placed.MinX == otherX && (int)placed.MinZ == otherZ)
-            return Refuse(RequestRules.Unreadable, "placed", "a wall's two ends would stand on one corner", wall.Id);
-        double dx = placed.MinX - oldX, dz = placed.MinZ - oldZ;
-        var mode = symmetry?.Mode;
-        var walls = Images(structures.Walls, at, entry => entry.Stamp, mode, alone, (entry, step) =>
-        {
-            if (step == 0) return Ended(entry, second, (int)placed.MinX, (int)placed.MinZ);
-            var (imageX, imageZ) = Symmetry.Point(oldX, oldZ, mode, symmetry!.CenterX, symmetry.CenterZ, step);
-            var nearSecond = Distance(entry.X2, entry.Z2, imageX, imageZ) < Distance(entry.X1, entry.Z1, imageX, imageZ);
-            var (x, z) = Symmetry.Point(dx, dz, mode, 0, 0, step);
-            var (fromX, fromZ) = nearSecond ? (entry.X2, entry.Z2) : (entry.X1, entry.Z1);
-            return Ended(entry, nearSecond, fromX + (int)Math.Round(x), fromZ + (int)Math.Round(z));
-        });
-        return (intent with { Structures = structures with { Walls = walls } }, Findings.None);
-    }
-
-    private static WallStructure Ended(WallStructure wall, bool second, int x, int z) =>
-        second ? wall with { X2 = x, Z2 = z } : wall with { X1 = x, Z1 = z };
-
-    private static double Distance(double x1, double z1, double x2, double z2) => Math.Abs(x1 - x2) + Math.Abs(z1 - z2);
 
     /// <summary>The intent with the marker of the room <paramref name="room"/> and its images moved by whole blocks
     /// to <paramref name="placed"/>, held inside the room's building where it states one and its region where
@@ -347,7 +329,8 @@ public static class PlayPieceMove
                     Findings.None);
         }
 
-        if ((intent.Destroyables ?? []).Any(goal => goal.Id == id) || (intent.Cores ?? []).Any(core => core.Id == id))
+        if ((intent.Destroyables ?? []).Any(goal => goal.Id == id) || (intent.Cores ?? []).Any(core => core.Id == id)
+            || (intent.ControlPoints ?? []).Any(point => point.Id == id))
             return Refuse(RequestRules.Unreadable, "turn", $"'{id}' is an objective, which states no facing to turn");
         if (PlayIds.RoomOfMarker(id) is { } room
             && (intent.Spawns.Any(spawn => spawn.Id == room) || (intent.Wools ?? []).Any(wool => wool.Id == room)))
@@ -426,7 +409,7 @@ public static class PlayPieceMove
     /// <summary>The list with <paramref name="change"/> applied to the area at <paramref name="at"/> (step 0)
     /// and, unless <paramref name="alone"/>, to each area whose bounds are its image under a step of the
     /// symmetry, read before any of them changed.</summary>
-    private static List<PieceArea> AreaImages(
+    internal static List<PieceArea> AreaImages(
         List<PieceArea> areas, int at, SymmetryIntent? symmetry, bool alone, Func<PieceArea, int, PieceArea> change)
     {
         var changed = new List<PieceArea>(areas) { [at] = change(areas[at], 0) };
@@ -751,6 +734,12 @@ public static class PlayPieceMove
     /// <summary>A point on the moved ground. Its Y is the nominal surface it was stated at and is left alone:
     /// what it stands on is measured by the world build against the terrain it laid.</summary>
     private static Pt Slide(Pt p, double dx, double dz) => p with { X = p.X + dx, Z = p.Z + dz };
+
+    /// <summary>The block a pad <paramref name="size"/> across is centred on to stand in the middle of the span
+    /// from <paramref name="min"/> to <paramref name="max"/>: the pad's middle is half a block past its centre
+    /// block at an odd size and a whole block past it at an even one.</summary>
+    private static int PadCell(double min, double max, int size) =>
+        (int)Math.Floor((min + max) / 2 - (size / 2.0 - (size - 1) / 2) + 0.5);
 
     private static (double X, double Z) SpanOf(Rect r) => (r.MaxX - r.MinX, r.MaxZ - r.MinZ);
     private static string Span(Rect r) => $"{r.MaxX - r.MinX:0.#} by {r.MaxZ - r.MinZ:0.#}";

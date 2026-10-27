@@ -61,7 +61,7 @@ public sealed class RulesEndpoint : EndpointWithoutRequest<List<RuleDto>>
         typeof(PlanRules).Assembly,             // Pgm
         typeof(WingJointRules).Assembly,        // Minecraft
         typeof(MapExportComposer).Assembly,     // Export
-        typeof(ReliefRules).Assembly,           // Analysis
+        typeof(EditZoneRules).Assembly,        // Analysis
         typeof(RulesEndpoint).Assembly,         // Api
     ];
 

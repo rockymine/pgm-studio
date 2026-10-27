@@ -16,7 +16,9 @@ namespace PgmStudio.Minecraft.Render;
 /// page as the step from <c>1</c> to <c>2</c> and from <c>4</c> to <c>5</c>.</para>
 ///
 /// <para>It answers the same <see cref="TerrainProfile.SlopeAt(Func{int, int, int}, int)"/> the painter resolves against, over the same
-/// terrain surface, so a band that came out wrong and the number that chose it cannot disagree. Fluids,
+/// terrain surface, so a band that came out wrong and the number that chose it cannot disagree; the one place
+/// the painter reads differently is a tread level with three of its neighbours, which it takes as a ledge of at
+/// most <see cref="TerrainProfile.LedgeTread"/> degrees below <see cref="TerrainProfile.LedgeFace"/>. Fluids,
 /// houses and the map's own spawns and goals overprint as they do on the heightmap, because ground under
 /// something that matters is read differently from ground that is merely steep.</para>
 /// </summary>

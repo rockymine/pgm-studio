@@ -1,13 +1,13 @@
 @namespace PgmStudio.Client.Features.Sketch
 
 @* Layout's list: the play pieces the canvas draws, one section per kind in the order the toolbars offer them, a
-   room's building reached through its room. Choosing one picks it as a click on it would; an orbit's image is
+   room's building reached through its room. Choosing one picks it as a click on it would; a symmetry copy is
    listed beside the piece it copies and is not picked, as on the canvas. *@
 
 @if (Pieces.Count == 0)
 {
   <Section Title="Pieces">
-    <p class="section-desc">Nothing is placed yet. Place a piece from the toolbar above the canvas.</p>
+    <EmptyState>No pieces yet. Place one from Pieces, Zones or Markers in the dock.</EmptyState>
   </Section>
 }
 @foreach (var kind in Kinds.Where(kind => Pieces.Any(piece => piece.Role == kind)))
@@ -24,7 +24,7 @@
             <span class="list-label" title="@piece.Id">@piece.Id</span>
             @if (piece.Carried)
             {
-              <span class="list-tag" title="Drawn by the symmetry from the piece it copies">image</span>
+              <span class="list-tag">Symmetry copy</span>
             }
           </ChildContent>
         </ListRow>
@@ -43,7 +43,7 @@
     [
         PlayPieceKinds.Spawn, PlayPieceKinds.SpawnPoint, PlayPieceKinds.WoolRoom, PlayPieceKinds.WoolSpawn,
         PlayPieceKinds.BuildArea, PlayPieceKinds.WaterLane, PlayPieceKinds.IronCube, PlayPieceKinds.Destroyable,
-        PlayPieceKinds.Core, PlayPieceKinds.Wall, PlayPieceKinds.Chest, PlayPieceKinds.Observer,
+        PlayPieceKinds.Core, PlayPieceKinds.ControlPoint, PlayPieceKinds.Wall, PlayPieceKinds.Chest, PlayPieceKinds.Observer,
     ];
 
     private Task Pick(SketchStructuralRow piece) => piece.Carried ? Task.CompletedTask : OnSelect.InvokeAsync(piece.Id);

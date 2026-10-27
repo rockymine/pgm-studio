@@ -23,11 +23,11 @@ public partial class Rules
     /// <summary>The facet a count leaves out, so a filter's own options count what picking them would show.</summary>
     private enum Facet { None, Kind, Category, Concerns }
 
-    private static readonly (Kind Value, string Label, string Says)[] Kinds =
+    private static readonly (Kind Value, string Label)[] Kinds =
     [
-        (Kind.All, "All", "Every rule"),
-        (Kind.Checks, "Checks", "Rules a check can stop a map on"),
-        (Kind.Layout, "Layout", "How a good map is laid out. The studio measures plans against these."),
+        (Kind.All, "All"),
+        (Kind.Checks, "Checks"),
+        (Kind.Layout, "Layout"),
     ];
 
     private static readonly JsonSerializerOptions Wire = new(JsonSerializerDefaults.Web)
@@ -55,10 +55,10 @@ public partial class Rules
     /// stop, never stop, never stop and read as a number against its range.</summary>
     private static readonly (string? Value, string Label)[] LevelChoices =
     [
-        (null, "Default"),
+        (null, "Studio default"),
         (RuleLevels.Refuse, "Stops the work"),
-        (RuleLevels.Hint, "Hint only"),
-        (RuleLevels.Measure, "Measure"),
+        (RuleLevels.Hint, "Warns only"),
+        (RuleLevels.Measure, "Measures only"),
     ];
 
     protected override async Task OnParametersSetAsync()
@@ -182,7 +182,7 @@ public partial class Rules
             RuleLevels.Refuse => $"Stops the work wherever a check asks, {by}.",
             RuleLevels.Hint => $"Never stops the work: the finding is shown beside the result, {by}.",
             RuleLevels.Measure => $"Never stops the work: the finding is shown as the number it measured against its range, {by}.",
-            _ => "Does what its code says: where a check refuses on it the work stops, where it remarks the finding rides along.",
+            _ => "Stops the work where a check raises it as a problem, and shows beside the result where it is a warning.",
         };
     }
 
@@ -197,7 +197,7 @@ public partial class Rules
         settingLevel = false;
         if (updated is null)
         {
-            levelError = "The studio did not take the change. Reload the page and try again.";
+            levelError = "Couldn't change the level. Try again.";
             return;
         }
         rules = await Book.RulesAsync();

@@ -96,5 +96,14 @@ public static class WoolAuthoring
     // ── colour helpers ────────────────────────────────────────────────────────────────
     public static string Hex(string color) => GameColors.DyeHex(color);
 
+    /// <summary>A dye colour as a person reads it, in sentence case: <c>light_blue</c> is "Light blue".</summary>
+    public static string Name(string? color)
+    {
+        var norm = NormColor(color);
+        var label = GameColors.DyeColors.FirstOrDefault(dye => NormColor(dye.Value) == norm).Label;
+        if (string.IsNullOrEmpty(label)) label = norm.Replace('_', ' ');
+        return label.Length == 0 ? "" : char.ToUpperInvariant(label[0]) + label[1..].ToLowerInvariant();
+    }
+
     public static string NormColor(string? c) => (c ?? "").Trim().ToLowerInvariant().Replace(' ', '_').Replace('-', '_');
 }

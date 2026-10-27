@@ -242,12 +242,12 @@ public sealed record MapMetadataRequest(
 /// unless the body states <c>alone</c>.</summary>
 /// <param name="Part">Absent for the piece itself — a room's region, which carries the room seated on it, or
 /// an objective's structure — the room's own region word (<c>spawn</c>, <c>woolRoom</c>) for the same, or
-/// <c>building</c> for the house raised on a room's region, which moves and turns whole; or <c>start</c> or
-/// <c>end</c> for one end of an approach wall, which moves alone and leaves the other where it stands.</param>
+/// <c>building</c> for the house raised on a room's region, which moves and turns whole. A wall's corners are
+/// set by <c>PUT …/intent/pieces/{id}/line</c>.</param>
 /// <param name="MinX">The placed rectangle's west edge, in world blocks. The four are the same bounds the
 /// piece's own rectangle states — a room's <c>protection</c>, the wing of its house <c>wing</c> names, a goal's structure from its
 /// first block's edge to past its last, the rectangle <c>GET …/intent/pieces</c> answers for any piece — and together they <b>move and do not resize</b>: a span differing
-/// from the one they replace is refused as <c>RQ1</c>. A wall's end is one block corner, all four bounds on it.</param>
+/// from the one they replace is refused as <c>RQ1</c>.</param>
 /// <param name="MinZ">Its north edge.</param>
 /// <param name="MaxX">Its east edge.</param>
 /// <param name="MaxZ">Its south edge.</param>
@@ -268,8 +268,8 @@ public sealed record PieceMoveRequest(
     int Wing = 0);
 
 /// <summary>One play piece where the sketch draws it — the answer of <c>GET /map/{slug}/intent/pieces</c>, one
-/// per spawn, wool room, destroyable, core, build area, water lane, iron cube, approach wall and the observer,
-/// the images the map's symmetry draws included.</summary>
+/// per spawn, wool room, destroyable, core, control point, build area, water lane, iron cube, approach wall and the
+/// observer, the images the map's symmetry draws included.</summary>
 /// <param name="Id">The piece's id, which <c>PATCH …/intent/pieces/{id}</c> moves it by.</param>
 /// <param name="Kind">What the piece is.</param>
 /// <param name="Color">The team or dye colour it is drawn in, or empty for a piece that belongs to no team.</param>
@@ -280,7 +280,8 @@ public sealed record PieceMoveRequest(
 /// <param name="Carried">True where the sketch does not pick the piece on its own: an image the symmetry draws
 /// that the intent does not store, an image of an orbit other than its authored one, or an iron cube seated in a
 /// spawn room. A move of an image still names its id and moves the whole orbit.</param>
-/// <param name="Line">A wall's two ends, <c>[x1, z1, x2, z2]</c> on block corners; absent for every other piece.</param>
+/// <param name="Line">A wall's corners in order, each <c>[x, z]</c> on a block corner; absent for every other piece.</param>
+/// <param name="Shape">A control point's pad, a square or a disc; absent for every other piece.</param>
 public sealed record PlayPieceDto(
     string Id,
     [property: WordSet(typeof(PlayPieceKinds))] string Kind,
@@ -290,20 +291,21 @@ public sealed record PlayPieceDto(
     [property: JsonPropertyName("maxX")] double MaxX,
     [property: JsonPropertyName("maxZ")] double MaxZ,
     bool Carried,
-    int[]? Line = null);
+    int[][]? Line = null,
+    [property: WordSet(typeof(ControlPointShapes))] string? Shape = null);
 
 /// <summary>A play piece to add — the body of <c>POST /map/{slug}/intent/pieces</c>. The piece arrives with every
 /// image the map's symmetry draws of it.</summary>
 /// <param name="Kind">What to add.</param>
 /// <param name="MinX">The placed rectangle's west edge, in world blocks: a room's region or an area for a spawn, a
-/// wool room, a build area and a water lane; the block clicked for a destroyable, a core, an iron cube, a defence
-/// chest and the observer, which stand centred on it.</param>
+/// wool room, a build area and a water lane; the block clicked for a destroyable, a core, a control point, an iron
+/// cube, a defence chest and the observer, which stand centred on it.</param>
 /// <param name="MinZ">Its north edge.</param>
 /// <param name="MaxX">Its east edge.</param>
 /// <param name="MaxZ">Its south edge.</param>
 /// <param name="Team">The team the authored image belongs to; absent takes the first in orbit order.</param>
-/// <param name="Ends">A wall's two ends, <c>[x1, z1, x2, z2]</c> on block corners, which a wall states in place
-/// of the rectangle.</param>
+/// <param name="Points">A wall's corners in order, two or more, each <c>[x, z]</c> on a block corner, which a wall
+/// states in place of the rectangle.</param>
 public sealed record PieceAddRequest(
     [property: WordSet(typeof(PlayPieceKinds))] string Kind,
     [property: JsonPropertyName("minX")] double? MinX = null,
@@ -311,12 +313,17 @@ public sealed record PieceAddRequest(
     [property: JsonPropertyName("maxX")] double? MaxX = null,
     [property: JsonPropertyName("maxZ")] double? MaxZ = null,
     string? Team = null,
-    int[]? Ends = null);
+    int[][]? Points = null);
 
 /// <summary>A room's house, whole — the body of <c>PUT /map/{slug}/intent/pieces/{id}/house</c>.</summary>
 /// <param name="House">The house: its wings, the room first, and the style it states, absent for the map's.</param>
 /// <param name="Alone">Set it on the named image only, rather than on every image of its unit.</param>
 public sealed record PieceHouseRequest(System.Text.Json.JsonElement House, bool Alone = false);
+
+/// <summary>A wall's line, whole — the body of <c>PUT /map/{slug}/intent/pieces/{id}/line</c>.</summary>
+/// <param name="Points">Its corners in order, two or more, each <c>[x, z]</c> on a block corner.</param>
+/// <param name="Alone">Set them on the named image only, rather than on every image of its unit.</param>
+public sealed record PieceLineRequest(int[][] Points, bool Alone = false);
 
 /// <summary>A room's doors, whole — the body of <c>PUT /map/{slug}/intent/pieces/{id}/doors</c>.</summary>
 /// <param name="Doors">The doors, in the order they are cut — the first is the one a spawn's team walks out of.</param>

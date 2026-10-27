@@ -9,7 +9,7 @@
 <Workspace>
   <ContentColumn MaxWidth="760">
 
-    <Section Title="Checks">
+    <Section Title="Checks" Description="These checks find what would stop the map from being played. Export opens once they pass.">
       <Actions>
         @if (running) { <Badge Kind="neutral">Running…</Badge> }
         else if (data is { IntentMap: false }) { <Badge Kind="dim">Not needed</Badge> }
@@ -17,17 +17,13 @@
         else { <Badge Kind="error">Blocked</Badge> }
       </Actions>
       <ChildContent>
-        <p class="section-desc">These checks find what would stop the map from being played. Export opens once
-          they pass.</p>
-
         @if (error is not null)
         {
-          <div class="panel-warning"><strong>Couldn't run the checks.</strong> Select Run again to try again. (@error)</div>
+          <div class="panel-warning"><strong>Couldn't run the checks.</strong> Select Run again to try again.</div>
         }
         else if (data is { IntentMap: false })
         {
-          <p class="panel-empty-msg panel-empty-msg--left">This map wasn't set up in Configure, so there is
-            nothing to check. It can be exported as it is.</p>
+          <EmptyState>No checks for this map. It wasn't set up in Configure, so it can be exported as it is.</EmptyState>
         }
         else
         {
@@ -72,7 +68,7 @@
                   {
                     var stroke = d.Isolated ? "#e5534b" : "white";
                     var width = d.Isolated ? IsoSw : Sw;
-                    var title = d.Isolated ? $"{d.Name} (cut off)" : d.Name;
+                    var title = d.Isolated ? $"{d.Name}, cut off" : d.Name;
                     @switch (d.Kind)
                     {
                       case "spawn":
@@ -100,7 +96,7 @@
                   }
                 </svg>
               </div>
-              <p class="section-desc">
+              <p class="text-muted">
                 <Badge Class="@(data?.Traversability is { Connected: true } ? "badge--success" : "badge--error")">
                   @(data?.Traversability is { Connected: true } ? "Connected" : $"{data?.Traversability?.ComponentCount} separate parts")
                 </Badge>

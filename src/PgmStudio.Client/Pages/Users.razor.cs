@@ -53,12 +53,14 @@ public partial class Users
     // Why each control is closed to this caller, or null where it is open. The server refuses the same changes
     // (docs/access.md, "Who keeps the whitelist"); this only says so before the click.
     private string? Untouchable(StudioUserDto user) =>
-        user.Owner && !(Owner && me?.Uuid == user.Uuid) ? "Owners are set in the server configuration and can only be changed there"
-        : !Owner && user.Role == StudioRoles.Admin ? "Only an owner can change an admin"
+        user.Owner && !(Owner && me?.Uuid == user.Uuid) ? OwnerReason
+        : !Owner && user.Role == StudioRoles.Admin ? "Only an owner can change an admin."
         : null;
 
     private string? RoleLocked(StudioUserDto user) =>
-        user.Owner ? "Owners are always admins" : Untouchable(user);
+        user.Owner ? "An owner is always an admin." : Untouchable(user);
+
+    private const string OwnerReason = "An owner is set in the server configuration and changed only there.";
 
     private string? AccountLocked(StudioUserDto user) => Untouchable(user);
 
@@ -88,18 +90,18 @@ public partial class Users
 
     private string? InviteLocked(StudioUserDto user) =>
         Untouchable(user)
-        ?? (!Owner && user.SignsIn ? $"{user.Name} can already sign in. Only an owner can send them a new invitation" : null);
+        ?? (!Owner && user.SignsIn ? $"{user.Name} can already sign in, and only an owner sends a new invitation." : null);
 
     private string? RemoveLocked(StudioUserDto user) =>
-        user.Owner ? "Owners are set in the server configuration and can only be changed there" : Untouchable(user);
+        user.Owner ? OwnerReason : Untouchable(user);
 
     /// <summary>How many people wait for approval, which the page's heading counts.</summary>
     private int Waiting => users?.Count(user => user.Role == StudioRoles.Unapproved) ?? 0;
 
     private static string SignInState(StudioUserDto user) =>
-        user.SignsIn ? "signs in with Discord"
-        : user.InviteExpiresAt is not null ? "invited"
-        : "no invitation";
+        user.SignsIn ? "Signs in with Discord"
+        : user.InviteExpiresAt is not null ? "Invited"
+        : "No invitation";
 
     private async Task AddAsync()
     {
@@ -139,7 +141,7 @@ public partial class Users
 
     private async Task RemoveAsync(StudioUserDto user)
     {
-        if (!await JS.InvokeAsync<bool>("confirm", $"Remove {user.Name} from the whitelist? They stay credited on their maps but can no longer edit anything."))
+        if (!await JS.InvokeAsync<bool>("confirm", $"Delete {user.Name} from the whitelist? They stay credited on their maps but can no longer change anything."))
             return;
         error = null;
         using var response = await Http.DeleteAsync($"api/users/{user.Uuid}");

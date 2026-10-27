@@ -585,6 +585,35 @@ public sealed class HouseStyleValidationTests
         await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.BeamsWithoutTimber)).IsFalse();
     }
 
+    /// <summary>A laid-log head course is the course the ends come out of, whatever the wall under it is.</summary>
+    [Test]
+    public async Task Beams_over_a_laid_log_head_course_say_nothing()
+    {
+        var headed = Framed(Masonry, postWood: 1, beamWood: 1) with { Head = new LaidLogMaterial(Blocks.Log, 1) };
+        var findings = HouseStyleValidation.Check(headed);
+        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.BeamsWithoutTimber)).IsFalse();
+    }
+
+    [Test]
+    public async Task A_head_course_of_another_wood_than_the_beams_is_HS4()
+    {
+        var headed = Framed(Masonry, postWood: 1, beamWood: 1) with
+        {
+            Storeys = [new Storey { Clear = 3, Head = new LaidLogMaterial(Blocks.Log, 0) }, new Storey { Clear = 3 }],
+        };
+        var findings = HouseStyleValidation.Check(headed);
+        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.PartMaterial
+                                               && finding.Field == "storeys[0].head")).IsTrue();
+    }
+
+    [Test]
+    public async Task A_head_course_of_grass_is_HS16()
+    {
+        var findings = HouseStyleValidation.Check(new HouseStyle { Head = new SolidMaterial(2, 0) });
+        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.SurfacingWall
+                                               && finding.Field == "head")).IsTrue();
+    }
+
     /// <summary>And a building of one storey never lays a beam, so the word on it is inert rather than
     /// wrong.</summary>
     [Test]

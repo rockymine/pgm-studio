@@ -1,7 +1,7 @@
 @namespace PgmStudio.Client.Features.Sketch
 
 @* A note's before and after, in the place of the big picture: the picture the note was written on, the same camera
-   drawn after the latest reply that carries one, and the same camera over the board as it stands now. Wipe lays
+   drawn after the latest reply that carries one, and the same camera over the map as it stands now. Wipe lays
    the after over the before up to a seam the author drags. All three are one camera at one size, so the note's
    mark lands on each where it landed on the before. *@
 
@@ -22,7 +22,7 @@
       <span class="note-compare__label note-compare__label--left">After · change @AfterChange</span>
       break;
     case Modes.Now:
-      <img class="note-compare__picture" src="@Now" alt="Now: the same camera over the board as it stands" />
+      <img class="note-compare__picture" src="@Now" alt="Now: the same camera over the map as it stands" />
       <span class="note-compare__label note-compare__label--left">Now · change @NowChange</span>
       break;
     default:

@@ -1,0 +1,12 @@
+@namespace PgmStudio.Client.Components
+
+@* Where a list will be, while it is not yet: "Loading…" while it is on its way, or the failure that stopped it.
+   An empty list is EmptyState, not this. *@
+
+<p class="list-empty" role="status">@(ChildContent ?? Loading)</p>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private static readonly RenderFragment Loading = builder => builder.AddContent(0, "Loading…");
+}

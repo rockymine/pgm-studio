@@ -37,6 +37,11 @@ public partial class CoreCasingStep
     private C.Core? Selected => selected >= 0 && selected < cores.Count ? cores[selected] : null;
     private Ctx.Team? TeamOf(string id) => teams.FirstOrDefault(t => t.Id == id);
     private string TeamName(string id) => TeamOf(id)?.Name ?? id;
+
+    /// <summary>What a leak costs the attackers, in the words the shared objective fields say it.</summary>
+    private static string DigReadout(C.Core core) => core.DigDepth > 0
+        ? $"Leaking it means breaking the casing and digging {core.DigDepth} block{(core.DigDepth == 1 ? "" : "s")} out of the ground below it."
+        : "The lava leaks as soon as the casing is broken. No digging is needed.";
     private string TeamHex(string id) => GameColors.DyeHex(TeamOf(id)?.Color ?? "");
 
     protected override void OnInitialized()

@@ -7,10 +7,11 @@
 
 import { SketchCanvas } from "../canvas/sketch-canvas.js";
 import { computeMirrorPreview, settleGroups, uniqueGroups, outlineKey } from "../geometry/boolean.js";
-import { rectToPolygon, translateShape, rotateShape, boundsOfShapes, splitShape } from "../geometry/shape.js";
+import { rectToPolygon, translateShape, rotateShape, boundsOfShapes, splitShape, footprintOf, asSolid } from "../geometry/shape.js";
 import { surfaceHeights } from "../geometry/slope.js";
 import { defaultThemeJson, uniqueScopeId } from "../theme/theme-model.js";
-import { isPush, pushAmounts, pushAmountPatch } from "../relief/relief-doc.js";
+import { newModifier, addArea, patchModifier, moveModifier, maskRings } from "../relief/modifier-doc.js";
+import { opOfTool } from "../controllers/modifier-controller.js";
 import { fireTo } from "./fire.js";
 import { isoPreview } from "./iso-preview.js";
 import { liveFeed, refusalText } from "./live-feed.js";
@@ -18,7 +19,6 @@ import * as Keys from "../shared/keys.js";
 import { isHeightMode, isReliefScope } from "../shared/relief-words.js";
 import { diffOverlay } from "../render/diff-render.js";
 import { DRESSING_TOOLS } from "../controllers/dressing-controller.js";
-import { RELIEF_TOOLS } from "../controllers/relief-controller.js";
 import { rectsJoinUp, wingRects } from "../dressing/dressing-doc.js";
 
 // Default footprint = 2-team landscape (120×80), framed about the origin. CTW maps fit a ~120-block long
@@ -30,6 +30,15 @@ const genId = () => `s${Date.now()}_${_seq++}`;
 
 // Height invariants: every shape is at least one block tall (height >= 1, default 1) and its floor never
 // dips below 0. clampHeight/clampFloor coerce an unset or out-of-range value to the nearest valid one.
+// The numbers a solid states, each brought into the range the rasterizer reads: a turn is a bearing, a tilt
+// stays short of straight up, a sink is blocks under the floor and a tube is at least a block.
+const SOLID_NUMBERS = {
+  turn: (v) => ((Math.round(v * 100) / 100 % 360) + 360) % 360,
+  tilt: (v) => Math.max(-90, Math.min(90, Math.round(v * 100) / 100)),
+  sunk: (v) => Math.max(0, Math.round(v)),
+  tube: (v) => Math.max(1, Math.round(v)),
+};
+
 const MIN_HEIGHT = 1;
 const clampHeight = (h) => Math.max(MIN_HEIGHT, h ?? MIN_HEIGHT);
 const clampFloor  = (f) => Math.max(0, f ?? 0);
@@ -40,12 +49,13 @@ const clampFloor  = (f) => Math.max(0, f ?? 0);
 const NEW_SHAPE_HEIGHT = 9;
 
 function dimLabel(s) {
-  if (s.type === "rectangle") return `${s.max_x - s.min_x}×${s.max_z - s.min_z}`;
-  if (s.type === "circle")    return `r=${s.radius}`;
+  const kind = footprintOf(s);
+  if (kind === "rectangle") return `${s.max_x - s.min_x} × ${s.max_z - s.min_z}`;
+  if (kind === "circle")    return `radius ${s.radius}`;
   // A path reads as how wide it is, not how many points it took to draw — the width is the knob an author
   // reaches for, and the point count is already visible as handles on the canvas.
-  if (s.type === "polyline")      return `${(s.radius ?? 0) * 2} wide`;
-  return `${s.vertices?.length ?? 0} v`;
+  if (kind === "polyline")      return `${(s.radius ?? 0) * 2} wide`;
+  return `${s.vertices?.length ?? 0} points`;
 }
 
 export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, slug) {
@@ -64,6 +74,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   let pieceKind = null;        // the play piece the Layout step places next, or null
   let placeShape = null;       // the shape of place the Places step draws next, or null
   let reliefMode = false;      // the Relief phase is up: marks are drawn, edited, and reported to the host
+  let modifiers = [];          // the terraform stack, in the order it runs (`SketchLayout.Modifiers`)
+  let pickedModifier = null;   // the modifier whose mask the board outlines, or null
+  let groundStep = null;     // the ground read after this many modifiers that are on; null reads all of them
+  let changes = {};            // columns each modifier moved, by id, as the server last counted them
   let dressingMode = false;    // the Dressing phase is up: props are, and a shape is not reachable under them
   // Terrain-paint theming (docs/world-export/terrain-painting.md TP10): a map-global registry + default; a shape's own override
   // rides on the shape (`shape.theme`), assigned via the Theme phase and resolved at export.
@@ -75,6 +89,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // Which library row that field was copied from, or 0 for a board whose field came from none — one written
   // over HTTP, or none at all. The field itself is the snapshot; this only says which row to show as held.
   let biomeSource = 0;
+  // The board's paint rules (terrain-painting.md TP28), in the order a column meets them: each a material laid
+  // over the top courses where the ground is what it asks for. Empty paints every column its theme.
+  let paint = [];
   // Which library row each theme was copied from, theme id -> row id. A theme authored on the board
   // has no entry. It is what a copy-in matches by, so a rename on either side still finds the one theme.
   let themeSources = {};
@@ -84,7 +101,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // shipped map's rooms — and map-wide rather than per room, because a cage that differed between teams would
   // be a sightline that differed between teams.
   // Three states each, matching the stored layout: an object is the bound style, `undefined` is unpicked (the
-  // built-in shell gets stamped), and `null` is no building at all — a pad on open ground. Keeping them apart
+  // bedrock box gets stamped), and `null` is no building at all — a pad on open ground. Keeping them apart
   // is what lets an open room survive being opened and saved here; collapsing them would rebuild it.
   let roomStyles = { wool: undefined, spawn: undefined };
   // Dressing (decoration.md) does NOT ride beside theming. A theme is a recipe named once and applied to many
@@ -174,7 +191,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     onRoomDoorsEdited: (room, doors) => pieceStep(() => writeDoors(room, doors)),
     onRoomHouseRefused: (sentence) => fire("OnStructuralNote", sentence),
     // A wall's end dragged to a corner is asked of the intent the way a whole-wall drag is.
-    onWallEndMoved: (piece, part, x, z, putBack) => pieceStep(() => moveWallEnd(piece, part, x, z, putBack)),
+    onWallLineEdited: (piece, points, putBack) => pieceStep(() => setWallLine(piece, points, putBack)),
     // Placing, moving and picking a prop all happen on the canvas; the bridge only has to relay the result.
     onDressingChanged: edit(() => afterDressingChange()),
     onPropSelected:    () => fire("OnDressing", dressingState()),
@@ -186,10 +203,13 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (result?.refused) fire("OnDressing", dressingState(result.refused));
       else afterDressingChange();
     }),
-    // Relief marks follow exactly the same three rules, for the same reasons.
-    onReliefChanged: edit(() => afterReliefChange()),
-    onMarkSelected:  () => fire("OnRelief", reliefState()),
-    onReliefPlaced:  () => { if (!dropTool()) canvas.reliefTools?.select(null); },
+    // A modifier's mask follows the same three rules, for the same reasons.
+    getModifiers:       () => modifiers,
+    onModifierTraced:   edit((op, points) => traced(op, points)),
+    onModifiersChanged: edit((next) => { modifiers = next; afterModifierChange(pickedModifier); }),
+    onModifiersPreview: (next) => { modifiers = next; paintMasks(); },
+    onModifierSelected: (id) => { pickedModifier = id; fire("OnModifiers", modifierState()); paintMasks(); },
+    onModifierPlaced:   () => { dropTool(); },
     onToolDropped:   () => putDownTool(),
     onShapeDeleted:  edit((id) => { canvas.removeShape(id); recompute(); selectShape(null); markDirty(); }),
     // Taking a point out is one step, opened here because the key press that asks for it is not a pointer
@@ -316,7 +336,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       }
     } catch {
       canvas.restoreStructural(putBack);
-      fire("OnStructuralNote", "Couldn't reach the studio, so the piece wasn't moved. Try again.");
+      fire("OnStructuralNote", "Couldn't move the piece. Try again.");
       return;
     }
     fire("OnStructuralNote", null);
@@ -325,14 +345,14 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     selectStructural(piece.id);
   }
 
-  /** The release of a drag on one end of a picked wall: the end, `start` or `end`, asked to stand on the block
-   *  corner (x, z), the wall put back where it stood on a refusal. */
-  async function moveWallEnd(piece, part, x, z, putBack) {
+  /** A picked wall's corners changed — one dragged, added or taken out — asked to run through `points`, the wall
+   *  put back where it stood on a refusal. */
+  async function setWallLine(piece, points, putBack) {
     if (!slug) { canvas.restoreStructural(putBack); return; }
     try {
-      const res = await fetch(`/api/map/${encodeURIComponent(slug)}/intent/pieces/${encodeURIComponent(piece.id)}`, {
-        method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ part, minX: x, minZ: z, maxX: x, maxZ: z }),
+      const res = await fetch(`/api/map/${encodeURIComponent(slug)}/intent/pieces/${encodeURIComponent(piece.id)}/line`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ points }),
       });
       if (!res.ok) {
         canvas.restoreStructural(putBack);
@@ -341,7 +361,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       }
     } catch {
       canvas.restoreStructural(putBack);
-      fire("OnStructuralNote", "Couldn't reach the studio, so the wall wasn't changed. Try again.");
+      fire("OnStructuralNote", "Couldn't change the wall. Try again.");
       return;
     }
     fire("OnStructuralNote", null);
@@ -365,7 +385,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         });
       if (!res.ok) { fire("OnStructuralNote", await refusalText(res)); return; }
     } catch {
-      fire("OnStructuralNote", "Couldn't reach the studio, so the piece wasn't turned. Try again.");
+      fire("OnStructuralNote", "Couldn't turn the piece. Try again.");
       return;
     }
     fire("OnStructuralNote", null);
@@ -384,7 +404,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   });
 
   // The pieces a click places, centred on the block clicked; every other kind is the rectangle dragged out.
-  const POINT_KINDS = new Set(["destroyable", "core", "ironCube", "chest", "observer"]);
+  const POINT_KINDS = new Set(["destroyable", "core", "controlPoint", "ironCube", "chest", "observer"]);
   const ROOM_KINDS = new Set(["spawn", "woolRoom"]);
 
   /** Arm the rectangle tool to place `kind` rather than draw a shape, or `null` to put it back to drawing. */
@@ -403,7 +423,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     const ends = (a, b) => b > a ? [a, b + 1] : b < a ? [a + 1, b] : [a, a];
     const [x1, x2] = ends(from[0], to[0]);
     const [z1, z2] = ends(from[1], to[1]);
-    return [x1, z1, x2, z2];
+    return [[x1, z1], [x2, z2]];
   }
 
   /**
@@ -416,7 +436,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     if (POINT_KINDS.has(kind)) [maxX, maxZ] = [minX + 1, minZ + 1];
     if (!slug) return;
     const body = kind === "wall"
-      ? { kind, ends: wallEnds(partial.from ?? [minX, minZ], partial.to ?? [maxX - 1, maxZ - 1]) }
+      ? { kind, points: wallEnds(partial.from ?? [minX, minZ], partial.to ?? [maxX - 1, maxZ - 1]) }
       : { kind, minX, minZ, maxX, maxZ };
     let id;
     try {
@@ -427,7 +447,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (!res.ok) { fire("OnStructuralNote", await refusalText(res)); return; }
       id = (await res.json()).id;
     } catch {
-      fire("OnStructuralNote", "Couldn't reach the studio, so the piece wasn't placed. Try again.");
+      fire("OnStructuralNote", "Couldn't place the piece. Try again.");
       return;
     }
     if (ROOM_KINDS.has(kind) && !canvas.groundAt((minX + maxX) / 2, (minZ + maxZ) / 2))
@@ -492,7 +512,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (!res.ok) fire("OnStructuralNote", await refusalText(res));
       else fire("OnStructuralNote", null);
     } catch {
-      fire("OnStructuralNote", "Couldn't reach the studio, so the house wasn't changed. Try again.");
+      fire("OnStructuralNote", "Couldn't change the house. Try again.");
     }
     await refreshRooms();
     await refreshPieces();
@@ -520,7 +540,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (!res.ok) fire("OnStructuralNote", await refusalText(res));
       else fire("OnStructuralNote", null);
     } catch {
-      fire("OnStructuralNote", "Couldn't reach the studio, so the doors weren't changed. Try again.");
+      fire("OnStructuralNote", "Couldn't change the doors. Try again.");
     }
     iso.drop();
     await loadDoors(room);
@@ -546,7 +566,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         `/api/map/${encodeURIComponent(slug)}/intent/pieces/${encodeURIComponent(piece.id)}`, { method: "DELETE" });
       if (!res.ok) { fire("OnStructuralNote", await refusalText(res)); return; }
     } catch {
-      fire("OnStructuralNote", "Couldn't reach the studio, so the piece wasn't deleted. Try again.");
+      fire("OnStructuralNote", "Couldn't delete the piece. Try again.");
       return;
     }
     selectStructural(null);
@@ -584,6 +604,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       .map(p => ({
         id: p.id, type: "rectangle", role: p.kind, color: p.color || null, piece: true, carried: p.carried === true,
         min_x: p.minX, min_z: p.minZ, max_x: p.maxX, max_z: p.maxZ, ...(p.line ? { line: p.line } : {}),
+        ...(p.shape ? { shape: p.shape } : {}),
       }));
     showStructural();
   }
@@ -616,7 +637,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
    * an author corrected something to the value the layout already stated. It writes `hold` with them, which is
    * what makes the terraform keep the room at the number rather than settle it on the ground under it.
    *
-   * A `building` carries no height — the region it stands in is what a group's relief is held against — so
+   * A `building` carries no height — the region it stands in is its ground — so
    * there is nothing here for one to state and the rail offers no field.
    */
   function setStructuralHeight(id, height) {
@@ -643,9 +664,6 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     selectStructural(null);
     fire("OnShapeSelected", single);
     fire("OnGroupSelected", single ? null : canvas.selectedGroupId);
-    // In the Relief phase the group IS the unit being edited — its base, reach, step and grain are what the
-    // marks are stated against — so picking one has to reach the inspector.
-    if (reliefMode) fire("OnRelief", reliefState());
   }
 
   // Rotate the current selection by `deg` degrees about its bbox centre (the inspector's numeric field; the
@@ -676,8 +694,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     groups = next;
     layers[active].groups = next;
     layers[active].shapes = shapes;
-    // `mirrors` rides along because the relief overlay ghosts a mark only on a group that opted in — the
-    // rasterizer fans only those, so a ghost anywhere else is terrain that will never be built.
+    // `mirrors` rides along because the rasterizer fans only the groups that opted in, so a ghost anywhere
+    // else is terrain that will never be built.
     canvas.setGroups(next.map(i => ({ id: i.id, shapeIds: i.shapeIds, exterior: i.exterior, holes: i.holes, mirrors: i.mirrors })));
     canvas.setGhostGroups(ghostPolys());
     refreshMirror();
@@ -685,8 +703,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     pushLayers();
     iso.drop();
     refreshPaint();   // the geometry moved, so the paint on it has too (no-op unless the overlay is on)
-    // A relief is solved over the group's own footprint, so moving the geometry re-shapes the ground under
-    // it — and a re-fused group can change which relief applies at all.
+    // The modifiers run over the ground the shapes build, so moving the geometry re-shapes what they make.
     refreshRelief();
   }
 
@@ -694,11 +711,11 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // The picture is the world the export builds, not a second guess at it: the live layout goes to
   // `sketch/columns`, which runs the real build over it and answers every column's solid runs, and
   // `column-mesh.js` turns those into triangles. The client decides nothing about height — which is the
-  // point, because it cannot: a shape's top is settled by the per-group relief solve and then again by
+  // point, because it cannot: a shape's top is settled by the modifier stack and then again by
   // whatever the shape says about being erected, and neither is derivable here without a second copy of the
   // solver. Extruding in the browser would take only the first of those three stages.
   const NO_MAP = "This sketch has no map to build.";
-  const columnsUrl = () => slug ? `/api/map/${encodeURIComponent(slug)}/sketch/columns` : null;
+  const columnsUrl = () => slug ? `/api/map/${encodeURIComponent(slug)}/sketch/columns${stepQuery("?")}` : null;
   const layoutBody = () => JSON.stringify(handle.getState());
 
   const iso = isoPreview({
@@ -758,13 +775,15 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       baseHeight: clampHeight(s.base_height), floor: clampFloor(s.floor),
       heightMode: s.height_mode ?? "", skirt: s.skirt ?? 0, reliefScope: s.relief_scope ?? "",
       radius: s.radius ?? 0, strokeEdge: s.stroke_edge ?? "", strokeSeed: s.stroke_seed ?? 0,
+      turn: s.turn ?? 0, tilt: s.tilt ?? 0, sunk: s.sunk ?? 0, tube: s.tube ?? 0,
+      deckCrown: s.deck?.[0] ?? 0, deckEnd: s.deck?.[1] ?? s.deck?.[0] ?? 0,
     }));
     fire("OnLayout", JSON.stringify({ groups: uniqueGroups(groups), shapes }));
   }
 
   // Push the layer list (id/name/base_y + active) to the Blazor layer panel.
   function pushLayers() {
-    fire("OnLayers", JSON.stringify({ active: layers[active].id, layers: layers.map(L => ({ id: L.id, name: L.name, baseY: L.baseY })) }));
+    fire("OnLayers", JSON.stringify({ active: layers[active].id, layers: layers.map(L => ({ id: L.id, name: L.name, baseY: L.baseY, underside: L.stated?.underside ?? null })) }));
   }
 
   /** Tell the canvas which layer is being drawn on, so whatever is placed lands on it. */
@@ -775,10 +794,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   //
   // `groups` is seeded from the layer being loaded before the recompute, because `recompute` carries
   // identity over from whatever `groups` holds: leaving the outgoing layer's there matches the incoming
-  // group against a stranger by centroid and adopts its id, and an id is what a relief is keyed by. Two
-  // layers of one board are centred on the same place, so the match always succeeds and the ground of a
-  // stacked board comes back named after the layer under it — losing its relief in the live layout and
-  // writing the wrong id into the document on the next save.
+  // group against a stranger by centroid and adopts its id. Two layers of one board are centred on the same
+  // place, so the match always succeeds and the ground of a stacked board comes back named after the layer
+  // under it, writing the wrong id into the document on the next save.
   function loadActiveToCanvas() {
     canvas.clearShapes();
     for (const sh of layers[active].shapes) canvas.addShape({ ...sh });
@@ -820,6 +838,13 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   }
 
   function renameLayer(id, name) { const L = layers.find(l => l.id === id); if (!L) return; L.name = name; pushLayers(); markDirty(); }
+  // The underside rides in `stated` with the other layer fields the editor does not draw; null takes it off.
+  function setLayerUnderside(id, json) {
+    const L = layers.find(l => l.id === id); if (!L) return;
+    const { underside, ...rest } = L.stated ?? {};
+    L.stated = json ? { ...rest, underside: JSON.parse(json) } : rest;
+    pushLayers(); iso.drop(); markDirty();
+  }
   function setLayerBaseY(id, y) { const L = layers.find(l => l.id === id); if (!L) return; L.baseY = y; pushLayers(); iso.drop(); markDirty(); }
 
   // Move the selection by whole blocks. A group moves as its shapes; a drilled shape moves alone.
@@ -952,7 +977,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       });
       if (!res.ok) { fire("OnStructuralNote", await refusalText(res)); return false; }
     } catch {
-      fire("OnStructuralNote", "Couldn't reach the studio, so the step wasn't taken. Try again.");
+      fire("OnStructuralNote", "Couldn't save the game settings. Try again.");
       return false;
     }
     fire("OnStructuralNote", null);
@@ -988,18 +1013,18 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
   function restore(text) {
     let state; try { state = JSON.parse(text); } catch { return; }
-    // What was picked, in each of the three things that can be. Restoring the document rebuilds the mark and
-    // prop documents from scratch, and building one clears its selection — so each is taken back afterwards
-    // where the step left it standing.
+    // What was picked, in each of the things that can be. Restoring the document rebuilds the prop document
+    // from scratch, and building one clears its selection — so each is taken back afterwards where the step
+    // left it standing.
     const wasSelected = canvas.selectedId;
-    const wasMark = canvas.reliefTools?.selectedId ?? null;
+    const wasModifier = pickedModifier;
     const wasProp = canvas.dressingTools?.selectedId ?? null;
     const wasPiece = selectedStructuralId;
     handle.load(state, true);
     // A shape that survived the step keeps its selection; one the step created is gone, so the selection
     // clears rather than naming nothing.
     if (wasSelected && canvas.getShape(wasSelected)) selectShape(wasSelected); else selectShape(null);
-    if (wasMark && canvas.relief.byId(wasMark)) canvas.reliefTools?.select(wasMark);
+    canvas.modifierTools?.select(modifiers.some(modifier => modifier.id === wasModifier) ? wasModifier : null);
     if (wasProp && canvas.dressing.byId?.(wasProp)) canvas.dressingTools?.select(wasProp);
     // A plan piece survives every step — the plan writes it, not the author — so what a step back changes is
     // what it states, and the rail is re-announced rather than re-picked.
@@ -1008,13 +1033,15 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
     // A step replaces the WHOLE document, so every phase reading a part of it has to be told. `load` puts
     // the shapes back on the canvas and `selectShape` re-announces the selection, which is the Draw phase
-    // entire. The marks and the props are restored on the canvas by the same call and then not announced, so
+    // entire. The modifiers and the props are restored on the canvas by the same call and then not announced, so
     // their panels would go on listing what the step just undid, and the overlays drawn from the server would
     // go on showing the surface it was solved for. Each phase is told the way its own edits tell it; the
     // theme finish is announced by `load` itself.
     fire("OnDressing", dressingState());
-    fire("OnRelief", reliefState());
+    fire("OnModifiers", modifierState());
+    paintMasks();
     syncRelief();                  // the statement moved, so the contours and the shading it produced have too
+    refreshChanges({ now: true });
     refreshPaint({ now: true });
     iso.drop();                 // and the meshed board is a picture of a document that is no longer open
   }
@@ -1083,6 +1110,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     return JSON.stringify({
       themes, themeSources, mapTheme: mapTheme || "", shapeThemes, shapeCount,
       roomStyles, biome: { field: biome ?? null, source: biomeSource },
+      paint, modifierIds: modifiers.map(modifier => modifier.id),
     });
   }
   const announceThemes = () => fire("OnThemes", themesState());
@@ -1154,62 +1182,73 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     else { paintFeed.cancel(); canvas.loadPaintLayer(null); }
   }
 
-  // ── the stated relief (docs/world-export/relief.md) ────────────────────
-  // The group in play: the one stating the selected mark, else the one the author has picked on the canvas.
-  // Its own settings — base, reach, step, grain — are what the inspector shows and what it writes, so both
-  // ask this rather than each deciding: a write reaching a different group than the panel is reading is an
-  // edit that lands nowhere and says nothing.
-  function reliefGroup() {
-    const selectedId = canvas.reliefTools?.selectedId ?? null;
-    const selected = selectedId ? canvas.relief.byId(selectedId) : null;
-    return selected?.groupId ?? canvas.selectedGroupId ?? null;
+  // ── the modifier stack ─────────────────────────────────────────────────────
+  // The stack runs on the server, in the build every read takes, so the contours, the paint and the 3-D
+  // preview are what show its effect. The board outlines every mask in Terraform, and the picked one with its
+  // images under the map's symmetry.
+  const modifierState = () => JSON.stringify({ modifiers, selectedId: pickedModifier, addingTo, step: groundStep, changes });
+
+  /** The modifiers that run: the ones not switched off, which is what a step counts. */
+  const modifiersOn = () => modifiers.filter(modifier => !modifier.off).length;
+
+  /** `step=N` for a read of the ground after N modifiers, led by `lead`; empty when every modifier runs. */
+  const stepQuery = (lead) => groundStep === null ? "" : `${lead}step=${groundStep}`;
+
+  /** A step beyond the last modifier that is on is no step: the stack grew or a modifier was switched off. */
+  function clampStep() {
+    if (groundStep !== null && groundStep >= modifiersOn()) groundStep = null;
   }
 
-  // What an author has said about the ground inside each group. Distinct from the contour overlay below it:
-  // this is the statement, that is what the solver made of it. Both are on screen at once during the phase,
-  // which is the whole reason a mark can be tuned by eye.
-  function reliefState() {
-    const tools = canvas.reliefTools;
-    const selectedId = tools?.selectedId ?? null;
-    const selected = selectedId ? canvas.relief.byId(selectedId) : null;
-    const groupId = reliefGroup();
-    return JSON.stringify({
-      // Marks and pushes as one list, because that is how the phase treats them: the sidebar lists them
-      // together and the canvas selects across both. Which of the two a row is, its `kind` says.
-      marks: canvas.relief.statements,
-      selectedId,
-      selected,
-      // A push's per-vertex lifts, expanded to one number per ring vertex — what an inspector shows, since
-      // an author who wants one corner lower needs a number to change and "the amount, except there" is not
-      // one. Only for a selected push; null for everything else.
-      amounts: selected && isPush(selected) ? pushAmounts(selected) : null,
-      groupId,
-      groupName: groupId ? (groupById(groupId)?.name ?? groupId) : null,
-      // What every group stating a mark is called, so the list heads each one the way the group tree does.
-      // A relief is keyed by group id and an id is not a name — `isl_1788640472266_0` heads a list of marks
-      // an author placed under "Group 1".
-      groupNames: Object.fromEntries(groups.map(group => [group.id, group.name ?? group.id])),
-      // What the group's ground already stands at. The panel reads every stated height against it, and it
-      // is what an untouched base is: a relief replaces the top of every column of its group, so a base
-      // that differs from this moves the whole landmass.
-      groupTop: groupId ? canvas.groupTop(groupId) : null,
-      relief: groupId ? canvas.relief.peek(groupId) : null,
-    });
+  /** An edit to a modifier the step does not reach would change nothing on show, so it returns the view to
+   *  the whole stack; an edit at or before the step keeps it. */
+  function revealEdited(id) {
+    if (groundStep === null || !id) return;
+    const at = modifiers.filter(modifier => !modifier.off).findIndex(modifier => modifier.id === id);
+    if (at >= groundStep) groundStep = null;
   }
 
-  function afterReliefChange() {
+  // The modifier a trace adds an outline to rather than starting a new one, or null.
+  let addingTo = null;
+
+  function paintMasks() {
+    if (!reliefMode) { canvas.setMasks([]); return; }
+    const centre = [setup.center?.cx ?? 0, setup.center?.cz ?? 0];
+    canvas.setMasks(modifiers.flatMap(modifier => modifier.id === pickedModifier
+      ? maskRings(modifier, setup.mirror_mode, ...centre).map(ring => ({ ...ring, picked: true }))
+      : maskRings(modifier, "none").map(ring => ({ ...ring, off: !!modifier.off }))));
+  }
+
+  /** A finished trace: a new modifier of `op` with that outline, or one more outline on the modifier being
+   *  added to. Either way it is the one picked. */
+  function traced(op, points) {
+    const into = addingTo ? modifiers.find(modifier => modifier.id === addingTo) : null;
+    addingTo = null;
+    const made = into ? addArea(into, points) : newModifier(modifiers, op, points);
+    modifiers = into ? modifiers.map(modifier => modifier.id === made.id ? made : modifier) : [...modifiers, made];
+    pickedModifier = made.id;
+    canvas.modifierTools?.select(made.id, made.mask.areas.length - 1);
+    afterModifierChange(made.id);
+  }
+
+  /** `edited` is the modifier the change was made to, where there is one. */
+  function afterModifierChange(edited) {
+    revealEdited(edited);
+    clampStep();
     markDirty();
-    fire("OnRelief", reliefState());
-    refreshRelief();   // the statement changed, so the contours it produced have too
+    fire("OnModifiers", modifierState());
+    paintMasks();
+    refreshRelief();
+    refreshPaint();
+    iso.drop();
   }
 
-  // ── the relief contour overlay ─────────────────────────────────────────────
-  // Same seam as the painted Blocks overlay, and for the same reason: the surface a relief produces is
-  // solved by the export's own solver, so the only honest preview is the one the server draws. The lines
+  // ── the contour overlay ─────────────────────────────────────────────────────
+  // Same seam as the painted Blocks overlay, and for the same reason: the ground the modifier stack makes is
+  // built by the export's own build, so the only honest preview is the one the server draws. The lines
   // come back as world points and are stroked at the live zoom, so unlike the block bitmap this does not
   // need re-fetching to stay sharp — only when the layout changes.
   //
-  // It follows the toggle alone rather than a phase. A relief is geometry: it is worth seeing while the
+  // It follows the toggle alone rather than a phase. Height is geometry: it is worth seeing while the
   // shapes over it are still being drawn, which is exactly when the paint overlay is not.
   const RELIEF_DEBOUNCE_MS = 140;
   let reliefOn = false;
@@ -1218,13 +1257,39 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // the server, and the shading it draws is what makes the contours readable. Offline or mid-navigation, the
   // overlay keeps whatever it last drew.
   const reliefFeed = liveFeed({
-    url: () => `/api/map/${encodeURIComponent(slug)}/sketch/relief?heights=true`,
+    url: () => `/api/map/${encodeURIComponent(slug)}/sketch/relief?heights=true${stepQuery("&")}`,
     body: layoutBody,
     delay: RELIEF_DEBOUNCE_MS,
     onAnswer: (data) => canvas.loadReliefLayer(data),
   });
 
+  // How many columns each modifier moved, for the inspector. Asked of the same document by the same debounce as
+  // the contours, and only while the phase is up. A server that cannot answer leaves the counts out.
+  const changesFeed = liveFeed({
+    url: () => slug && reliefMode && modifiers.length ? `/api/map/${encodeURIComponent(slug)}/sketch/modifiers/changes` : null,
+    body: layoutBody,
+    delay: RELIEF_DEBOUNCE_MS,
+    onAnswer(data) {
+      changes = Object.fromEntries((data?.modifiers ?? []).map(entry => [entry.id, entry.columns]));
+      fire("OnModifiers", modifierState());
+    },
+    onRefused: () => forgetChanges(),
+    onUnreachable: () => forgetChanges(),
+  });
+
+  function forgetChanges() {
+    if (Object.keys(changes).length === 0) return;
+    changes = {};
+    fire("OnModifiers", modifierState());
+  }
+
+  function refreshChanges({ now = false } = {}) {
+    if (!reliefMode || !slug || !modifiers.length) { changesFeed.cancel(); forgetChanges(); return; }
+    changesFeed.schedule({ now });
+  }
+
   function refreshRelief({ now = false } = {}) {
+    refreshChanges({ now });
     if (!reliefOn || !slug) return;
     reliefFeed.schedule({ now });
   }
@@ -1272,7 +1337,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       // Arming a placing tool lets go of the prop or mark picked last, so the inspector shows the knobs the
       // next placement takes — otherwise a recipe picked with the tool in hand restyles the one already down.
       if (DRESSING_TOOLS[tool]) canvas.dressingTools?.select(null);
-      if (RELIEF_TOOLS[tool]) canvas.reliefTools?.select(null);
+      if (opOfTool(tool) && !addingTo) canvas.modifierTools?.select(null);
     },
     // Selection-only: a phase that picks groups and shapes but edits none of them. Forcing the select tool
     // is part of the restriction — a draw tool left armed would add geometry, which is equally the Draw
@@ -1309,7 +1374,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       canvas.setBlocksVisible(blocksOn);
       syncPaint();
     },
-    // The contour overlay. Unlike Blocks it is not phase-gated: a relief is geometry, so it is worth seeing
+    // The contour overlay. Unlike Blocks it is not phase-gated: height is geometry, so it is worth seeing
     // while the shapes over it are still being drawn.
     setReliefVisible(v){
       reliefOn = !!v;
@@ -1371,7 +1436,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // by. All three are stored on the shape and the ring is derived, so each lands as a reshape.
     setStrokeBand(id, radius, edge, seed) {
       const s = canvas.getShape(id);
-      if (s?.type !== "polyline") return;
+      if (footprintOf(s) !== "polyline") return;
       if (radius !== null && radius !== undefined) s.radius = Math.max(1, Math.round(radius));
       if (edge) s.stroke_edge = edge;
       if (seed !== null && seed !== undefined) s.stroke_seed = Math.max(0, Math.round(seed));
@@ -1379,7 +1444,38 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       recompute(); pushLayout(); iso.drop(); markDirty();
     },
 
-    // How a shape's top is decided once its group carries a relief, and how far in it eases into the ground
+    // Read a rectangle, circle or path as a solid (box, wedge, cylinder, sphere, torus, arch), or back as the
+    // plain footprint when `kind` is empty. The footprint is what the canvas draws and groups, so it recomputes.
+    setSolid(id, kind) {
+      const s = canvas.getShape(id);
+      if (!s) return;
+      const next = asSolid(s, kind || "");
+      if (next === s) return;
+      canvas.updateShape(next);
+      recompute(); pushLayout(); iso.drop(); markDirty();
+    },
+
+    // One number of a solid: how far it is turned, tilted or sunk, or a torus's tube. A zero turn, tilt or sink
+    // is the field's absence, so a document that never used them stays as it was.
+    setSolidField(id, key, value) {
+      const s = canvas.getShape(id);
+      if (!s || !SOLID_NUMBERS[key]) return;
+      const next = SOLID_NUMBERS[key](value ?? 0);
+      if (next === 0 && key !== "tube") delete s[key]; else s[key] = next;
+      canvas.updateShape(s);
+      recompute(); pushLayout(); iso.drop(); markDirty();
+    },
+
+    // An arch's deck at its crown and at its feet; the easing between them is kept as the document states it.
+    setArchDeck(id, crown, end) {
+      const s = canvas.getShape(id);
+      if (s?.type !== "arch") return;
+      s.deck = [Math.max(0, Math.round(crown)), Math.max(0, Math.round(end)), s.deck?.[2] ?? 1];
+      canvas.updateShape(s);
+      pushLayout(); iso.drop(); markDirty();
+    },
+
+    // How a shape's top is decided against the ground it stands on, and how far in it eases into the ground
     // it meets. Neither changes the footprint, so the group does not need recomputing — but both change the
     // column, so the iso and the saved document do.
     setHeightMode(id, mode) {
@@ -1397,14 +1493,15 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       pushLayout(); iso.drop(); markDirty();
     },
 
-    // Whether the shape's ground joins its group's relief. Solved on the server, so nothing here recomputes
+    // Whether the modifiers leave the shape's ground out. Built on the server, so nothing here recomputes
     // — the next preview is what shows it.
     setReliefScope(id, scope) {
       const s = canvas.getShape(id);
       if (!s) return;
       if (isReliefScope(scope)) s.relief_scope = scope;
       else delete s.relief_scope;
-      pushLayout(); markDirty();
+      pushLayout(); iso.drop(); markDirty();
+      refreshRelief(); refreshPaint();
     },
 
     // Panel-driven edits.
@@ -1424,11 +1521,12 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     deleteLayer(id)         { deleteLayer(id); },
     renameLayer(id, name)   { renameLayer(id, name); },
     setLayerBaseY(id, y)    { setLayerBaseY(id, y); },
+    setLayerUnderside(id, json) { setLayerUnderside(id, json); },
 
     // ── terrain-paint themes (docs/world-export/terrain-painting.md TP10) ──
     getThemes() { return themesState(); },
     // A snapshot as its JSON text, the text "null" for no building at all, or null/"" to fall back to that
-    // kind's built-in shell.
+    // kind's bedrock box.
     setRoomStyle(kind, styleJson) {
       if (kind !== "wool" && kind !== "spawn") return;
       let parsed = undefined;
@@ -1446,6 +1544,14 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       biome = parsed;
       biomeSource = Number.isFinite(source) && source > 0 ? source : 0;
       markDirty(); announceThemes(); return null;
+    },
+    // ── paint rules (terrain-painting.md TP28) ──
+    // Replace the whole list with the JSON array text; returns an error string when it does not read.
+    setPaint(text) {
+      let parsed; try { parsed = JSON.parse(text || "[]"); } catch (e) { return e?.message || "This isn't valid JSON."; }
+      if (!Array.isArray(parsed)) return "Paint rules are a list.";
+      paint = parsed;
+      afterThemeChange(); return null;
     },
     defineTheme(name) {
       const id = uniqueScopeId(Object.keys(themes), name || "theme");
@@ -1520,6 +1626,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (dressingMode) fire("OnDressing", dressingState());
     },
     selectProp(id) { canvas.dressingTools?.select(id || null); },
+    /** Ring a prop on the board while its row in the Placed list is under the pointer; null lets go. */
+    hoverProp(id) { canvas.dressingTools?.hover(id || null); },
     deleteProp() { if (canvas.dressingTools?.deleteSelected()) afterDressingChange(); },
     /** Write a room's house whole — its wings and its style — as the Layout inspector states it, and pick wing
      *  `pick` of it. */
@@ -1573,64 +1681,59 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       fire("OnDressing", dressingState()); return null;
     },
 
-    // ── relief (docs/world-export/relief.md) ──
-    // Placing is the canvas's; the bridge exposes reading the document, editing the selected mark, the group
-    // settings the marks are stated against, and the per-kind settings a newly placed mark starts from.
+    // ── the modifier stack (docs/tools/sketch.md, Terraform) ──
+    // Tracing and dragging a mask are the canvas's; the bridge holds the stack and edits it by id.
     setReliefMode(on) {
       reliefMode = !!on;
       canvas.setReliefMode(reliefMode);
-      // The phase shows the statement and its result together, which is the only way a mark can be tuned by
-      // eye — so entering it turns the contour overlay on rather than leaving it to a second toggle.
-      if (reliefMode) { reliefOn = true; syncRelief(); fire("OnRelief", reliefState()); }
+      // The phase shows the stack and the ground it made together, so entering it turns the contour overlay on.
+      if (reliefMode) { reliefOn = true; syncRelief(); fire("OnModifiers", modifierState()); }
+      else {
+        addingTo = null;
+        canvas.modifierTools?.select(null);
+        // Another phase reads the whole stack, so a step taken here does not follow it out.
+        if (groundStep !== null) { groundStep = null; fire("OnModifiers", modifierState()); iso.refresh(); syncRelief(); }
+        refreshChanges();
+      }
+      paintMasks();
     },
-    selectMark(id) { canvas.reliefTools?.select(id || null); },
-    deleteMark() { if (canvas.reliefTools?.deleteSelected()) afterReliefChange(); },
-    /**
-     * Rename the selected mark. Its id is the name every finding calls it by — a seam is reported as a pair
-     * of them — so it is authored rather than minted, and a clash is refused with a sentence instead of
-     * silently making two marks one.
-     */
-    renameMark(next) {
-      const tools = canvas.reliefTools;
-      if (!tools) return "Nothing is selected.";
-      const refused = tools.renameSelected(next);
-      if (!refused) afterReliefChange();
-      return refused;
+    /** Read the ground after the first `count` modifiers that are on (0 is the shapes alone); a count past the
+     *  last, or none, reads them all. A view setting, not an edit. */
+    setStep(count) {
+      const wanted = count === null || count === undefined ? null : Math.max(0, Math.round(Number(count)));
+      groundStep = wanted === null || wanted >= modifiersOn() ? null : wanted;
+      fire("OnModifiers", modifierState());
+      iso.refresh();
+      syncRelief();
     },
-    /** Patch the selected mark. `patchJson` is a partial mark; returns an error string on bad JSON, else null. */
-    updateMark(patchJson) {
+    /** Patch one modifier; `patchJson` is a partial modifier, `mask` replaced whole. An error string on bad JSON. */
+    updateModifier(id, patchJson) {
       let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "This isn't valid JSON."; }
-      canvas.reliefTools?.updateSelected(patch);
-      afterReliefChange(); return null;
+      modifiers = patchModifier(modifiers, id, patch);
+      afterModifierChange(id); return null;
     },
-    /** Patch the group's own relief — base, reach, step, grain, and the rim it carries. Not a mark: these
-     *  are what every mark in the group is stated against, so changing one moves the whole surface. */
-    updateGroupRelief(patchJson) {
-      let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "This isn't valid JSON."; }
-      const groupId = reliefGroup();
-      if (!groupId) return "No group is selected.";
-      canvas.reliefTools?.updateRelief(groupId, patch);
-      afterReliefChange(); return null;
+    deleteModifier(id) {
+      modifiers = modifiers.filter(modifier => modifier.id !== id);
+      if (pickedModifier === id) canvas.modifierTools?.select(null);
+      afterModifierChange();
     },
-    /**
-     * State the lift at ONE of a selected push's ring vertices — what makes a drawn ridge fall along its
-     * length instead of holding level. Collapses back to the single `amount` when every vertex agrees, so
-     * undoing a variation leaves the push an author started from rather than an array that happens to be
-     * flat. A no-op unless a push is selected: a mark has no lift to vary.
-     */
-    setPushAmount(index, value) {
-      const tools = canvas.reliefTools;
-      const selected = tools?.selectedId ? canvas.relief.byId(tools.selectedId) : null;
-      if (!selected || !isPush(selected)) return "No push is selected.";
-      tools.updateSelected(pushAmountPatch(selected, Number(index), Number(value)));
-      afterReliefChange(); return null;
+    /** Move one modifier `by` places in the order the stack runs. */
+    moveModifier(id, by) {
+      modifiers = moveModifier(modifiers, id, Number(by));
+      afterModifierChange();
     },
-    /** The starting values the next mark of a kind takes — what the inspector edits with nothing selected. */
-    getMarkSettings(kind) { return JSON.stringify(canvas.reliefTools?.settingsFor(kind) ?? {}); },
-    setMarkSettings(kind, patchJson) {
-      let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "This isn't valid JSON."; }
-      canvas.reliefTools?.setSettings(kind, patch);
-      fire("OnRelief", reliefState()); return null;
+    /** Pick a modifier, or null. Picking is not an edit. */
+    selectModifier(id) {
+      canvas.modifierTools?.select(modifiers.some(modifier => modifier.id === id) ? id : null);
+    },
+    /** Put the picked modifier's own tool in hand so the next outline traced joins its mask. */
+    addOutline(id) {
+      const modifier = modifiers.find(entry => entry.id === id);
+      if (!modifier || readOnly) return;
+      addingTo = id;
+      fire("OnModifiers", modifierState());
+      canvas.setActiveTool(`modifier:${modifier.op}`);
+      fire("OnToolChanged", `modifier:${modifier.op}`);
     },
 
     // Load a persisted layout: setup + the layers[] array. A flat board is a stack of one.
@@ -1650,8 +1753,11 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       };
       biome = (s.biome && typeof s.biome === "object") ? s.biome : undefined;
       biomeSource = (biome && Number.isFinite(s.biomeSource)) ? s.biomeSource : 0;
+      paint = Array.isArray(s.paint) ? structuredClone(s.paint) : [];
       canvas.setDressing(s.dressing && typeof s.dressing === "object" ? s.dressing : null);
-      canvas.setReliefDoc(s.relief && typeof s.relief === "object" ? s.relief : null);
+      modifiers = Array.isArray(s.modifiers) ? structuredClone(s.modifiers) : [];
+      if (!modifiers.some(modifier => modifier.id === pickedModifier)) pickedModifier = null;
+      clampStep();
       const raw = (s.layers && s.layers.length) ? s.layers : [];
       // A layer's shapes are partitioned on load: role-tagged shapes are the play rooms the studio drew in
       // from the intent — carried as a locked render-only overlay, kept out of the drawn-shape pipeline (groups, raster,
@@ -1693,6 +1799,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       // board.
       if (!keepView) canvas.fitToBbox();
       announceThemes();
+      fire("OnModifiers", modifierState());
+      paintMasks();
     },
     // The layout for the host to persist (the SketchLayoutJson shape — now layers[]).
     getState() {
@@ -1715,13 +1823,14 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         // board that never opened the question exports as — and the library row it was copied from.
         biome,
         biomeSource: biomeSource || undefined,
+        // The paint rules, omitted when there are none.
+        paint: paint.length ? paint : undefined,
         // Dressing rides the same way, and is likewise omitted when empty so an undressed sketch serialises
         // exactly as it did before the phase existed.
         dressing: canvas.dressing.isEmpty ? undefined : canvas.dressing.toJSON(),
-        // Relief rides top-level keyed by group rather than on the shapes, because a group outlives a
-        // redrawing of the shapes in it. Omitted when
-        // nothing is stated, so opening the phase and leaving it cannot add a key to the layout.
-        relief: canvas.relief.isEmpty ? undefined : canvas.relief.toJSON(),
+        // The terraform stack, omitted when empty, so opening the phase and leaving it cannot add a key to the
+        // layout.
+        modifiers: modifiers.length ? modifiers : undefined,
         layers: layers.map(L => ({
           ...L.stated,
           id: L.id, name: L.name, base_y: L.baseY,
@@ -1740,6 +1849,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     dispose() {
       paintFeed.cancel();
       reliefFeed.cancel();
+      changesFeed.cancel();
       boardFeed.cancel();
       window.removeEventListener("pointerup", endStep);
       Keys.unregister("sketch-bridge");
@@ -1758,12 +1868,12 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     "setStructuralHeight",
     "rotateSelected", "deleteShape", "promoteShape", "toggleOp", "toggleOverride", "toggleMirrors",
     "renameGroup",
-    "addLayer", "deleteLayer", "renameLayer", "setLayerBaseY",
+    "addLayer", "deleteLayer", "renameLayer", "setLayerBaseY", "setLayerUnderside",
     "setRoomStyle", "defineTheme", "deleteTheme", "setThemeJson", "setMapTheme",
     "setThemeSource", "setBiome",
     "assignShape", "assignGroup",
     "deleteProp", "deleteWing", "updateWing", "pullRecipe", "updateProp",
-    "deleteMark", "updateMark", "renameMark", "updateGroupRelief", "setPushAmount",
+    "updateModifier", "deleteModifier", "moveModifier",
   ];
   for (const verb of MUTATORS) {
     const bare = handle[verb];

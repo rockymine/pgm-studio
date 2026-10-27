@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using PgmStudio.Geom.Relief;
 using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Client.Features.Sketch;
@@ -14,19 +15,68 @@ public sealed record SketchShapeRow(
     [property: JsonPropertyName("dim")] string Dim,
     [property: JsonPropertyName("baseHeight")] double BaseHeight = 1,   // a shape is never zero-height
     [property: JsonPropertyName("floor")] double Floor = 0,
-    // How the top is decided once the group carries a relief (docs/world-export/relief.md §7). Empty is ordinary
-    // ground; level / raise / sink make the shape something standing IN the terrain rather than being it.
+    // How the top is decided against the ground it stands on. Empty is ordinary ground; level / raise / sink /
+    // drape make the shape something standing IN the terrain rather than being it, which the modifiers leave out.
     [property: JsonPropertyName("heightMode")] string HeightMode = "",
     // How far in from its outline an erected shape eases into the ground it meets. Zero is a sheer face.
     [property: JsonPropertyName("skirt")] double Skirt = 0,
-    // Whether the shape's ground joins its group's relief. Empty inherits; hold pins it at its own level and
-    // the land is solved to meet it; exclude takes it out of the solve entirely.
+    // Whether the modifiers leave the shape's ground out: `hold` keeps it at its own height, empty lets them
+    // reshape it.
     [property: JsonPropertyName("reliefScope")] string ReliefScope = "",
     // A path's band: half-width, how its edges are drawn, and the seed a rough edge wanders by. Empty on
     // every other kind of shape, which is what the inspector reads to know whether to offer them.
     [property: JsonPropertyName("radius")] double Radius = 0,
     [property: JsonPropertyName("strokeEdge")] string StrokeEdge = "",
-    [property: JsonPropertyName("strokeSeed")] int StrokeSeed = 0);
+    [property: JsonPropertyName("strokeSeed")] int StrokeSeed = 0,
+    // A solid's numbers: how far it is turned and tilted, how deep it is sunk, a torus's tube, and an arch's deck
+    // at its crown and at its feet. Zero on every shape that does not state them.
+    [property: JsonPropertyName("turn")] double Turn = 0,
+    [property: JsonPropertyName("tilt")] double Tilt = 0,
+    [property: JsonPropertyName("sunk")] double Sunk = 0,
+    [property: JsonPropertyName("tube")] double Tube = 0,
+    [property: JsonPropertyName("deckCrown")] double DeckCrown = 0,
+    [property: JsonPropertyName("deckEnd")] double DeckEnd = 0)
+{
+    /// <summary>Whether the shape is a solid standing in the block grid rather than ground drawn by outline.</summary>
+    public bool IsSolid => ShapeKinds.Solids.Contains(Type);
+
+    /// <summary>The kind of outline the shape is drawn with: a solid's footprint, or its own kind.</summary>
+    public string Footprint => ShapeKinds.Footprint(Type);
+
+    /// <summary>The name a shape of its kind is shown under, in the inspector and its group's list.</summary>
+    public string Name => Type switch
+    {
+        ShapeKinds.Rectangle => "Rectangle",
+        ShapeKinds.Circle    => "Circle",
+        ShapeKinds.Polygon   => "Polygon",
+        ShapeKinds.Lasso     => "Lasso",
+        ShapeKinds.Polyline  => "Polyline",
+        ShapeKinds.Box       => "Box",
+        ShapeKinds.Wedge     => "Wedge",
+        ShapeKinds.Cylinder  => "Cylinder",
+        ShapeKinds.Sphere    => "Sphere",
+        ShapeKinds.Torus     => "Torus",
+        ShapeKinds.Arch      => "Arch",
+        _                    => "Shape",
+    };
+
+    /// <summary>The glyph a list draws beside the shape.</summary>
+    public string Icon => Type switch
+    {
+        ShapeKinds.Rectangle => "rectangle-horizontal",
+        ShapeKinds.Circle    => "circle",
+        ShapeKinds.Polygon   => "pentagon",
+        ShapeKinds.Lasso     => "lasso",
+        ShapeKinds.Polyline  => "spline",
+        ShapeKinds.Box       => "box",
+        ShapeKinds.Wedge     => "triangle",
+        ShapeKinds.Cylinder  => "cylinder",
+        ShapeKinds.Sphere    => "globe",
+        ShapeKinds.Torus     => "donut",
+        ShapeKinds.Arch      => "terrain-arch",
+        _                    => "square",
+    };
+}
 
 /// <summary>The plan piece a click picked (sketch-bridge.js <c>OnStructuralSelected</c>): a spawn or wool
 /// room's region, or the building footprint inside one. It is not one of <see cref="SketchShapeRow"/> — the
@@ -35,9 +85,9 @@ public sealed record SketchShapeRow(
 ///
 /// <para><see cref="HeightAuthored"/> says the region's <see cref="BaseHeight"/> is a number the author
 /// corrected rather than the one the layout was written with. A <c>building</c> carries no height of its own —
-/// the region it stands in is what a group's relief is held against — so its fields read empty.</para>
+/// the region it stands in is what its ground is — so its fields read empty.</para>
 ///
-/// <para><see cref="Carried"/> says the piece is an orbit's image rather than the one authored: it is drawn and
+/// <para><see cref="Carried"/> says the piece is a symmetry copy rather than the one authored: it is drawn and
 /// listed, and never picked.</para>
 /// </summary>
 public sealed record SketchStructuralRow(
@@ -78,6 +128,7 @@ public sealed record SketchStructuralRow(
     {
         PlayPieceKinds.Destroyable => "gem",
         PlayPieceKinds.Core => "flame",
+        PlayPieceKinds.ControlPoint => "flag",
         PlayPieceKinds.IronCube => "pickaxe",
         PlayPieceKinds.Wall => "brick-wall",
         PlayPieceKinds.Chest => "box",
@@ -90,18 +141,19 @@ public sealed record SketchStructuralRow(
     /// <summary>The name a piece of its kind is shown under, in the inspector and the Layout list.</summary>
     public string Label => Role switch
     {
-        StructuralRoles.Spawn => "Spawn region",
+        StructuralRoles.Spawn => "Spawn room",
         StructuralRoles.WoolRoom => "Wool room",
         StructuralRoles.Building => "Building",
-        PlayPieceKinds.Destroyable => "Destroyable",
+        PlayPieceKinds.Destroyable => "Monument",
         PlayPieceKinds.Core => "Core",
-        PlayPieceKinds.BuildArea => "Build area",
+        PlayPieceKinds.ControlPoint => "Capture point",
+        PlayPieceKinds.BuildArea => "Build region",
         PlayPieceKinds.WaterLane => "Water lane",
-        PlayPieceKinds.IronCube => "Iron marker",
+        PlayPieceKinds.IronCube => "Iron cube",
         PlayPieceKinds.Wall => "Wall",
         PlayPieceKinds.Chest => "Defence chest",
         PlayPieceKinds.Observer => "Observer",
-        PlayPieceKinds.SpawnPoint => "Spawn point",
+        PlayPieceKinds.SpawnPoint => "Spawn",
         PlayPieceKinds.WoolSpawn => "Wool spawn",
         _ => Role,
     };
@@ -126,11 +178,12 @@ public sealed class SketchSlopeControl
     [JsonPropertyName("height")] public double Height { get; set; }
 }
 
-// A stacked layer row (from the bridge's OnLayers): identity + Y offset, for the Layers panel (S7b).
+// A stacked layer row (from the bridge's OnLayers): identity + Y offset, for the Layers panel.
 public sealed record SketchLayerRow(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("name")] string Name,
-    [property: JsonPropertyName("baseY")] double BaseY);
+    [property: JsonPropertyName("baseY")] double BaseY,
+    [property: JsonPropertyName("underside")] UndersideSpec? Underside = null);
 
 public sealed record SketchLayersDto(
     [property: JsonPropertyName("active")] string Active,

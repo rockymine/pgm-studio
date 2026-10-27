@@ -412,6 +412,7 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
             for (var at = 0; at < wall.Stack.Bands.Count; at++)
                 Bind(RoomParts.Wall, wall.Stack.Bands[at].Material, at, wall.Stack.Bands[at].Thickness);
         Bind(RoomParts.Post, storey.Post);
+        Bind(RoomParts.Head, storey.Head);
         Bind(RoomParts.Field, storey.Surface?.Field);
         Bind(RoomParts.Deck, style.Storeys[level].Deck);
 
@@ -499,6 +500,7 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
         Bind(RoomParts.Verge, style.Roof.Verge);
         Bind(RoomParts.Sill, style.Foundation.Footing);
         Bind(RoomParts.Post, style.Post);
+        Bind(RoomParts.Head, style.Head);
         Bind(RoomParts.Gable, style.Roof.Gable);
         Bind(RoomParts.Field, style.Foundation.Surface.Field);
         Bind(RoomParts.Border, style.Foundation.Surface.Border);
@@ -562,10 +564,7 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
             var buckets = new List<ThemeBucketRow>();
             foreach (var binding in decomposed.Buckets)
             {
-                var row = new ThemeBucketRow
-                {
-                    Bucket = ThemeLibrary.FromBucket(binding.Bucket), Depth = binding.Depth, Enabled = binding.Enabled,
-                };
+                var row = ThemeLibrary.BucketRowOf(binding);
                 if (binding.MaterialJson is { } json)
                 {
                     var (styleId, block) = patterns.Fill(TerrainThemeJson.DeserializeMaterial(json));
@@ -751,6 +750,7 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
         Check("verge", preset.Roof.Verge, back.Roof.Verge);
         Check("sill", preset.Foundation.Footing, back.Foundation.Footing);
         Check("post", preset.Post, back.Post);
+        Check("head", preset.Head, back.Head);
         Check("gable", preset.Roof.Gable, back.Roof.Gable);
         Check("surface", preset.Foundation.Surface, back.Foundation.Surface);
         Check("form", preset.Roof.Form, back.Roof.Form);
@@ -785,6 +785,7 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
                 // stamper — its height is the storey's clear.
                 if (!CoursesMatch(mine[at].Wall, theirs[at].Wall)) lost.Add($"storey {at + 1} wall");
                 if (!Equals(mine[at].Post, theirs[at].Post)) lost.Add($"storey {at + 1} post");
+                if (!Equals(mine[at].Head, theirs[at].Head)) lost.Add($"storey {at + 1} head");
                 if (!Equals(mine[at].Windows, theirs[at].Windows)) lost.Add($"storey {at + 1} windows");
                 if (!Equals(mine[at].Surface, theirs[at].Surface)) lost.Add($"storey {at + 1} floor");
                 if (!Equals(mine[at].Deck, theirs[at].Deck)) lost.Add($"storey {at + 1} deck");
@@ -933,6 +934,7 @@ internal static class PartNames
             ("inlay", $"inlay-{storey.InlayInset}"),
             ("field", $"{Laid(storey.Courses, RoomParts.Field, patterns)}-floor"),
             ("deck", $"{Laid(storey.Courses, RoomParts.Deck, patterns)}-deck"),
+            ("head", $"{Laid(storey.Courses, RoomParts.Head, patterns)}-head"),
             ("wall", $"all-{Laid(storey.Courses, RoomParts.Wall, patterns, words: int.MaxValue)}"),
             ("courses", Heights(storey.Courses, RoomParts.Wall)),
         ]);

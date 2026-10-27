@@ -23,7 +23,7 @@ public partial class ImportPhase : IAsyncDisposable
     [Inject] private StudioAccess Access { get; set; } = default!;
 
 
-    private static readonly string[] Steps = ["Source", "Found", "Plan"];
+    private static readonly string[] Steps = ["Source", "Found", "Phases"];
 
     private List<ImportCandidateDto> candidates = new();
     /// <summary>Whether this studio reads worlds off its own disk: only one running on its author's machine
@@ -59,7 +59,7 @@ public partial class ImportPhase : IAsyncDisposable
     [
         new("islands",   "layers",  "Islands",         "detected"),
         new("wool",      "palette", "Wool blocks",     "built"),
-        new("monuments", "flag",    "Monuments",       "built"),
+        new("monuments", "flag",    "Wool monuments",  "built"),
         new("resources", "gem",     "Resource blocks", "built"),
         new("chests",    "box",     "Chests",          "built"),
         new("spawners",  "bug",     "Spawners",        "built"),
@@ -94,6 +94,11 @@ public partial class ImportPhase : IAsyncDisposable
     // Team count the symmetry implies — its orbit order (rot_90 → 4-fold; mirror/rot_180 → 2); no symmetry → null.
     private int? SuggestedTeams => Symmetry.Order(symType) is var o && o > 1 ? o : null;
 
+    // The symmetry the scan found, and the team count it suggests.
+    private string SymmetryFound => symType is null
+        ? "Symmetry: none found, so teams are set up by hand."
+        : $"Symmetry: {PgmStudio.Client.Models.SymmetryInfo.Label(symType)}, suggesting {SuggestedTeams} teams.";
+
     private void SelectFinding(string key) => selectedFinding = key;
     private Finding? Find(string key) => Findings.FirstOrDefault(f => f.Key == key);
     private string FindingIcon(string key) => Find(key)?.Icon ?? "info";
@@ -114,24 +119,24 @@ public partial class ImportPhase : IAsyncDisposable
     // How a finding was detected and what it means — the right panel's explanation.
     private string FindingExplanation(string key) => key switch
     {
-        "islands"   => "Separate areas of land found in the world. You review them and remove stray ones in the World phase.",
-        "wool"      => "Wool already placed in the world, grouped by colour. You turn them into objectives in the Wools phase.",
-        "monuments" => "Places where a captured wool is likely to be placed, found from the blocks around them. You confirm them in the Wools phase.",
-        "resources" => "Ore and other resource blocks in the terrain, by type.",
+        "islands"   => "Separate areas of ground found in the world. Stray ones are excluded in the World phase.",
+        "wool"      => "Wool already placed in the world, grouped by colour. The Wools phase turns them into objectives.",
+        "monuments" => "Places a captured wool is likely placed, found from the blocks around them. The Wools phase confirms them.",
+        "resources" => "Ore and other resource blocks in the ground, by type.",
         "chests"    => $"Chests in the world, holding {chestItems} item stacks in total.",
-        "spawners"  => "Mob and wool spawners in the world. Wool spawners can supply objectives. Mob spawners are usually decoration.",
+        "spawners"  => "Mob and wool spawners in the world. Wool spawners can supply objectives.",
         _ => "",
     };
 
     // What each phase does, in a sentence — leads with the studio's automation so the card sells the help.
     private static string PlanBlurb(string phaseId) => phaseId switch
     {
-        "info"   => "Name the map and credit its authors. Version, mode, and objective are set automatically.",
+        "info"   => "Name the map and credit its authors. Version, game mode and objective are set automatically.",
         "world"  => "Confirm the detected islands and symmetry. The symmetry suggests how many teams to create.",
-        "teams"  => "Set up one team's islands, spawn, and protection. Symmetry copies them to the other teams.",
-        "build"  => "Set the build height and mark where players can build over the void. Island ground is already buildable.",
-        "wools"  => "Choose the wool colours and place monuments. Capture rules and wool room protection are added automatically.",
-        "dtm"    => "Confirm the destroyables found in the world, or add your own.",
+        "teams"  => "Set up one team's islands, spawn and protection. Every other team gets a symmetry copy.",
+        "build"  => "Set the build ceiling and mark where players can build over the void. Island ground is already buildable.",
+        "wools"  => "Choose the wool colours and place wool monuments. Capture rules and wool room protection are added automatically.",
+        "dtm"    => "Confirm the monuments found in the world, or add your own.",
         "cores"  => "Confirm the cores found in the world and set how far their lava must fall.",
         "flags"  => "Confirm the banners found in the world as flag posts, or place your own.",
         "review" => "Automatic checks make sure the map is playable. Then export the map.xml.",
@@ -184,7 +189,7 @@ public partial class ImportPhase : IAsyncDisposable
         {
             var resp = await Http.PostAsJsonAsync("api/map/import-url",
                 new Dictionary<string, object?> { ["url"] = url });
-            if (!resp.IsSuccessStatusCode) { error = await ErrorMessage(resp, "Couldn't import the world."); return; }
+            if (!resp.IsSuccessStatusCode) { error = await ErrorMessage(resp, "Couldn't import the world. Check the link and try again."); return; }
 
             var scan = await resp.Content.ReadFromJsonAsync<WorldScanDto>();
             selected = null;   // a URL world is not a local folder candidate — drop any prior pick
@@ -210,7 +215,7 @@ public partial class ImportPhase : IAsyncDisposable
     }
 
     // Surface the endpoint's own message (host not allowed / https required / already exists …) when it
-    // sends one, so the allow-list and validation failures read clearly; else fall back to the status code.
+    // sends one, so the allow-list and validation failures read clearly; else fall back to the step's own sentence.
     private static async Task<string> ErrorMessage(HttpResponseMessage resp, string fallback)
     {
         try
@@ -218,8 +223,8 @@ public partial class ImportPhase : IAsyncDisposable
             var refusal = await resp.Content.ReadFromJsonAsync<RefusalDto>();
             if (refusal?.Error is { Length: > 0 } msg) return char.ToUpperInvariant(msg[0]) + msg[1..] + ".";
         }
-        catch { /* non-JSON body — fall through to the status code */ }
-        return $"{fallback} (HTTP {(int)resp.StatusCode})";
+        catch { /* non-JSON body: fall through to the fallback */ }
+        return fallback;
     }
 
     // Single funnel for every step change: tear the canvas down the moment we leave Found so the next
@@ -260,7 +265,7 @@ public partial class ImportPhase : IAsyncDisposable
             {
                 importedSlug = selected.Slug;   // already a map — show what we can
             }
-            else { error = $"Couldn't scan the world. (HTTP {(int)resp.StatusCode})"; return false; }
+            else { error = "Couldn't scan the world. Try again."; return false; }
 
             await LoadBrief();
             return true;

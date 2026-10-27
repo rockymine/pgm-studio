@@ -58,7 +58,7 @@ The per-kind tables name those tokens rather than colours: `OBJECTIVE_COLORS`, `
 
 Three kinds of colour stay literal. Minecraft's chat and dye colours are game data: `render/palette.js`
 mirrors `game-colors.json`, which the C# reads too, under a drift test, and a team, a wool or a monument is
-drawn in its own. A height ramp — the relief marks, the side view's depth shading — is
+drawn in its own. A height ramp — the contour shading, the side view's depth shading — is
 a function of a value whose stops sit beside it. And the painter's fallback for a token it cannot read is a
 literal, because it is what paints when the token is missing.
 
@@ -103,18 +103,18 @@ canvas layer can then reuse or test it.
 | `geometry/symmetry.js` | the JS twin of `PgmStudio.Geom.Symmetry` (see the warning in `CLAUDE.md`) |
 | `geometry/islands.js`, `region-convert.js` | GeoJSON coercion; PGM `+1`-rule bounds conversions |
 | `dressing/dressing-doc.js` | the dressing document: the flat list of placed props, in the wire shape `DressingDoc` deserializes, and `onLayer` (§6) |
-| `relief/relief-doc.js`, `contour-drag.js` | the relief document, keyed by group id as `SketchLayout.Relief` is; and what dragging a contour means, as a `line` mark |
+| `relief/modifier-doc.js` | the modifier stack, in the wire shape `SketchLayout.Modifiers` is: the operations and which of them trace a line, a new modifier from a traced outline or run, a patch, a move in the order, a mask moved or reshaped, the distance to a line, and every area a mask is drawn with under the symmetry |
 | `theme/theme-model.js` | the unthemed ground a new terrain theme starts from, and the theme id uniquifier |
 | `render/svg.js` | the retained dialect: the element factory for the screen-space overlays and the fixed-fit previews, plus the path builders both dialects share |
 | `render/layer-stack.js` | the z-ordered **screen-space** layer groups, declared once per canvas (key order = paint order, bottom first); each group carries `data-layer="<name>"`, plus `showLayers`/`clearLayer` |
-| `render/canvas-painter.js` | the painted dialect, and the whole of it: a DPR-aware 2-D surface — `begin(scale, pan)` applies the viewport so draws are in world units, `layer(name, paint)` brackets each phase in save/restore and records its name (`painter.layers` is the queryable paint order), `screenPx` holds a constant screen size — a stroke width, and equally a label's `size`, since text asked for in world units grows with the map and a label states what a thing *is* rather than how big it is, `token`/`color` resolve and cache CSS custom properties (demoting any value the context won't parse), `toSurface` carries the world→surface fit, and the primitives (`rect`/`line`/`segments`/`circle`/`dot`/`ellipse`/`path`/`ring`/`poly`/`text`/`image`) take world coordinates and one style vocabulary |
+| `render/canvas-painter.js` | the painted dialect, and the whole of it: a DPR-aware 2-D surface — `begin(scale, pan)` applies the viewport so draws are in world units, `layer(name, paint)` brackets each phase in save/restore and records its name (`painter.layers` is the queryable paint order), `screenPx` holds a constant screen size — a stroke width, and equally a label's `size`, since text asked for in world units grows with the map and a label states what a thing *is* rather than how big it is, `token`/`color` resolve and cache CSS custom properties (demoting any value the context won't parse), `toSurface` carries the world→surface fit, and the primitives (`rect`/`line`/`polyline`/`segments`/`circle`/`dot`/`ellipse`/`path`/`ring`/`poly`/`text`/`image`) take world coordinates and one style vocabulary |
 | `render/canvas-chrome.js` | viewport-derived chrome shared by the drawing canvases: the visible-world rect, the grid-step ladder, the painted working area, the scale bar, the dimension pill, and the **transform box** every surface scales a selection by (§5) |
 | `render/shape-render.js`, `sketch-render.js`, `symmetry-render.js`, `block-render.js` | shared stateless painting for primitives, sketch overlays, symmetry axes, block PNGs |
 | `render/primitive-style.js` | the one place a primitive's fill/stroke style is decided, for the world canvas and the sketch alike |
 | `render/iso-webgl.js` | the depth-buffered 3-D preview, on raw WebGL, lazily imported |
 | `render/column-mesh.js` | the server's per-column runs → the triangles that preview draws; decides which faces are seen, and drops the runs of any sketch layer the viewer has hidden before deciding |
 | `bridge/live-feed.js` | the one debounced, sequence-guarded POST of a bridge's document to a route, answering only the latest request, and the one `refusalText` that reads the sentence out of a refusal envelope |
-| `bridge/iso-preview.js` | the 3-D preview the sketch bridge drives: enter, the mesh kept against the document it came from, rotate, layer hiding, and the two reasons it cannot run |
+| `bridge/iso-preview.js` | the 3-D preview the sketch bridge drives: enter, the mesh kept against the document it came from, rebuild on demand, rotate, layer hiding, and the two reasons it cannot run |
 | `bridge/house-iso-bridge.js` | the library's 3-D building: an `IsoScene` on a wrap with no canvas under it (§6) |
 | `canvas/canvas-base.js` | the shared pan/zoom/drag machinery (§3) |
 | `canvas/world-canvas.js` | the world engine every Configure canvas step mounts (§1) |
@@ -123,6 +123,7 @@ canvas layer can then reuse or test it.
 | `controllers/*` | one interaction mode each (§4) |
 | `bridge/*` | one `mount()` per surface (§6) |
 | `shared/panel-resize.js`, `studio.js` | sidebar drag bars; Lucide icons and small interop helpers |
+| `icons/terrain-icons.js` | the `terrain-*` glyphs, registered into the vendored Lucide set after it loads |
 | `shared/keys.js`, `keys-overlay.js` | the one keyboard registry every owner binds into (§9), and the sheet/palette rendered from it |
 | `shared/pick.js` | the two-level selection rule the sketch canvas resolves a click with (§5) |
 
@@ -156,8 +157,8 @@ canvas to the same.
 `_readOnly` and calls the `_onReadOnlyChanged` hook; the base then begins no body-drag, and each surface
 refuses its own edits rather than discarding their results. The sketch canvas treats it as select-only and
 more: no draw tool or placement begins, no brush paints, no edit handle, transform grip or point grip is
-drawn, and its delete, promote and join chords stand down; the dressing and relief controllers take an
-`isEditable` accessor that keeps a prop or a mark pickable and never placed, dragged or gripped. The world
+drawn, and its delete, promote and join chords stand down; the dressing and modifier controllers take an
+`isEditable` accessor that keeps a prop or a mask pickable and never placed, dragged or gripped. The world
 canvas draws, places and resizes nothing and drops its arrow nudge, and the side view's height line cannot be dragged. Each bridge
 exposes `setReadOnly`; `sketch-bridge` also refuses a tool that changes the board, its nudge, undo, redo and
 duplicate, and marks nothing dirty, so nothing reaches a save.
@@ -208,7 +209,7 @@ its own tree: `union` succeeds and every `intersection` against the result throw
 
 **A throw is not an answer, and reading it as `false` is worse than propagating it.** `assignShapesToGroups`
 asks the intersection which group each shape contributes to, so a `false` there takes the shape out of every
-group — and group membership is what the server fans across the symmetry orbit, what a relief is keyed by,
+group — and group membership is what the server fans across the symmetry orbit, what a name and a `mirrors` flag are keyed by,
 and what carries a `keepClear` mark. The shape then builds where it was drawn and nowhere else, with the
 group *outline* still drawn mirrored around it, because an outline is the union of the ground a group fused
 rather than the shapes it lists. `SK17` is the gate that catches the state once a document is in it
@@ -356,7 +357,7 @@ name, a `mirrors` flag and — load-bearingly — an **id** from the loaded reco
 whatever that live list holds, matching by centroid within 32 blocks.
 Loading another layer onto the canvas without reseeding leaves the outgoing layer's groups there, and two
 layers of one board are centred on the same place, so the match always succeeds: the ground of a stacked
-board comes back carrying the workings' id. A relief is keyed by group id, so it detaches — and because
+board comes back carrying the workings' id, and because
 the tool saves what the canvas holds, the wrong id is written into the document. `loadActiveToCanvas`
 therefore sets the live list to the incoming layer's own groups before recomputing.
 
@@ -370,8 +371,8 @@ layer's shapes get from being ghosted rather than loaded onto the canvas.
 **A saved group record is claimed by one group.** The other half of the same fact: `restoreGroupMeta`
 copies a name, a `mirrors` flag and an **id** from the persisted group records onto the recomputed
 groups, matched by shapeId overlap. Matching each group to its best record independently gives every
-group of a split board the same record — and a relief is keyed by id, so the board then has several
-groups under one name and its terrain reaches only the first of them. The pairing is resolved greedily
+group of a split board the same record, so the board then has several
+groups under one name. The pairing is resolved greedily
 instead: strongest overlap first, each record and each group claimed once, and a group no record
 reaches keeps the identity it was computed with — unless a kept group or a matched one already answers to
 that id, when `settleGroups` gives it a fresh one. `SK12` reports a layout that still carries one id twice.
@@ -379,8 +380,9 @@ that id, when `settleGroups` gives it a fresh one. `SK12` reports a layout that 
 **A preview that cannot run says which of the two reasons it was.** The preview fails for two unrelated
 causes — the browser has no WebGL, or the server would not build the board — and the two are different things
 to do something about. `OnIsoUnavailable(reason)` carries which: an empty string is WebGL itself, and anything
-else is the sentence the build answered with, read out of the refusal envelope. The host shows *No WebGL* for
-the first and the build's own words for the second. A failure with a sentence available should never be
+else is the sentence the build answered with, read out of the refusal envelope. The host's chip reads *3-D
+unavailable*, and its hover says that the browser has no WebGL for the first and gives the build's own words
+for the second. A failure with a sentence available should never be
 reported as a different failure.
 
 **A caller the server would refuse never gets to try.** The preview is a build, which only someone on the

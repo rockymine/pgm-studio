@@ -10,11 +10,11 @@
    Contributors to show a second list; omit it for an authors-only tool. *@
 
 <Section Title="Authors">
-  <Actions><Button OnClick="() => Add(Authors)">+ Add</Button></Actions>
+  <Actions><Button Icon="plus" OnClick="() => Add(Authors)">Add an author</Button></Actions>
   <ChildContent>
     <div class="author-list">
       @foreach (var p in Authors) { @Row(p, Authors) }
-      @if (Authors.Count == 0) { <p class="section-desc">Add at least one author. Use a Minecraft username or any name.</p> }
+      @if (Authors.Count == 0) { <EmptyState>No authors yet. Add one by Minecraft name or any name.</EmptyState> }
     </div>
   </ChildContent>
 </Section>
@@ -22,11 +22,11 @@
 @if (Contributors is not null)
 {
   <Section Title="Contributors">
-    <Actions><Button OnClick="() => Add(Contributors)">+ Add</Button></Actions>
+    <Actions><Button Icon="plus" OnClick="() => Add(Contributors)">Add a contributor</Button></Actions>
     <ChildContent>
       <div class="author-list">
         @foreach (var p in Contributors) { @Row(p, Contributors) }
-        @if (Contributors.Count == 0) { <p class="section-desc">Optional. People who helped but are not lead authors.</p> }
+        @if (Contributors.Count == 0) { <EmptyState>No contributors yet. Add people who helped but are not lead authors.</EmptyState> }
       </div>
     </ChildContent>
   </Section>
@@ -36,19 +36,19 @@
     // Markup template, shared by the authors + contributors lists.
     private RenderFragment Row(AuthorRow p, List<AuthorRow> list) => __builder =>
     {
+        <Field Error="@(p.Error && AuthorNames.Refuse(p.Name.Trim()) is { } failed ? $"This name {failed}." : null)">
         <div class="author-row">
             <PlayerHead Uuid="@p.Uuid" Name="@p.Name" />
             <input class="field-input author-name @(p.Error ? "field-input--error" : null)" type="text"
-                   placeholder="Minecraft username, or any name"
-                   title="@(p.Error && AuthorNames.Refuse(p.Name.Trim()) is { } failed ? $"The name {failed}"
-                            : p.Uuid.Length > 0 ? p.Uuid
-                            : "No Minecraft account has this name, so it is saved as written")"
+                   placeholder="Minecraft name" aria-label="Name"
+                   title="@(p.Uuid.Length > 0 ? p.Uuid : null)"
                    value="@p.Name"
                    @oninput="e => { p.Name = e.Value?.ToString() ?? string.Empty; NotifyChanged(); }"
                    @onblur="() => ResolveName(p)" />
-            <input class="field-input author-contribution" type="text" placeholder="Contribution (optional)"
+            <input class="field-input author-contribution" type="text" placeholder="Contribution" aria-label="Contribution"
                    value="@p.Contribution" @oninput="e => { p.Contribution = e.Value?.ToString() ?? string.Empty; NotifyChanged(); }" />
-            <button class="btn-remove" title="Remove" @onclick="() => Remove(list, p)">✕</button>
+            <Button Variant="icon" Icon="trash-2" Title="Delete this person" OnClick="() => Remove(list, p)" />
         </div>
+        </Field>
     };
 }

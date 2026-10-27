@@ -21,8 +21,8 @@ public sealed class IsoView(Func<IJSObjectReference?> bridge, Action changed)
     /// <summary>The build's own sentence; null when WebGL itself is missing.</summary>
     private string? why;
 
-    /// <summary>The chip beside the toggle: what stopped the preview, in two words.</summary>
-    public string Note => why is null ? "No WebGL" : "3-D unavailable";
+    /// <summary>The chip beside the toggle; its hover says what stopped the preview.</summary>
+    public string Note => "3-D unavailable";
 
     /// <summary>The whole sentence, on hover.</summary>
     public string NoteTitle => why ?? "The 3-D preview needs WebGL, which this browser doesn't support.";

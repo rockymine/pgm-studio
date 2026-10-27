@@ -46,23 +46,23 @@ public sealed class NumberBindingCultureTests
         }
     }
 
-    /// <summary>A board carrying one group with a relief field on it — the layout the contour preview reads,
+    /// <summary>A board carrying one Hill on it — the layout the contour preview reads,
     /// posted whole because the overlay tracks unsaved edits rather than the stored document.</summary>
-    private const string Relieved = """
+    private const string Hilled = """
         {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},
          "layers":[{"base_y":0,"layout":{
            "shapes":[{"id":"s1","type":"rectangle","operation":"add",
                       "min_x":-20,"max_x":20,"min_z":-20,"max_z":20,"floor":8,"base_height":12}],
            "groups":[{"id":"i","name":"I","shapeIds":["s1"]}]}}],
-         "relief":{"i":{"base":6,"reach":40,"step":1,
-                        "marks":[{"kind":"point","at":[0,0],"h":40,"r":8}]}}}
+         "modifiers":[{"id":"hill","op":"mound","rise":30,
+                       "mask":{"areas":[{"kind":"ellipse","at":[0,0],"rx":18,"rz":18}],"mirror":false}}]}
         """;
 
     /// <summary>The board's contours at <paramref name="interval"/> blocks of spacing: the spacing the
     /// endpoint bound, echoed back, and how many lines it drew at it.</summary>
     private static async Task<(double Interval, int Lines)> ContoursAsync(HttpClient client, string interval)
     {
-        var body = new StringContent(Relieved, System.Text.Encoding.UTF8, "application/json");
+        var body = new StringContent(Hilled, System.Text.Encoding.UTF8, "application/json");
         var response = await client.PostAsync(
             $"/api/map/{SketchBoard.Slug}/sketch/relief?interval={interval}", body);
         response.EnsureSuccessStatusCode();
@@ -132,7 +132,7 @@ public sealed class NumberBindingCultureTests
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
             using var board = await SketchBoard.FreshAsync();
 
-            var body = new StringContent(Relieved, System.Text.Encoding.UTF8, "application/json");
+            var body = new StringContent(Hilled, System.Text.Encoding.UTF8, "application/json");
             var response = await client.PostAsync(
                 $"/api/map/{SketchBoard.Slug}/sketch/relief?interval=0.001", body, timeout.Token);
 

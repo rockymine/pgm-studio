@@ -80,9 +80,8 @@ public sealed class SketchSubtractedGroundTests
         var over = SketchRasterizer.AddsOverSubtracts(board).Single();
         await Assert.That(over.Survives).IsTrue();
 
-        // A hole is never scenery, so putting ground back in one is refused rather than remarked on.
         var finding = SketchLayoutCheck.Check(board).Single(f => f.Rule == SketchRules.DrawnOverSubtraction);
-        await Assert.That(finding.Severity).IsEqualTo(Severity.Refusal);
+        await Assert.That(finding.Severity).IsEqualTo(Severity.Complaint);
         await Assert.That(finding.Message).Contains("fills");
     }
 

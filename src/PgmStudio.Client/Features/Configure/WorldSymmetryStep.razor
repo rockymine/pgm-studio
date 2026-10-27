@@ -7,9 +7,7 @@
 <Workspace>
 
   <Sidebar>
-      <Section Title="Symmetry">
-        <p class="section-desc">Confirm the detected symmetry or pick another. It suggests the number of
-          teams and copies one team's setup to the others.</p>
+      <Section Title="Symmetry" Description="Confirm the detected symmetry or pick another. It suggests the team count, and every other team gets a symmetry copy.">
         <div class="panel-list">
           @foreach (var m in Choices)
           {
@@ -27,7 +25,7 @@
         </div>
       </Section>
 
-      <Section Title="Centre" Writes>
+      <Section Title="Symmetry centre" Term="symmetry centre" Description="It starts at the detected centre." Writes>
         <div class="field-row">
           <Field Label="X">
             <NumberField Value="centerX" ValueChanged="@(v => OnCenter(v, true))" Step="0.5" disabled="@(selectedType is null)" />
@@ -36,8 +34,6 @@
             <NumberField Value="centerZ" ValueChanged="@(v => OnCenter(v, false))" Step="0.5" disabled="@(selectedType is null)" />
           </Field>
         </div>
-        <p class="section-desc">The point the map is mirrored or rotated around. It starts at the detected
-          centre.</p>
       </Section>
   </Sidebar>
 
@@ -49,8 +45,9 @@
   <div class="sidebar-handle"></div>
 
   <Inspector>
-      <Section>
-        <DetailHeader Icon="sparkle" IconMuted Label="Summary" />
+      <Section Description="The next phase confirms the teams and gives each island an owner.">
+        <Header><DetailHeader Icon="sparkle" IconMuted Label="Summary" /></Header>
+        <ChildContent>
         <div class="section-body">
           <Field Label="Islands">
             <div class="field-pick-row"><span class="field-value">@islandCount</span></div>
@@ -67,13 +64,13 @@
               }
               else
               {
-                <span class="field-value">—</span>
-                <span class="list-tag">Set teams by hand</span>
+                <span class="field-value">None</span>
+                <span class="list-tag">set by hand</span>
               }
             </div>
           </Field>
-          <p class="section-desc">You confirm the teams and give each island an owner in the next phase.</p>
         </div>
+        </ChildContent>
       </Section>
   </Inspector>
 

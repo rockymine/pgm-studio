@@ -10,13 +10,13 @@ namespace PgmStudio.Domain.Tests;
 public sealed class DoorMaterialsTests
 {
     [Test]
-    public async Task Every_door_that_places_a_block_names_the_material_that_makes_it_breakable()
+    public async Task Every_door_a_player_breaks_names_the_material_that_makes_it_breakable()
     {
         foreach (var choice in DoorMaterials.All)
         {
-            var placesBlock = choice.BlockId != 0;
-            await Assert.That(choice.PgmMaterial is not null).IsEqualTo(placesBlock);
-            await Assert.That(choice.FilterId is not null).IsEqualTo(placesBlock);
+            var broken = choice.BlockId != 0 && !choice.Opens;
+            await Assert.That(choice.PgmMaterial is not null).IsEqualTo(broken);
+            await Assert.That(choice.FilterId is not null).IsEqualTo(broken);
         }
 
         // Air is the one that places nothing: an opening is already open.
@@ -52,5 +52,16 @@ public sealed class DoorMaterialsTests
         await Assert.That(DoorMaterials.IsKnown("obsidian")).IsFalse();
         await Assert.That(DoorMaterials.IsKnown(null)).IsFalse();
         await Assert.That(DoorMaterials.IsKnown("")).IsFalse();
+    }
+
+    /// <summary>A wooden door is opened by hand, so it is a leaf and the wool-room filter has nothing to permit.</summary>
+    [Test]
+    public async Task The_wooden_doors_are_leaves_that_need_no_filter()
+    {
+        var leaves = DoorMaterials.All.Where(choice => choice.Opens).Select(choice => choice.Material);
+        await Assert.That(leaves).IsEquivalentTo(new[] { DoorMaterial.OakDoor, DoorMaterial.SpruceDoor, DoorMaterial.DarkOakDoor });
+        await Assert.That(DoorMaterials.Breakable.Any(choice => choice.Opens)).IsFalse();
+        await Assert.That(DoorMaterials.TryParse("spruce-door", out var spruce)).IsTrue();
+        await Assert.That(spruce).IsEqualTo(DoorMaterial.SpruceDoor);
     }
 }

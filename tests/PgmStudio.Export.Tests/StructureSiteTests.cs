@@ -65,28 +65,27 @@ public sealed class StructureSiteTests
         await Assert.That(finding.Message).Contains("(6, ");
     }
 
-    /// <summary>With the group a cell's ground is solved under, the finding states its bench: an area mark
-    /// on that group's relief, at the floor, two cells past the footprint on every side.</summary>
+    /// <summary>The finding states its bench: a Level modifier at the floor, over a ring two cells past the
+    /// footprint on every side, that does not fan under the symmetry.</summary>
     [Test]
     public async Task A_room_on_a_wall_states_the_bench_that_would_meet_it()
     {
         var surface = Plateau(0, 0, 5, 5, top: 30);
         for (var z = 0; z <= 5; z++) surface[(6, z)] = 22;   // drawn ground east of it, eight under the floor
-        var findings = MapExportComposer.CheckStructureSites(surface, Stamped(0, 0, 5, 5), _ => "team");
+        var findings = MapExportComposer.CheckStructureSites(surface, Stamped(0, 0, 5, 5));
 
         var edit = findings.Single().Edit;
         await Assert.That(edit).IsNotNull();
-        await Assert.That(edit!.Path).IsEqualTo("relief.team.marks");
+        await Assert.That(edit!.Path).IsEqualTo("modifiers");
         await Assert.That(edit.Op).IsEqualTo("add");
-        await Assert.That(edit.Value.GetProperty("kind").GetString()).IsEqualTo("area");
-        await Assert.That(edit.Value.GetProperty("h").GetInt32()).IsEqualTo(30);
-        var ring = edit.Value.GetProperty("ring").EnumerateArray()
+        await Assert.That(edit.Value.GetProperty("op").GetString()).IsEqualTo("level");
+        await Assert.That(edit.Value.GetProperty("top").GetInt32()).IsEqualTo(30);
+        var mask = edit.Value.GetProperty("mask");
+        await Assert.That(mask.GetProperty("mirror").GetBoolean()).IsFalse();
+        var ring = mask.GetProperty("areas")[0].GetProperty("points").EnumerateArray()
             .Select(p => p.EnumerateArray().Select(v => v.GetInt32()).ToArray()).ToArray();
         await Assert.That(ring[0]).IsEquivalentTo(new[] { -2, -2 });
         await Assert.That(ring[2]).IsEquivalentTo(new[] { 7, 7 });
-
-        var unplaced = MapExportComposer.CheckStructureSites(surface, Stamped(0, 0, 5, 5));
-        await Assert.That(unplaced.Single().Edit).IsNull().Because("no group is known, so no bench can be stated");
     }
 
     [Test]

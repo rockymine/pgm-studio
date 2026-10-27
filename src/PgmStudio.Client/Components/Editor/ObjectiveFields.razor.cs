@@ -7,7 +7,8 @@ namespace PgmStudio.Client.Components;
 /// <summary>What an objective states, each null where it states nothing and takes the default.</summary>
 public sealed record ObjectiveFieldValues(
     string? Name = null, string? Color = null, string? Style = null, string? Materials = null, int? Float = null,
-    int? Lava = null, int? LavaHeight = null, bool? OpenTop = null, int? Leak = null);
+    int? Lava = null, int? LavaHeight = null, bool? OpenTop = null, int? Leak = null, string? Shape = null,
+    int? Points = null, int? CaptureSeconds = null, string? CaptureMode = null);
 
 /// <summary>One setting an author changed: its <see cref="PieceSettings"/> key, and the value, null where it goes
 /// back to its default.</summary>
@@ -15,7 +16,7 @@ public readonly record struct ObjectiveFieldChange(string Key, object? Value);
 
 public partial class ObjectiveFields
 {
-    /// <summary>What the objective is: <c>destroyable</c>, <c>core</c> or <c>wool</c>.</summary>
+    /// <summary>What the objective is: <c>destroyable</c>, <c>core</c>, <c>wool</c> or <c>controlPoint</c>.</summary>
     [Parameter, EditorRequired] public string Kind { get; set; } = "";
 
     [Parameter, EditorRequired] public ObjectiveFieldValues Values { get; set; } = new();
@@ -42,6 +43,11 @@ public partial class ObjectiveFields
     private string DestroyableMaterials => Values.Materials ?? Vocabulary.Destroyable.Materials;
     private int DestroyableFloat => Values.Float ?? Vocabulary.Destroyable.Float;
 
+    private string PointShape => Values.Shape ?? Vocabulary.ControlPoint.Shape;
+    private int PointPoints => Values.Points ?? Vocabulary.ControlPoint.Points;
+    private int PointSeconds => Values.CaptureSeconds ?? Vocabulary.ControlPoint.CaptureSeconds;
+    private string PointMode => Values.CaptureMode ?? Vocabulary.ControlPoint.CaptureMode;
+
     private int CoreLava => Values.Lava ?? Vocabulary.Core.Lava;
     private int CoreLavaHeight => Values.LavaHeight ?? Vocabulary.Core.LavaHeight;
     private int CoreFloat => Values.Float ?? Vocabulary.Core.Float;
@@ -55,9 +61,28 @@ public partial class ObjectiveFields
         get
         {
             var (size, height) = CoreCasing.Of(CoreLava, CoreLavaHeight, CoreOpenTop);
-            return $"{size}×{size}×{height} obsidian, {CoreLava}×{CoreLava}×{CoreLavaHeight} lava inside";
+            return $"{size}×{size}×{height} of obsidian around {CoreLava}×{CoreLava}×{CoreLavaHeight} of lava.";
         }
     }
+
+    /// <summary>What leaking the core takes, from its leak and its float.</summary>
+    private string CoreDigReadout => CoreDigDepth > 0
+        ? $"Leaking it means breaking the casing and digging {CoreDigDepth} block{(CoreDigDepth == 1 ? "" : "s")} out of the ground below it."
+        : "The lava leaks as soon as the casing is broken. No digging is needed.";
+
+    private string? PadNote => PointShape == ControlPointShapes.Disc ? "Held inside a cylinder over the pad." : null;
+
+    private string TakenNote => PointMode == CaptureModes.Touch
+        ? "Taken the moment a player of another team steps on it."
+        : "Held alone for the capture time.";
+
+    /// <summary>What an unnamed monument or core is called: a core "Core", a monument after its team.</summary>
+    private string? GoalNameNote => Kind == "core" ? null : "Left empty, it is named after its team.";
+
+    private string? GoalNamePlaceholder => Kind == "core" ? "Core" : null;
+
+    /// <summary>A vocabulary word as a chip shows it, opening with a capital.</summary>
+    private static string Word(string word) => word.Length == 0 ? word : char.ToUpperInvariant(word[0]) + word[1..];
 
     /// <summary>How far players must dig under the casing before its lava can leak.</summary>
     private int CoreDigDepth => CoreDig.Depth(CoreLeak, CoreFloat);

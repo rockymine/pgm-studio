@@ -76,7 +76,7 @@
               "thickness": 4
             }
           ],
-          "ending": "repeat"
+          "ending": "hold"
         }
       },
       "wallEnabled": true,
@@ -229,7 +229,7 @@
               "thickness": 1
             }
           ],
-          "ending": "repeat"
+          "ending": "hold"
         }
       },
       "wallEnabled": true,

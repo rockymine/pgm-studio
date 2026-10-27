@@ -579,40 +579,6 @@ public static class PlanValidator
     private static Finding Lint(string rule, string msg, Measurement measured, params string[] subjects) =>
         new(rule, msg, Severity.Complaint, Subjects: subjects.Length > 0 ? subjects : null, Measured: measured);
 
-    /// <summary>The change that grades a seam two pieces step across: a <c>line</c> relief mark six wide,
-    /// running from a point inside the higher piece to a point inside the lower, stating the two surfaces
-    /// at its ends. The run is the step's own size each side of the seam, so the mark solves to a slope a
-    /// player walks. It lands on the group the compile fuses the two pieces into — <c>team</c> for pieces
-    /// that mirror, <c>neutral</c> otherwise.</summary>
-    private static DocumentEdit? RampEdit(PieceInterfaces.Seam seam, DerivedPiece a, DerivedPiece b)
-    {
-        var (high, low) = a.Surface >= b.Surface ? (a, b) : (b, a);
-        var delta = high.Surface - low.Surface;
-        if (delta < 2) return null;
-        var midX = (seam.X1 + seam.X2) / 2.0;
-        var midZ = (seam.Z1 + seam.Z2) / 2.0;
-        // The seam is axis-aligned; the ramp runs across it, from the high piece's side to the low piece's.
-        var acrossX = seam.X1 == seam.X2;
-        var towardLow = acrossX
-            ? Math.Sign(low.Rect.CenterX - high.Rect.CenterX)
-            : Math.Sign(low.Rect.CenterZ - high.Rect.CenterZ);
-        if (towardLow == 0) towardLow = 1;
-        var run = delta + 1;
-        var start = acrossX ? new[] { midX - towardLow * run, midZ } : new[] { midX, midZ - towardLow * run };
-        var end = acrossX ? new[] { midX + towardLow * run, midZ } : new[] { midX, midZ + towardLow * run };
-        var group = high.Mirrors ? "team" : "neutral";
-        return DocumentEdit.Of(MapDocuments.Layout, $"relief.{group}.marks", DocumentEdit.Add,
-            new
-            {
-                id = $"ramp-{high.Id}-{low.Id}", kind = "line", width = 6,
-                points = new[] { new[] { Math.Round(start[0], 1), Math.Round(start[1], 1) },
-                                 new[] { Math.Round(end[0], 1), Math.Round(end[1], 1) } },
-                h = new[] { high.Surface, low.Surface },
-            },
-            $"add a line mark six wide from ({start[0]:0.#}, {start[1]:0.#}) at {high.Surface} to "
-            + $"({end[0]:0.#}, {end[1]:0.#}) at {low.Surface} to `relief.{group}.marks`");
-    }
-
     // PC-C — a corner contact: two pieces meet at a single point. Per the Definitions a corner touch is never a
     // connection (no walkable corridor mouth). A corner as the pair's only relationship is a sneaky diagonal
     // between otherwise-separate areas; when the pieces already join the same land component through real
@@ -735,7 +701,7 @@ public static class PlanValidator
             yield return Lint(LayoutRules.UnwalkableStep,
                 $"pieces '{seam.A}' and '{seam.B}' differ by {delta} blocks in height where they share an edge, "
                 + "more than 1 block",
-                RampEdit(seam, a.Value, b.Value), seam.A, seam.B);
+                seam.A, seam.B);
         }
     }
 
@@ -839,7 +805,7 @@ public static class PlanValidator
                     yield return Lint(LayoutRules.SpawnExitStep,
                         $"spawn '{s.Id}' has its room piece '{s.Piece}' {delta} blocks above or below piece "
                         + $"'{(seam.A == s.Piece ? seam.B : seam.A)}' ahead of its door, more than 1 block",
-                        RampEdit(seam, piece.Value, other.Value), seam.A, seam.B);
+                        seam.A, seam.B);
             }
         }
     }

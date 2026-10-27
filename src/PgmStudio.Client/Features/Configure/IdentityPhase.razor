@@ -7,24 +7,22 @@
 <Workspace>
   <ContentColumn MaxWidth="720">
 
-    <Section Title="Identity">
+    <Section Title="Identity" Description="Version, game mode and objective are set automatically.">
       <div class="section-body">
         <Field Label="Map name" Required>
-          <input class="field-input" type="text" placeholder="e.g. Harbour Run" value="@name" @oninput="OnName" />
+          <input class="field-input" type="text" value="@name" @oninput="OnName" />
         </Field>
         <div class="field-row">
           <Field Label="Version" Class="field--short">
-            <input class="field-input" type="text" value="@Version" disabled title="Set automatically" />
+            <input class="field-input" type="text" value="@Version" disabled />
           </Field>
-          <Field Label="Mode" Class="field--compact">
-            <input class="field-input" type="text" value="@Mode" disabled title="Set automatically" />
+          <Field Label="Game mode" Class="field--compact">
+            <input class="field-input" type="text" value="@Mode" disabled />
           </Field>
         </div>
         <Field Label="Objective">
-          <textarea class="field-input field-input--textarea" rows="2" disabled
-                    title="Set automatically from the game mode">@Objective</textarea>
+          <textarea class="field-input field-input--textarea" rows="2" disabled>@Objective</textarea>
         </Field>
-        <p class="section-desc">Version, mode, and objective are set automatically.</p>
       </div>
     </Section>
 

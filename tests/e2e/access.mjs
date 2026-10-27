@@ -79,7 +79,7 @@ const WRITE_PAGES = [
     if (open) await page.fill("#lib-entry-name", "E2E access palette");
   },
     [["a library editor's save", /^Add to library$/]]],
-  ["/generator", openFirstLayout, [["the generator's Open in Sketch", /^Open in Sketch$/]]],
+  ["/generator", openFirstLayout, [["the generator's Make a map", /^Make a map$/]]],
 ];
 
 async function checkWrites(base, open) {
@@ -89,7 +89,7 @@ async function checkWrites(base, open) {
     for (const [name, pattern] of controls) {
       const state = await settle(pattern, !open);
       if (open) checks.add(`${name} is open`, state?.closed === false, JSON.stringify(state));
-      else checks.add(`${name} is closed, and says why`, state?.closed === true && /not signed in/.test(state.title),
+      else checks.add(`${name} is closed, and says why`, state?.closed === true && /Sign in to/.test(state.title),
         JSON.stringify(state));
     }
   }
@@ -110,15 +110,15 @@ checks.add("the account menu links the whitelist for an admin", state.users);
 await page.click(".account-scrim");
 const openDownload = await settle(/^Download map/, false);
 checks.add("Download is open", openDownload?.closed === false, JSON.stringify(openDownload));
-const openIso = await settle(/^2D$/, false);
+const openIso = await settle(/^2-D$/, false);
 checks.add("the 3-D switch is open", openIso?.closed === false, JSON.stringify(openIso));
 
 await visit(BASE, "/admin/users");
 // The page says "Loading…" until it has asked who is signed in, and only then draws the form or the refusal.
-await page.waitForFunction(() => !!document.querySelector('input[placeholder="Minecraft name or uuid"]')
+await page.waitForFunction(() => !!document.querySelector('.player-add-row input[placeholder="Minecraft name"]')
   || /Only admins/.test(document.body.textContent), null, { timeout: 15000 }).catch(() => {});
 const adminPage = await page.evaluate(() => ({
-  add: !!document.querySelector('input[placeholder="Minecraft name or uuid"]'),
+  add: !!document.querySelector('.player-add-row input[placeholder="Minecraft name"]'),
   refused: /Only admins/.test(document.body.textContent),
 }));
 checks.add("the whitelist page answers the local admin", adminPage.add && !adminPage.refused);
@@ -150,7 +150,7 @@ try {
     if (canvas) await page.waitForSelector(".canvas-dock", { timeout: 20000 }).catch(() => {});
     await page.waitForSelector("fieldset.readonly-fieldset", { timeout: 10000 }).catch(() => {});
     state = await readState();
-    checks.add("the editor bar says view only, and why", /not signed in/.test(state.banner ?? ""), state.banner ?? "no tag");
+    checks.add("the editor bar says view only, and why", /Sign in to/.test(state.banner ?? ""), state.banner ?? "no tag");
     checks.add("the studio bar offers the sign-in", state.signIn);
     checks.add("the panels are greyed", state.greyed > 0,
       `${state.greyed} disabled fieldset(s) over ${state.inspector} panel(s)`);
@@ -165,8 +165,8 @@ try {
   await visit(invited, "/maps?stage=sketch");
   await page.waitForSelector("button.action-btn--primary", { timeout: 20000 }).catch(() => {});
   const newSketch = await page.evaluate(() =>
-    [...document.querySelectorAll("button")].find(b => /New sketch/.test(b.textContent))?.disabled ?? null);
-  checks.add("New sketch is greyed", newSketch === true, String(newSketch));
+    [...document.querySelectorAll("button")].find(b => /New map/.test(b.textContent))?.disabled ?? null);
+  checks.add("New map is greyed", newSketch === true, String(newSketch));
   await visit(invited, "/maps?stage=configure");
   const importWorld = await settle(/^Import a world$/, true);
   checks.add("Import a world goes nowhere, and says why", importWorld?.closed === true
@@ -180,7 +180,7 @@ try {
   const exported = await fetch(`${invited}/api/map/${seed.sketchSlug}/export`);
   checks.add("the export itself is refused", exported.status === 401, String(exported.status));
   // The 3-D preview is a build too, so the switch is greyed before it is pressed rather than after it fails.
-  const iso = await settle(/^2D$/, true);
+  const iso = await settle(/^2-D$/, true);
   checks.add("the 3-D switch is closed, and says why", iso?.closed === true && /Sign in/.test(iso.title),
     JSON.stringify(iso));
 
@@ -194,7 +194,7 @@ try {
     return input ? { disabled: input.matches(":disabled"), title: input.closest("fieldset")?.getAttribute("title") ?? "" } : null;
   });
   checks.add("the layer's name is greyed in the sidebar, and says why", layerName?.disabled === true
-    && /not signed in/.test(layerName.title), JSON.stringify(layerName));
+    && /Sign in to/.test(layerName.title), JSON.stringify(layerName));
 
   // Pick a group from the sidebar, then drag it on the canvas with the select tool, from a point inside it. The
   // canvas and its chrome are compared with the pointer resting where the drag ends both times, so a hover
@@ -244,7 +244,7 @@ try {
   await page.waitForFunction(() => /Only admins|Minecraft name/.test(document.body.textContent), null,
     { timeout: 20000 }).catch(() => {});
   const refused = await page.evaluate(() => /Only admins/.test(document.body.textContent)
-    && !document.querySelector('input[placeholder="Minecraft name or uuid"]'));
+    && !document.querySelector('.player-add-row input[placeholder="Minecraft name"]'));
   checks.add("the whitelist page shows nothing of the list", refused);
 } finally {
   server.kill();

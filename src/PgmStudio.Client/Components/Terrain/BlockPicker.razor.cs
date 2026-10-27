@@ -68,7 +68,10 @@ public partial class BlockPicker
         }
     }
 
-    private string SelectedKey => Current is null ? Key(Id, Data) : Key(Current.Id, FamilyBase(Current));
+    /// <summary>The chosen block's line: its own where the list offers it — a shade a tone family claims is
+    /// listed under that family — and its colour family's single line otherwise.</summary>
+    private string SelectedKey => Current is null ? Key(Id, Data)
+        : Groups.Any(group => group.Any(block => block == Current)) ? Key(Current) : Key(Current.Id, FamilyBase(Current));
 
     private static string Key(int id, int data) => $"{id}:{data}";
     private static string Key(PaintBlockDto block) => Key(block.Id, block.Data);
@@ -77,7 +80,8 @@ public partial class BlockPicker
     private int FamilyBase(PaintBlockDto block) => IsFamily(block) ? 0 : block.Data;
 
     private bool IsFamily(PaintBlockDto block) => Blocks.Count(other => other.Id == block.Id) >= FamilyShades;
-    private string OptionLabel(PaintBlockDto block) => IsFamily(block) ? block.Group : block.Name;
+    /// <summary>A colour family's single line reads as the family; a shade listed under a tone reads as itself.</summary>
+    private string OptionLabel(PaintBlockDto block) => IsFamily(block) && !block.InFamily ? block.Group : block.Name;
 
     private Task ChooseBlock(string picked)
     {

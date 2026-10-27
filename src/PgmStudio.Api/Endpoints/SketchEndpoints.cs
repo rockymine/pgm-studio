@@ -217,6 +217,9 @@ public sealed class SketchPaintEndpoint(MapRepository repo, MapArtifactStore art
 /// contour previews take, and the stored intent rides along so the structures a map has stated are standing in
 /// the picture.
 ///
+/// <para><c>?step=N</c> reads the ground after the first N modifiers that are not switched off (0 is the shapes
+/// alone), which is how the stack is stepped through.</para>
+///
 /// <para>This is the paint overlay widened from the surface to the whole column. That preview resolves every
 /// block and then keeps only each column's top because resolving the rest was the bulk of the call; here the
 /// rest is the answer, so nothing is thrown away. The cost is the build, seconds on a full board, which is why
@@ -239,14 +242,14 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
     public override void Configure()
     {
         Post("/map/{slug}/sketch/columns");
-        Description(b => b.Accepts<SketchLayout>("application/json").Refuses(400, 404, 422));
+        Description(b => b.Accepts<SketchLayout>("application/json").Refuses(400, 404, 422).Reads(StepQuery.Word));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
-        var layoutJson = await RawBody.ReadAsync(HttpContext, ct);
+        var layoutJson = StepQuery.Cut(await RawBody.ReadAsync(HttpContext, ct), Query<int?>("step", isRequired: false));
 
         SketchLayout? layout;
         try { layout = SketchLayout.Stated(layoutJson); }
@@ -257,7 +260,7 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
         try
         {
             var built = BuiltWorlds.Of(layoutJson, await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct));
-            preview = SketchPreviews.Of(built, layout, layoutJson);
+            preview = SketchPreviews.Of(built, layout);
             Complaints.Add(HttpContext, preview.Layout.AsComplaints());
             Complaints.Add(HttpContext, built.Declines);
             Complaints.Add(HttpContext, preview.Goals.AsComplaints());
@@ -569,30 +572,26 @@ public sealed class SketchProbeFootprintEndpoint(MapRepository repo) : EndpointW
 
 /// <summary>POST /api/map/{slug}/sketch/relief — the contour overlay for the ground the posted layout builds,
 /// one entry per group: its traced lines, its height range, and its bounds. Every group answers the surface the
-/// build gives it (<see cref="SketchRasterizer.BuiltSurfaces"/>), traced along its relief's own field where it
-/// carries one, so ground shaped by anchor heights, a height mode or a layer's own <c>base_y</c> is drawn too. The body
-/// is the <em>live</em> layout, the same as the paint preview takes, so the overlay tracks unsaved edits.
+/// build gives it (<see cref="SketchRasterizer.BuiltSurfaces"/>) with every layer stacked and every modifier run,
+/// so ground shaped by anchor heights, a height mode, the modifier stack or a layer's own <c>base_y</c> is drawn
+/// too. The body is the <em>live</em> layout, the same as the paint preview takes, so the overlay tracks unsaved
+/// edits.
 ///
-/// <para>The solve is the build's own (<see cref="SketchRasterizer.ReliefFields"/>), so a previewed surface
-/// cannot differ from the surface that gets built — the only property that makes a preview worth drawing.
-/// Contours are traced from the <b>continuous</b> field rather than the block one, because contouring a
-/// staircase returns the outlines of its treads instead of lines of constant height (docs/world-export/relief.md §15).
-/// <c>?interval=</c> sets the spacing in blocks; a layout with no ground answers an empty list rather than a
-/// 404, so the client can draw nothing through the same path.</para>
-///
-/// <para>Each group's solve <b>resumes</b> from the surface its last preview settled on
-/// (<see cref="ReliefPreviewCache"/>). Every preview is one small edit after the last, so the relaxation has
-/// that edit left to carry rather than the whole surface to build — and because it stops when the field stops
-/// moving, a resumed solve that settles has settled on the same answer. Nothing about the reply depends on
-/// whether a head start was available.</para></summary>
+/// <para>The surface is the build's own, so a previewed surface cannot differ from the surface that gets built —
+/// the only property that makes a preview worth drawing. Contours are traced from the <b>continuous</b> field
+/// rather than the block one, because contouring a staircase returns the outlines of its treads instead of lines
+/// of constant height. <c>?interval=</c> sets the spacing in blocks; a layout with no ground answers an empty
+/// list rather than a 404, so the client can draw nothing through the same path. <c>?step=N</c> reads the ground
+/// after the first N modifiers that are not switched off (0 is the shapes alone).</para></summary>
 [CostlyRead]
-public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache warm)
+public sealed class SketchReliefEndpoint(MapRepository repo)
     : EndpointWithoutRequest<ReliefContoursDto>
 {
     public override void Configure()
     {
         Post("/map/{slug}/sketch/relief");
         Description(b => b.Accepts<SketchLayout>("application/json").Refuses(400, 404).Reads(
+            StepQuery.Word,
             new QueryWord("interval", "The height between contours, in blocks. Absent, or not above 0, is 1.",
                 Value: QueryValue.Number),
             new QueryWord("heights", "Answer each group's height field beside its contours. Absent answers the "
@@ -603,36 +602,26 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
-        var layoutJson = await RawBody.ReadAsync(HttpContext, ct);
+        var layoutJson = StepQuery.Cut(await RawBody.ReadAsync(HttpContext, ct), Query<int?>("step", isRequired: false));
 
         var interval = Query<double>("interval", isRequired: false);
         if (interval <= 0) interval = 1;
 
-        // Each group resumes from the surface its last preview settled on. The relaxation stops when the
-        // field stops moving and discards a resume that fails to reach that tolerance, so this can only ever
-        // save sweeps — never change the answer, which is what keeps a previewed surface the built one.
         Complaints.Add(HttpContext, SketchLayoutCheck.Check(layoutJson).AsComplaints());
 
-        Dictionary<string, HeightField> fields;
         Dictionary<string, HeightField> built;
-        try
-        {
-            fields = SketchRasterizer.ReliefFields(layoutJson,
-                (group, footprint) => warm.WarmStart(map.Id, group, footprint),
-                (group, solved) => warm.Remember(map.Id, group, solved));
-            built = SketchRasterizer.BuiltSurfaces(layoutJson, fields);
-        }
+        try { built = SketchRasterizer.BuiltSurfaces(layoutJson); }
         catch (Exception fault) when (fault is JsonException or ArgumentException
                                           or InvalidOperationException or FormatException
                                           or OverflowException or KeyNotFoundException)
-        { await Refusals.UnreadableAsync(HttpContext, "could not solve relief", fault, ct); return; }
+        { await Refusals.UnreadableAsync(HttpContext, "could not read layout", fault, ct); return; }
 
-        // Points go out as one flat [x, z, x, z, …] run per line — see ContourLineDto. The solved surface goes
-        // with them: contours say where the ground changes height and not which way, and the field they are
-        // traced from is already in hand, so sending it costs the serialization and nothing else.
+        // Points go out as one flat [x, z, x, z, …] run per line — see ContourLineDto. The surface goes with
+        // them: contours say where the ground changes height and not which way, and the field they are traced
+        // from is already in hand, so sending it costs the serialization and nothing else.
         var withHeights = Query<bool>("heights", isRequired: false);
-        ReliefGroupContoursDto Entry(string group, HeightField field, bool solved) => new(
-            group, solved, field.Min, field.Max,
+        ReliefGroupContoursDto Entry(string group, HeightField field) => new(
+            group, Solved: false, field.Min, field.Max,
             field.Footprint.MinX,
             field.Footprint.MinZ,
             field.Footprint.MinX + field.Footprint.Width - 1,
@@ -641,9 +630,7 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
                 line.Level, line.Closed,
                 [.. line.Points.SelectMany(point => new[] { point.X, point.Z })]))],
             withHeights ? Grid(field) : null);
-        var groups = built.OrderBy(entry => fields.ContainsKey(entry.Key) ? 0 : 1)
-            .Select(entry => Entry(entry.Key, entry.Value, solved: fields.ContainsKey(entry.Key)))
-            .ToList();
+        var groups = built.Select(entry => Entry(entry.Key, entry.Value)).ToList();
 
         await Send.OkAsync(new ReliefContoursDto(interval, groups), ct);
     }
@@ -661,42 +648,34 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
     }
 }
 
-/// <summary>POST /api/map/{slug}/sketch/relief/read — what the relief a posted layout carries <b>charges</b>,
-/// per group. Not a walkability score: a relief that is walkable everywhere is a field rather than a map, and
-/// a single number ranks every deliberate barrier as a defect. The report states reachability at each of the
-/// game's three thresholds (a jump, a placed block, building in earnest), separates <b>places</b> from
-/// <b>ledges</b>, qualifies faces as cliffs by the corpus rule, measures crossings in <b>both</b> directions
-/// (a drop is free the way it falls) and reports the symmetry error, which nothing else would show.
-///
-/// <para>It sits next to the document it describes, which is what makes a relief correctable by a generator or
-/// an agent rather than only by eye. Same body as the contour endpoint — the live layout.</para></summary>
+/// <summary>POST /api/map/{slug}/sketch/modifiers/changes — how many columns each modifier of the posted layout
+/// moved, in the order they run: <c>{ "modifiers": [ { "id", "columns" } ] }</c>. A column counts for a
+/// modifier when its top, rounded to a block, differs after that modifier's own run from what the modifiers
+/// before it left; one switched off answers 0. The stack is run once for the whole list. The body is the
+/// <em>live</em> layout, the same as the contour and columns reads take.</summary>
 [CostlyRead]
-public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCache warm)
-    : EndpointWithoutRequest<ReliefReadDto>
+public sealed class SketchModifierChangesEndpoint(MapRepository repo) : EndpointWithoutRequest<ModifierChangesDto>
 {
     public override void Configure()
     {
-        Post("/map/{slug}/sketch/relief/read");
+        Post("/map/{slug}/sketch/modifiers/changes");
         Description(b => b.Accepts<SketchLayout>("application/json").Refuses(400, 404));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { }) return;
 
         var layoutJson = await RawBody.ReadAsync(HttpContext, ct);
 
-        Complaints.Add(HttpContext, SketchLayoutCheck.Check(layoutJson).AsComplaints());
-
-        (ReliefReadDto Read, IReadOnlyList<Finding> Complaints) relief;
-        try { relief = ReliefReads.Of(layoutJson, map.Id, warm); }
+        IReadOnlyList<(string Id, int Columns)> changes;
+        try { changes = SketchRasterizer.ModifierChanges(SketchLayout.Parse(layoutJson)); }
         catch (Exception fault) when (fault is JsonException or ArgumentException
                                           or InvalidOperationException or FormatException
                                           or OverflowException or KeyNotFoundException)
-        { await Refusals.UnreadableAsync(HttpContext, "could not solve relief", fault, ct); return; }
+        { await Refusals.UnreadableAsync(HttpContext, "could not read layout", fault, ct); return; }
 
-        Complaints.Add(HttpContext, relief.Complaints);
-        await Send.OkAsync(relief.Read, ct);
+        await Send.OkAsync(new ModifierChangesDto([.. changes.Select(change => new ModifierChangeDto(change.Id, change.Columns))]), ct);
     }
 }
 

@@ -385,6 +385,7 @@ public static class SymmetryExpander
                 placed.Add(pad);
                 result.Add(src with
                 {
+                    Id = src.Id.Length > 0 ? $"{src.Id}-{k + 1}" : "",
                     Stamp = src.Stamp.At(k),
                     Name = src.Name.Length > 0 ? $"{src.Name} {k + 1}" : "",
                     Anchor = anchor,

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using PgmStudio.Geom.Algorithms;
+using PgmStudio.Geom.Relief;
 using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Minecraft.Painting;
@@ -255,13 +256,16 @@ public static class Materials
         if (Graded(material) is not { } graded) return DefaultCliffAngle;
 
         var bands = graded.Stack?.Bands ?? [];
-        var ending = graded.Stack?.Ending ?? BandEnding.Repeat;
+        var ending = graded.Stack?.Ending ?? BandEnding.Hold;
         var span = bands.Sum(band => Math.Max(1, band.Thickness));
 
-        // One region is no grading: a single band that repeats paints every angle alike, and so does one that
+        // One region is no grading: a single band that is held paints every angle alike, and so does one that
         // hands over past ground no gradient reaches. Such a stack states nothing about where a face begins.
         var handsOver = ending == BandEnding.HandOver && span <= SurfaceGradient.Steepest;
         if (bands.Count + (handsOver ? 1 : 0) < 2) return DefaultCliffAngle;
+
+        // A stack that cycles bands every span of degrees and has no steepest band, so it names no face either.
+        if (ending == BandEnding.Cycle) return DefaultCliffAngle;
 
         int at = 0, start = 0;
         foreach (var band in bands)
@@ -270,9 +274,9 @@ public static class Materials
             at += Math.Max(1, band.Thickness);
             if (at > SurfaceGradient.Steepest) return start;
         }
-        // Nothing spans the steepest ground: under Repeat the last band carries on into it, under HandOver
+        // Nothing spans the steepest ground: under Hold the last band carries on into it, under HandOver
         // whatever the stack sits over takes it from where the bands run out.
-        return ending == BandEnding.Repeat ? start : at;
+        return ending == BandEnding.Hold ? start : at;
     }
 
     /// <summary>The outermost slope-axis stack in a material tree, or null where nothing grades by angle.</summary>
@@ -334,7 +338,7 @@ public static class Materials
 /// <para><b><see cref="Beyond"/> is what shows where the stack claims nothing</b>, which is the half <see
 /// cref="BandEnding.HandOver"/> leaves to whoever holds the axis. Unset it is stone, the fill every unclaimed
 /// block already falls to — right for a depth stack, whose bucket is its whole space, and wrong for a ring stack
-/// that is meant to stop a few rings in and let the ground it sits on show. Under <see cref="BandEnding.Repeat"/>
+/// that is meant to stop a few rings in and let the ground it sits on show. Under <see cref="BandEnding.Hold"/>
 /// nothing is ever unclaimed and this is never reached.</para>
 /// <para><b>From</b> — Where a <see cref="BandAxis.Height"/> stack's first band sits, in world Y. Read on no
 /// other axis, and zero everywhere else.</para>
@@ -344,9 +348,15 @@ public static class Materials
 /// planes. A reach of a few cells lays the bands along every bump, so a slope only ever shows its top one; a wide
 /// reach keeps the broad shape of the land and lets a hill cut through the bands. Absent is
 /// <see cref="DefaultReach"/>; both are read on the height axis only.</para>
+/// <para><b>Dip</b> and <b>Fold</b> — beds that lean and bend. <c>dip</c> is a <see cref="BedDip"/>, blocks
+/// of lift per block east and south from the world origin, and <c>fold</c> is blocks of lift from fractal noise in
+/// cells of <see cref="FoldCell"/>, between −fold and +fold. Both add to the datum beside <c>follow</c>, whether or
+/// not the stack follows, so strata tilt and ripple across a cliff instead of lying level. Both are read at the
+/// folded cell (TP21): on a mirrored board the plane and the noise are the canonical half's, and the other
+/// images carry them mirrored.</para>
 /// <para><b>On the <see cref="BandAxis.Slope"/> axis a thickness is a span of degrees</b>, not of blocks: a
 /// stack of grass at 20 then coarse dirt at 15 is meadow up to 19° and coarse dirt from 20° to 34°, with
-/// <see cref="Beyond"/> — or the last band under <see cref="BandEnding.Repeat"/> — taking every steeper
+/// <see cref="Beyond"/> — or the last band under <see cref="BandEnding.Hold"/> — taking every steeper
 /// cell.</para></summary>
 public sealed record LayeredMaterial(
     BandStack Stack,
@@ -354,7 +364,9 @@ public sealed record LayeredMaterial(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TerrainMaterial? Beyond = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] int From = 0,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] int Follow = 0,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? Reach = null)
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? Reach = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] BedDip? Dip = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] double Fold = 0)
     : TerrainMaterial
 {
     /// <summary>How many cells either side the ground is averaged over when <see cref="Reach"/> is left out —
@@ -363,6 +375,15 @@ public sealed record LayeredMaterial(
 
     /// <summary>The widest reach a stack may state, in cells either side.</summary>
     public const int MaxReach = 64;
+
+    /// <summary>The width of one fold's lattice cell, in blocks.</summary>
+    public const int FoldCell = 24;
+
+    /// <summary>The most a stack may fold its beds, in blocks.</summary>
+    public const double MaxFold = 64;
+
+    private const int FoldOctaves = 3;
+    private const int FoldSeed = 171;
 
     public override (int Id, int Data) Resolve(in BucketContext ctx)
     {
@@ -379,24 +400,31 @@ public sealed record LayeredMaterial(
         };
         // Off the footprint the inward axis has no answer, which is not the same as being past the last band:
         // there is no ring to be in, so the stack never gets asked.
-        if (step < 0) return Beyond?.Resolve(in ctx) ?? (Blocks.Stone, 0);
+        // A height stack that cycles has bands below its datum as well, so it is asked there.
+        var cyclesBelow = Axis == BandAxis.Height && Stack.Ending == BandEnding.Cycle;
+        if (step < 0 && !cyclesBelow) return Beyond?.Resolve(in ctx) ?? (Blocks.Stone, 0);
         return Stack.At(step).Material?.Resolve(in ctx)
             ?? Beyond?.Resolve(in ctx)
             ?? (Blocks.Stone, 0);
     }
 
-    /// <summary>How far this column raises a following height stack: <see cref="Follow"/> percent of the ground
-    /// averaged over <see cref="Reach"/> cells round it. Read at the folded cell, as a pattern is (TP21), so the
-    /// two halves of a symmetric board band alike. Nought where the stack does not follow or no ground was
-    /// supplied.</summary>
+    /// <summary>How far this column raises the datum of a height stack: <see cref="Follow"/> percent of the ground
+    /// averaged over <see cref="Reach"/> cells round it, plus the <see cref="Dip"/> plane and the <see cref="Fold"/>
+    /// noise, rounded once. Read at the folded cell, as a pattern is (TP21), so the two halves of a symmetric
+    /// board band alike. The ground's share is nought where the stack does not follow or no ground was supplied;
+    /// the dip and the fold do not depend on it.</summary>
     private int Lift(in BucketContext ctx)
     {
-        var follow = Math.Clamp(Follow, 0, 100);
-        if (follow == 0 || ctx.Ground is not { } ground) return 0;
         var (x, z) = ctx.Sample;
-        return ground.Height(x, z, Math.Clamp(Reach ?? DefaultReach, 1, MaxReach)) is { } height
-            ? (int)Math.Round(height * follow / 100.0, MidpointRounding.AwayFromZero)
-            : 0;
+        var lift = 0.0;
+        var follow = Math.Clamp(Follow, 0, 100);
+        if (follow > 0 && ctx.Ground is { } ground
+            && ground.Height(x, z, Math.Clamp(Reach ?? DefaultReach, 1, MaxReach)) is { } height)
+            lift = height * follow / 100.0;
+        if (Dip is { } dip) lift += dip.LiftAt(x, z);
+        if (Fold > 0)
+            lift += Math.Clamp(Fold, 0, MaxFold) * ValueNoise.Fractal(x, z, FoldCell, FoldOctaves, FoldSeed);
+        return (int)Math.Round(lift, MidpointRounding.AwayFromZero);
     }
 }
 
@@ -441,7 +469,37 @@ public sealed record TeamTintedMaterial(int BlockId, TerrainMaterial Neutral) : 
 /// so a depth past the column's own height never recolours bedrock.</param>
 /// <param name="Enabled">Whether the bucket paints at all. A disabled rim leaves its edge to the surface, and
 /// a disabled surface leaves its interior to the wall under it.</param>
-public sealed record TopBand(TerrainMaterial Material, int Depth = 1, bool Enabled = true);
+/// <param name="Soil">How deep the courses lie by how steep the ground is, read in order: a column takes the
+/// depth of the first entry its slope is under, and steeper than every entry it claims none, so the rock under it
+/// shows. Absent, every column takes <paramref name="Depth"/>. The surface reads it; a rim keeps its depth.</param>
+public sealed record TopBand(TerrainMaterial Material, int Depth = 1, bool Enabled = true,
+                             IReadOnlyList<SoilDepth>? Soil = null)
+{
+    /// <summary>How many top courses the band claims on ground <paramref name="slope"/> degrees steep.</summary>
+    public int DepthAt(int slope)
+    {
+        if (Soil is not { Count: > 0 } soil) return Math.Max(1, Depth);
+        foreach (var entry in soil)
+            if (slope < entry.Below) return Math.Max(0, entry.Depth);
+        return 0;
+    }
+
+    public bool Equals(TopBand? other) =>
+        other is not null && Material.Equals(other.Material) && Depth == other.Depth && Enabled == other.Enabled
+        && (Soil ?? []).SequenceEqual(other.Soil ?? []);
+
+    public override int GetHashCode() => HashCode.Combine(Material, Depth, Enabled, Soil?.Count ?? 0);
+}
+
+/// <summary>One step of a <see cref="TopBand.Soil"/>: on ground under <paramref name="Below"/> degrees the band
+/// claims <paramref name="Depth"/> courses.</summary>
+/// <param name="Below">The slope, in degrees, this depth holds under.</param>
+/// <param name="Depth">How many courses the band claims on such ground.</param>
+public readonly record struct SoilDepth(int Below, int Depth)
+{
+    /// <summary>Three courses under 25°, two under 38°, one under 55°, and bare rock steeper.</summary>
+    public static readonly IReadOnlyList<SoilDepth> Thinning = [new(25, 3), new(38, 2), new(55, 1)];
+}
 
 /// <summary>How thick the bedrock floor is (TP8): a fixed block count, or the remainder under a fixed painted
 /// terrain depth (bedrock = column height − terrain depth, per column). Always ≥1, never taller than the

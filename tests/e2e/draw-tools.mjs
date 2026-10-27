@@ -35,7 +35,7 @@ checks.add("it leads a group of its own, holding the four tools it decides for",
   await drawGroup.locator(".canvas-dock-btn").count() === 4,
   `${await drawGroup.locator(".canvas-dock-btn").count()}`);
 checks.add("and getting around the canvas is a different box",
-  await page.locator('.canvas-dock-group:not(:has(.canvas-dock-mode)) button[aria-label="Move"]').count() === 1);
+  await page.locator('.canvas-dock-group:not(:has(.canvas-dock-mode)) button[aria-label="Pan"]').count() === 1);
 
 // ── idle until a tool that draws is in hand ────────────────────────────────────────────────────────────
 checks.section("it goes quiet when nothing it decides is about to happen");

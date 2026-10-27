@@ -239,7 +239,7 @@ public sealed class PlanReference
 ///
 /// <para><b>The build ceiling is not here, and that is the point.</b> It was <c>headroom</c>, a slack added
 /// to <see cref="Surface"/>, so the cap was computed from the plan's <b>flat nominal</b> world — a ground
-/// level the relief solve then abandons, which produced boards with a ceiling under their own terrain. The
+/// level the terraforming then abandons, which produced boards with a ceiling under their own terrain. The
 /// author's rule measures it where the answer exists instead: twenty blocks over the highest ground the world
 /// actually builds, derived in <c>WorldBuilder</c> (<see cref="PgmStudio.Domain.BuildCeiling"/>). A
 /// plan-level number would be a second source for one value, and the one that gets overwritten.
@@ -525,7 +525,7 @@ public sealed class IronMarker : IPlanMarker
 /// A destroyable (DTM objective) marker on <see cref="Piece"/> at piece-relative block offset <see cref="At"/>, owned by
 /// the authored team-0 unit and fanned to one per orbit image — the wool marker's shape, since a destroyable is
 /// likewise a goal one team defends. The marker is the structure's <b>anchor column</b>; the box itself floats
-/// <see cref="Float"/> blocks above the ground the relief actually leaves under that column, so no Y is
+/// <see cref="Float"/> blocks above the ground the modifiers actually leave under that column, so no Y is
 /// authored.
 /// <para><see cref="Piece"/> may be empty: a destroyable is the one marker kind that need not ride a
 /// plan piece at all. With a piece, <see cref="At"/> is a block offset from its minimum corner, same as every
@@ -558,9 +558,9 @@ public sealed class DestroyableMarker : IPlanMarker
     [JsonPropertyName("style")]     public string? Style { get; set; }
     /// <summary>A PGM material match; empty = obsidian, over half the corpus.</summary>
     [JsonPropertyName("materials")] public string? Materials { get; set; }
-    /// <summary>Blocks of air between the ground the relief solves under this column and the structure's
+    /// <summary>Blocks of air between the ground built under this column and the structure's
     /// underside; null = 4. An offset over the ground as built, not a plan-nominal height — it survives a
-    /// relief pass moving that ground, which an authored world Y would not.</summary>
+    /// modifier moving that ground, which an authored world Y would not.</summary>
     [JsonPropertyName("float")]     public int? Float { get; set; }
     /// <summary>Overrides the owner-and-index auto-name (<c>Red Monument</c>, <c>Red Monument 2</c>).</summary>
     [JsonPropertyName("name")]      public string? Name { get; set; }
@@ -569,7 +569,7 @@ public sealed class DestroyableMarker : IPlanMarker
 /// <summary>
 /// A core (DTC objective) marker on <see cref="Piece"/> at piece-relative block offset <see cref="At"/> — the destroyable
 /// marker's shape, since a core is likewise one team's goal to defend, fanned to one per orbit image. The
-/// marker is the casing's anchor column; the box floats <see cref="Float"/> blocks above the ground the relief
+/// marker is the casing's anchor column; the box floats <see cref="Float"/> blocks above the ground the modifiers
 /// actually leaves under that column.
 /// <para><see cref="Piece"/> may be empty, the same absolute addressing a destroyable takes: with a
 /// piece, <see cref="At"/> is a block offset from its minimum corner; with none, an absolute block offset from
@@ -606,7 +606,7 @@ public sealed class CoreMarker : IPlanMarker
     /// <summary>Omit the cap so the lava sits flush with the rim; null = false — a real but minority style,
     /// so it is a flag rather than the default.</summary>
     [JsonPropertyName("openTop")]  public bool? OpenTop { get; set; }
-    /// <summary>Blocks of air between the ground the relief solves under this column and the casing's
+    /// <summary>Blocks of air between the ground built under this column and the casing's
     /// underside; null = 6. An offset over the ground as built, not a plan-nominal height. Pairs with
     /// <see cref="Leak"/> (DC2).</summary>
     [JsonPropertyName("float")]    public int? Float { get; set; }

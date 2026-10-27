@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Components;
 using PgmStudio.Contracts;
 
@@ -7,6 +9,50 @@ namespace PgmStudio.Client.Components;
 public readonly record struct SlotFill(long StyleId, SlotBlockDto? Block)
 {
     public static SlotFill None => new(0, null);
+
+    /// <summary>A terrain material as the slot fill it reads as: a block, a library pattern whose content it is,
+    /// or nothing where it is neither — a material edited by hand before patterns were picked.</summary>
+    public static SlotFill Of(JsonObject? material, IReadOnlyList<StyleDto> styles)
+    {
+        if (material is null) return None;
+        var kindWord = material["kind"]?.GetValue<string>();
+        if (kindWord is "solid" or "laidLog" && material["id"] is { } id)
+            return new SlotFill(0, new SlotBlockDto(id.GetValue<int>(), material["data"]?.GetValue<int>() ?? 0, kindWord == "laidLog"));
+        var canonical = Canonical(material);
+        foreach (var style in styles)
+        {
+            JsonNode? parsed;
+            try { parsed = JsonNode.Parse(style.Params); } catch (JsonException) { continue; }
+            if (parsed is not null && Canonical(parsed) == canonical) return new SlotFill(style.Id, null);
+        }
+        return None;
+    }
+
+    /// <summary>The terrain material this fill stands for, or null where it is nothing or names a pattern not
+    /// in <paramref name="styles"/>.</summary>
+    public JsonObject? ToMaterial(IReadOnlyList<StyleDto> styles)
+    {
+        if (Block is { } block)
+            return new JsonObject { ["kind"] = block.Laid ? "laidLog" : "solid", ["id"] = block.Id, ["data"] = block.Data };
+        var wanted = StyleId;
+        if (styles.FirstOrDefault(style => style.Id == wanted) is { } picked)
+        {
+            try { return JsonNode.Parse(picked.Params) as JsonObject; } catch (JsonException) { return null; }
+        }
+        return null;
+    }
+
+    /// <summary>A JSON value with every object's keys in order, so two materials stated in different key orders
+    /// compare equal.</summary>
+    private static string Canonical(JsonNode node) => Sorted(node)?.ToJsonString() ?? "null";
+
+    private static JsonNode? Sorted(JsonNode? node) => node switch
+    {
+        JsonObject obj => new JsonObject(obj.OrderBy(entry => entry.Key, StringComparer.Ordinal)
+            .Select(entry => KeyValuePair.Create(entry.Key, Sorted(entry.Value)))),
+        JsonArray array => new JsonArray([.. array.Select(Sorted)]),
+        _ => node?.DeepClone(),
+    };
 
     /// <summary>Whether anything fills the slot.</summary>
     public bool Bound => StyleId != 0 || Block is not null;
@@ -48,7 +94,7 @@ public partial class SlotSelect
 
     /// <summary>What the unbound row says — what this part does when nothing is bound to it. Null offers no
     /// unbound row, for a slot that is always filled.</summary>
-    [Parameter] public string? Unbound { get; set; } = "Unbound";
+    [Parameter] public string? Unbound { get; set; } = "Default look";
 
     /// <summary>What the part is, on hover.</summary>
     [Parameter] public string? Title { get; set; }
@@ -66,7 +112,7 @@ public partial class SlotSelect
 
     private IReadOnlyList<SelectOption> Rows =>
     [
-        new SelectOption(BlockKey, "A single block"),
+        new SelectOption(BlockKey, "Single block"),
         .. Styles.Select(style => new SelectOption(
             style.Id.ToString(), style.Name, Group: Schema.NameOf(style.Kind))),
     ];

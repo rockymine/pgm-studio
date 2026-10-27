@@ -49,3 +49,9 @@
 }
 .help-note-body > p { margin: 0 0 var(--space-2); }
 .help-note-body > p:last-child { margin-bottom: 0; }
+
+/* A glossary term's definition ends with the link to its entry. */
+.help-note-link { margin-left: var(--space-1); white-space: nowrap; }
+
+/* <EmptyState> — the one way a list says it is empty. */
+.empty-state { margin: 0; padding: var(--space-2) 0; font-size: var(--font-base); line-height: 1.5; color: var(--text-muted); }

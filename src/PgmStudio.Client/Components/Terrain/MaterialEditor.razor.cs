@@ -73,14 +73,14 @@ public partial class MaterialEditor
     /// and where they end and deliberately not the distance they are measured over.</summary>
     private string Axis => BandAxes.Canonical(JsonEdit.Text(Node, ThemeFields.Axis, BandAxes.Depth));
 
-    private string Ending => BandEndings.Canonical(JsonEdit.Text(Stack, ThemeFields.Ending, BandEndings.Repeat));
+    private string Ending => BandEndings.Canonical(JsonEdit.Text(Stack, ThemeFields.Ending, BandEndings.Hold));
 
     private JsonObject Beyond => JsonEdit.Child(Node, ThemeFields.Beyond, () => ThemeFields.Solid(2, 0));
 
     /// <summary>Whether anything the author states could ever show. Under <c>handOver</c> the stack leaves
     /// everything past its last band; on the inward axis it also answers off the footprint, where there is no
-    /// ring to be in. A depth stack that repeats claims every block it is asked about, so the slot would be a
-    /// control for something nothing can see.</summary>
+    /// ring to be in. A depth stack that holds or cycles claims every block it is asked about, so the slot would
+    /// be a control for something nothing can see.</summary>
     private bool ShowsBeyond => Ending == BandEndings.HandOver || Axis == BandAxes.Inward;
 
     private Task SetAxis(string axis)
@@ -112,10 +112,36 @@ public partial class MaterialEditor
         return Changed();
     }
 
-    private Task ToggleEnding()
+    /// <summary>One component of the stack's dip, <c>0</c> east or <c>1</c> south; nought where none is stated.</summary>
+    /// <summary>The blocks of noise lift the stack states, nought where none.</summary>
+    private double Fold => JsonEdit.Double(Node, ThemeFields.Fold, 0);
+
+    private double DipAt(int component)
+        => Node[ThemeFields.Dip] is JsonArray { Count: 2 } dip && dip[component] is JsonValue value
+           && value.TryGetValue<double>(out var lean) ? lean : 0;
+
+    /// <summary>Writes the dip as <c>[east, south]</c>, and drops the field when both lean nowhere so a level
+    /// stack stores nothing.</summary>
+    private Task SetDip(int component, ChangeEventArgs e)
     {
-        JsonEdit.Set(Stack, ThemeFields.Ending,
-            Ending == BandEndings.HandOver ? BandEndings.Repeat : BandEndings.HandOver);
+        double[] dip = [DipAt(0), DipAt(1)];
+        dip[component] = Math.Clamp(ParseNumber(e), -8, 8);
+        if (dip[0] == 0 && dip[1] == 0) Node.Remove(ThemeFields.Dip);
+        else Node[ThemeFields.Dip] = new JsonArray(dip[0], dip[1]);
+        return Changed();
+    }
+
+    private Task SetFold(ChangeEventArgs e)
+    {
+        var fold = Math.Clamp(ParseNumber(e), 0, 64);
+        if (fold == 0) Node.Remove(ThemeFields.Fold);
+        else JsonEdit.Set(Node, ThemeFields.Fold, fold);
+        return Changed();
+    }
+
+    private Task SetEnding(string ending)
+    {
+        JsonEdit.Set(Stack, ThemeFields.Ending, BandEndings.Canonical(ending));
         return Changed();
     }
 
@@ -124,6 +150,11 @@ public partial class MaterialEditor
         JsonEdit.Toggle(Node, ThemeFields.Beyond, () => ThemeFields.Solid(2, 0));
         return Changed();
     }
+
+    /// <summary>Show stone past the stack, or a material of its own; picking the state already held changes
+    /// nothing.</summary>
+    private Task SetBeyond(bool own)
+        => own == JsonEdit.Has(Node, ThemeFields.Beyond) ? Task.CompletedTask : ToggleBeyond();
 
     /// <summary>A checkerboard's two squares. They default apart rather than both to stone, since a board of
     /// one material is not a board and an author would have to change one before seeing anything.</summary>
@@ -143,13 +174,6 @@ public partial class MaterialEditor
         MaterialKind.Electric => "A field of thin branching lines that fade out around them.",
         _ => "A smooth, cloudy field whose regions fade into one another.",
     };
-
-    /// <summary>What the rise does, shared by every area pattern because it means the same thing in all of
-    /// them: at 0 the field is of the plane, so a column resolves to one block all the way down and the pattern
-    /// only ever decides the ground.</summary>
-    private const string RiseNote =
-        "With a rise of 0 the pattern covers only the ground, and walls come out striped. Set a rise in blocks "
-        + "to carry the pattern down through the terrain.";
 
     /// <summary>What one of a kind's single children is called.</summary>
     private static string ChildLabel(string field) => MaterialTree.ChildLabel(field);
@@ -237,7 +261,11 @@ public partial class MaterialEditor
         return Changed();
     }
 
-    private Task SetSeed(ChangeEventArgs e) => SetScalar(ThemeFields.Seed, e, 0, 0);
+    private Task SetSeedTo(int seed)
+    {
+        JsonEdit.Set(Node, ThemeFields.Seed, Math.Max(0, seed));
+        return Changed();
+    }
     private Task SetCellSize(ChangeEventArgs e) => SetScalar(ThemeFields.CellSize, e, 10, 1);
     private Task SetWarp(ChangeEventArgs e) => SetScalar(ThemeFields.Warp, e, 4, 0);
     private Task SetScale(ChangeEventArgs e) => SetScalar(ThemeFields.Scale, e, 16, 1);
@@ -277,6 +305,10 @@ public partial class MaterialEditor
     private static int Parse(ChangeEventArgs e, int fallback)
         => int.TryParse((string?)e.Value, out var value) ? value : fallback;
 
+    private static double ParseNumber(ChangeEventArgs e)
+        => double.TryParse((string?)e.Value, System.Globalization.NumberStyles.Float,
+                           System.Globalization.CultureInfo.InvariantCulture, out var value) ? value : 0;
+
     private Task Add(string field)
     {
         JsonEdit.ArrayAt(Node, field).Add(ThemeFields.NewEntry(field));
@@ -292,7 +324,7 @@ public partial class MaterialEditor
 
     /// <summary>The families on offer, each over how many blocks it lays.</summary>
     private IReadOnlyList<SelectOption> FamilyRows =>
-        [.. Families.Select(family => new SelectOption(family.Key, $"{family.Key} ({family.Count()})"))];
+        [.. Families.Select(family => new SelectOption(family.Key, $"{family.Key} · {family.Count()}"))];
 
     /// <summary>The family a list currently holds, whole and in order, or empty for one that holds anything
     /// else. Read from the entries rather than remembered, so it stays true through a hand edit: it names the

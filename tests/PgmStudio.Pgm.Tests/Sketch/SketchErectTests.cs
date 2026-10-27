@@ -3,19 +3,21 @@ using PgmStudio.Pgm.Sketch;
 namespace PgmStudio.Pgm.Tests.Sketch;
 
 /// <summary>
-/// Shapes that stand OUT of the relief rather than being part of it. A shape without the word is ordinary
-/// ground and the relief is what the ground does; the three words are for the other thing a shape can be.
+/// Shapes that stand OUT of the ground rather than being part of it. A shape without the word is ordinary
+/// ground and the modifier stack shapes it; the words are for the other thing a shape can be, and the stack
+/// leaves it alone.
 /// </summary>
 public sealed class SketchErectTests
 {
-    // One 40×40 island whose relief tilts from 6 up to 26, and one 10×10 shape on it that may declare a mode.
-    private static string Layout(string? mode, double amount = 4, double floor = 0) => $$"""
+    // One 40×40 island whose anchors tilt it from 6 in the west up to 26 in the east, and one 10×10 shape on it
+    // that may declare a mode, under a Hill over the shape when asked for.
+    private static string Layout(string? mode, double amount = 4, double floor = 0, bool hill = false) => $$"""
     {
       "setup": { "mirror_mode": "rot_180", "center": { "cx": 100, "cz": 100 } },
       "layers": [{ "id": "ground", "base_y": 0, "layout": {
         "shapes": [
-          { "id": "s1", "type": "rectangle", "operation": "add",
-            "min_x": 0, "min_z": 0, "max_x": 40, "max_z": 40, "base_height": 5, "floor": 0 },
+          { "id": "s1", "type": "polygon", "operation": "add",
+            "vertices": [[0, 0], [40, 0], [40, 40], [0, 40]], "anchor_heights": [6, 26, 26, 6], "base_height": 6, "floor": 0 },
           { "id": "s2", "type": "rectangle", "operation": "add",
             "min_x": 14, "min_z": 14, "max_x": 24, "max_z": 24,
             "base_height": {{amount}}, "floor": {{floor}}
@@ -23,17 +25,14 @@ public sealed class SketchErectTests
         ],
         "groups": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1", "s2"] } ]
       } }],
-      "relief": {
-        "i1": {
-          "base": 6,
-          "marks": [
-            { "kind": "point", "at": [2, 2], "h": 6, "r": 3 },
-            { "kind": "point", "at": [38, 38], "h": 26, "r": 3 }
-          ]
-        }
-      }
+      "modifiers": [ {{(hill ? Hill : "")}} ]
     }
     """;
+
+    private const string Hill = """
+        { "id": "hill", "op": "mound", "rise": 9,
+          "mask": { "areas": [ { "kind": "ellipse", "at": [19, 19], "rx": 14, "rz": 14 } ], "mirror": false } }
+        """;
 
     private static Dictionary<(int X, int Z), int> Tops(string layoutJson)
     {
@@ -44,14 +43,24 @@ public sealed class SketchErectTests
     }
 
     [Test]
-    public async Task Without_the_word_a_shape_is_ground_and_the_relief_decides_it()
+    public async Task Without_the_word_a_shape_is_ground_and_the_stack_shapes_it()
     {
         // The default has to stay the default: a shape drawn to make a landmass is part of the landmass, and
-        // the relief inside it is what the ground does.
-        var tops = Tops(Layout(null));
-        var plain = Tops(Layout(null, amount: 30));   // a much taller plate, still ordinary ground
+        // the modifiers over it are what the ground does.
+        var flat = Tops(Layout(null));
+        var hilled = Tops(Layout(null, hill: true));
 
-        await Assert.That(tops[(19, 19)]).IsEqualTo(plain[(19, 19)]);
+        await Assert.That(hilled[(19, 19)]).IsGreaterThan(flat[(19, 19)] + 4);
+    }
+
+    [Test]
+    public async Task A_shape_with_the_word_stands_at_its_own_height_under_the_stack()
+    {
+        var flat = Tops(Layout("level", amount: 30));
+        var hilled = Tops(Layout("level", amount: 30, hill: true));
+
+        await Assert.That(hilled[(19, 19)]).IsEqualTo(flat[(19, 19)]);
+        await Assert.That(hilled[(15, 15)]).IsEqualTo(30);
     }
 
     [Test]
@@ -92,18 +101,14 @@ public sealed class SketchErectTests
         {
           "layers": [{ "id": "ground", "base_y": 0, "layout": {
             "shapes": [
-              { "id": "s1", "type": "rectangle", "operation": "add",
-                "min_x": 0, "min_z": 0, "max_x": 40, "max_z": 40, "base_height": 5, "floor": 0 },
+              { "id": "s1", "type": "polygon", "operation": "add",
+                "vertices": [[0, 0], [40, 0], [40, 40], [0, 40]], "anchor_heights": [6, 26, 26, 6], "base_height": 6, "floor": 0 },
               { "id": "s2", "type": "rectangle", "operation": "add", "height_mode": "raise",
                 "min_x": {{minX}}, "min_z": {{minZ}}, "max_x": {{minX + 8}}, "max_z": {{minZ + 8}},
                 "base_height": 6, "floor": 0 }
             ],
             "groups": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1", "s2"] } ]
-          } }],
-          "relief": {
-            "i1": { "base": 6, "marks": [ { "kind": "point", "at": [2, 2], "h": 6, "r": 3 },
-                                          { "kind": "point", "at": [38, 38], "h": 26, "r": 3 } ] }
-          }
+          } }]
         }
         """;
 
@@ -136,17 +141,13 @@ public sealed class SketchErectTests
         {
           "layers": [{ "id": "ground", "base_y": 0, "layout": {
             "shapes": [
-              { "id": "s1", "type": "rectangle", "operation": "add",
-                "min_x": 0, "min_z": 0, "max_x": 40, "max_z": 40, "base_height": 5, "floor": 0 },
+              { "id": "s1", "type": "polygon", "operation": "add",
+                "vertices": [[0, 0], [40, 0], [40, 40], [0, 40]], "anchor_heights": [6, 26, 26, 6], "base_height": 6, "floor": 0 },
               { "id": "w", "type": "polyline", "operation": "add", "height_mode": "drape", "skirt": 0,
                 "vertices": [[4, 6], [20, 20], [36, 34]], "radius": 0.6, "base_height": 1, "floor": 0 }
             ],
             "groups": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1", "w"] } ]
-          } }],
-          "relief": {
-            "i1": { "base": 6, "marks": [ { "kind": "point", "at": [2, 2], "h": 6, "r": 3 },
-                                          { "kind": "point", "at": [38, 38], "h": 26, "r": 3 } ] }
-          }
+          } }]
         }
         """;
         var bare = Tops(wall.Replace("\"height_mode\": \"drape\", ", ""));   // the same line as ordinary ground
@@ -259,17 +260,13 @@ public sealed class SketchErectTests
         {
           "layers": [{ "id": "ground", "base_y": 0, "layout": {
             "shapes": [
-              { "id": "s1", "type": "rectangle", "operation": "add",
-                "min_x": 0, "min_z": 0, "max_x": 60, "max_z": 40, "base_height": 6, "floor": 0 },
+              { "id": "s1", "type": "polygon", "operation": "add",
+                "vertices": [[0, 0], [60, 0], [60, 40], [0, 40]], "anchor_heights": [8, 22, 22, 8], "base_height": 8, "floor": 0 },
               { "id": "s2", "type": "rectangle", "operation": "add", "height_mode": "level",
                 "min_x": 20, "min_z": 12, "max_x": 44, "max_z": 30, "base_height": 26, "floor": 0, "skirt": 6 }
             ],
             "groups": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1", "s2"] } ]
-          } }],
-          "relief": {
-            "i1": { "base": 8, "marks": [ { "kind": "point", "at": [4, 20], "h": 8, "r": 3 },
-                                          { "kind": "point", "at": [56, 20], "h": 22, "r": 3 } ] }
-          }
+          } }]
         }
         """;
         var tops = Tops(layout);
@@ -289,9 +286,9 @@ public sealed class SketchErectTests
     }
 
     [Test]
-    public async Task Erecting_works_without_a_relief_at_all()
+    public async Task Erecting_works_without_a_modifier_at_all()
     {
-        // The word is about how a top is decided, not about the relief — a monolith on a flat plate is still
+        // The word is about how a top is decided, not about the stack — a monolith on a flat plate is still
         // a monolith.
         const string flat = """
         {

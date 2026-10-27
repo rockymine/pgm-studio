@@ -12,7 +12,7 @@
       "thickness": 1
      }
     ],
-    "ending": "repeat"
+    "ending": "hold"
    },
    "extent": 2
   },
@@ -95,7 +95,7 @@
      "thickness": 1
     }
    ],
-   "ending": "repeat"
+   "ending": "hold"
   },
   "extent": 5
  },
@@ -154,7 +154,7 @@
        "thickness": 1
       }
      ],
-     "ending": "repeat"
+     "ending": "hold"
     },
     "extent": 4
    },
@@ -223,7 +223,7 @@
        "thickness": 1
       }
      ],
-     "ending": "repeat"
+     "ending": "hold"
     },
     "extent": 4
    },
@@ -292,7 +292,7 @@
        "thickness": 1
       }
      ],
-     "ending": "repeat"
+     "ending": "hold"
     },
     "extent": 4
    },
@@ -361,7 +361,7 @@
        "thickness": 1
       }
      ],
-     "ending": "repeat"
+     "ending": "hold"
     },
     "extent": 4
    },

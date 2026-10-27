@@ -1,0 +1,52 @@
+@namespace PgmStudio.Client.Features.Sketch
+
+@* The ground at each point of the modifier stack, as canvas chrome at the canvas foot. Step 0 is the shapes
+   alone, and each step after it adds the next modifier that is on, so scrubbing it shows what every modifier
+   did and where the one being tuned sits among the rest. It sets which ground the contours and the 3-D
+   picture are read from; nothing it does is saved, and the last step is the whole stack. Short of the last, the
+   strip is marked and offers Show all. The thumb moves
+   the label as it goes and the reads wait for its release, because each is a build of the layout. *@
+
+@if (State.Running.Count > 0)
+{
+  <div class="canvas-step-strip@(Short ? " canvas-step-strip--short" : null)" role="group" aria-label="Modifiers shown">
+    <span class="canvas-step-strip-label">Modifiers shown</span>
+    <RangeField Min="0" Max="@State.Running.Count" Value="@Shown" KeepKeys aria-label="Step"
+                ValueChanged="Scrub" OnCommit="Commit" />
+    <output class="canvas-step-strip-name">@Says((int)Shown)</output>
+    @if (Short)
+    {
+      <Button OnClick="() => OnStep.InvokeAsync(null)">Show all</Button>
+    }
+  </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public SketchModifierState State { get; set; } = SketchModifierState.Empty;
+
+    /// <summary>The step the strip was released at; null when it stands at the last, which reads every modifier.</summary>
+    [Parameter] public EventCallback<int?> OnStep { get; set; }
+
+    // The thumb's place while it is held; follows the stack's own step otherwise.
+    private double? held;
+
+    private double Shown => held ?? State.StepAt;
+
+    /// <summary>How many of the stack the board shows, and the modifier it ends on — or that it shows the shapes
+    /// alone.</summary>
+    private string Says(int step) =>
+        step <= 0 ? $"0 of {State.Running.Count} · shapes only" : $"{step} of {State.Running.Count} · up to {State.StepName(step)}";
+
+    /// <summary>Whether the board shows the ground part-way up the stack, so a modifier after the step changes
+    /// nothing on show.</summary>
+    private bool Short => (int)Math.Round(Shown) < State.Running.Count;
+
+    private void Scrub(double value) => held = value;
+
+    private async Task Commit(double value)
+    {
+        held = null;
+        var step = (int)Math.Round(value);
+        await OnStep.InvokeAsync(step >= State.Running.Count ? null : step);
+    }
+}

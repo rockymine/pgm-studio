@@ -56,7 +56,7 @@ public static class RoomFrameRules
     /// <remarks>Either set the <c>roomStyles.wool</c> or <c>roomStyles.spawn</c> of the sketch to a house, or set
     /// it to <c>null</c> for open ground.</remarks>
     [Rule(RuleCategory.Unfinished, RuleConcern.Style, RuleConcern.Structure, RuleConcern.Spawn, RuleConcern.Objective)]
-    public const string BuiltInShell = "WX14";
+    public const string BedrockBox = "WX14";
 
     /// <summary>A spawn or wool marker sits on a grid line along one axis, and at a block centre along the
     /// other.</summary>
@@ -426,7 +426,7 @@ public static class RoomFrames
     /// stop a player walking or jumping the line, short enough that both halves of the lane still read as one
     /// place.
     /// <para>It sits here rather than beside either user because both the plan compiler, which answers the
-    /// wall's height before a world exists, and the stamper, which lays it over the ground the relief
+    /// wall's height before a world exists, and the stamper, which lays it over the ground the modifiers
     /// solved, measure from it — and a second <c>const</c> aliasing one that exists is two rules.</para>
     /// </summary>
     public const int WallCourses = 3;

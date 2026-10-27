@@ -183,10 +183,24 @@ public partial class DestroyableObjectivesStep
     private void SetName(D.Destroyable goal, string name) { goal.Name = name.Trim(); Write(); }
 
     private IReadOnlyList<SelectOption> StyleOptions
-        => [.. defaults.StyleOptions.Select(style => new SelectOption(style, style))];
+        => [.. defaults.StyleOptions.Select(style => new SelectOption(style, FormName(style)))];
+
+    /// <summary>A monument form as a person reads it; a form this list does not know reads as its own word.</summary>
+    private static string FormName(string style) => style switch
+    {
+        "pillar-1" => "Single block",
+        "pillar-2" => "Pillar of 2",
+        "pillar-3" => "Pillar of 3",
+        "cube-3" => "Cube of 3",
+        "cube-4" => "Cube of 4",
+        "column-plus" => "Plus column",
+        _ => style,
+    };
 
     private IReadOnlyList<SelectOption> MaterialOptions
-        => [.. defaults.MaterialOptions.Select(materials => new SelectOption(materials, materials))];
+        => [.. defaults.MaterialOptions.Select(materials => new SelectOption(materials, Sentence(materials)))];
+
+    private static string Sentence(string words) => words.Length == 0 ? words : char.ToUpperInvariant(words[0]) + words[1..];
 
     private void SetStyle(D.Destroyable goal, string style) { goal.Style = style; Write(); }
 
@@ -214,12 +228,12 @@ public partial class DestroyableObjectivesStep
         {
             if (destroyables[i].Volume is not { } volume) continue;
             shapes.Add(Shape($"destroyable-{i}", volume, TeamHex(destroyables[i].Owner), i == selected,
-                $"Destroyable · {(string.IsNullOrEmpty(destroyables[i].Owner) ? "no team" : TeamName(destroyables[i].Owner))}"));
+                $"Monument · {(string.IsNullOrEmpty(destroyables[i].Owner) ? "no team" : TeamName(destroyables[i].Owner))}"));
         }
         var n = 0;
         foreach (var proposal in Unconfirmed)
             if (proposal.Volume is { } volume)
-                shapes.Add(Shape($"destroyable-proposal-{n++}", volume, "#8a8f98", false, "Suggested destroyable"));
+                shapes.Add(Shape($"destroyable-proposal-{n++}", volume, "#8a8f98", false, "Suggested monument"));
         await canvas.SetAuthorRegionsAsync(shapes);
     }
 

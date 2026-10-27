@@ -24,18 +24,13 @@ public partial class MatchPhase
     private bool spectate;
     private int? killHeight;
 
-    private const string Yes = "yes";
-    private const string No = "no";
-
     private static readonly IReadOnlyList<SelectOption> ResultOptions =
     [
-        new(TimeResults.Default, "Default", "The team furthest along its objectives, then the higher score."),
+        new(TimeResults.Default, "Objectives then score", "The team furthest along its objectives, then the higher score."),
         new(TimeResults.Objectives, "Most objectives"),
         new(TimeResults.Score, "Highest score"),
         new(TimeResults.Tie, "Tie"),
     ];
-
-    private static readonly IReadOnlyList<SelectOption> YesNo = [new(No, "No"), new(Yes, "Yes")];
 
     protected override void OnInitialized()
     {

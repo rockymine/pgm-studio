@@ -61,15 +61,8 @@ public partial class ProtectionStep
 
     private Row? Selected => selectedRegionId is { } id ? Rows().FirstOrDefault(r => r.RegionId == id) : null;
 
-    // The generated region name a rect becomes (single → {slug}-spawn, several → {slug}-spawn-N).
-    private static string ZoneName(string team, int i, int count) => count <= 1 ? $"{TeamSlug(team)}-spawn" : $"{TeamSlug(team)}-spawn-{i + 1}";
-    private static string TeamSlug(string teamId)
-    {
-        var s = teamId.Trim().ToLowerInvariant();
-        if (s.EndsWith("-team")) s = s[..^5];
-        s = Regex.Replace(s, "[^a-z0-9]+", "-").Trim('-');
-        return s.Length > 0 ? s : teamId;
-    }
+    // A rectangle's name in the list: its team's protection, numbered where the zone has several.
+    private string ZoneName(string team, int i, int count) => count <= 1 ? $"{TeamName(team)} protection" : $"{TeamName(team)} protection {i + 1}";
 
     protected override void OnInitialized() => LoadFromIntent();
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");

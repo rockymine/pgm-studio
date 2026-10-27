@@ -10,7 +10,7 @@ public partial class SketchChangeInspector
 {
     [Parameter, EditorRequired] public SketchHistory History { get; set; } = default!;
 
-    /// <summary>The board's notes, which name the threads written in the span shown.</summary>
+    /// <summary>The map's notes, which name the threads written in the span shown.</summary>
     [Parameter, EditorRequired] public SketchNotes Notes { get; set; } = default!;
 
     /// <summary>Open a thread in Review, by its note's id.</summary>
@@ -27,7 +27,7 @@ public partial class SketchChangeInspector
 
     private long To => History.SpanTo ?? 0;
 
-    /// <summary>The board's latest change.</summary>
+    /// <summary>The map's latest change.</summary>
     private long Latest => History.LatestChange;
 
     /// <summary>The edits between the two, or null while they are compared.</summary>
@@ -43,16 +43,22 @@ public partial class SketchChangeInspector
     private string? RestoreError => History.RestoreError;
 
     /// <summary>The threads with a message written in the span, each with the latest such message — what a change
-    /// answered, and the notes written on its board.</summary>
+    /// answered, and the notes written on its map.</summary>
     private IReadOnlyList<(MapNoteDto Note, NoteMessageDto Message)> SpanNotes => History.NotesInSpan(Notes.All);
 
-    private string Title => To - From == 1 || From == 0 && To == 1 ? $"Change #{To}" : $"#{From} → #{To}";
+    private string Title => To - From == 1 || From == 0 && To == 1 ? $"Change #{To}" : $"#{From} to #{To}";
 
-    private string RestoreReadout =>
+    /// <summary>Why Restore is closed, on hover: there is nothing to put back.</summary>
+    private string? RestoreClosed =>
         From == 0 ? "There is nothing before the first change to restore."
         : From == Latest ? "This is the current version."
+        : null;
+
+    /// <summary>What Restore works out to: the changes it undoes, as one new change.</summary>
+    private string? RestoreReadout =>
+        From == 0 || From == Latest ? null
         : Latest - From == 1 ? $"Undoes #{Latest} as a new change."
-        : $"Undoes #{From + 1} to #{Latest} ({Latest - From} changes) as one new change.";
+        : $"Undoes the {Latest - From} changes #{From + 1} to #{Latest} as one new change.";
 
     private string? OriginLink =>
         Change?.Origin is { Repo: { } repo } origin && Regex.IsMatch(repo, @"^[\w.-]+/[\w.-]+$")

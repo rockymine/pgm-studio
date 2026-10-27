@@ -2,12 +2,12 @@ namespace PgmStudio.Vocabulary;
 
 /// <summary>
 /// The settings a play piece states beside where it stands, each set on its own: a goal's name and structure, a
-/// wool's colour and a spawn's facing. The sketch writes them through
+/// wool's colour, a spawn's facing and how a control point is laid and taken. The sketch writes them through
 /// <c>PATCH …/intent/pieces/{id}/settings</c>.
 /// </summary>
 public static class PieceSettings
 {
-    /// <summary>A destroyable's or a core's name.</summary>
+    /// <summary>A destroyable's, a core's or a control point's name.</summary>
     public const string Name = "name";
 
     /// <summary>A wool's dye.</summary>
@@ -37,6 +37,21 @@ public static class PieceSettings
     /// <summary>The way a spawn's players face on arriving, turned a quarter at a time.</summary>
     public const string Facing = "facing";
 
-    /// <summary>Every setting.</summary>
-    public static readonly string[] All = [Name, Color, Style, Materials, Float, Lava, LavaHeight, OpenTop, Leak, Facing];
+    /// <summary>A control point's pad, a square or a disc (<see cref="ControlPointShapes"/>).</summary>
+    public const string Shape = "shape";
+
+    /// <summary>What holding a control point pays, per second.</summary>
+    public const string Points = "points";
+
+    /// <summary>How long a control point is held alone to take it, as a PGM duration.</summary>
+    public const string CaptureTime = "captureTime";
+
+    /// <summary>How a control point is taken (<see cref="CaptureModes"/>).</summary>
+    public const string CaptureMode = "captureMode";
+
+    /// <summary>Every setting: the piece's own, then a switch per stamp (<see cref="StampSwitches"/>), each set with a
+    /// flag, true for on.</summary>
+    public static readonly string[] All =
+        [Name, Color, Style, Materials, Float, Lava, LavaHeight, OpenTop, Leak, Facing, Shape, Points, CaptureTime, CaptureMode,
+         .. StampSwitches.All];
 }

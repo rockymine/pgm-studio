@@ -49,6 +49,19 @@ public static class BlockGeometry
         _ => 5,
     };
 
+    /// <summary>A door's lower block, closed and facing <paramref name="toward"/> — east 0, south 1, west 2,
+    /// north 3, the direction a player placing it looks.</summary>
+    public static int DoorLower(RoomEdge toward) => toward switch
+    {
+        RoomEdge.PosX => 0,
+        RoomEdge.PosZ => 1,
+        RoomEdge.NegX => 2,
+        _ => 3,
+    };
+
+    /// <summary>A door's upper block, hinged on the right of the way it faces or on the left.</summary>
+    public static int DoorUpper(bool hingeRight) => Blocks.DoorUpperHalf | (hingeRight ? Blocks.DoorHingeRight : 0);
+
     /// <summary>A stair turned to climb toward <paramref name="toward"/>, upright or hung upside down.
     ///
     /// <para>A stair's whole data value is geometry — two bits of facing and the upside-down flag — so it

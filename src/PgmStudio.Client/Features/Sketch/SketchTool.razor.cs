@@ -1,6 +1,8 @@
 using PgmStudio.Contracts;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using PgmStudio.Geom.Relief;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using PgmStudio.Client.Components;
@@ -30,7 +32,7 @@ public partial class SketchTool
     private bool shapesOn = false;
     private bool chunksOn = true;
     private bool blocksOn = false;   // the rasterized block-footprint preview
-    private bool reliefOn = false;   // the height contours of whatever relief the groups carry
+    private bool reliefOn = false;   // the height contours of the built ground
     private bool snapOn = true;
     private IsoView iso = default!;
     private string? mapName;
@@ -117,6 +119,9 @@ public partial class SketchTool
 
     private static readonly Func<int, Task> NoStep = _ => Task.CompletedTask;
 
+    /// <summary>Next names where it goes: the step after this one, or the phase after the last step.</summary>
+    private static string NextTo(string where) => $"Next: {where}";
+
     private BarPhase BarMove
     {
         get
@@ -124,27 +129,29 @@ public partial class SketchTool
             if (InfoActive)
             {
                 var last = SketchInfoPhase.Steps.Count - 1;
-                return new("book-open-text", "Info", SketchInfoPhase.Steps, infoStep, infoStep == last ? "Continue" : "Next",
+                return new("book-open-text", "Info", SketchInfoPhase.Steps, infoStep,
+                    NextTo(infoStep == last ? "Draw" : SketchInfoPhase.Steps[infoStep + 1]),
                     () => { infoStep = 0; return Task.CompletedTask; },
                     () => { if (infoStep < last) { infoStep++; return Task.CompletedTask; } return OpenDraw(); },
                     step => { infoStep = step; return Task.CompletedTask; });
             }
-            if (ThemeActive) return new("palette", "Palette", [], 0, "Next", GoRelief, GoDressing, NoStep);
-            if (DressingActive) return new("trees", "Decoration", [], 0, "Next", GoTheme, GoReview, NoStep);
-            if (ReliefActive) return new("mountain", "Terraform", [], 0, "Next", GoDraw, GoTheme, NoStep);
+            if (ThemeActive) return new("palette", "Palette", [], 0, NextTo("Decoration"), GoRelief, GoDressing, NoStep);
+            if (DressingActive) return new("trees", "Decoration", [], 0, NextTo("Review"), GoTheme, GoReview, NoStep);
+            if (ReliefActive) return new("mountain", "Terraform", [], 0, NextTo("Palette"), GoDraw, GoTheme, NoStep);
             if (HistoryActive) return new("history", "History", [], 0, "Draw", GoReview, GoDraw, NoStep);
-            if (CamerasActive) return new("eye", "Review", ReviewSteps, 0, "Next", GoDressing, ShowNotes, StepReview);
-            if (NotesActive) return new("eye", "Review", ReviewSteps, 1, "Next", ShowCameras, GoHistory, StepReview);
+            if (CamerasActive) return new("eye", "Review", ReviewSteps, 0, NextTo(ReviewSteps[1]), GoDressing, ShowNotes, StepReview);
+            if (NotesActive) return new("eye", "Review", ReviewSteps, 1, NextTo("History"), ShowCameras, GoHistory, StepReview);
             // A step's index is into the names this render draws, so the offset that maps it back is the one they
             // were drawn with: the Places step can arrive between a render and the click on it.
             var first = FirstDrawStep;
-            return new("pencil-ruler", "Draw", DrawStepNames, drawStep - first, "Next",
+            return new("pencil-ruler", "Draw", DrawStepNames, drawStep - first,
+                NextTo(drawStep == LayoutStep ? "Terraform" : DrawStepNames[drawStep - first + 1]),
                 drawStep == first ? GoInfo : () => StepDraw(drawStep - 1),
                 drawStep == LayoutStep ? GoRelief : () => StepDraw(drawStep + 1), step => StepDraw(step + first));
         }
     }
 
-    private const string DownloadTitle = "Download map: its world and map.xml, ready for a server";
+    private const string DownloadTitle = "Download map";
 
     private Task StepReview(int step) => step == 0 ? ShowCameras() : ShowNotes();
 
@@ -282,14 +289,13 @@ public partial class SketchTool
         await views.LoadAsync(clear: false);
     }
 
-    // ── Relief phase (docs/world-export/relief.md §15) ──
-    // One step, like Dressing and for the same reason: every part of a relief is a thing stated somewhere, so
-    // the phase is the canvas with its own tools and an inspector for whatever is under the cursor. It sits
-    // between Draw and Theme because a relief is geometry — it changes what the rasterizer emits — so it has
-    // to precede the two passes that read the built surface.
+    // ── Terraform phase (docs/tools/sketch.md, Terraform) ──
+    // One step, like Dressing and for the same reason: every modifier is a thing traced somewhere, so the phase
+    // is the canvas with its own tools and an inspector for the modifier picked. It sits between Draw and Theme
+    // because the stack is geometry — it changes what the rasterizer emits — so it has to precede the two
+    // passes that read the built surface.
     private bool ReliefActive => active == "relief";
-    private string reliefJson = "";
-    private async Task GoRelief() { await SetPhase("relief"); await SetTool("select"); }
+    private async Task GoRelief() { openFlyout = null; await SetPhase("relief"); await SetTool("select"); }
 
     /// <summary>Whether the canvas is being used to place a scope rather than to draw — today only Theme,
     /// which selects shapes it does not edit.</summary>
@@ -306,7 +312,7 @@ public partial class SketchTool
 
     // The button already prints the mode it is in, so its tooltip has only the other half to give: what the
     // click does. Naming the destination and not the state keeps it to two words.
-    private string OpTitle => Carving ? "Switch to Build" : "Switch to Carve";
+    private string OpTitle => Carving ? "Switch to build" : "Switch to carve";
 
     private Task ToggleOperation() => SetOperation(Carving ? "add" : "subtract");
 
@@ -315,10 +321,14 @@ public partial class SketchTool
     /// the armed tool draws nothing; the colour is the mode either way.</summary>
     private string OpAccent => Carving ? "var(--canvas-sub-fill)" : "var(--canvas-add-fill)";
 
-    // The same toggle shows the bare voxelization while drawing and the paint on top of it once theming.
-    private string BlocksChipTitle => ScopeApplyActive
-        ? "Show the blocks the export places, painted by palette"
-        : "Show the exact blocks the shapes cover";
+    // Each overlay toggle is named once, so its chip and its line in the keyboard sheet read the same. The blocks
+    // chip shows the bare voxelization while drawing and the paint on top of it in Palette.
+    private const string ChipShapesTitle = "Show the drawn shapes";
+    private const string ChipMirrorTitle = "Show the symmetry copies";
+    private const string ChipChunksTitle = "Show the chunk grid";
+    private const string ChipBlocksTitle = "Show the built blocks";
+    private const string ChipContoursTitle = "Show the height contours";
+    private const string SnapTitle = "Snap to shape edges";
 
     // The shapes the current selection themes: a group's members, else the single selected shape, else none.
     private IReadOnlyList<string> ScopeTargetShapeIds =>
@@ -361,9 +371,9 @@ public partial class SketchTool
     private async Task PushCanvasMode(string phase)
     {
         if (handle is null) return;
-        // Geometry is Draw's alone. Theme assigns paint to it and Relief states ground inside it, and both
-        // reach a group by picking one — so in both the canvas picks and never edits, or the gesture that
-        // selects a group is also the gesture that reshapes it. Dressing places props rather than shapes,
+        // Geometry is Draw's alone. Theme assigns paint to it and Terraform traces masks over it, so in both the
+        // canvas picks and never edits a shape, or the gesture that selects one is also the gesture that
+        // reshapes it. Dressing places props rather than shapes,
         // so it is not select-only in that sense: its own tools are armed and the shape tools are simply not
         // offered.
         await handle.InvokeVoidAsync("setSelectOnly", phase is "theme" or "relief" or "dressing" or "review" or "history");
@@ -373,13 +383,13 @@ public partial class SketchTool
         // which is a judgement about the finish as much as about the planting.
         await handle.InvokeVoidAsync("setPaintPreview", phase is "theme" or "dressing" or "review");
         await handle.InvokeVoidAsync("setDressingMode", phase == "dressing");
-        // Entering Relief turns the contour overlay on with it: the phase shows the statement and the surface
-        // it produced at once, which is the only way a mark can be tuned by eye. Leaving does not turn it off
-        // again — the chip is the author's, and a contour view they asked for should survive a phase change.
+        // Entering Terraform turns the contour overlay on with it: the phase shows the stack and the ground it
+        // made at once, which is the only way a modifier can be tuned by eye. Leaving does not switch the chip
+        // off — it is the author's, and Draw shows the contours again — but a phase without the chip does not
+        // draw them (PushPhaseOverlays).
         await handle.InvokeVoidAsync("setReliefMode", phase == "relief");
-        // What a plain click picks. A group is the unit in Draw, where a landmass is what moves, and in
-        // Relief, where one relief is solved per group. In Theme the job is naming one shape, so a click
-        // picks the shape and the group is reached with Alt or from the tree.
+        // What a plain click picks. A group is the unit in Draw, where a landmass is what moves. In Theme the
+        // job is naming one shape, so a click picks the shape and the group is reached with Alt or from the tree.
         await handle.InvokeVoidAsync("setPickUnit", phase == "theme" ? "shape" : "group");
         // A brush and the panel that fills it only exist while the phase that hands one out is up.
         if (phase != "theme") { themeAddOpen = false; await SetThemeBrush(""); }
@@ -393,7 +403,7 @@ public partial class SketchTool
 
     // ── the overlays a phase offers, and which of them it turns on as it is entered ──
     // A phase shows the layer it works on and the layer it works against. An overlay that would draw a fact
-    // another shown layer already carries is not offered at all: the contour layer is the relief without the
+    // another shown layer already carries is not offered at all: the contour layer is the height without the
     // blocks, so wherever the blocks are shown it states the same thing twice. Snap is not among these — it
     // modifies a drag rather than showing anything, so it sits in the dock beside the tools that drag.
     private const string ChipShapes = "shapes";
@@ -438,6 +448,10 @@ public partial class SketchTool
         var on = OverlaysOf(phase).On;
         if (on.Contains(ChipShapes) && !shapesOn) { shapesOn = true; await handle.InvokeVoidAsync("setShapesVisible", true); }
         if (on.Contains(ChipBlocks) && !blocksOn) { blocksOn = true; await handle.InvokeVoidAsync("setBlocksVisible", true); }
+        // A phase that does not offer the contours does not draw them: the chip is not there to turn them off,
+        // and the blocks it shows carry the height already. The author's setting waits for the next phase that
+        // offers the chip.
+        await handle.InvokeVoidAsync("setReliefVisible", reliefOn && OverlaysOf(phase).Offered.Contains(ChipRelief));
     }
 
     // Layout pushed from the bridge (OnLayout) + the current selection (OnShapeSelected/OnGroupSelected).
@@ -552,14 +566,14 @@ public partial class SketchTool
         new { id = "sketch.tool.lasso",      keys = "l", label = "Lasso",   group = "Tools" },
         new { id = "sketch.tool.measure",    keys = "m", label = "Measure", group = "Tools" },
         new { id = "sketch.tool.split",      keys = "x", label = "Split",   group = "Tools" },
-        new { id = "sketch.op",              keys = "b", label = "Switch build and carve", group = "Tools" },
+        new { id = "sketch.op",              keys = "b", label = "Switch between build and carve", group = "Tools" },
         new { id = "sketch.fit",             keys = "f", label = "Zoom to fit", group = "Canvas" },
-        new { id = "sketch.chip.shapes",     keys = "alt+1", label = "Show shapes",   group = "Overlays" },
-        new { id = "sketch.chip.mirror",     keys = "alt+2", label = "Show the mirror",    group = "Overlays" },
-        new { id = "sketch.chip.chunks",     keys = "alt+3", label = "Show the chunk grid", group = "Overlays" },
-        new { id = "sketch.chip.blocks",     keys = "alt+4", label = "Show the blocks",    group = "Overlays" },
-        new { id = "sketch.chip.relief",     keys = "alt+5", label = "Show contours",  group = "Overlays" },
-        new { id = "sketch.chip.snap",       keys = "alt+6", label = "Snap while dragging", group = "Tools" },
+        new { id = "sketch.chip.shapes",     keys = "alt+1", label = ChipShapesTitle, group = "Overlays" },
+        new { id = "sketch.chip.mirror",     keys = "alt+2", label = ChipMirrorTitle, group = "Overlays" },
+        new { id = "sketch.chip.chunks",     keys = "alt+3", label = ChipChunksTitle, group = "Overlays" },
+        new { id = "sketch.chip.blocks",     keys = "alt+4", label = ChipBlocksTitle, group = "Overlays" },
+        new { id = "sketch.chip.relief",     keys = "alt+5", label = ChipContoursTitle, group = "Overlays" },
+        new { id = "sketch.chip.snap",       keys = "alt+6", label = SnapTitle, group = "Tools" },
         new { id = "sketch.theme.next",      keys = "]", label = "Next palette",     group = "Palette" },
         new { id = "sketch.theme.prev",      keys = "[", label = "Previous palette", group = "Palette" },
         new { id = "sketch.save",            keys = "mod+s", label = "Save", group = "Everywhere", inField = true },
@@ -770,6 +784,10 @@ public partial class SketchTool
     private Task DeleteLayer(string id) => handle?.InvokeVoidAsync("deleteLayer", id).AsTask() ?? Task.CompletedTask;
     private Task RenameLayer((string Id, string Name) e) => handle?.InvokeVoidAsync("renameLayer", e.Id, e.Name).AsTask() ?? Task.CompletedTask;
     private Task SetLayerBaseY((string Id, double BaseY) e) => handle?.InvokeVoidAsync("setLayerBaseY", e.Id, e.BaseY).AsTask() ?? Task.CompletedTask;
+    private Task SetLayerUnderside((string Id, UndersideSpec? Underside) e) =>
+        handle?.InvokeVoidAsync("setLayerUnderside", e.Id,
+            e.Underside is null ? null : JsonSerializer.Serialize(e.Underside, UndersideJson)).AsTask() ?? Task.CompletedTask;
+    private static readonly JsonSerializerOptions UndersideJson = new() { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
     private Task ToggleMirrors(string groupId) => handle?.InvokeVoidAsync("toggleMirrors", groupId).AsTask() ?? Task.CompletedTask;
     private Task RenameGroup((string Id, string Name) e) => handle?.InvokeVoidAsync("renameGroup", e.Id, e.Name).AsTask() ?? Task.CompletedTask;
 
@@ -777,7 +795,7 @@ public partial class SketchTool
 
     /// <summary>A shape was selected on the canvas/panel (null = deselected).</summary>
     [JSInvokable]
-    public void OnShapeSelected(string? id) { selectedShapeId = id; selectedVertexIdx = -1; slopeControls = []; StateHasChanged(); }
+    public void OnShapeSelected(string? id) { selectedShapeId = id; if (id is not null) paintRuleId = null; selectedVertexIdx = -1; slopeControls = []; StateHasChanged(); }
 
     /// <summary>One of the plan's own pieces was picked on the canvas (null = let go). It arrives whole
     /// rather than as an id: the bridge holds the structural pieces apart from the drawn shapes, so there is
@@ -845,7 +863,23 @@ public partial class SketchTool
 
     /// <summary>A group was selected in the panel (null = deselected).</summary>
     [JSInvokable]
-    public void OnGroupSelected(string? id) { selectedGroupId = id; StateHasChanged(); }
+    public void OnGroupSelected(string? id) { selectedGroupId = id; if (id is not null) paintRuleId = null; StateHasChanged(); }
+
+    /// <summary>The paint rule open in the Palette phase's inspector, by id; picking a group or a shape closes
+    /// it, since the inspector shows one thing.</summary>
+    private string? paintRuleId;
+
+    /// <summary>Open a rule in the inspector, letting go of the board's selection: the inspector shows one thing.</summary>
+    private async Task SelectPaintRule(string id)
+    {
+        if (selectedShapeId is not null || selectedGroupId is not null)
+            await (handle?.InvokeVoidAsync("selectShape", (string?)null).AsTask() ?? Task.CompletedTask);
+        paintRuleId = id;
+    }
+
+    /// <summary>Whether the picked rule is still on the board — an undo can take it away.</summary>
+    private bool PaintRuleOpen => paintRuleId is { } id
+        && SketchPaintRuleSet.Parse(themes.PaintJson).Any(rule => SketchPaintRuleSet.IdOf(rule) == id);
 
     /// <summary>The board's finish changed on the bridge — a theme, an assignment, a room shell, the biome, or a
     /// whole document loaded or stepped back.</summary>
@@ -863,8 +897,11 @@ public partial class SketchTool
     [JSInvokable]
     public void OnDressing(string json) { dressingJson = json; StateHasChanged(); }
 
+    /// <summary>The modifier stack and the one picked, as the bridge announces them.</summary>
+    private SketchModifierState modifiers = SketchModifierState.Empty;
+
     [JSInvokable]
-    public void OnRelief(string json) { reliefJson = json; StateHasChanged(); }
+    public void OnModifiers(string json) { modifiers = SketchModifierState.Parse(json); StateHasChanged(); }
 
     /// <summary>Which layers the board the preview just built is made of, and which of them it is leaving
     /// out. The bridge keeps a hidden layer hidden across a rebuild, so this is where the two agree again
@@ -898,8 +935,6 @@ public partial class SketchTool
     private IReadOnlyList<Finding> isoNotBuilt = [];
 
     /// <summary>Every finding behind the note, in full, for the tooltip: the rule and its own sentence.</summary>
-    private string IsoContestedWhy => string.Join("\n\n", isoNotBuilt.Select(f => $"{f.Rule}: {f.Message}"));
-
     /// <summary>The build hands over everything it raised; this keeps the <b>declines</b>, which are the
     /// findings whose whole meaning is that a piece of what the author wrote is not in the world
     /// (<see cref="Severity.Decline"/>). A complaint about the same board is a remark on a world that came
@@ -986,6 +1021,15 @@ public partial class SketchTool
     /// <summary>Where Info's identity save stands, shown in the tool bar while Info is up.</summary>
     private string? infoSave;
 
+    /// <summary>What the bar says about saving, in every phase: Info's identity save while Info is up and has
+    /// one to report, and the drawing's otherwise — Saving… while an edit waits for its debounced write, Saved once every edit has
+    /// landed. A refused save says nothing here, because the Problems button already says it cannot save, and a
+    /// view-only map says nothing at all.</summary>
+    private string? SaveState
+        => InfoActive && infoSave is not null ? infoSave
+         : writeClosed || saveError is not null ? null
+         : edits != savedEdits ? "Saving…" : "Saved";
+
     /// <summary>The write of the stored layout, which states the revision this tab's drawing stands on: a tab
     /// holding an older board than the studio's is refused (<c>RQ13</c>, 409) instead of writing it back over
     /// the newer one, and is then superseded until the layout is read again.</summary>
@@ -1004,7 +1048,7 @@ public partial class SketchTool
     private async Task SaveAsync(CancellationToken token)
     {
         if (handle is not { } bridge || writeClosed) return;
-        var was = (saveError, saveFindings);
+        var was = (saveError, saveFindings, savedEdits);
         var carrying = 0;
         var outcome = await Document.PutAsync($"api/map/{Slug}/sketch",
             async () =>
@@ -1018,7 +1062,7 @@ public partial class SketchTool
             case SaveStatus.Landed: savedEdits = carrying; saveError = null; saveFindings = outcome.Raised; break;
             case SaveStatus.Refused: saveError = outcome.Message; saveFindings = outcome.Raised; break;
         }
-        if ((saveError, saveFindings) == was) return;
+        if ((saveError, saveFindings, savedEdits) == was) return;
         Recheck();
         await InvokeAsync(StateHasChanged);
     }
@@ -1097,7 +1141,7 @@ public partial class SketchTool
     /// <summary>The rules the list has rows for, which is the count the button carries.</summary>
     private int ProblemRules => problems.Select(p => (p.Kind, p.Finding.Rule)).Distinct().Count();
 
-    private string? StoppedWord => downloadRefusal is not null ? "Can’t download" : saveError is not null ? "Can’t save" : null;
+    private string? StoppedWord => downloadRefusal is not null ? "Download blocked" : saveError is not null ? "Save blocked" : null;
 
     private string ProblemsLabel => StoppedWord
         ?? (problems.Any(p => p.Kind == ProblemKind.LeftOut) ? "Left out" : "Warnings");

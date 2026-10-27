@@ -576,4 +576,29 @@ public sealed class TerrainThemeScopeTests
             Rect("inlay", 0, 0, 1, 1, "kerb")));
         await Assert.That(findings.Count).IsEqualTo(0);
     }
+
+    /// <summary>The example of terrain-painting.md §3.1b, as it is written there.</summary>
+    private const string DocumentedPaint = """
+        "paint": [
+          { "id": "scree", "material": { "kind": "solid", "id": 13 }, "slope": [40, null], "height": [70, null] },
+          { "id": "bank",  "material": { "kind": "solid", "id": 12 }, "depth": 2, "near": { "modifier": "river", "width": 3 } },
+          { "id": "moss",  "material": { "kind": "solid", "id": 48 }, "noise": { "cell": 8, "above": 0.6, "seed": 2 } }
+        ]
+        """;
+
+    [Test]
+    public async Task The_documented_paint_rules_read_in_order_with_every_condition_they_state()
+    {
+        var layout = SketchLayout.Parse($$"""
+            { "layers": [ { "id": "ground", "base_y": 0, "layout": { "shapes": [], "groups": [] } } ],
+              "modifiers": [ { "id": "river", "op": "river", "mask": { "areas": [ { "kind": "line", "points": [[0, 0], [8, 0]], "width": 4 } ] } } ],
+              {{DocumentedPaint}} }
+            """);
+        var rules = TerrainThemeScope.RulesOf(layout)!;
+
+        await Assert.That(rules.Count).IsEqualTo(3);
+        await Assert.That((rules[0].SlopeAbove, rules[0].SlopeUpTo, rules[0].HeightFrom)).IsEqualTo(((int?)40, (int?)null, (int?)70));
+        await Assert.That((rules[1].Depth, rules[1].Cells is not null)).IsEqualTo((2, true));
+        await Assert.That(rules[2].Noise).IsEqualTo(new PaintNoise(8, 0.6, 2));
+    }
 }

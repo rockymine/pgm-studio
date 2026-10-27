@@ -75,6 +75,11 @@ export function isoPreview({ canvas, url, missing = "", state, bounds, onBuilt, 
     rotate() { yaw = (yaw + 90) % 360; redraw(); },
     /** An edit invalidates the picture: a stale mesh redrawn on rotate would show the document as it was. */
     drop() { mesh = null; payload = null; stamp = null; },
+    /** The document or the read's parameters changed: drop the picture, and build it again if it is on screen. */
+    async refresh() {
+      mesh = null; payload = null; stamp = null;
+      if (on) await feed.request();
+    },
     /** Show or hide one layer of the preview. The document is not rebuilt: the runs say which layer drew
      *  them, so this re-meshes what is in hand. */
     async setLayerShown(id, shown) {

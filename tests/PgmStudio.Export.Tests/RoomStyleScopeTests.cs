@@ -12,7 +12,7 @@ namespace PgmStudio.Export.Tests;
 
 /// <summary>
 /// The room styles a map binds (G34c, docs/world-export/structures.md §9): read off the sketch layout and
-/// carried into the export. A map that never picked one exports the built-in shells, a map that did gets the
+/// carried into the export. A map that never picked one exports the bedrock boxes, a map that did gets the
 /// shell it picked, and a room's house stating a style of its own wears that one instead.
 /// </summary>
 public sealed class RoomStyleScopeTests
@@ -138,13 +138,13 @@ public sealed class RoomStyleScopeTests
     [Test]
     public async Task The_bound_shell_is_the_one_the_export_stamps()
     {
-        // Sandstone walls: a block no built-in shell ever places, so finding it says the binding travelled the
+        // Sandstone walls: a block no bedrock box ever places, so finding it says the binding travelled the
         // whole way rather than that a default happened to match.
         var sandstone = HouseStyle.Wool with { Wall = RoomPart.Of(new SolidMaterial(Blocks.Sandstone), 7) };
         var built = WorldBuilder.Build(Bound(wool: sandstone), Intent());
 
         await Assert.That(Count(built.World, -10, 10, Blocks.Sandstone)).IsGreaterThan(0);
-        // And only the wool rooms: a spawn room is a different kind, so it kept its own built-in shell.
+        // And only the wool rooms: a spawn room is a different kind, so it kept its own bedrock box.
         await Assert.That(Count(built.World, -20, 0, Blocks.Sandstone)).IsEqualTo(0);
     }
 

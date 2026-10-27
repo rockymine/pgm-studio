@@ -37,7 +37,7 @@ public partial class Tokens
         tokens = await Http.GetFromJsonAsync<List<StudioTokenDto>>("api/users/me/tokens") ?? [];
 
     private static string LastUse(StudioTokenDto token) =>
-        token.LastUsedAt is { } used ? $"last used {used.ToLocalTime():dd.MM.yyyy HH:mm}" : "never used";
+        token.LastUsedAt is { } used ? $"Last used {used.ToLocalTime():dd.MM.yyyy HH:mm}" : "Never used";
 
     private async Task IssueAsync()
     {
@@ -58,7 +58,7 @@ public partial class Tokens
 
     private async Task RevokeAsync(StudioTokenDto token)
     {
-        if (!await JS.InvokeAsync<bool>("confirm", $"Revoke '{token.Label}'? Anything using it will no longer be able to sign in."))
+        if (!await JS.InvokeAsync<bool>("confirm", $"Delete '{token.Label}'? Anything using it can no longer sign in."))
             return;
         error = null;
         using var response = await Http.DeleteAsync($"api/users/me/tokens/{token.Id}");

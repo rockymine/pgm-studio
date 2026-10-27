@@ -24,9 +24,9 @@ public sealed class CliffAngleTests
     /// <summary>The corpus shape: meadow, a transition, then bare rock taking everything steeper. The rock
     /// band begins at 30°, which is where the board stopped calling the ground a meadow.</summary>
     [Test]
-    public async Task A_repeating_stack_calls_its_last_band_the_face()
+    public async Task A_holding_stack_calls_its_last_band_the_face()
     {
-        var surface = Graded(BandEnding.Repeat,
+        var surface = Graded(BandEnding.Hold,
             new Band(new SolidMaterial(Grass), 16),
             new Band(new SolidMaterial(Dirt), 14),
             new Band(new SolidMaterial(Stone), 60));
@@ -34,7 +34,18 @@ public sealed class CliffAngleTests
         await Assert.That(Materials.CliffAngle(surface)).IsEqualTo(30);
     }
 
-    /// <summary>A stack that hands over rather than repeating puts the face in whatever is under it, so the
+    /// <summary>A slope stack that cycles has no steepest band to call the face, so it states no angle.</summary>
+    [Test]
+    public async Task A_cycling_stack_names_no_face()
+    {
+        var surface = Graded(BandEnding.Cycle,
+            new Band(new SolidMaterial(Grass), 16),
+            new Band(new SolidMaterial(Stone), 14));
+
+        await Assert.That(Materials.CliffAngle(surface)).IsEqualTo(Materials.DefaultCliffAngle);
+    }
+
+    /// <summary>A stack that hands over rather than holding puts the face in whatever is under it, so the
     /// cliff begins where the bands run out.</summary>
     [Test]
     public async Task A_handing_over_stack_calls_its_beyond_the_face()
@@ -77,7 +88,7 @@ public sealed class CliffAngleTests
     [Test]
     public async Task Grading_nested_inside_a_pattern_is_still_the_boards_answer()
     {
-        var graded = Graded(BandEnding.Repeat,
+        var graded = Graded(BandEnding.Hold,
             new Band(new SolidMaterial(Grass), 18),
             new Band(new SolidMaterial(Stone), 72));
         var scattered = new CellMaterial(1, 8, 40, 4, [graded, new SolidMaterial(Sand)]);
@@ -91,7 +102,7 @@ public sealed class CliffAngleTests
     [Test]
     public async Task Resting_ground_is_every_band_under_the_face()
     {
-        var surface = Graded(BandEnding.Repeat,
+        var surface = Graded(BandEnding.Hold,
             new Band(new SolidMaterial(Grass), 16),
             new Band(new SolidMaterial(Dirt), 14),
             new Band(new SolidMaterial(Stone), 60));
@@ -108,7 +119,7 @@ public sealed class CliffAngleTests
     [Test]
     public async Task A_two_band_stack_rests_only_on_its_meadow()
     {
-        var surface = Graded(BandEnding.Repeat,
+        var surface = Graded(BandEnding.Hold,
             new Band(new SolidMaterial(Grass), 18),
             new Band(new SolidMaterial(Stone), 72));
 
@@ -123,7 +134,7 @@ public sealed class CliffAngleTests
     [Arguments(40)]
     public async Task A_single_band_grades_nothing_whatever_it_spans(int span)
     {
-        var surface = Graded(BandEnding.Repeat, new Band(new SolidMaterial(Stone), span));
+        var surface = Graded(BandEnding.Hold, new Band(new SolidMaterial(Stone), span));
 
         await Assert.That(Materials.CliffAngle(surface)).IsEqualTo(Materials.DefaultCliffAngle);
         await Assert.That(Materials.Resting(surface).Select(block => block.Id)).IsEquivalentTo(new[] { Stone });

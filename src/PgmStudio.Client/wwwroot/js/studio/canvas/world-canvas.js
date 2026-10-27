@@ -589,7 +589,7 @@ export class WorldCanvas extends CanvasBase {
         x: w / 2, y: h / 2, "text-anchor": "middle", "dominant-baseline": "middle",
         "font-size": "13", fill: "var(--text-muted)",
       });
-      hint.textContent = "This map has no world data yet, so there is nothing to show.";
+      hint.textContent = "No world yet. Build the map to see it here.";
       this._svg.appendChild(hint);
       return;
     }

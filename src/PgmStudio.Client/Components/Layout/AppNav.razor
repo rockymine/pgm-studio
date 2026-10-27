@@ -9,7 +9,7 @@
    its trail, its state, its actions — is the Topbar under it. *@
 
 <nav class="app-nav" aria-label="Studio">
-    <a class="app-nav-home" href="" title="Studio home">
+    <a class="app-nav-home" href="" title="Open the start page">
         <span class="app-nav-pgm">pgm</span><span class="app-nav-sub">STUDIO</span>
     </a>
     <div class="app-nav-links">
@@ -21,10 +21,10 @@
     </div>
     <div class="app-nav-right">
         <button type="button" class="topbar-icon-btn app-nav-icon" @onclick="ShowKeysAsync"
-                title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">
+                title="Show keyboard shortcuts (?)" aria-label="Show keyboard shortcuts">
             <i data-lucide="keyboard"></i>
         </button>
-        <a class="topbar-icon-btn app-nav-icon" href="@DesignLink.Href" title="Design" aria-label="Design"
+        <a class="topbar-icon-btn app-nav-icon" href="@DesignLink.Href" title="Open the design reference" aria-label="Open the design reference"
            aria-current="@(IsHere(DesignLink) ? "page" : null)">
             <i data-lucide="palette"></i>
         </a>
