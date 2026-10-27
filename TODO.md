@@ -19,17 +19,35 @@ into the studio one phase at a time, each proven against a pgmvox fixture, until
 reaches the ceiling a pgmvox board does. Phase 0 has shipped, Phase 1 has closed with its two agent-facing
 entries parked, and Phase 2 has shipped: shapes, eighteen ground operations in the modifier stack, and the water
 they make. Phase 3 has shipped too: soil by slope, paint rules, beds that dip, fold and cycle, a water's own bed
-and its fall off the edge, and a layer's underside. Phase 4, space in three dimensions, is open with one entry
-left. Phase 5 has shipped its pieces and stamps; its upload (`TC23`) is parked.
+and its fall off the edge, and a layer's underside. Phase 4, space in three dimensions, has shipped its carves and solids; dragging a solid out in the dock (`TS212`)
+is parked. Phase 5 has shipped its pieces and stamps; its upload (`TC23`) is parked. Phase 6 is open, starting
+with the house fields.
 
-### Phase 4 — space in three dimensions
+### Phase 6 — built things: the house fields pgmvox has
 
-The ground stays in columns and the carves run after it in the block grid of the built world, so a cave keeps
-the relief over it (`docs/pgmvox-port.md`, *The shape it lands in*). Each entry is pgmvox's `volume/` ported, and
-`docs/tools/sketch.md` is the document each leaves correct.
+The house a style describes gains what makes pgmvox's houses read as lived in
+(`pgm-studio-mapgen/analysis/freeform-vs-studio/houses/HOUSES.md` §4–§6). Each field lands on `HouseStyle` or
+`Storey` (`Houses/HouseStyle.cs`), round-trips through `HouseStyleJson`, is stamped by `HouseStamper`, is edited
+in the library's house editor, and leaves `docs/world-export/structures.md` and `docs/tools/library.md` correct.
 
-- [ ] **TS212 — Dragging a solid out in the dock.** The dock draws a rectangle, polygon, polyline or lasso, and a
-  solid is made by reading a drawn footprint with the inspector's Form row. Add dock tools that drag out a box,
-  wedge, cylinder, sphere or torus with the form already chosen (`SketchTool.razor`, `asSolid` in
-  `geometry/shape.js`, `addShape` in `sketch-bridge.js`), and inspector rows for an arch's rock `thick`, its easing
-  powers and its `camber`, stated over the API today (`docs/tools/sketch.md`, *Solids*).
+- [ ] **WE175 — Timber bays along a storey's wall.** `Storey.Bays`: a post every `period` blocks along a wall
+  (pgmvox: 4, upper storeys, long walls only), counted from the corners so both ends land on a post, in its own
+  material or the storey's `Post`. Stamped after the wall and before the windows, which `HouseWindows` then
+  keeps off a bay as it keeps them off a corner (`HouseStamper.cs:320`).
+- [ ] **WE176 — A head course on every storey.** `Storey.Head`: one ring course over the clear, the top storey
+  included, so a log seam under the roof and between storeys is stated rather than left to a wall stack's last
+  band repeating (the double-log seam, `HOUSES.md` §2). Unset keeps today's slab course.
+- [ ] **WE177 — A jetty, a setback and an eave per storey.** `Storey.Jetty` (reach 1, joists as a laid log
+  course) pushes an upper storey out over the one below; `Storey.Setback` steps it in; `Storey.Eave` hangs a
+  course out at its head. The tiered tower and the half-timbered overhang of the Brittlebush boards. A reach
+  that leaves the 20×20 footprint (`ST9`) is refused as a new house rule.
+- [ ] **WE178 — A chimney.** `HouseStyle.Chimney`: a body, a cap, which wall it rises against (`rear` by
+  default) and how far it stands above the ridge (pgmvox: 2, `build.py:476-481`), placed clear of the doorway
+  and of a roof cut. It changes the silhouette from across a board, which is why pgmvox puts one on every house.
+- [ ] **WE179 — A wooden door on a placed house.** Spruce, oak and dark oak leaves as `DoorMaterial` values,
+  allowed on a house prop and refused on a wool or spawn room's style, whose break rule whitelists the leaf
+  (`DoorMaterials.cs`). Today a placed house's doorway is air or glass.
+- [ ] **WE180 — A heading on a placed house.** `HouseProp.Heading` in degrees, so a hamlet stops standing in a
+  row (the author's review of Slatefold). A second stamper path over a turned frame, as pgmvox's `Frame` and
+  framed `RoofField` do; a turned roof drops to cubes and slabs, and the cell outside the door is kept clear
+  at any heading. Measured against `HouseStamper` before it is promised.

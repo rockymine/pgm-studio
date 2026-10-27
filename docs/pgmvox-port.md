@@ -379,7 +379,7 @@ time. Shipped to the live studio with no beta (decision D3).
 ### Phase 6 — built things
 
 - Houses: the three new storey fields (posts, a laid log course, jetty with setback and eave), a chimney, wood
-  doors, and a heading in degrees on the placed house (`houses/HOUSES.md`). pgmvox's two house defects (door
+  doors, and a heading in degrees on the placed house (`houses/HOUSES.md`; `WE175`–`WE180`). pgmvox's two house defects (door
   before windows; the cell outside a door at any heading) are fixed on the way.
 - Line builds: a wall, hedge or fence along a line, with its crown following, level or graded, caps, crenels and
   gaps.

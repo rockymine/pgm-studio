@@ -28,6 +28,12 @@ about which section the entry sits in — the retired prefixes still on entries 
   control points and build regions become intent pieces, configured in Configure as a world read from a scan is
   (D13), and what the studio cannot state is refused by name (`docs/tools/configure.md`, `docs/tools/flow.md`).
 
+- [ ] **TS212 — Dragging a solid out in the dock.** *Parked (author): not yet.* The dock draws a rectangle, polygon, polyline or lasso, and a
+  solid is made by reading a drawn footprint with the inspector's Form row. Add dock tools that drag out a box,
+  wedge, cylinder, sphere or torus with the form already chosen (`SketchTool.razor`, `asSolid` in
+  `geometry/shape.js`, `addShape` in `sketch-bridge.js`), and inspector rows for an arch's rock `thick`, its easing
+  powers and its `camber`, stated over the API today (`docs/tools/sketch.md`, *Solids*).
+
 - [ ] **TS190 — A place states the numbers it is held to.** *Parked (author): agent-facing, and the rule measures already band a distance.* A place carries targets — a value and the band it
   must fall in — and each is measured off the sketch's ground and shown beside its band, a miss as a complaint,
   as pgmvox's checker prints one line per number (`freeform/lib/AGENT-GUIDE.md` § the plan). The walks the
