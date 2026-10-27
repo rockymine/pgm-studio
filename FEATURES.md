@@ -6329,6 +6329,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   doorway's outer sides so a two-wide door opens as a pair, and stands the wall over it up to the head; a house's
   clearance in front of a wooden door is two blocks. A spawn's door stays open. `docs/world-export/structures.md`
   §7.5, `docs/tools/library.md`. (`WE179`)
+- **A head course on every storey (`WE176`)** — a storey's `head` lays one material round its walls over its clear:
+  between two storeys in the course the slab sits in, and on the topmost one course more under the eave, so the
+  floor line and the eave line are stated once rather than left to a wall stack's last band repeating. Posts win
+  the corners; a house's `head` serves every storey naming none; the library binds it as the `head` part of a
+  house or a storey, and both editors offer it. A laid-log head is the timber `HS9` asks beam ends to come out of,
+  and `HS4` and the face rules read it. `docs/world-export/structures.md` §7.6–§7.7, `docs/tools/library.md`.
+  (`WE176`)
 - **The library's front page shows what it holds (`TL38`).** `/library` groups its nine kinds as *Terrain*,
   *Buildings* and *Nature*; each card is the pictures of the newest three entries over the kind's name, count
   and one-line description, the nine lists load in parallel, and a browse card is its picture over the entry's

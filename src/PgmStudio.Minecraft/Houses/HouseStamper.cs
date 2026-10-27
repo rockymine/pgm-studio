@@ -311,7 +311,8 @@ public static class HouseStamper
         // ── the walls ─────────────────────────────────────────────────────────────────────────────────
         // Storey by storey, each counting its own courses up from its own floor — so a band written at a
         // storey's fourth course is at the fourth course of every storey, and a taller ground floor does not
-        // slide the one above it. The four corners take their own material.
+        // slide the one above it. The four corners take their own material, and a storey's head course rings
+        // the rest over its clear.
         for (var level = 0; level < levels.Count; level++)
         {
             if (body.At(level) is not { } plan) break;          // no wing stands this high
@@ -333,6 +334,7 @@ public static class HouseStamper
                         // though neither runs through it.
                         var turns = plan.OnCorner(x, z) || plan.OnInnerCorner(x, z);
                         if (turns && corner is { } post) Put(x, y, z, post, plan);
+                        else if (storey.IsHead(course)) Put(x, y, z, storey.Head!, plan);
                         else PutPart(x, y, z, wall, course - 1, plan);
                     }
         }

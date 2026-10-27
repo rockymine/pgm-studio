@@ -338,4 +338,61 @@ public sealed class HouseStoreyTests
 
         await Assert.That(posted.HighestWallCourse).IsEqualTo(posted.WallCourses);
     }
+
+    // ── the head course ────────────────────────────────────────────────────────────────────────────
+    private static readonly TerrainMaterial LaidSpruce = new LaidLogMaterial(Blocks.Log, 1);
+    private static readonly TerrainMaterial PlankWall = new SolidMaterial(Blocks.Planks, 1);
+
+    /// <summary>A head is laid in the course a storey's slab already sits in, and the topmost storey spends
+    /// one course more on its own: two storeys of three clear are 3+1 + 3 = 7 courses bare and 3+1 + 3+1 = 8
+    /// headed.</summary>
+    [Test]
+    public async Task A_head_course_costs_a_course_on_the_topmost_storey_only()
+    {
+        await Assert.That(Stacked(2).WallCourses).IsEqualTo(7);
+        await Assert.That((Stacked(2) with { Head = LaidSpruce }).WallCourses).IsEqualTo(8);
+    }
+
+    [Test]
+    public async Task A_head_course_rings_every_storey_over_its_clear()
+    {
+        var style = Stacked(2) with { Wall = RoomPart.Of(PlankWall, 4), Post = null, Head = LaidSpruce };
+        var world = House(9, 7, style);
+
+        foreach (var head in new[] { FloorY + 4, FloorY + 8 })
+        {
+            for (var x = 0; x < 9; x++)
+                foreach (var z in new[] { 0, 6 })
+                    await Assert.That(world.GetBlock(x, head, z).Id).IsEqualTo(Blocks.Log);
+            for (var z = 0; z < 7; z++)
+                foreach (var x in new[] { 0, 8 })
+                    await Assert.That(world.GetBlock(x, head, z).Id).IsEqualTo(Blocks.Log);
+            await Assert.That(world.GetBlock(0, head - 1, 3).Id).IsEqualTo(Blocks.Planks);
+        }
+    }
+
+    /// <summary>Unset, the wall's own stack carries on through the seam, its last band repeating.</summary>
+    [Test]
+    public async Task Without_a_head_the_wall_carries_on_through_the_seam()
+    {
+        var cobble = new SolidMaterial(Blocks.Cobblestone, 0);
+        var style = Stacked(2) with
+        {
+            Wall = new RoomPart(new BandStack([new Band(PlankWall, 3), new Band(cobble, 1)]), 4), Post = null,
+        };
+        var world = House(9, 7, style);
+        await Assert.That(world.GetBlock(0, FloorY + 4, 3).Id).IsEqualTo(Blocks.Cobblestone);
+    }
+
+    [Test]
+    public async Task A_storey_names_its_own_head_or_takes_the_buildings()
+    {
+        var own = new LaidLogMaterial(Blocks.Log, 0);
+        var style = Stacked(2) with
+        {
+            Head = LaidSpruce, Storeys = [new Storey { Clear = 3, Head = own }, new Storey { Clear = 3 }],
+        };
+        await Assert.That(style.Levels[0].Head).IsEqualTo(own);
+        await Assert.That(style.Levels[1].Head).IsEqualTo(LaidSpruce);
+    }
 }

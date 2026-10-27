@@ -437,8 +437,10 @@ way it takes its form and its pitch.
 
 A **storey** is one room: the `clear` a player stands in — never under three, because a room has to be stood up
 in — the floor's border width and inlay inset, its windows, and courses for the `wall` (which does stack) plus
-`post`, `ceiling`, `field`, `border` and `inlay`. A house stacks storeys in order, so a shop under two flats is
-three bindings of two presets.
+`post`, `head`, `deck`, `field`, `border` and `inlay`. The `head` is one course laid round the walls over the
+clear, such as a laid log marking where the storey ends; a storey naming one is drawn a course taller, since the
+topmost storey spends a course of its own on it (`docs/world-export/structures.md` §7.6). A house stacks storeys in
+order, so a shop under two flats is three bindings of two presets.
 
 A **porch** is the strip of footprint the walls give up and what stands on it: depth, inset, edge, roof and a
 rail block. It carries no courses at all — its deck is the house's floor, and its canopy is the house roof's
@@ -588,8 +590,8 @@ and a field with no control is exactly the one a hand-written list forgets. The 
 a field added later is added to it rather than around it.
 
 A course names its part, its ordinal (0 being the course nearest that part's own base), what it is laid in — a
-`block`, or a pattern's `styleId` — and how many courses it runs. `post`, `verge` and `canopy` take one material rather than a stack — a post
-is a post all the way up, and a canopy is one block rim and all — so only their first course is read. A part
+`block`, or a pattern's `styleId` — and how many courses it runs. `post`, `head`, `verge` and `canopy` take one material rather than a stack — a post
+is a post all the way up, a head course is one course round the walls, and a canopy is one block rim and all — so only their first course is read. A part
 with no courses keeps the built-in finish, exactly as an unbound theme bucket does, which is what makes a room
 style that only changes its roof worth storing.
 
@@ -680,7 +682,7 @@ the beam over it. None of the three appears as a field beside the rest. Which wa
 **not** one of them: that is `front`, the wall the whole building fronts on and the one a shed roof falls
 toward, which is why it is the style's own. `wall` and the foundation's `plate` are **band stacks** — a
 material and how many courses it runs, counted from the part's own base, with an `ending` saying what happens
-past the last band — while `post` and the roof's `body`, `verge` and `gable` are **single materials**, which
+past the last band — while `post`, `head` and the roof's `body`, `verge` and `gable` are **single materials**, which
 is why the two end-stone-and-sandstone courses are a list and the brick roof is not. `footing: null` is the
 absence of a part, not an empty one — the course a building would otherwise stand proud of the ground on, which
 no style is saved with. `storeys` is empty because the shell is one room rather than a stack, and `porch` is

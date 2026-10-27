@@ -29,7 +29,7 @@ public sealed class RoomStyleJsonTests
         await Assert.That(members).IsEquivalentTo(new[]
         {
             "Beams", "Doorway", "Front", "Foundation",
-            "Porch", "Post", "Roof", "Storeys", "Wall", "Windows",
+            "Head", "Porch", "Post", "Roof", "Storeys", "Wall", "Windows",
         }.Order().ToList());
     }
 

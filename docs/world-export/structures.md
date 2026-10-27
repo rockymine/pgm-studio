@@ -948,8 +948,8 @@ the head is what stands over it and is never walked through.
 A building's height is not a wall height but a stack of rooms, and the two are different numbers. A `Storey`
 states its **clear** — the blocks of air a player stands in — and the courses follow from it: a storey carries
 one more course than its clear when something stands over it, for the slab that separates the two, and the top
-storey carries none, because the roof is its lid. Three storeys of three clear is eleven courses of wall, not
-nine. Measuring by the air rather than by the masonry is what makes the number an author decides the number
+storey carries none, because the roof is its lid, unless it lays a head course. Three storeys of three clear is
+eleven courses of wall, not nine. Measuring by the air rather than by the masonry is what makes the number an author decides the number
 that is true: three is the least a room may be, because a room a player cannot stand up in is not a room, and
 a clear asked for under three is read as three.
 
@@ -966,7 +966,7 @@ every storey and a taller ground floor does not slide the one above it. Windows 
 sill of two is two blocks over *this* floor whichever storey it is, and the seater needed nothing new for
 that, because it already takes a sill and a wall height and a storey is simply a shorter wall to it. Only the
 ground storey is told about the doorway; there is no door to avoid on the ones above. A storey may name its
-own wall, windows, floor zoning and deck, and falls back to the building's where it does not — a stack of
+own wall, posts, head course, windows, floor zoning and deck, and falls back to the building's where it does not — a stack of
 identical storeys is a count rather than a repeated description, and every one of those fallbacks is resolved
 in `HouseStyle.Levels` rather than at the point each is used.
 
@@ -1018,6 +1018,13 @@ building is put up rather than drawn — and it belongs to the storey standing o
 its shop in flagstone and the flat over it in boards; unbound, a deck is the house floor's own top material.
 The ground storey's deck is the building's floor, and the topmost storey has nothing over it, since the roof
 is what closes that one.
+
+**A head course draws where a storey ends.** A storey that names a `head` lays that one material round its walls
+in the course over its clear: between two storeys it is the course the slab already sits in, and on the topmost it
+is one course more, under the eave, so a headed building is a course taller. It is one material rather than a
+stack, like a post, and the post wins the corners. Unset, the wall's own stack carries on through the seam with its
+last band repeating, so a stack ending in a laid log lays two of them at every seam; a head says the seam once. A
+house names a head for every storey that names none of its own, and the library binds it as the `head` part.
 
 **A storey above the ground never stands on air.** Over a plate of air — a house on stilts — a storey naming
 no deck falls back to that air, and the room over the stilts is a ring of wall round a hole. `HS18` complains of a
@@ -1086,7 +1093,7 @@ and lets a building have either without the other.
 from a course that is not a laid log is showing the ends of a floor beam it has not got: eight logs
 running out of masonry, which is not a detail but a claim about how the building is put together that the
 building does not honour. `HS9` names it at every seam: the ends are laid in the top course of the storey under
-the seam, so that course is the laid log, and a laid log on any other course is not the timber they come out of.
+the seam, so that course is the laid log, and a head course is that course where a storey names one, and a laid log on any other course is not the timber they come out of.
 A building of one storey lays no beams, so the word on it is inert rather than wrong. And the three timbers of a frame — the
 corner post, the ends docking against it, the course they are the ends of — are one frame and so **one wood**,
 which is `HS4`'s rule, the same one a door head's stair and its slab fill answer to. `opus5-scarrow-delph`'s

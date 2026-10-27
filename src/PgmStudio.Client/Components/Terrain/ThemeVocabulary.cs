@@ -389,6 +389,8 @@ public sealed record RoomPartInfo(
     [
         new(RoomParts.Post, "Corner posts",
             Help: "The four corner columns of the walls.", Note: "Unset, the corners match the walls."),
+        new(RoomParts.Head, "Head course",
+            Term: "head course", Note: "Unset, the wall's courses continue to the top."),
         new(RoomParts.Sill, "Footing",
             Term: "footing", Note: "Houses should not have one, because it reads as a rim. Clear it."),
         new(RoomParts.Verge, "Verge",
@@ -431,7 +433,7 @@ public sealed record PartKindInfo(
         new(LibraryKinds.Storeys, "Storey",
             "Shown as a one-storey building, or as two storeys if it has a deck.",
             [RoomPartInfo.Of(RoomParts.Wall)],
-            [RoomPartInfo.Of(RoomParts.Post), RoomPartInfo.Of(RoomParts.Deck),
+            [RoomPartInfo.Of(RoomParts.Post), RoomPartInfo.Of(RoomParts.Head), RoomPartInfo.Of(RoomParts.Deck),
              RoomPartInfo.Of(RoomParts.Field), RoomPartInfo.Of(RoomParts.Border),
              RoomPartInfo.Of(RoomParts.Inlay)]),
 

@@ -263,13 +263,16 @@ public static class HouseStyleValidation
         {
             var wall = levels[at].Wall ?? style.Wall;
             var seam = levels[at].Courses(topmost: false) - 1;
-            var course = wall.At(seam).Material;
+            var course = levels[at].Head ?? wall.At(seam).Material;
             if (course is LaidLogMaterial) continue;
 
+            var field = at < style.Storeys.Count && style.Storeys[at].Head is not null ? $"storeys[{at}].head"
+                : style.Head is not null ? "head"
+                : $"storeys[{at}].wall";
             findings.Add(new Finding(HouseStyleRules.BeamsWithoutTimber,
                 $"storey {at} of the house has beam ends of {BlockMaterials.Of(style.Beams.Block, style.Beams.Data)} "
                 + $"on a top course that is {Describe(course)}, not a laid log",
-                Severity.Complaint, Field: $"storeys[{at}].wall"));
+                Severity.Complaint, Field: field));
         }
     }
 
@@ -359,7 +362,7 @@ public static class HouseStyleValidation
     };
 
     /// <summary>The blocks a frame is made of besides the beams: every post the style names, and every
-    /// laid-log course a wall carries. Only logs are asked — a post of stone is a pier, not a timber, and the
+    /// laid-log course a wall or a head carries. Only logs are asked — a post of stone is a pier, not a timber, and the
     /// question of what a frame is cut from does not arise.</summary>
     private static IEnumerable<(string Where, int Id, int Data)> Timbers(HouseStyle style)
     {
@@ -371,6 +374,10 @@ public static class HouseStyleValidation
         foreach (var part in WallParts(style))
             foreach (var band in part.Stack.Bands)
                 if (band.Material is LaidLogMaterial laid) yield return ("the wall's laid log", laid.Id, laid.Data);
+        if (style.Head is LaidLogMaterial head) yield return ("head", head.Id, head.Data);
+        for (var at = 0; at < style.Storeys.Count; at++)
+            if (style.Storeys[at].Head is LaidLogMaterial storeyHead)
+                yield return ($"storeys[{at}].head", storeyHead.Id, storeyHead.Data);
     }
 
     /// <summary>Every pair of blocks that has to read as one line: a door head's stair and the slab that fills
@@ -551,14 +558,18 @@ public static class HouseStyleValidation
     }
 
     /// <summary>Every surface a building shows outside, with the field it was named in: each band of the
-    /// building's wall and of every storey's own, the gable where one is named, the roof, its verge and a
-    /// porch canopy laid in its own material.</summary>
+    /// building's wall and of every storey's own, every head course, the gable where one is named, the roof,
+    /// its verge and a porch canopy laid in its own material.</summary>
     private static IEnumerable<(string Field, TerrainMaterial Material)> Faces(HouseStyle style)
     {
         foreach (var band in style.Wall.Stack.Bands) yield return ("wall", band.Material);
+        if (style.Head is { } head) yield return ("head", head);
         for (var at = 0; at < style.Storeys.Count; at++)
+        {
             if (style.Storeys[at].Wall is { } wall)
                 foreach (var band in wall.Stack.Bands) yield return ($"storeys[{at}].wall", band.Material);
+            if (style.Storeys[at].Head is { } storeyHead) yield return ($"storeys[{at}].head", storeyHead);
+        }
         if (style.Roof.Gable is { } gable) yield return ("roof.gable", gable);
         yield return ("roof.body", style.Roof.Body);
         yield return ("roof.verge", style.Roof.Verge);

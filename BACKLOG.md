@@ -27,10 +27,6 @@ about which section the entry sits in — the retired prefixes still on entries 
   material or the storey's `Post`. Stamped after the wall and before the windows, which `HouseWindows` then
   keeps off a bay as it keeps them off a corner (`HouseStamper.cs:320`).
 
-- [ ] **WE176 — A head course on every storey.** *Parked (author): example images of real houses, and what the field adds to one, first.* `Storey.Head`: one ring course over the clear, the top storey
-  included, so a log seam under the roof and between storeys is stated rather than left to a wall stack's last
-  band repeating (the double-log seam, `HOUSES.md` §2). Unset keeps today's slab course.
-
 - [ ] **WE177 — A jetty, a setback and an eave per storey.** *Parked (author): example images of real houses, and what the field adds to one, first.* `Storey.Jetty` (reach 1, joists as a laid log
   course) pushes an upper storey out over the one below; `Storey.Setback` steps it in; `Storey.Eave` hangs a
   course out at its head. The tiered tower and the half-timbered overhang of the Brittlebush boards. A reach

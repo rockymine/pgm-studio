@@ -104,7 +104,7 @@ public static class RoomStylePreview
         return RoomParts.Canonical(part) switch
         {
             RoomParts.Floor => whole with { MaxY = FloorY },
-            RoomParts.Wall => whole with { MinY = FloorY, MaxY = eave },
+            RoomParts.Wall or RoomParts.Head => whole with { MinY = FloorY, MaxY = eave },
             RoomParts.Roof => whole with { MinY = eave - RoofField.MaxEaveDrop },
             _ => whole,
         };

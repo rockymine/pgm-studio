@@ -132,6 +132,10 @@ public static class RoomParts
     /// field and inlay. A stack here would be a second answer to a question the zones have settled.</para></summary>
     public const string Deck = "deck";
 
+    /// <summary>The ring course laid over a storey's clear — the floor line between two storeys, and the eave
+    /// line under the roof. One material, like a post: a laid log is a laid log all the way round.</summary>
+    public const string Head = "head";
+
     /// <summary>The roof over a porch's deck, rim and all, in one material. Unbound, the canopy is the house
     /// roof's own body under its verge; bound, it is a roof of its own — a stone brick canopy on a house whose
     /// verge is trimmed in andesite.</summary>
@@ -139,7 +143,7 @@ public static class RoomParts
 
     /// <summary>The parts bottom-up, the order a shell is stamped in.</summary>
     public static readonly string[] All =
-        [Floor, Field, Border, Inlay, Wall, Deck, Gable, Roof, Post, Sill, Verge, Canopy];
+        [Floor, Field, Border, Inlay, Wall, Head, Deck, Gable, Roof, Post, Sill, Verge, Canopy];
 
     /// <summary>The part a name means, or an empty string for one that names none — what a preview asked to
     /// cut to an unknown part falls back to, which is the whole building.</summary>

@@ -230,6 +230,38 @@ public sealed class HousePartLibraryEndpointsTests
         await Assert.That(Height(with.Section)).IsGreaterThan(Height(without.Section));
     }
 
+    /// <summary>A storey's head course rings its walls over the clear, so the outside of the preview shows it
+    /// and the building comes out a course taller.</summary>
+    [Test]
+    public async Task A_storey_that_names_a_head_course_is_drawn_with_it()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        var timber = new SlotBlockDto(Blocks.Log, 0, Laid: false);
+        const int goldBlock = 41;
+        var head = new SlotBlockDto(goldBlock, 0, Laid: false);
+
+        var plain = Storey("plain", 3, new RoomCourseDto(RoomParts.Wall, 0, 0, timber, 1));
+        var headed = Storey("headed", 3,
+            new RoomCourseDto(RoomParts.Wall, 0, 0, timber, 1),
+            new RoomCourseDto(RoomParts.Head, 0, 0, head, 1));
+
+        var without = (await (await client.PostAsJsonAsync("/api/storey-styles/preview", plain))
+            .Content.ReadFromJsonAsync<RoomStylePreviewDto>())!;
+        var with = (await (await client.PostAsJsonAsync("/api/storey-styles/preview", headed))
+            .Content.ReadFromJsonAsync<RoomStylePreviewDto>())!;
+
+        await Assert.That(AnyShadeOf(Fills(with.Section), goldBlock)).IsTrue();
+        await Assert.That(AnyShadeOf(Fills(without.Section), goldBlock)).IsFalse();
+        await Assert.That(Height(with.Section)).IsGreaterThan(Height(without.Section));
+
+        var created = await (await client.PostAsJsonAsync("/api/storey-styles", headed))
+            .Content.ReadFromJsonAsync<StoreyStyleDetail>();
+        var detail = await client.GetFromJsonAsync<StoreyStyleDetail>($"/api/storey-styles/{created!.Id}");
+        await Assert.That(detail!.Courses.Any(course => course.Part == RoomParts.Head)).IsTrue();
+    }
+
     /// <summary>A room has to be stood up in, so a clear under three is read as three however it is asked
     /// for — and the number handed back is the one the row stores rather than the one the request sent.</summary>
     [Test]
