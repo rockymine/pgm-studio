@@ -76,6 +76,13 @@ public static class Blocks
     /// <summary>Which way a stair climbs — the side of the cube its raised half sits on.</summary>
     public const int StairEast = 0, StairWest = 1, StairSouth = 2, StairNorth = 3;
 
+    /// <summary>The bit a door's data carries in its <em>upper</em> block. The lower block holds the door's
+    /// facing in its low two bits; the upper one holds this bit and the hinge side.</summary>
+    public const int DoorUpperHalf = 8;
+
+    /// <summary>The bit an upper door block carries when its hinge is on the right of the way the door faces.</summary>
+    public const int DoorHingeRight = 1;
+
     /// <summary>Log and leaf, in the two id pairs the numeric format splits the six woods across: the low two
     /// data bits are the wood (log 0–3 oak · spruce · birch · jungle, log2 0–1 acacia · dark oak), and the bits
     /// above them are the log's placement axis and the leaf's decay flags. Here rather than beside the dressing

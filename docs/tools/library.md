@@ -674,8 +674,9 @@ the stamper takes, a sketch's Palette phase stores, and a placed building carrie
 Read it against the levels above and the whole model is visible in one object. **A part the building has more
 than one statement about is an object of its own**: `foundation` is what the building stands on — its plate,
 the footing round it and how the plate's top course is zoned; `roof` is everything above the eave, its three
-materials and the seven numbers that shape them; and `doorway` is the way in, its size, what fills it and the
-beam over it. None of the three appears as a field beside the rest. Which wall the doorway is cut through is
+materials and the seven numbers that shape them; and `doorway` is the way in, its size, what fills it — open,
+cobweb, glass, panes, or an oak, spruce or dark oak door, the choices `GET /api/room-styles/doors` serves — and
+the beam over it. None of the three appears as a field beside the rest. Which wall the doorway is cut through is
 **not** one of them: that is `front`, the wall the whole building fronts on and the one a shed roof falls
 toward, which is why it is the style's own. `wall` and the foundation's `plate` are **band stacks** — a
 material and how many courses it runs, counted from the part's own base, with an `ending` saying what happens

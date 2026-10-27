@@ -321,7 +321,7 @@
     }
     else if (selected == DoorPart)
     {
-      <Section Description="Only these doors can be broken by attackers to open a wool room. A spawn's door is always open.">
+      <Section Description="Attackers break glass and cobweb, and open a wooden door by hand, to enter a wool room. A spawn's door is always open.">
         <Field Label="Door">
           <Select Options="@Doors" Value="@draft.Door" ValueChanged="SetDoor" />
         </Field>

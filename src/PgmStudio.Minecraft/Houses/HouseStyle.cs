@@ -357,7 +357,8 @@ public sealed record RoofStyle
 /// </summary>
 public sealed record Doorway
 {
-    /// <summary>What fills the opening, and a closed set because the wool room's break rule whitelists it.
+    /// <summary>What fills the opening, and a closed set because the wool room's break rule whitelists it. A
+    /// wooden door fills the opening's two lowest courses and leaves the wall standing above it.
     /// Separate from <see cref="Head"/>, which carries the wall over the opening and is never something a
     /// player goes through.</summary>
     public DoorMaterial Door { get; init; } = DoorMaterial.Air;
@@ -390,6 +391,7 @@ public sealed record Doorway
     {
         get
         {
+            if (DoorMaterials.Of(Door).Opens) return Math.Min(2, Height);
             if (!Head.Fits(Width, Height)) return Height;
             var genuineSlab = Head.Fill == DoorHeadFill.UpperSlab && BlockFamilies.IsSlab(Head.FillBlock);
             return (Height - 1) + (genuineSlab ? 0.5m : 0m);

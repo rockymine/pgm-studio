@@ -22,6 +22,29 @@ about which section the entry sits in — the retired prefixes still on entries 
 
 ## Parked from the programme
 
+- [ ] **WE175 — Timber bays along a storey's wall.** *Parked (author): example images of real houses, and what the field adds to one, first.* `Storey.Bays`: a post every `period` blocks along a wall
+  (pgmvox: 4, upper storeys, long walls only), counted from the corners so both ends land on a post, in its own
+  material or the storey's `Post`. Stamped after the wall and before the windows, which `HouseWindows` then
+  keeps off a bay as it keeps them off a corner (`HouseStamper.cs:320`).
+
+- [ ] **WE176 — A head course on every storey.** *Parked (author): example images of real houses, and what the field adds to one, first.* `Storey.Head`: one ring course over the clear, the top storey
+  included, so a log seam under the roof and between storeys is stated rather than left to a wall stack's last
+  band repeating (the double-log seam, `HOUSES.md` §2). Unset keeps today's slab course.
+
+- [ ] **WE177 — A jetty, a setback and an eave per storey.** *Parked (author): example images of real houses, and what the field adds to one, first.* `Storey.Jetty` (reach 1, joists as a laid log
+  course) pushes an upper storey out over the one below; `Storey.Setback` steps it in; `Storey.Eave` hangs a
+  course out at its head. The tiered tower and the half-timbered overhang of the Brittlebush boards. A reach
+  that leaves the 20×20 footprint (`ST9`) is refused as a new house rule.
+
+- [ ] **WE178 — A chimney.** *Parked (author): example images of real houses, and what the field adds to one, first.* `HouseStyle.Chimney`: a body, a cap, which wall it rises against (`rear` by
+  default) and how far it stands above the ridge (pgmvox: 2, `build.py:476-481`), placed clear of the doorway
+  and of a roof cut. It changes the silhouette from across a board, which is why pgmvox puts one on every house.
+
+- [ ] **WE180 — A heading on a placed house.** *Parked (author): example images of real houses, and what the field adds to one, first.* `HouseProp.Heading` in degrees, so a hamlet stops standing in a
+  row (the author's review of Slatefold). A second stamper path over a turned frame, as pgmvox's `Frame` and
+  framed `RoofField` do; a turned roof drops to cubes and slabs, and the cell outside the door is kept clear
+  at any heading. Measured against `HouseStamper` before it is promised.
+
 - [ ] **TC23 — A world uploaded with its `map.xml`.** *Parked (author): skipped for the time being.* `POST /map/upload` takes a zip of a world's `region/` and
   its `map.xml` from any member, refused over a size cap, scanned as `import-url` scans; the stamps run over it
   on export. The `map.xml` is read into an intent, on the author's call: teams, spawns, wools, monuments, cores,

@@ -6323,6 +6323,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   body's own material, never over a laid log and never beside a `roofSlab`. Both editors offer whole blocks,
   stairs or slabs, the stair and the wear; `M0057` adds the two columns to house and roof rows.
   `docs/world-export/structures.md` §7.1, `docs/tools/library.md`. (`WE161`)
+- **A wooden door on a house and a wool room (`WE179`)** — `DoorMaterial` offers oak, spruce and dark oak doors
+  beside air, glass and cobweb: a leaf a player opens by hand, so it needs no break filter. The stamper fills a
+  doorway's two lowest courses with the leaf, its lower half facing into the house and the upper half hinged at the
+  doorway's outer sides so a two-wide door opens as a pair, and stands the wall over it up to the head; a house's
+  clearance in front of a wooden door is two blocks. A spawn's door stays open. `docs/world-export/structures.md`
+  §7.5, `docs/tools/library.md`. (`WE179`)
 - **The library's front page shows what it holds (`TL38`).** `/library` groups its nine kinds as *Terrain*,
   *Buildings* and *Nature*; each card is the pictures of the newest three entries over the kind's name, count
   and one-line description, the nine lists load in parallel, and a browse card is its picture over the entry's

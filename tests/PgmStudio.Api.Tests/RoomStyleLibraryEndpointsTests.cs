@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using PgmStudio.Domain;
 using PgmStudio.Contracts;
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Painting;
@@ -306,16 +307,23 @@ public sealed class RoomStyleLibraryEndpointsTests
     }
 
     [Test]
-    public async Task Only_the_doors_the_filter_whitelists_are_offered()
+    public async Task Every_door_offered_is_one_an_attacker_can_pass()
     {
-        // The picker cannot offer a door the wool-room block rule does not name, or the cage it stamps has an
-        // entrance nobody can open. Served from the one table both sides read.
+        // The picker cannot offer a door an attacker can neither break nor open, or the cage it stamps has an
+        // entrance nobody can use: a door is open, whitelisted by the wool-room block rule, or opened by hand.
+        // Served from the one table both sides read.
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
 
         var doors = await client.GetFromJsonAsync<List<DoorOptionDto>>("/api/room-styles/doors") ?? [];
         await Assert.That(doors.Select(d => d.Slug))
-            .IsEquivalentTo(new[] { "air", "web", "stained-glass", "stained-glass-pane" });
+            .IsEquivalentTo(new[] { "air", "web", "stained-glass", "stained-glass-pane", "oak-door", "spruce-door", "dark-oak-door" });
+        foreach (var door in doors)
+        {
+            await Assert.That(DoorMaterials.TryParse(door.Slug, out var material)).IsTrue();
+            var choice = DoorMaterials.Of(material);
+            await Assert.That(choice.BlockId == 0 || choice.Opens || choice.PgmMaterial is not null).IsTrue();
+        }
         await Assert.That(doors.All(d => !string.IsNullOrWhiteSpace(d.Label))).IsTrue();
     }
 

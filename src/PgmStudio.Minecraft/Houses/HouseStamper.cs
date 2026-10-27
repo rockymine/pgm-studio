@@ -860,12 +860,31 @@ public static class HouseStamper
                     for (var step = 0; step < door.Width; step++)
                     {
                         var (x, z) = door.Wall.Cell(door.Lo + step);
-                        var (id, data) = course == head
-                            ? style.Doorway.Head.Piece(alongX, step, door.Width)
-                            : (choice.BlockId, choice.Coloured && color >= 0 ? color : 0);
-                        world.SetBlock(x, floorY + course, z, id, data);
+                        if (course == head)
+                        {
+                            var (headId, headData) = style.Doorway.Head.Piece(alongX, step, door.Width);
+                            world.SetBlock(x, floorY + course, z, headId, headData);
+                        }
+                        else if (!choice.Opens)
+                            world.SetBlock(x, floorY + course, z, choice.BlockId, choice.Coloured && color >= 0 ? color : 0);
+                        else if (course <= 2)
+                            world.SetBlock(x, floorY + course, z, choice.BlockId, Leaf(door, step, course));
+                        // A leaf is two blocks tall, so the courses above it and under the head stay wall.
                     }
             }
+        }
+
+        // One block of a door leaf. It faces into the house, as if hung from outside, and each leaf hinges on
+        // the side away from the opening's middle, so a pair opens from the centre whichever image of the
+        // building this is; the middle leaf of an odd opening hinges left.
+        static int Leaf(WallOpening door, int step, int course)
+        {
+            var inward = door.Wall.Facing.Opposite();
+            if (course == 1) return BlockGeometry.DoorLower(inward);
+            var (facingX, facingZ) = inward.Outward();
+            var rightAlong = door.Wall.AlongX ? -facingZ : facingX;
+            var fromMiddle = 2 * step - (door.Width - 1);
+            return BlockGeometry.DoorUpper(hingeRight: fromMiddle * rightAlong > 0);
         }
 
         // ── the porch ─────────────────────────────────────────────────────────────────────────────────

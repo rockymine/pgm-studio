@@ -860,11 +860,20 @@ therefore chosen from the block picker and the stamper supplies the nibble.
 
 ### 7.5 The door is a closed set, and the reason is in the XML
 
-`Domain.DoorMaterials` names the four choices (air, cobweb, stained glass, stained-glass panes) and, for each,
-both the block the stamper places and the PGM material the wool-room block rule must whitelist. The wool
-room's `block` rule is a whitelist (`WoolGenerator`), so a door made of anything it does not name cannot be
-broken — the cage would be stamped with an entrance nobody can open, and nothing else in the pipeline would
-catch it. One row read by both sides is what prevents that; `Pgm` and `Minecraft` are siblings, so `Domain` is
+`Domain.DoorMaterials` names the seven choices (air, cobweb, stained glass, stained-glass panes, and oak,
+spruce and dark oak doors) and, for each, both the block the stamper places and the PGM material the wool-room
+block rule must whitelist. The wool room's `block` rule is a whitelist (`WoolGenerator`), so a door made of
+anything it does not name cannot be broken — the cage would be stamped with an entrance nobody can open, and
+nothing else in the pipeline would catch it. A wooden door is the exception that proves the rule: a player
+opens it by hand rather than breaking it, so it names no material and the rule whitelists nothing for it, on a
+wool room as on a placed house.
+
+**A wooden door is two blocks tall, and the wall stands over it.** The stamper fills the opening's two lowest
+courses with the leaf: the lower block faces into the building, as if hung from outside, and the upper block
+carries the hinge, on the side away from the opening's middle, so a two-wide opening is a pair that opens from
+the centre in every image of the building, mirrored or turned. The courses above the leaf and under the head
+are left as the wall laid them, so a three-course doorway with a head reads as a door under a beam rather than
+a door with a gap over it, and the doorway's clear height is two. One row read by both sides is what prevents that; `Pgm` and `Minecraft` are siblings, so `Domain` is
 the lowest place both reach. A spawn's door is pinned to air whatever its style says: a player spawning in has
 to walk straight out, and the spawn protection rule already keeps enemies from walking in.
 
@@ -1169,7 +1178,7 @@ studio's library previews. Anything else drawing a building draws with them too 
 right and another gets wrong is worse than either being wrong alone.
 
 The door picker is **served, never restated** (`/api/room-styles/doors` from `Domain.DoorMaterials`). A
-client-side copy of the four choices is the one way a door could come to be offered that the wool-room filter
+client-side copy of the choices is the one way a door could come to be offered that the wool-room filter
 never whitelists, which §7 explains would seal the cage.
 
 ### 8.1 A house is composed from parts

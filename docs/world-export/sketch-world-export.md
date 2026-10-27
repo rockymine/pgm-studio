@@ -78,9 +78,10 @@ the 4-across minimum):
 - **Wool cage:** one door per **stated door** — the plan states one at each entry interface, a land seam or an
   abutting build zone (WX6) — **3 tall**
   (layers 1–3), made of **stained-glass panes (id 160) in the room's wool colour**. The marker-anchored
-  default cage takes one door, on its face toward the middle. The material is one of the four `Domain.DoorMaterials` choices — air,
-  cobweb, stained glass, panes — and no more: the wool room's block rule is a whitelist, so a door it does
-  not name cannot be broken (`structures.md` §7).
+  default cage takes one door, on its face toward the middle. The material is one of the `Domain.DoorMaterials` choices — air,
+  cobweb, stained glass, panes, or an oak, spruce or dark oak door — and no more: the wool room's block rule is
+  a whitelist, so a door it does not name cannot be broken, and a wooden door is opened by hand
+  (`structures.md` §7).
 - **Spawn cube:** a door **4 tall** (layers 1–4) on each wall the hall opens through — one, or two where its
   piece meets the board on two sides (WX6) — **open (air)** — pinned
   there whatever the style says, since a player spawning in has to be able to walk straight out.
