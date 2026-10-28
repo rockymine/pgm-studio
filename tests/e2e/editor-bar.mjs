@@ -159,10 +159,10 @@ try {
                                [`/maps/${seed.mapSlug}/configure`, "Identity"]]) {
     await open(path);
     if (phase === "History") await page.click('.nav-btn:has(.nav-btn-caption:text-is("History"))');
-    await page.waitForFunction((want) => document.querySelector(".editor-bar-flow .editor-bar-phase")?.textContent.trim() === want, phase,
+    await page.waitForFunction((want) => document.querySelector(".editor-bar-phase")?.textContent.trim() === want, phase,
       { timeout: 10000 }).catch(() => {});
     const bar = await page.evaluate(() => ({
-      phase: document.querySelector(".editor-bar-flow .editor-bar-phase")?.textContent.trim(),
+      phase: document.querySelector(".editor-bar-phase")?.textContent.trim(),
       crumb: !!document.querySelector(".editor-crumb a"),
       move: [...document.querySelectorAll(".editor-bar-back, .editor-bar-next")].map(el => el.textContent.trim()).join(),
     }));
@@ -174,7 +174,7 @@ try {
   await page.setViewportSize({ width: 1000, height: 800 });
   await open(`/maps/${seed.sketchSlug}/sketch?phase=info`);
   const narrow = await page.evaluate(() => {
-    const strip = document.querySelector(".editor-bar-flow .flow-steps");
+    const strip = document.querySelector(".editor-bar-steps .flow-steps");
     return {
       steps: !!strip && getComputedStyle(strip).display !== "none" && strip.getBoundingClientRect().width > 0,
       overflow: document.documentElement.scrollWidth > window.innerWidth,
@@ -196,7 +196,7 @@ try {
     return {
       window: window.innerHeight,
       bar: box(".editor-bar"), foot: box(".editor-bar-foot"), rail: box(".app-body > .nav-rail"),
-      picker: box(".editor-bar-picker"), strip: box(".editor-bar-foot-steps"), next: box(".editor-bar-next"),
+      picker: box(".editor-bar-picker"), strip: box(".editor-bar-steps"), next: box(".editor-bar-next"),
       history: !!document.querySelector(".editor-bar-foot .editor-bar-history .action-btn"),
     };
   });

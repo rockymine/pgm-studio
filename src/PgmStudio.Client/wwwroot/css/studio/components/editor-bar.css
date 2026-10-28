@@ -91,33 +91,36 @@
   .editor-menu-item { min-height: var(--control-height); }
 }
 
-/* The phase and its steps. */
-.editor-bar-flow { display: flex; align-items: center; align-self: stretch; flex: 1 1 auto; min-width: 0; gap: var(--space-4); }
+/* On a wide window the end and the foot are items of the bar's own row, so the phase and its steps, which the foot
+   holds, sit after the crumb; the spacer pushes the state, Undo and Redo, the other commands, the divider and the
+   move to the right, in that order. */
+.editor-bar > .editor-studio-btn { order: 0; }
+.editor-crumb { order: 1; }
+.editor-bar-spacer { order: 3; flex: 1 1 0; min-width: 0; }
+.editor-bar-end, .editor-bar-foot { display: contents; }
+.editor-bar-steps { order: 2; display: flex; align-items: stretch; align-self: stretch; gap: var(--space-4); min-width: 0; }
 .editor-bar-phase {
   display: flex; align-items: center; align-self: center;
   color: var(--text-strong); font-weight: 600; font-size: var(--font-md); white-space: nowrap;
 }
-.editor-bar-flow .editor-bar-phase:has(+ .flow-steps) { padding-right: var(--space-4); border-right: 1px solid var(--border); }
+.editor-bar-phase:has(+ .flow-steps) { padding-right: var(--space-4); border-right: 1px solid var(--border); }
 .flow-steps { display: flex; align-items: center; gap: var(--space-5); align-self: stretch; }
 
-/* State, commands, then the move. The divider is the app bar's rule at the bar's own spacing. On a wide window the
-   foot's pieces are items of this row, ordered so Undo and Redo sit between the state and the other commands. */
-.editor-bar-end { display: flex; align-items: center; flex: none; margin-left: auto; gap: var(--space-3); }
-.editor-bar-end > .readonly-tag { order: 0; }
-.editor-bar-state { order: 1; display: flex; align-items: center; gap: var(--space-3); font-size: var(--font-sm); color: var(--text-muted); white-space: nowrap; }
-.editor-bar-history { order: 2; display: flex; align-items: center; gap: var(--space-1); }
+.editor-bar-end > .readonly-tag { order: 4; }
+.editor-bar-state { order: 5; display: flex; align-items: center; gap: var(--space-3); font-size: var(--font-sm); color: var(--text-muted); white-space: nowrap; }
+.editor-bar-history { order: 6; display: flex; align-items: center; gap: var(--space-1); }
 .editor-bar-history:not(:has(*)) { display: none; }
-.editor-bar-commands { order: 3; display: flex; align-items: center; gap: var(--space-1); }
+.editor-bar-commands { order: 7; display: flex; align-items: center; gap: var(--space-1); }
 .editor-bar-commands--labelled { gap: var(--space-2); }
 .editor-bar-commands:not(:has(*)) { display: none; }
-.editor-bar-end:has(.editor-bar-history .action-btn) > .editor-bar-commands { margin-left: calc(var(--space-1) - var(--space-3)); }
-.editor-bar-divider { order: 4; flex: none; width: 1px; height: calc(24px * var(--ui-scale)); margin: 0 var(--space-2); background: var(--border); }
-.editor-bar-foot { display: contents; }
-.editor-bar-back { order: 5; }
-.editor-bar-next { order: 6; margin-left: calc(var(--space-2) - var(--space-3)); }
+.editor-bar:has(.editor-bar-history .action-btn) .editor-bar-commands { margin-left: calc(var(--space-1) - var(--space-4)); }
+.editor-bar-divider { order: 8; flex: none; width: 1px; height: calc(24px * var(--ui-scale)); margin: 0 var(--space-1); background: var(--border); }
+.editor-bar-back { order: 9; }
+.editor-bar-next { order: 10; margin-left: calc(var(--space-2) - var(--space-4)); }
 .editor-bar-back svg { display: none; }
-.editor-bar-picker, .editor-bar-foot-steps { display: none; }
+.editor-bar-picker { display: none; }
 .editor-bar .readonly-tag { margin-left: 0; }
+.editor-bar-end > .readonly-tag + .editor-bar-state { margin-left: calc(var(--space-3) - var(--space-4)); }
 
 /* The foot's middle on a phone: the phase and step, as a button that opens the sheet. */
 .editor-bar-picker {
@@ -180,23 +183,19 @@
    only its arrow. A page that is not an editor (the design reference's sample) wraps the foot into the bar. */
 @media (max-width: 959px) {
   .editor-bar { gap: var(--space-2) var(--space-3); padding: 0 var(--space-3); }
-  .editor-bar-flow { display: none; }
-  .editor-bar-end { flex: 0 1 auto; min-width: 0; }
+  .editor-bar-end { display: flex; align-items: center; gap: var(--space-3); flex: 0 1 auto; min-width: 0; margin-left: auto; order: 4; }
   .editor-bar-end > .editor-bar-divider, .editor-bar-end > .readonly-tag ~ .editor-bar-state { display: none; }
+  .editor-bar-spacer { display: none; }
   .editor-bar-foot {
     display: flex; align-items: center; gap: var(--space-2);
     min-height: calc(var(--control-height) + var(--space-3)); padding: 0 var(--space-3);
     background: var(--bg-panel); border-top: 1px solid var(--border);
   }
   .editor-bar-foot > * { order: 0; }
-  .editor-bar-next, .editor-bar-end:has(.editor-bar-history .action-btn) > .editor-bar-commands { margin-left: 0; }
-  .editor-bar-foot-steps {
-    display: flex; align-items: stretch; justify-content: center; gap: var(--space-4);
-    flex: 1 1 auto; min-width: 0; align-self: stretch; overflow-x: auto;
-  }
-  .editor-bar-foot-steps .editor-bar-phase { padding-right: var(--space-4); border-right: 1px solid var(--border); }
-  .editor-bar-foot:not(:has(.editor-bar-foot-steps)) .editor-bar-history { margin-right: auto; }
-  .editor-bar-foot:not(:has(.editor-bar-foot-steps)):not(:has(.editor-bar-history)) .editor-bar-back { margin-right: auto; }
+  .editor-bar-next, .editor-bar:has(.editor-bar-history .action-btn) .editor-bar-commands { margin-left: 0; }
+  .editor-bar-steps { justify-content: center; flex: 1 1 auto; overflow-x: auto; }
+  .editor-bar-foot:not(:has(.editor-bar-steps)) .editor-bar-history { margin-right: auto; }
+  .editor-bar-foot:not(:has(.editor-bar-steps)):not(:has(.editor-bar-history)) .editor-bar-back { margin-right: auto; }
 
   .editor-page--focused .editor-bar { position: sticky; top: 0; z-index: 30; flex-wrap: nowrap; }
   .editor-page--focused .editor-bar-foot {
@@ -209,10 +208,11 @@
     padding-bottom: calc(var(--control-height) + var(--space-3) + 1px + env(safe-area-inset-bottom, 0px));
   }
   .editor-page:not(.editor-page--focused) .editor-bar { flex-wrap: wrap; padding-top: var(--space-2); }
+  .editor-page:not(.editor-page--focused) .editor-bar-end { flex-wrap: wrap; }
   .editor-page:not(.editor-page--focused) .editor-bar-foot { flex: 1 1 100%; margin: 0 calc(-1 * var(--space-3)); }
 }
 @media (max-width: 599px) {
-  .editor-bar-foot-steps { display: none; }
+  .editor-page--focused .editor-bar-steps { display: none; }
   .editor-page--focused .editor-bar-picker { display: flex; }
   .editor-page--focused .editor-bar-foot:has(.editor-bar-picker) .editor-bar-history { margin-right: 0; }
   .editor-page--focused .editor-bar-foot:has(.editor-bar-picker) .editor-bar-back { margin-right: 0; }

@@ -63,7 +63,7 @@ async function openPhase(title, { canvas = false } = {}) {
   await page.waitForSelector(".nav-btn", { timeout: 20000 });
   const regions = canvas ? page.waitForResponse(r => r.url().includes("/regions/tree"), { timeout: 30000 }) : null;
   await page.click(`.nav-btn:has(.nav-btn-caption:text-is("${title}"))`);
-  await page.waitForSelector(".editor-bar-flow .editor-bar-phase", { timeout: 20000 });
+  await page.waitForSelector(".editor-bar-phase", { timeout: 20000 });
   if (regions) {
     await regions;
     await page.waitForLoadState("networkidle", { timeout: 30000 });
@@ -79,7 +79,7 @@ checks.section("a map carrying wools AND a core shows both phases");
 await arrange({ cores: [core(owner)] });
 
 await openPhase("Cores", { canvas: true });
-const phaseTitle = await page.textContent(".editor-bar-flow .editor-bar-phase");
+const phaseTitle = await page.textContent(".editor-bar-phase");
 checks.add("the Cores phase opens", phaseTitle?.trim() === "Cores", phaseTitle?.trim());
 
 const railTitles = await page.$$eval(".nav-btn .nav-btn-caption", els => els.map(e => e.textContent.trim()));
@@ -111,7 +111,7 @@ checks.section("a core-only map is not held behind an empty wool slice");
 await arrange({ wools: [], cores: [core(owner)] });
 
 await openPhase("Export");
-const exportTitle = await page.textContent(".editor-bar-flow .editor-bar-phase");
+const exportTitle = await page.textContent(".editor-bar-phase");
 checks.add("Export is reachable with no wools at all", exportTitle?.trim() === "Export", exportTitle?.trim());
 
 const locked = await page.$$eval(".nav-btn", els =>
@@ -132,7 +132,7 @@ await arrange({ wools: [], flags: [flag] });
 
 await openPhase("Flags", { canvas: true });
 await page.waitForLoadState("networkidle", { timeout: 30000 });
-const flagTitle = await page.textContent(".editor-bar-flow .editor-bar-phase");
+const flagTitle = await page.textContent(".editor-bar-phase");
 checks.add("the Flags phase opens", flagTitle?.trim() === "Flags", flagTitle?.trim());
 const flagPhase = await page.textContent(".workspace");
 checks.add("the stored flag is listed", flagPhase.includes("Probe Flag"));
@@ -140,7 +140,7 @@ checks.add("a start with no banner under it says so", flagPhase.includes("Start 
 checks.add("the Flags phase raised nothing", featureFaults().length === 0, featureFaults().join(" | "));
 
 await openPhase("Export");
-const flagExport = await page.textContent(".editor-bar-flow .editor-bar-phase");
+const flagExport = await page.textContent(".editor-bar-phase");
 checks.add("Export is reachable with a flag as the only objective", flagExport?.trim() === "Export",
            flagExport?.trim());
 
@@ -158,14 +158,14 @@ checks.add("a team's flag states no points rate", !teamFlag.includes("Points per
 checks.add("a team's flag says when its team captures", await page.locator(".field:has-text('Capture') select").count() > 0);
 
 await openPhase("Match");
-const matchTitle = await page.textContent(".editor-bar-flow .editor-bar-phase");
+const matchTitle = await page.textContent(".editor-bar-phase");
 checks.add("the Match phase opens", matchTitle?.trim() === "Match", matchTitle?.trim());
 const timeBox = await page.inputValue(".workspace .field:has-text('Time limit') input");
 checks.add("the stored time limit is shown", timeBox === "12m", timeBox);
 checks.add("the Match phase raised nothing", featureFaults().length === 0, featureFaults().join(" | "));
 
 await openPhase("Export");
-const matchExport = await page.textContent(".editor-bar-flow .editor-bar-phase");
+const matchExport = await page.textContent(".editor-bar-phase");
 checks.add("Export is reachable past the Match phase", matchExport?.trim() === "Export", matchExport?.trim());
 
 // ── the Score phase: a deathmatch is an objective, and a score box is listed ─────────────────────────
@@ -173,7 +173,7 @@ checks.section("a board whose kills pay reaches Export, and its score box is lis
 
 await arrange({ wools: [], flags: [], killPoints: 1 });
 await openPhase("Export");
-const killExport = await page.textContent(".editor-bar-flow .editor-bar-phase");
+const killExport = await page.textContent(".editor-bar-phase");
 checks.add("Export is reachable with kills as the only objective", killExport?.trim() === "Export",
            killExport?.trim());
 
