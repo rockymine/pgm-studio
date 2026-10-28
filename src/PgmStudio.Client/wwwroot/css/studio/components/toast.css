@@ -10,7 +10,6 @@
   padding: 9px 16px;
   border-radius: var(--radius-md);
   font-size: var(--font-md);
-  font-family: ui-monospace, monospace;
   pointer-events: none;
   opacity: 0;
   transform: translateY(8px);

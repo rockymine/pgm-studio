@@ -3,36 +3,35 @@
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 
-@* The studio's own bar, the same on every page: home, a link to each tool, then the two reference pages —
-   the rules a check can name and the glossary of the studio's words — and at the right the keyboard shortcuts,
-   the design reference, the text size, the theme and the account. What belongs to the tool in front of it —
-   its trail, its state, its actions — is the Topbar under it. *@
+@* The studio's own bar, the same on every page that is not an editor: the mark and name (home), a link to each
+   tool, then the two reference pages — the rules a check can name and the glossary of the studio's words — and at
+   the right a search that opens the command palette, the keyboard shortcuts, the design reference, the text size,
+   the theme and the account. What belongs to the tool in front of it — its trail, its state, its actions — is the
+   Topbar under it.
 
-<nav class="app-nav" aria-label="Studio">
-    <a class="app-nav-home" href="" title="Open the start page">
-        <span class="app-nav-pgm">pgm</span><span class="app-nav-sub">STUDIO</span>
-    </a>
-    <div class="app-nav-links">
-        @foreach (var link in Links)
-        {
-            <a class="app-nav-link@(IsHere(link) ? " app-nav-link--active" : null)" href="@link.Href"
-               aria-current="@(IsHere(link) ? "page" : null)">@link.Label</a>
-        }
-    </div>
-    <div class="app-nav-right">
-        <button type="button" class="topbar-icon-btn app-nav-icon" @onclick="ShowKeysAsync"
-                title="Show keyboard shortcuts (?)" aria-label="Show keyboard shortcuts">
-            <i data-lucide="keyboard"></i>
+   The links and the four tools sit in one panel. Below 960px that panel is a menu sliding in from the left, opened
+   by the bar's menu button and closed by its ✕, the dimmed page, Escape or a link. An editor (Focused) draws no bar
+   at all: the same menu, holding the search and the account as well, is opened from the editor's own bar. Whether
+   it is open is StudioShell's, so either opener reaches it. *@
+
+@if (!Focused)
+{
+    <nav class="app-nav" aria-label="Studio">
+        <button type="button" class="topbar-icon-btn app-nav-icon app-nav-menu" @ref="menuButton"
+                aria-label="Open the studio menu" aria-controls="app-nav-panel" aria-expanded="@Expanded"
+                @onclick="OpenAsync">
+            <i data-lucide="menu"></i>
         </button>
-        <a class="topbar-icon-btn app-nav-icon" href="@DesignLink.Href" title="Open the design reference" aria-label="Open the design reference"
-           aria-current="@(IsHere(DesignLink) ? "page" : null)">
-            <i data-lucide="palette"></i>
-        </a>
-        <TextSizeMenu />
-        <ThemeToggle />
+        <a class="app-nav-home" href="" title="Open the start page"><StudioMark /><span>PGM Studio</span></a>
+        @Panel
+        @Search
         <AccountMenu />
-    </div>
-</nav>
+    </nav>
+}
+else
+{
+    <nav aria-label="Studio">@Panel</nav>
+}
 
 @code {
     /// <summary>One page link. <paramref name="Also"/> is a second path it is lit under besides the page it
@@ -50,11 +49,90 @@
 
     private static readonly NavLink DesignLink = new("design", "Design");
 
+    /// <summary>An editor's page: no bar, and the panel is always the menu.</summary>
+    [Parameter] public bool Focused { get; set; }
+    /// <summary>Whether the menu is open.</summary>
+    [Parameter] public bool MenuOpen { get; set; }
+    /// <summary>Raised with whether the menu should be open.</summary>
+    [Parameter] public EventCallback<bool> OnMenu { get; set; }
+
+    private ElementReference menuButton;
+    private ElementReference panel;
+    private bool shownOpen;
+
+    private string Expanded => MenuOpen ? "true" : "false";
+
+    private string PanelCls => "app-nav-panel"
+        + (Focused ? " app-nav-panel--focused" : null)
+        + (MenuOpen ? " app-nav-panel--open" : null);
+
+    private RenderFragment Search => @<button type="button" class="app-nav-search" title="Search or run a command (Ctrl K)"
+                                              aria-label="Search or run a command" @onclick="ShowPaletteAsync">
+        <i data-lucide="search"></i><span class="app-nav-search-label">Search</span><kbd class="app-nav-kbd">Ctrl K</kbd>
+    </button>;
+
+    private RenderFragment Panel => @<text>
+        <div class="@PanelCls" id="app-nav-panel" tabindex="-1" @ref="panel" @onkeydown="OnPanelKey">
+            <div class="app-nav-panel-head">
+                <a class="app-nav-home" href="" title="Open the start page"><StudioMark /><span>PGM Studio</span></a>
+                <button type="button" class="topbar-icon-btn app-nav-icon app-nav-close" aria-label="Close the studio menu"
+                        @onclick="CloseAsync">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            @if (Focused) { @Search }
+            <div class="app-nav-links">
+                @foreach (var link in Links)
+                {
+                    <a class="app-nav-link@(IsHere(link) ? " app-nav-link--active" : null)" href="@link.Href"
+                       aria-current="@(IsHere(link) ? "page" : null)">@link.Label</a>
+                }
+            </div>
+            <div class="app-nav-tools">
+                <button type="button" class="topbar-icon-btn app-nav-icon" @onclick="ShowKeysAsync"
+                        title="Show keyboard shortcuts (?)" aria-label="Show keyboard shortcuts">
+                    <i data-lucide="keyboard"></i>
+                </button>
+                <a class="topbar-icon-btn app-nav-icon" href="@DesignLink.Href" title="Open the design reference" aria-label="Open the design reference"
+                   aria-current="@(IsHere(DesignLink) ? "page" : null)">
+                    <i data-lucide="palette"></i>
+                </a>
+                <TextSizeMenu />
+                <ThemeToggle />
+                @if (Focused) { <AccountMenu /> }
+            </div>
+        </div>
+        @if (MenuOpen)
+        {
+            <div class="app-nav-scrim" @onclick="CloseAsync"></div>
+        }
+    </text>;
+
+    private Task OpenAsync() => OnMenu.InvokeAsync(true);
+
+    private Task CloseAsync() => OnMenu.InvokeAsync(false);
+
+    private async Task OnPanelKey(KeyboardEventArgs e)
+    {
+        if (MenuOpen && e.Key == "Escape") await CloseAsync();
+    }
+
     private Task ShowKeysAsync() => JS.InvokeVoidAsync("studio.showKeys").AsTask();
+
+    private Task ShowPaletteAsync() => JS.InvokeVoidAsync("studio.showPalette").AsTask();
 
     protected override void OnInitialized() => Nav.LocationChanged += OnLocationChanged;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
+    /// <summary>Opening the menu puts focus in it, and closing it hands focus back to the button that opened it.</summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JS.InvokeVoidAsync("studio.icons");
+        if (MenuOpen == shownOpen) return;
+        shownOpen = MenuOpen;
+        if (MenuOpen) await panel.FocusAsync();
+        else if (!Focused) await menuButton.FocusAsync();
+        else await JS.InvokeVoidAsync("studio.focusFirst", ".editor-studio-btn");
+    }
 
     /// <summary>A link is lit on its own page and every page under it; a map's tools sit under Maps.</summary>
     private bool IsHere(NavLink link)

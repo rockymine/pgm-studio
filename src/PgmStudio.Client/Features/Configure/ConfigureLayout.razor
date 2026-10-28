@@ -6,7 +6,7 @@
    three-panel workspace. A parameterized frame (not a Blazor layout directive); the page owns the
    state machine. See new-map-authoring.md §12. *@
 
-<StudioShell>
+<StudioShell Focused="true">
   <Bar>
     <EditorBar MapName="@(string.IsNullOrEmpty(MapName) ? "New map" : MapName)" Slug="@Slug" Stage="@MapStage.Configure" StageLabel="@StageLabel"
                PhaseIcon="@PhaseIcon" PhaseTitle="@PhaseTitle"

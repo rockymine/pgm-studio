@@ -1,0 +1,3 @@
+/* The studio's mark (StudioMark): the favicon's block, outlined in the strongest text colour of the theme. */
+.studio-mark { flex: none; width: var(--icon-xl); height: var(--icon-xl); }
+.studio-mark-edge { fill: var(--text-strong); }

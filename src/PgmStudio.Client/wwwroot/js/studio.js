@@ -226,6 +226,14 @@ window.studio = {
     const overlay = await import("/js/studio/shared/keys-overlay.js");
     overlay.openSheet();
   },
+  async showPalette() {
+    const overlay = await import("/js/studio/shared/keys-overlay.js");
+    overlay.openPalette();
+  },
+  // Hand focus to the first element a selector finds, for a control whose opener lives in another component.
+  focusFirst(selector) {
+    document.querySelector(selector)?.focus();
+  },
 };
 
 // ── Panel resize ───────────────────────────────────────────────────────

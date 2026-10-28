@@ -207,7 +207,7 @@ export class SideviewCanvas {
     if (!this.#data || !this.#offscreen) {
       painter.layer("empty", () => {
         painter.text("No ground to show", W / 2, H / 2, {
-          fill: "var(--text-muted)", size: 14, font: "system-ui, sans-serif",
+          fill: "var(--text-muted)", size: 14,
         });
       });
       return;
@@ -237,7 +237,7 @@ export class SideviewCanvas {
       ctx.fillRect(x2 + 4, lineY - _HANDLE_H / 2, _HANDLE_W, _HANDLE_H);
 
       painter.text(`Build ceiling y ${this.#buildHeight}`, x1 - 4, lineY - 2, {
-        fill: _LINE_COLOR, size: 11, font: "system-ui, sans-serif",
+        fill: _LINE_COLOR, size: 11,
         align: "right", baseline: "bottom",
       });
     });

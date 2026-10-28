@@ -195,7 +195,8 @@ is no account for a token to act as.
 
 ## What the browser shows
 
-The studio's bar says who the browser is on every page: the head, name and role signed in, opening a menu to
+The studio's bar says who the browser is on every page — on an editor, the studio menu its bar's mark opens: the
+head, name and role signed in, opening a menu to
 sign out; *Sign in with Discord* for a visitor; `local` in an open studio. For an admin its menu also carries
 *Users*, the whitelist at `/admin/users`. That page
 adds a player by name or uuid in a role, changes a role, takes someone off, and opens an invitation whose link

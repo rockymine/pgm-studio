@@ -21,18 +21,19 @@ const page = await newPage(browser);
 async function visit(base, path) {
   clearFaults(page);
   await page.goto(`${base}${path}`, { waitUntil: "networkidle", timeout: 30000 });
-  await page.waitForSelector(".app-nav-right .account-local, .app-nav-right .account-signin, .app-nav-right .account", { timeout: 20000 });
+  // An editor's account sits in the studio's menu, closed until it is opened, so the wait is for it to be there.
+  await page.waitForSelector(".account-local, .account-signin, .account-button", { state: "attached", timeout: 20000 });
 }
 
 const readState = () => page.evaluate(() => ({
   banner: document.querySelector(".editor-bar .readonly-tag, .topbar .readonly-tag")?.getAttribute("title") ?? null,
-  signIn: !!document.querySelector('.app-nav a.account-signin[href*="api/auth/discord"]'),
+  signIn: !!document.querySelector('a.account-signin[href*="api/auth/discord"]'),
   greyed: document.querySelectorAll("fieldset.readonly-fieldset[disabled]").length,
   select: !!document.querySelector('.canvas-dock button[aria-label="Select"]'),
   rectangle: !!document.querySelector('.canvas-dock button[aria-label="Rectangle"]'),
   inspector: document.querySelectorAll(".workspace-inspector, .workspace-scroll").length,
-  account: document.querySelector(".app-nav-right")?.textContent?.replace(/\s+/g, " ").trim() ?? "",
-  users: !!document.querySelector('.app-nav a[href="admin/users"]'),
+  account: document.querySelector(".account:not(.text-size)")?.textContent?.replace(/\s+/g, " ").trim() ?? "",
+  users: !!document.querySelector('.account-menu a[href="admin/users"]'),
 }));
 
 /** The first button or action link whose text matches, and whether it is closed: disabled, inside a disabled
@@ -104,10 +105,12 @@ checks.add("no view-only tag", state.banner === null, state.banner ?? "");
 checks.add("no field is greyed", state.greyed === 0, `${state.greyed} disabled fieldset(s)`);
 checks.add("the drawing tools are there", state.rectangle);
 checks.add("the studio bar names the local admin", /local/.test(state.account), state.account);
-await page.click(".app-nav-right .account-local");
+await page.click(".editor-studio-btn");
+await page.click(".app-nav-panel .account-local");
 state = await readState();
 checks.add("the account menu links the whitelist for an admin", state.users);
 await page.click(".account-scrim");
+await page.click(".app-nav-scrim");
 const openDownload = await settle(/^Download map/, false);
 checks.add("Download is open", openDownload?.closed === false, JSON.stringify(openDownload));
 const openIso = await settle(/^2-D$/, false);

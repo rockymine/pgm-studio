@@ -1,11 +1,19 @@
 @namespace PgmStudio.Client.Components
 
-@* The one bar the three editors draw under the studio's own. Left: where the page is — Maps, the map's name and
-   the stage switcher. Middle: the phase's icon and name and its steps, which collapse to a "Step n of m" menu on
+@* The one bar the editors draw, in place of the studio's own on a focused page. Left: the studio's mark, which opens
+   the studio's menu (StudioShell's "StudioMenu"), then where the page is — Maps, the map's name and the stage
+   switcher. Middle: the phase's icon and name and its steps, which collapse to a "Step n of m" menu on
    a narrow window. Right: the state (State), the tool's commands (Commands), a divider, and Back/Next. A page
    with no phase to show leaves PhaseTitle empty, and one with nothing to move between sets NoMove. *@
 
 <div class="editor-bar">
+  @if (Menu is not null)
+  {
+    <button type="button" class="topbar-icon-btn editor-studio-btn" aria-label="Open the studio menu" title="Open the studio menu"
+            aria-controls="app-nav-panel" aria-expanded="@(Menu.Open ? "true" : "false")" @onclick="Menu.OpenIt">
+      <StudioMark />
+    </button>
+  }
   <nav class="editor-crumb" aria-label="Breadcrumb">
     <a class="editor-crumb-link" href="maps">Maps</a>
     <span class="editor-crumb-sep" aria-hidden="true">›</span>
@@ -124,6 +132,8 @@
     [Parameter] public EventCallback OnNext { get; set; }
 
     [CascadingParameter(Name = "StudioReadOnlyReason")] public string? ReadOnlyReason { get; set; }
+    /// <summary>The studio's menu, on a focused page; elsewhere the studio bar carries it and this is null.</summary>
+    [CascadingParameter(Name = "StudioMenu")] public StudioMenu? Menu { get; set; }
 
     private bool stepsOpen;
     private string CommandsCls => LabelledCommands ? "editor-bar-commands editor-bar-commands--labelled" : "editor-bar-commands";

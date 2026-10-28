@@ -36,11 +36,12 @@
 .action-btn--full         { width: 100%; justify-content: center; }
 .action-btn--separated    { margin-top: var(--space-2); }
 
-/* The meaning variants <Button Variant> emits. Each is the tinted-fill + coloured-edge treatment the rest
-   of the studio already marks a state with (.filter-chip--active, .draw-tool-btn--active), in that
-   meaning's own token — so a destructive action reads as destructive rather than as the Cancel beside it. */
-.action-btn--primary        { background: var(--bg-selected); border-color: var(--accent); color: var(--accent-lighter); }
-.action-btn--primary:not(:disabled, [aria-disabled="true"]):hover  { background: var(--accent); border-color: var(--accent); color: var(--text-white); }
+/* The meaning variants <Button Variant> emits. Primary is the ink fill (--primary-bg), so the one action a surface
+   leads with reads first. Danger and warn are the tinted-fill + coloured-edge treatment the rest of the studio
+   marks a state with (.filter-chip--active, .draw-tool-btn--active), in that meaning's own token — so a
+   destructive action reads as destructive rather than as the Cancel beside it. */
+.action-btn--primary        { background: var(--primary-bg); border-color: var(--primary-bg); color: var(--primary-fg); font-weight: 500; }
+.action-btn--primary:not(:disabled, [aria-disabled="true"]):hover  { background: var(--primary-bg-hover); border-color: var(--primary-bg-hover); color: var(--primary-fg); }
 .action-btn--danger         { background: var(--color-error-bg); border-color: var(--color-error); color: var(--color-error); }
 .action-btn--danger:not(:disabled, [aria-disabled="true"]):hover   { background: var(--color-error); border-color: var(--color-error); color: var(--text-white); }
 .action-btn--warn           { background: var(--color-warning-bg); border-color: var(--color-warning); color: var(--color-warning); }
@@ -54,3 +55,6 @@
   opacity: 0.6; cursor: default;
 }
 .action-btn--busy { opacity: 0.8; cursor: progress; }
+@media (pointer: coarse) {
+  .action-btn { min-height: var(--control-height); }
+}

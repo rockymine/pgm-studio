@@ -5,7 +5,7 @@
 :root {
   /* Default (dark) theme. Light overrides live in the `:root[data-theme="light"]`
    * block at the foot of this file — keep the two in sync. Only the COLOUR tokens are
-   * themed; the structural tokens (spacing, radii, fonts, widths, motion) are shared.
+   * themed; the structural tokens (spacing, radii, typefaces, widths, motion) are shared.
    * Theme is selected by `data-theme` on <html> (set by the inline script in index.html). */
   color-scheme: dark;
 
@@ -18,28 +18,28 @@
   --nav-text:        var(--text-secondary);
   --nav-text-muted:  var(--text-muted);
   --nav-text-strong: var(--text-strong);
-  --bg-canvas:          #080f1a;   /* map/sketch VIEWPORT (themed; light override in [data-theme=light]) */
-  --bg-deep:            #080f1a;   /* deepest UI surface (logo box) */
-  --bg-base:            #0f172a;   /* page background */
-  --bg-panel:           #1e293b;   /* sidebars, panels, topbar */
+  --bg-canvas:          #0a0a0c;   /* map/sketch VIEWPORT (themed; light override in [data-theme=light]) */
+  --bg-deep:            #0b0b0e;   /* deepest UI surface (logo box) */
+  --bg-base:            #0e0e11;   /* page background */
+  --bg-panel:           #16161a;   /* sidebars, panels, topbar */
   --bg-multi:           #1a3a2f;   /* multi-team selection tint */
-  --bg-selected:        #1e3a5f;   /* selected row / active fill */
+  --bg-selected:        #24304f;   /* selected row / active fill */
   --bg-selected-hover:  color-mix(in oklch, var(--bg-selected) 27%, transparent);
   --bg-selected-child:  color-mix(in oklch, var(--bg-selected) 47%, transparent);
-  --bg-vis-hover:       #162032;   /* visibility button hover */
+  --bg-vis-hover:       #1c1c21;   /* visibility button hover */
   --bg-base-glass:      color-mix(in oklch, var(--bg-base)  80%, transparent);
   --bg-panel-glass:     color-mix(in oklch, var(--bg-panel) 80%, transparent);
 
   /* ── Borders ─────────────────────────────────────────────────────────── */
-  --border:        #334155;
+  --border:        #2e2e35;
   --border-swatch: rgba(255,255,255,0.15); /* overlay edge on color-filled swatches/dots */
 
   /* ── Text hierarchy (quiet → strong) — all pass WCAG AA on bg-panel and bg-base ── */
-  --text-muted:     #8397b0;   /* 4.9:1 — section headers, metadata, tags */
-  --text-secondary: #94a3b8;   /* 5.7:1 — form labels, secondary content */
-  --text-primary:   #cbd5e1;   /* 9.9:1 — default body text */
-  --text-bright:    #e2e8f0;   /* 11.9:1 — headings, emphasis */
-  --text-strong:    #fff;      /* strongest text / active chrome (headings, active rail, cat headers) */
+  --text-muted:     #8b8b94;   /* 5.3:1 — section headers, metadata, tags */
+  --text-secondary: #a1a1aa;   /* 7.0:1 — form labels, secondary content */
+  --text-primary:   #d4d4d8;   /* 12.2:1 — default body text */
+  --text-bright:    #e4e4e7;   /* 14.2:1 — headings, emphasis */
+  --text-strong:    #fafafa;   /* strongest text / active chrome (headings, active rail, cat headers) */
   --text-white:     #fff;      /* text on a SATURATED accent fill (stays light in every theme) */
 
   /* ── Accent (primary action colour) ─────────────────────────────────── */
@@ -48,6 +48,11 @@
   --accent-light:    #60a5fa;
   --accent-lighter:  #93c5fd;
   --accent-bg-hover: oklch(from var(--accent) calc(l - 0.12) c h); /* darkened accent for hover */
+  /* The one action a surface leads with is drawn in ink: the strongest text colour as the fill, the page under it
+     as the label, so it reads first in either theme without spending the accent that selection and focus use. */
+  --primary-bg:       var(--text-strong);
+  --primary-fg:       var(--bg-base);
+  --primary-bg-hover: color-mix(in oklch, var(--text-strong) 84%, var(--bg-base));
 
   /* ── Shadows ─────────────────────────────────────────────────────────── */
   --shadow-ring:  0 0 0 1px var(--accent);                   /* selection outline — list rows, inputs */
@@ -94,7 +99,7 @@
      Distinct (more saturated) from --canvas-axis used by the editor's radial crosshair. */
   --canvas-symmetry: #a855f7;   /* purple-500 */
   /* High-contrast "ink" for lines/labels/outlines drawn over the canvas bg (block highlight,
-     marker outlines). White on the dark viewport; the light theme flips it to dark slate. */
+     marker outlines). White on the dark viewport; the light theme flips it to dark ink. */
   --canvas-ink: #ffffff;
   --canvas-marker-stroke: var(--canvas-ink);
 
@@ -114,7 +119,7 @@
   /* A server-drawn board picture (generator, shape catalog) sits on --board-bg and paints four inks: ground,
      spawn room, wool room and the build zone's outline, each a fill and an edge, plus the iron pip. Ground is a
      tint of the canvas's piece grey (--canvas-role-piece), so a board and the sketch's pieces read as one. */
-  --board-bg: #0b1222;
+  --board-bg: #0f0f12;
   --board-ground:      color-mix(in srgb, var(--canvas-role-piece) 38%, var(--board-bg));
   --board-ground-edge: color-mix(in srgb, var(--canvas-role-piece) 75%, var(--board-bg));
   --board-spawn:       color-mix(in srgb, var(--canvas-role-spawn) 34%, var(--board-bg));
@@ -140,7 +145,7 @@
   --canvas-region: #94a3b8;   /* slate-400 — fallback / design-doc placeholder */
 
   /* Resize handles — sketch selected + editor selected */
-  --canvas-handle-fill:   #0f172a;   /* slate-950 */
+  --canvas-handle-fill:   #0e0e11;
   --canvas-handle-stroke: #94a3b8;   /* slate-400 */
 
   /* Side-view build-height line (2D canvas — resolved via getComputedStyle) */
@@ -228,6 +233,11 @@
    * a large display does not need the browser zoomed. The overrides sit after this block. */
   --ui-scale: 1;
 
+  /* ── Typefaces ──────────────────────────────────────────────────────── */
+  /* Geist for every word, Geist Mono for what is read as data: a slug, a coordinate, a block id, a count. */
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+
   /* ── Type scale ─────────────────────────────────────────────────────── */
   --font-2xl:  calc(26px * var(--ui-scale));   /* page hero */
   --font-xl:   calc(20px * var(--ui-scale));   /* page heading */
@@ -283,37 +293,41 @@
 :root[data-text-size="large"]  { --ui-scale: 1.15; }
 :root[data-text-size="larger"] { --ui-scale: 1.3; }
 
+/* A touch screen: a control is a fingertip tall, the 44px target size of WCAG 2.5.5, whatever the window's width. */
+@media (pointer: coarse) {
+  :root { --control-height: calc(44px * var(--ui-scale)); }
+}
+
 /* ════════════════════════════════════════════════════════════════════════════
    LIGHT THEME — colour overrides only (structural tokens inherit from :root).
    Selected via <html data-theme="light">. The canvas tokens follow it only where a dark
    value loses its contrast on the light viewport. (Chat / dye / team / wool palettes are
    game data and live outside CSS, in js/studio/render/palette.js.)
-   Slate-based ramp mirroring the dark theme (Tailwind slate / blue / status hues).
+   Zinc-based ramp mirroring the dark theme (Tailwind zinc / blue / status hues).
    ════════════════════════════════════════════════════════════════════════════ */
 :root[data-theme="light"] {
   color-scheme: light;
 
   /* ── Backgrounds (elevation inverts: raised = lighter/white) ──────────── */
-  --bg-deep:            #e2e8f0;   /* slate-200 — recessed UI surface */
-  --bg-base:            #f1f5f9;   /* slate-100 — page background */
+  --bg-deep:            #ececef;   /* recessed UI surface */
+  --bg-base:            #f6f6f7;   /* page background */
   --bg-panel:           #ffffff;   /* white — sidebars, panels, topbar */
   --bg-multi:           #dcfce7;   /* green-100 — multi-team tint */
-  --bg-selected:        #bfdbfe;   /* blue-200 — selected row / active fill */
+  --bg-selected:        #dbe5fd;   /* selected row / active fill */
   --bg-selected-hover:  #eff6ff;   /* blue-50 — row hover (explicit; dark's color-mix is too faint here) */
   --bg-selected-child:  #dbeafe;   /* blue-100 — child of a selected row */
-  --bg-vis-hover:       #e2e8f0;   /* slate-200 — visibility button hover */
+  --bg-vis-hover:       #e4e4e7;   /* zinc-200 — visibility button hover */
 
   /* ── Borders ─────────────────────────────────────────────────────────── */
-  --border:        #cbd5e1;            /* slate-300 */
+  --border:        #d4d4d8;            /* zinc-300 */
   --border-swatch: rgba(0,0,0,0.18);   /* dark edge on colour-filled swatches/dots */
 
-  /* ── Text hierarchy (quiet → strong) — all pass WCAG AA on white / slate-100 / slate-200 ── */
-  --text-muted:     #586780;   /* slate-blue 500/600 — 5.7:1 white, 5.2:1 base, 4.7:1 deep */
-  --text-secondary: #475569;   /* slate-600 — 7.6:1 white */
-  --text-primary:   #1e293b;   /* slate-800 */
-  --text-primary:   #1e293b;   /* slate-800 */
-  --text-bright:    #0f172a;   /* slate-900 */
-  --text-strong:    #0f172a;   /* slate-900 — headings / active chrome */
+  /* ── Text hierarchy (quiet → strong) — all pass WCAG AA on the panel, the page and the recessed surface ── */
+  --text-muted:     #63636b;   /* 6.0:1 white, 5.5:1 base, 5.0:1 deep */
+  --text-secondary: #52525b;   /* zinc-600 — 7.7:1 white */
+  --text-primary:   #27272a;   /* zinc-800 */
+  --text-bright:    #18181b;   /* zinc-900 */
+  --text-strong:    #09090b;   /* zinc-950 — headings / active chrome */
   /* --text-white stays #fff (text on saturated accent fills) */
 
   /* ── Accent — the "lighter" steps darken (they read as text on light fills) ── */
@@ -322,8 +336,8 @@
   /* --accent + --accent-bg-hover unchanged (work on both themes) */
 
   /* ── Shadows — softer on light ───────────────────────────────────────── */
-  --shadow-float:  0 8px 24px rgb(15 23 42 / 0.18);
-  --shadow-raised: inset 0 1px 0 rgb(255 255 255 / 0.7), 0 1px 3px rgb(15 23 42 / 0.12);
+  --shadow-float:  0 8px 24px rgb(9 9 11 / 0.18);
+  --shadow-raised: inset 0 1px 0 rgb(255 255 255 / 0.7), 0 1px 3px rgb(9 9 11 / 0.12);
 
   /* ── Semantic status — dark text on clean 100-level tints (AA badge text on -bg ≥4.5;
        overrides the dark theme's color-mix -bg, which goes muddy-grey on white). ── */
@@ -340,8 +354,8 @@
 
   /* ── Canvas / map viewport — light too (the other --canvas-* are saturated
        mid-tones that read on both backgrounds and keep their dark values). ── */
-  --bg-canvas:     #e2e8f0;   /* slate-200 — light viewport (recessed under white panels) */
-  --canvas-float-shadow: 0 6px 20px rgb(15 23 42 / 0.16);   /* the floating chrome, softer on light */
+  --bg-canvas:     #e4e4e7;   /* zinc-200 — light viewport (recessed under white panels) */
+  --canvas-float-shadow: 0 6px 20px rgb(9 9 11 / 0.16);   /* the floating chrome, softer on light */
   --board-bg:      #ffffff;   /* the paper the plan figures are drawn on */
   --board-ground:      color-mix(in srgb, var(--canvas-role-piece) 18%, var(--board-bg));
   --board-ground-edge: color-mix(in srgb, var(--canvas-role-piece) 66%, var(--board-bg));
@@ -352,10 +366,10 @@
   --board-zone:        #0072b2;
   --board-zone-edge:   #0072b2;
   --board-iron:        #9aa1a9;
-  --canvas-ink:    #0f172a;   /* slate-900 — dark lines/outlines over the light canvas */
+  --canvas-ink:    #18181b;   /* zinc-900 — dark lines/outlines over the light canvas */
   --canvas-axis:   #7c3aed;   /* violet-600 — axis/crosshair, darker for light bg */
   --canvas-region: #64748b;   /* slate-500 — region fallback, darker for light bg */
   --canvas-box-mid: #64748b;   /* slate-500 — the slate-400 dash fades on the light viewport */
-  --canvas-evidence-bound: #ca8a04;   /* yellow-600 — amber-yellow is near-invisible on slate-200 */
+  --canvas-evidence-bound: #ca8a04;   /* yellow-600 — amber-yellow is near-invisible on the light viewport */
   --canvas-place: #0284c7;
 }

@@ -51,7 +51,7 @@ import {
 import { rasterizeBoard } from "../geometry/rasterize.js";
 import { loadBlockImage, blockImageBounds } from "../render/block-render.js";
 import { viewportWorldRect, snapOut, gridStep, paintWorkArea, renderScaleBar, renderDimensionPill, renderSelectionMarks, renderTransformBox, gripSideX, gripSideZ } from "../render/canvas-chrome.js";
-import { labelPx } from "../shared/ui-scale.js";
+import { labelPx, fontStack } from "../shared/ui-scale.js";
 // iso-webgl is loaded lazily (on first 3-D toggle) so a missing/blocked WebGL stack — or any failure
 // to load that module — degrades to "no 3-D preview" instead of breaking the whole editor at page load.
 
@@ -1579,7 +1579,7 @@ export class SketchCanvas extends CanvasBase {
     const t = svgEl("text", {
       x: tx, y: ty, transform: `rotate(${deg.toFixed(1)} ${tx.toFixed(1)} ${ty.toFixed(1)})`,
       "text-anchor": "middle", "dominant-baseline": "middle",
-      "font-size": labelPx(11), "font-family": "ui-monospace, monospace", "font-weight": "600",
+      "font-size": labelPx(11), "font-family": fontStack("--font-mono"), "font-weight": "600",
       fill: "var(--canvas-axis)", "pointer-events": "none",
       "paint-order": "stroke", stroke: "var(--bg-canvas)", "stroke-width": "3", "stroke-linejoin": "round",
     });

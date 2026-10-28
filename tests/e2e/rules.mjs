@@ -42,7 +42,7 @@ checks.add("Rules is lit on its own page", ((await rulesLink.getAttribute("class
 checks.add("the bar reads Maps, Generator, Library, Rules, Glossary",
   (await page.locator(".app-nav-link").allTextContents()).map((text) => text.trim()).join(", ")
     === "Maps, Generator, Library, Rules, Glossary");
-await page.click(".app-nav-right .account-local, .app-nav-right .account-button");
+await page.click(".app-nav .account-local, .app-nav .account-button");
 const docs = page.locator('.account-menu a[href="/api-docs"]');
 checks.add("API docs, in the account menu, opens /api-docs in a new tab",
   (await docs.getAttribute("href")) === "/api-docs" && (await docs.getAttribute("target")) === "_blank");

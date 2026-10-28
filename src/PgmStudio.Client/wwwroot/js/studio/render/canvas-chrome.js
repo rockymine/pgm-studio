@@ -20,7 +20,7 @@
  */
 
 import { svgEl } from "./svg.js";
-import { labelPx } from "../shared/ui-scale.js";
+import { labelPx, fontStack } from "../shared/ui-scale.js";
 
 function clear(layer) { while (layer.firstChild) layer.removeChild(layer.firstChild); }
 
@@ -104,7 +104,7 @@ export function renderDimensionPill(layer, { left, right, bottom, width, depth, 
   }));
   const label = svgEl("text", {
     x: mid, y: top + PAD_Y + FONT - 1, "text-anchor": "middle", "dominant-baseline": "auto",
-    "font-size": FONT, "font-family": "ui-monospace, monospace", "font-weight": "600",
+    "font-size": FONT, "font-family": fontStack("--font-mono"), "font-weight": "600",
     // Dark ink: the pill is always a bright accent, so the number stays legible in either theme.
     fill: "var(--canvas-handle-fill)", "pointer-events": "none",
   });
@@ -124,7 +124,7 @@ export function renderSelectionMarks(layer, { left, top, right, bottom, name, wi
   if (text) {
     const label = svgEl("text", {
       x: left, y: top - 5, "text-anchor": "start", "dominant-baseline": "alphabetic",
-      "font-size": labelPx(11), "font-family": "ui-monospace, monospace",
+      "font-size": labelPx(11), "font-family": fontStack("--font-mono"),
       fill: color, "pointer-events": "none",
     });
     label.textContent = text;
@@ -151,7 +151,7 @@ export function renderScaleBar(layer, { w, h, scale }) {
   layer.appendChild(svgEl("line", { x1: x2, y1: y - tick, x2, y2: y, ...ink }));
   const t = svgEl("text", {
     x: (x1 + x2) / 2, y: y - tick - 3, "text-anchor": "middle",
-    "font-size": labelPx(11), "font-family": "ui-monospace, monospace", "font-weight": "600",
+    "font-size": labelPx(11), "font-family": fontStack("--font-mono"), "font-weight": "600",
     fill: "var(--canvas-axis)", "pointer-events": "none",
     "paint-order": "stroke", stroke: "var(--bg-canvas)", "stroke-width": "3", "stroke-linejoin": "round",
   });

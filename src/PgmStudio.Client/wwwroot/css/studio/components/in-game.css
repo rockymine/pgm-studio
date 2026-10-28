@@ -52,7 +52,7 @@
 .ingame__camera {
   position: absolute; top: var(--space-2); left: var(--space-2); z-index: 1; pointer-events: none;
   display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
-  font-family: ui-monospace, monospace; font-size: var(--font-sm); line-height: 1;
+  font-family: var(--font-mono); font-size: var(--font-sm); line-height: 1;
 }
 .ingame__camera span { padding: 3px 5px; background: rgba(48, 48, 48, 0.62); color: #f0f0f0; text-shadow: 1px 1px 0 #3a3a3a; }
 .ingame__marks { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }

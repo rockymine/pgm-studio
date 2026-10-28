@@ -69,10 +69,10 @@ checks.add("Glossary is lit on its own page",
   ((await page.locator(".app-nav-link", { hasText: "Glossary" }).getAttribute("class")) ?? "").includes("app-nav-link--active"));
 checks.add("no divider stands in it", (await page.locator(".app-nav-divider").count()) === 0);
 for (const label of ["Show keyboard shortcuts", "Open the design reference"]) {
-  checks.add(`${label} is an icon at the right`, (await page.locator(`.app-nav-right [aria-label^="${label}"]`).count()) === 1);
+  checks.add(`${label} is an icon at the right`, (await page.locator(`.app-nav-tools [aria-label^="${label}"]`).count()) === 1);
 }
 checks.add("the footer no longer carries them", (await page.locator(".app-footer-link", { hasText: /Keyboard|Design/ }).count()) === 0);
-await page.click('.app-nav-right [aria-label="Show keyboard shortcuts"]');
+await page.click('.app-nav-tools [aria-label="Show keyboard shortcuts"]');
 await page.waitForFunction(() => /Keyboard|shortcut/i.test(document.body.textContent), null, { timeout: 5000 });
 
 checks.add("the glossary is clean", page.faults.length === 0, page.faults.slice(0, 3).join(" | "));

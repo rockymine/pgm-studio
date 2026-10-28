@@ -165,21 +165,30 @@ lifecycle position (no `map.xml` yet against has one), which is why the labels a
 
 ## Exits
 
-**Every page carries a studio bar and a bar of its own, and each answers one question.** The studio's own bar (`AppNav`) is the same
-everywhere: home, then **Maps · Generator · Library · Rules · Glossary**, each lit on the page it names and every
-page under it, so Maps is lit in a map's tools;
-and at the right icon buttons for the keyboard shortcuts (the sheet `?` also opens) and the design reference
-(`/design`), then the text size, the theme and the account. The account menu carries Tokens, Users for an admin,
-and **API docs** (`/api-docs`, which opens in a new tab, being the API's own page rather than the client's); in an
-open studio the `local admin` button opens it with Users and API docs, and a visitor's sign-in has a menu beside it
-holding API docs. The page's bar under it is the trail to where the page is and the page's own state and actions: a
-`Topbar` on a browse or admin page, and the one `EditorBar` on the two editors. So getting to another tool is
-always one click in the top bar, and the page's bar holds nothing that is not the page's.
+**Every page that is not an editor carries a studio bar and a bar of its own, and each answers one question.** The
+studio's own bar (`AppNav`) is the same everywhere: the studio's mark and name, which go home, then **Maps ·
+Generator · Library · Rules · Glossary**, each lit on the page it names and every page under it, so Maps is lit in a
+map's tools; and at the right a search that opens the command palette (what `Ctrl K` also opens), icon buttons for
+the keyboard shortcuts (the sheet `?` also opens) and the design reference (`/design`), then the text size, the theme
+and the account. The account menu carries Tokens, Users for an admin, and **API docs** (`/api-docs`, which opens in a
+new tab, being the API's own page rather than the client's); in an open studio the `local admin` button opens it
+with Users and API docs, and a visitor's sign-in has a menu beside it holding API docs. The page's bar under it is
+the trail to where the page is and the page's own state and actions: a `Topbar` on a browse or admin page. So
+getting to another tool is one click in the top bar, and the page's bar holds nothing that is not the page's.
 
-**The editors draw one bar, not two.** Sketch and Configure draw `EditorBar` in place of a `Topbar` and a
-step strip, so the trail, the phase and the work's commands are one row of 44 px. Left to right it holds the
-crumb and the stage switcher, the phase's icon and name with its steps, and at the right the state, the tool's
-commands, a divider and Back/Next. The bar is present in every phase, Info included, so the crumb never moves.
+**Below 960px the studio bar folds into a menu.** The bar keeps the mark, the search and the account, and a menu
+button at its left opens the links and the four tools as a panel sliding in from the left, over a dimmed page.
+The panel takes focus when it opens; its ✕, the dimmed page, Escape and a move to another page close it, and
+focus goes back to the button. The breakpoints a narrow window passes through are `ui-conventions.md`'s *A narrow
+window*.
+
+**An editor draws one bar, not three.** Sketch and Configure are focused pages (`StudioShell Focused`): they draw
+neither the studio bar nor the footer, and their `EditorBar` stands in place of a `Topbar` and a step strip, so the
+trail, the phase and the work's commands are one row and the canvas has the window's full height. Left to right the
+bar holds the studio's mark, which opens the same studio menu — carrying the search and the account as well, since
+there is no studio bar to hold them — then the crumb and the stage switcher, the phase's icon and name with its
+steps, and at the right the state, the tool's commands, a divider and Back/Next. The bar is present in every phase,
+Info included, so the crumb never moves.
 
 **A map tool leaves through the unfiltered maps list.** The crumb's first segment is *Maps*, a link to `/maps`
 with no stage filter: the segment names its parent, so the link goes to the parent, and which stage a person was
@@ -187,7 +196,8 @@ looking at is a view of that list rather than a place. The map's name follows as
 already open and a link to it would go nowhere. The phase is not in the crumb; the phase and its steps are the
 bar's middle, and the rail names them again. The surfaces that hold no map — the generator, the catalog, the
 library, the design showcase and the maps page itself — draw a `Topbar` with no home link, because the studio's
-bar above them is already the way home.
+bar above them is already the way home; on an editor the way home is the crumb's *Maps*, or the menu its mark
+opens.
 
 **The tool is a switcher, not a crumb.** After the map's name `StageSwitch` shows the tool the page is —
 *Sketch* or *Configure* — as a button whose menu lists the two. A tool is a link where the map holds that layer

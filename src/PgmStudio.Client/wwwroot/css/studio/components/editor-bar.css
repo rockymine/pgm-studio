@@ -1,8 +1,9 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   EDITOR BAR  (the one bar the three editors draw under the studio's own: where the
+   EDITOR BAR  (the one bar an editor draws in place of the studio's own: where the
    page is, what phase and step the work is at, what the tool can do, and Back/Next.)
-   Left to right: the crumb and its stage switcher, the phase and its steps, then the
-   state, the commands, a divider and the move.
+   Left to right: the studio's mark, which opens the studio's menu, the crumb and its
+   stage switcher, the phase and its steps, then the state, the commands, a divider
+   and the move.
    ══════════════════════════════════════════════════════════════════════════ */
 .editor-bar {
   display: flex; align-items: center; gap: var(--space-4);
@@ -12,6 +13,9 @@
   background: var(--bg-panel);
   border-bottom: 1px solid var(--border);
 }
+
+.editor-studio-btn { width: var(--control-height); height: var(--control-height); margin-left: calc(-1 * var(--space-2)); }
+.editor-studio-btn .studio-mark { width: var(--icon-lg); height: var(--icon-lg); }
 
 /* The crumb and the switcher share one line box: every item takes the same font, size, weight and line height
    and no vertical padding, so their text sits on one baseline whatever the item is. */
@@ -98,9 +102,9 @@
   .editor-bar .flow-steps { display: none; }
   .editor-bar .flow-steps-compact { display: block; }
 }
-@media (max-width: 720px) {
+@media (max-width: 860px) {
   .editor-bar { flex-wrap: wrap; gap: var(--space-2) var(--space-3); padding: var(--space-2) var(--space-4); }
-  .editor-crumb { flex: 1 1 100%; }
+  .editor-crumb { flex: 1 1 calc(100% - var(--control-height) - var(--space-3)); }
   .editor-bar-flow { flex: 1 1 auto; }
   .editor-bar-end { flex-wrap: wrap; justify-content: flex-end; }
 }

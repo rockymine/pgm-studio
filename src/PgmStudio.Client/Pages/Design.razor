@@ -19,7 +19,7 @@
   <ChildContent>
 
 <Workspace id="ds-layout">
-  <FilterSidebar>
+  <FilterSidebar Title="Contents">
     @foreach (var (group, sections) in Contents)
     {
       <FilterPanel Title="@group">
@@ -97,6 +97,13 @@
           {
             <div class="ds-type-row"><span style="@($"font-size: var({token.Name})")">The studio writes map.xml</span><code>@token.Name</code><small>@token.Use</small></div>
           }
+        </div>
+      </div>
+      <div class="ds-subsection">
+        <h3>Typefaces</h3>
+        <div class="ds-type-scale">
+          <div class="ds-type-row"><span style="font-family: var(--font-sans)">Geist carries every word</span><code>--font-sans</code><small>labels, headings, sentences</small></div>
+          <div class="ds-type-row"><span style="font-family: var(--font-mono)">composed-p9-t2-1 · x 112 · y 64</span><code>--font-mono</code><small>slugs, coordinates, block ids, counts</small></div>
         </div>
       </div>
       <div class="ds-subsection">
@@ -185,6 +192,7 @@
           <AuthorMark Name="Annealing Team" Agent="false" Size="24" />
           <AuthorMark Name="An agent" Agent="true" Size="24" />
           <PlayerHead Name="Notch" Size="24" />
+          <StudioMark />
         </div>
       </div>
     </section>
@@ -419,14 +427,16 @@
 
       <div class="ds-subsection">
         <h3>Editor bar</h3>
-        <p class="ds-theming-note">The one bar the Sketch and Configure editors draw under the studio's own
-           (<code>EditorBar</code>). Left, the crumb — <strong>Maps</strong>, the map's name — and the
+        <p class="ds-theming-note">The one bar the Sketch and Configure editors draw in place of the studio's own
+           (<code>EditorBar</code>). Left, the studio's mark, which opens the studio's menu on an editor's page, then
+           the crumb — <strong>Maps</strong>, the map's name — and the
            <strong>stage switcher</strong> (<code>StageSwitch</code>), a button naming the current tool whose menu
            opens the map's other tools, dashed where the map has no such layer. Middle, the
            <strong>phase-identity cluster</strong> (<code>editor-bar-phase</code>: the phase's icon + name) and flat-text
            step labels with an accent underline on the active one; below 1100 px the steps become a
            "Step n of m" menu. Right, the state, the tool's commands, a divider, then Back/Next.</p>
         <div class="ds-bar-frame">
+        <CascadingValue Name="StudioMenu" Value="StudioMenu.Closed">
         <EditorBar MapName="Harbour Run" Slug="harbour_run" Stage="@MapStage.Sketch"
                    PhaseIcon="goal" PhaseTitle="Wools" Steps="FlowSteps"
                    CurrentStep="1" BackEnabled="true">
@@ -437,6 +447,7 @@
             <Button Variant="icon" Icon="download" Title="Download" />
           </Commands>
         </EditorBar>
+        </CascadingValue>
         </div>
       </div>
 
@@ -469,7 +480,7 @@
     <section class="ds-section" id="filters">
       <div class="ds-section-heading">
         <div><p class="ds-kicker">06</p><h2>Filter rail</h2></div>
-        <p><code>FilterSidebar</code> holds <code>FilterPanel</code>s, each a titled block of <code>FilterGroup</code>s, each a row of <code>Chip</code>s. The rail on the left of this page is built from the same three.</p>
+        <p><code>FilterSidebar</code> holds <code>FilterPanel</code>s, each a titled block of <code>FilterGroup</code>s, each a row of <code>Chip</code>s. The contents rail of this page is built from the same three.</p>
       </div>
       <div class="ds-workspace-frame">
         <Workspace>

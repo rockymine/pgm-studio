@@ -5,7 +5,10 @@
 @inject IJSRuntime JS
 
 @* The full-screen studio shell — the .editor-page wrapper around the studio's own bar (AppNav), the tool's
-   Bar (a Topbar), the body and the footer. The default body is .app-body with an optional Rail (a NavRail)
+   Bar (a Topbar, or an editor's EditorBar), the body and the footer. An editor sets Focused: its page draws no
+   studio bar, and the studio's menu opens from the EditorBar instead; whether that menu is open is held here and
+   reaches the Bar as "StudioMenu", so the studio bar's button and the editor's open the one menu, and a move to
+   another page closes it. A focused page drops the footer too, so the editor has the window's full height. The default body is .app-body with an optional Rail (a NavRail)
    beside the .activity-viewport that wraps ChildContent. Two escapes: Viewport=false drops the viewport
    wrapper (ChildContent sits directly in .app-body); Bare=true drops .app-body entirely for pages that own
    their own body layout (the generator's gen-body, the /design ds-layout).
@@ -19,8 +22,9 @@
    build something, a map's export, is closed (StudioAccess.BuildReasonAsync) reaches both as
    "StudioBuildReason", which a Button marked Builds reads. Until the answers are in, all three are closed. *@
 
-<div class="editor-page@(ReadOnly ? " studio-readonly" : "")">
-    <AppNav />
+<div class="@PageCls">
+    <AppNav Focused="Focused" MenuOpen="menuOpen" OnMenu="SetMenu" />
+    <CascadingValue Name="StudioMenu" Value="@(Focused ? menu : null)">
     <CascadingValue Name="StudioWriteReason" Value="writeReason">
     <CascadingValue Name="StudioDeleteReason" Value="deleteReason">
     <CascadingValue Name="StudioBuildReason" Value="buildReason">
@@ -50,7 +54,11 @@
     </CascadingValue>
     </CascadingValue>
     </CascadingValue>
-    <AppFooter />
+    </CascadingValue>
+    @if (!Focused)
+    {
+        <AppFooter />
+    }
 </div>
 
 @code {
@@ -58,6 +66,8 @@
     [Parameter] public RenderFragment? Rail { get; set; }
     [Parameter] public bool Bare { get; set; }
     [Parameter] public bool Viewport { get; set; } = true;
+    /// <summary>An editor's page: no studio bar; the editor's own bar opens the studio's menu.</summary>
+    [Parameter] public bool Focused { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     private string? readOnlyReason;
@@ -68,14 +78,36 @@
 
     private bool ReadOnly => readOnlyReason is not null;
 
+    private string PageCls => "editor-page" + (ReadOnly ? " studio-readonly" : null) + (Focused ? " editor-page--focused" : null);
+
+    private bool menuOpen;
+    private string menuPath = "";
+    private StudioMenu menu = StudioMenu.Closed;
+
+    private string PathOf(string uri) => Nav.ToBaseRelativePath(uri).Split('?', '#')[0];
+
+    /// <summary>Opens or closes the studio's menu. The cascaded value is a new record each time, so the Bar under
+    /// it renders with the menu's state.</summary>
+    private void SetMenu(bool open)
+    {
+        menuOpen = open;
+        menu = new StudioMenu(open, EventCallback.Factory.Create(this, () => SetMenu(true)));
+    }
+
     protected override async Task OnInitializedAsync()
     {
+        SetMenu(false);
+        menuPath = PathOf(Nav.Uri);
         Nav.LocationChanged += OnLocationChanged;
         await AskAsync();
     }
 
     private async void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
+        // A tool rewrites its own query as the work moves; only a move to another page closes the menu.
+        var path = PathOf(Nav.Uri);
+        if (path != menuPath) SetMenu(false);
+        menuPath = path;
         await AskAsync();
         await InvokeAsync(StateHasChanged);
     }

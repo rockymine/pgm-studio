@@ -48,7 +48,7 @@
   background: transparent; color: inherit; font: inherit; cursor: pointer; text-align: left;
 }
 .canvas-layer-tab-name { font-size: var(--font-sm); line-height: 1.2; max-width: 12ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.canvas-layer-tab-y { font-family: ui-monospace, monospace; font-size: var(--font-xs); color: var(--text-muted); line-height: 1.2; }
+.canvas-layer-tab-y { font-family: var(--font-mono); font-size: var(--font-xs); color: var(--text-muted); line-height: 1.2; }
 .canvas-layer-tab-wrap--on .canvas-layer-tab-y { color: var(--accent-lighter); }
 /* Shown only on the hovered or active tab — a strip of storeys reads as a switch, and a delete on every one
    of them reads as a list of deletes. Faded rather than hidden, and its slot held either way: a strip that
