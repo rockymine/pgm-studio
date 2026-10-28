@@ -6,8 +6,8 @@
 
 @* Who the browser is, at the right of the studio's bar, opening a menu. Signed in: the head, name and role,
    and in the menu the tokens that sign in as them, the whitelist and the API docs for an admin, and sign out.
-   An open studio: "local admin" with the whitelist and the API docs. A visitor: the sign-in with Discord's mark,
-   and no menu. *@
+   An open studio: "local admin" with the whitelist and the API docs. A visitor: the SignInButton and no menu,
+   except in an editor's menu (Focused), which draws nothing for a visitor since the editor's bar holds it. *@
 
 @if (me is not null)
 {
@@ -31,11 +31,9 @@
                 <i data-lucide="chevron-down"></i>
             </button>
         }
-        else
+        else if (!Focused)
         {
-            <a class="account-signin" href="@StudioAccess.SignInHref(Nav.ToBaseRelativePath(Nav.Uri))">
-                <DiscordMark /><span>Sign in with Discord</span>
-            </a>
+            <SignInButton />
         }
         @if (open)
         {
@@ -82,6 +80,9 @@
 }
 
 @code {
+    /// <summary>Drawn in an editor's menu, whose bar already offers a visitor the sign-in.</summary>
+    [Parameter] public bool Focused { get; set; }
+
     private CallerDto? me;
     private bool open;
 

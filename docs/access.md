@@ -210,7 +210,8 @@ once with a copy button, and lists theirs with what each is for and when it was 
 marked *Notes* in the list.
 
 A page the caller may not write opens read-only: the tool's bar says *View only* to someone signed in, with the
-reason on hover, and offers a signed-out visitor *Sign in* in its place, since the reason is that they are not; the
+reason on hover. A signed-out visitor is offered one thing, the studio bar's *Sign in with Discord*, and an editor,
+which draws no studio bar, draws that same button in its own bar; nothing else on the page asks them to sign in. The
 panels and the sidebars grey every field that writes, and the canvas keeps only the tools that look: it pans,
 zooms, selects and measures, and a drag, a draw or a key that would change the map moves nothing and sends
 nothing. Signed in, a read-only Sketch page

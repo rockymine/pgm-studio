@@ -106,7 +106,10 @@
 .editor-bar-phase:has(+ .flow-steps) { padding-right: var(--space-4); border-right: 1px solid var(--border); }
 .flow-steps { display: flex; align-items: center; gap: var(--space-5); align-self: stretch; }
 
-.editor-bar-end > .readonly-tag { order: 4; }
+.editor-bar-end > .readonly-tag, .editor-bar-end > .account-signin { order: 4; }
+/* The sign-in is the studio bar's button whole, so the crumb gives way to it rather than it to the crumb. */
+.editor-bar-end > .account-signin { flex: none; }
+.editor-bar-end:has(> .account-signin) { flex: none; }
 .editor-bar-state { order: 5; display: flex; align-items: center; gap: var(--space-3); font-size: var(--font-sm); color: var(--text-muted); white-space: nowrap; }
 .editor-bar-history { order: 6; display: flex; align-items: center; gap: var(--space-1); }
 .editor-bar-history:not(:has(*)) { display: none; }
@@ -177,14 +180,15 @@
 .editor-sheet-step-n { min-width: 1.2em; color: var(--text-muted); font-family: var(--font-mono); font-size: var(--font-xs); }
 
 /* A narrow window. The bar keeps one row, pinned to the top of an editor's window: the mark, where the page is,
-   the read-only tag or the state, and the commands. The foot is pinned to its bottom: Back, Undo and Redo, the
+   the sign-in, the read-only tag or the state, and the commands. The foot is pinned to its bottom: Back, Undo and Redo, the
    steps written out beside the rail's column, and Next. Below 600px the rail is not drawn, so the steps become the
    picker, the crumb drops Maps (the studio's menu has it) and stacks the map's name over its stage, and Back keeps
    only its arrow. A page that is not an editor (the design reference's sample) wraps the foot into the bar. */
 @media (max-width: 959px) {
   .editor-bar { gap: var(--space-2) var(--space-3); padding: 0 var(--space-3); }
   .editor-bar-end { display: flex; align-items: center; gap: var(--space-3); flex: 0 1 auto; min-width: 0; margin-left: auto; order: 4; }
-  .editor-bar-end > .editor-bar-divider, .editor-bar-end > .readonly-tag ~ .editor-bar-state { display: none; }
+  .editor-bar-end > .editor-bar-divider, .editor-bar-end > .readonly-tag ~ .editor-bar-state,
+  .editor-bar-end > .account-signin ~ .editor-bar-state { display: none; }
   .editor-bar-spacer { display: none; }
   .editor-bar-foot {
     display: flex; align-items: center; gap: var(--space-2);
@@ -216,7 +220,7 @@
   .editor-page--focused .editor-bar-picker { display: flex; }
   .editor-page--focused .editor-bar-foot:has(.editor-bar-picker) .editor-bar-history { margin-right: 0; }
   .editor-page--focused .editor-bar-foot:has(.editor-bar-picker) .editor-bar-back { margin-right: 0; }
-  .editor-crumb { display: grid; grid-template-columns: minmax(0, auto); row-gap: 0; flex: 1 1 auto; }
+  .editor-crumb { display: grid; grid-template-columns: minmax(0, auto); row-gap: 0; flex: 1 1 auto; min-width: 0; }
   .editor-crumb-link, .editor-crumb-sep { display: none; }
   .editor-crumb-name { font-weight: 500; }
   .editor-crumb .editor-menu-host { justify-self: start; }

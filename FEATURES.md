@@ -46,8 +46,8 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   none; a read-only editor draws no Undo or Redo, and no Download for someone who may not build; the studio menu
   names each tool beside its glyph and offers a touch screen no keyboard shortcuts. `docs/client/ui-conventions.md`.
 - **A visitor is asked to sign in once (`C117`).** The account is *Sign in with Discord*, with Discord's mark and
-  no menu; an editor's bar offers *Sign in* where it tells someone signed in *View only*, and no other bar says
-  it a second time. Only an admin's menu links the API docs. `docs/client/routing-and-ia.md`, *Exits*.
+  no menu, and it is the one sign-in the studio draws (`SignInButton`): an editor, which has no studio bar, draws
+  the same button in its own bar, and no tag, menu or page repeats it. Only an admin's menu links the API docs. `docs/client/routing-and-ia.md`, *Exits*.
 - **The reference pages read on a phone (`C118`).** Below 960px the studio bar stays pinned; the rules' filters fold
   above the list behind *Filters* with the count, every group shown once opened, and a rule shows all it holds at
   once with no copy button; the glossary's search and letters stick under the studio bar in one row that scrolls
