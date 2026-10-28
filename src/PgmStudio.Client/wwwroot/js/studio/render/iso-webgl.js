@@ -15,10 +15,19 @@
  *
  * World (x,z) map to scene (x,z); height maps to scene y. An orthographic camera at a fixed isometric
  * elevation (yaw is user-rotatable) keeps it a true axonometric view. A single owned WebGL context, one
- * shader program, and three vertex buffers are reused across renders.
+ * shader program, and the mesh's three vertex buffers are reused across renders; a mesh is uploaded once, so a
+ * redraw for a zoom or a pan only changes the camera.
+ *
+ * The camera is fitted to the board, then zoomed by a factor of that fit and panned by a shift of the point it
+ * looks at, along the ground. The shift is in world blocks rather than on the screen, so a quarter turn keeps the
+ * same place in the middle of the picture.
  */
 
 const ELEV = Math.atan(1 / Math.SQRT2);   // true-isometric elevation (~35.26°)
+const ZOOM_MIN = 1;                       // the fitted board: there is nothing to see further out
+const ZOOM_MAX = 40;
+const ZOOM_STEP = 1.15;                   // one wheel notch
+const UP = [0, 1, 0];
 const GROUND = [0.8, 0.83, 0.90];         // the datum plane under everything, drawn unlit and translucent
 
 const VERT_SRC = `
@@ -57,9 +66,45 @@ const FRAG_SRC = `
     gl_FragColor = vec4(vColor * lit, 1.0);
   }`;
 
+/** The camera's forward-from-the-scene direction and its screen right (`s`) and up (`u`) axes at a yaw. */
+export function cameraBasis(yawDeg) {
+  const az = (yawDeg * Math.PI) / 180 + Math.PI / 4;
+  const dir = [Math.cos(ELEV) * Math.sin(az), Math.sin(ELEV), Math.cos(ELEV) * Math.cos(az)];
+  const f = [-dir[0], -dir[1], -dir[2]];
+  const s = norm(cross(f, UP));
+  return { dir, s, u: cross(s, f) };
+}
+
+/** The shift along the ground, in world blocks, that moves the look-at point by (`dx`, `dy`) on the screen,
+ *  in camera units. A screen-right move is along the ground already; a screen-up move is a longer step back
+ *  across it, because the ground is seen at an angle. */
+export function groundShift(dx, dy, yawDeg) {
+  const { s, u } = cameraBasis(yawDeg);
+  const across = norm(cross(UP, s));
+  const rise = dot(across, u);
+  return [s[0] * dx + across[0] * dy / rise, 0, s[2] * dx + across[2] * dy / rise];
+}
+
+/** The zoom a factor leads to, kept between the fitted board and close enough to count blocks. */
+export function nextZoom(zoom, factor) {
+  return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoom * factor));
+}
+
+/** How far, in camera units, the look-at point moves so the point under the pointer stays under it: the
+ *  pointer's offset from the middle of the picture, `offset`, shrinks by the zoom's ratio. */
+export function anchorShift(offset, zoom, next) {
+  return offset * (1 - zoom / next);
+}
+
 export class IsoScene {
-  #wrap; #canvas; #gl; #prog; #posBuf; #nrmBuf; #colBuf;
+  #wrap; #canvas; #gl; #prog; #posBuf; #nrmBuf; #colBuf; #groundBuf; #zeroBuf;
   #aPos; #aNrm; #aCol; #uMVP; #uColor; #uViewDir; #uUnlit; #uOpacity;
+  #uploaded = null;          // the mesh the three buffers hold
+  #zoom = 1;
+  #pan = [0, 0, 0];          // the look-at point's shift from the board's middle, in world blocks
+  #fit = null;               // the last fitted frame, in camera units: { cw, ch, w, h, yaw, span }
+  #last = null;              // the last render's arguments, for a redraw that only moves the camera
+  #frame = 0;
 
   constructor(wrapEl) {
     this.#wrap = wrapEl;
@@ -85,6 +130,8 @@ export class IsoScene {
     this.#posBuf = gl.createBuffer();
     this.#nrmBuf = gl.createBuffer();
     this.#colBuf = gl.createBuffer();
+    this.#groundBuf = gl.createBuffer();
+    this.#zeroBuf = gl.createBuffer();
 
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
@@ -94,13 +141,110 @@ export class IsoScene {
 
   show() { this.#canvas.style.display = ""; }
   hide() { this.#canvas.style.display = "none"; }
+  get shown() { return this.#canvas.style.display !== "none"; }
   dispose() {
     const gl = this.#gl;
-    gl.deleteBuffer(this.#posBuf);
-    gl.deleteBuffer(this.#nrmBuf);
-    gl.deleteBuffer(this.#colBuf);
+    if (this.#frame) cancelAnimationFrame(this.#frame);
+    for (const buf of [this.#posBuf, this.#nrmBuf, this.#colBuf, this.#groundBuf, this.#zeroBuf]) gl.deleteBuffer(buf);
     gl.deleteProgram(this.#prog);
     this.#canvas.remove();
+  }
+
+  /** How far the picture is zoomed past the fitted board: 1 is the whole board. */
+  get zoom() { return this.#zoom; }
+
+  /** Back to the whole board, centred. */
+  resetView() {
+    this.#zoom = 1;
+    this.#pan = [0, 0, 0];
+    this.#redrawSoon();
+  }
+
+  /** Zoom by `factor`, keeping the point under the pixel (`x`, `y`) of the canvas where it is. Zoomed all
+   *  the way out, the board is centred again. */
+  zoomAt(factor, x, y) {
+    const fit = this.#fit;
+    if (!fit) return;
+    const next = nextZoom(this.#zoom, factor);
+    if (next === this.#zoom) return;
+    const ox = (x / fit.w - 0.5) * fit.cw / this.#zoom;
+    const oy = (0.5 - y / fit.h) * fit.ch / this.#zoom;
+    this.#shift(anchorShift(ox, this.#zoom, next), anchorShift(oy, this.#zoom, next), fit);
+    this.#zoom = next;
+    if (next === ZOOM_MIN) this.#pan = [0, 0, 0];   // all the way out is the whole board, centred
+    this.#redrawSoon();
+  }
+
+  /** Move the picture by (`dx`, `dy`) pixels, so a drag carries the board with the pointer. */
+  panBy(dx, dy) {
+    const fit = this.#fit;
+    if (!fit) return;
+    this.#shift(-dx * fit.cw / this.#zoom / fit.w, dy * fit.ch / this.#zoom / fit.h, fit);
+    this.#redrawSoon();
+  }
+
+  /**
+   * Listen on `target` for the ways the picture is moved while it is shown: the wheel zooms at the pointer, a
+   * drag pans, a double-click goes back to the whole board. `onZoom` hears the zoom after each change. Returns
+   * the function that stops listening.
+   */
+  navigate(target, { onZoom } = {}) {
+    let drag = null;
+    const told = () => onZoom?.(this.#zoom);
+    const point = (e) => { const r = this.#canvas.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    const wheel = (e) => {
+      if (!this.shown) return;
+      e.preventDefault();
+      const [x, y] = point(e);
+      this.zoomAt(e.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP, x, y);
+      told();
+    };
+    const down = (e) => {
+      if (!this.shown || e.button > 1) return;
+      e.preventDefault();
+      drag = { x: e.clientX, y: e.clientY };
+    };
+    const move = (e) => {
+      if (!drag) return;
+      this.panBy(e.clientX - drag.x, e.clientY - drag.y);
+      drag = { x: e.clientX, y: e.clientY };
+    };
+    const up = () => { drag = null; };
+    const reset = (e) => {
+      if (!this.shown) return;
+      e.preventDefault();
+      this.resetView();
+      told();
+    };
+    target.addEventListener("wheel", wheel, { passive: false });
+    target.addEventListener("mousedown", down);
+    target.addEventListener("dblclick", reset);
+    document.addEventListener("mousemove", move);
+    document.addEventListener("mouseup", up);
+    return () => {
+      target.removeEventListener("wheel", wheel);
+      target.removeEventListener("mousedown", down);
+      target.removeEventListener("dblclick", reset);
+      document.removeEventListener("mousemove", move);
+      document.removeEventListener("mouseup", up);
+    };
+  }
+
+  /** Move the look-at point by a camera-space offset, kept over the board so the picture never loses it. */
+  #shift(dx, dy, fit) {
+    const [sx, , sz] = groundShift(dx, dy, fit.yaw);
+    const clamp = (v, half) => Math.max(-half, Math.min(half, v));
+    this.#pan = [clamp(this.#pan[0] + sx, fit.span[0]), 0, clamp(this.#pan[2] + sz, fit.span[1])];
+  }
+
+  /** Draw the last render again on the next frame, so a burst of wheel notches is one draw. */
+  #redrawSoon() {
+    if (this.#frame || !this.#last) return;
+    this.#frame = requestAnimationFrame(() => {
+      this.#frame = 0;
+      const { mesh, w, h, yawDeg, bbox } = this.#last;
+      this.render(mesh, w, h, yawDeg, bbox);
+    });
   }
 
   /**
@@ -108,6 +252,7 @@ export class IsoScene {
    * `mesh` is `column-mesh.js`'s output: positions, normals, colors and the extent they cover.
    */
   render(mesh, w, h, yawDeg, bbox) {
+    this.#last = { mesh, w, h, yawDeg, bbox };
     const gl = this.#gl;
     const ratio = Math.min(globalThis.devicePixelRatio || 1, 2);
     this.#canvas.width = Math.max(1, Math.floor(w * ratio));
@@ -135,7 +280,7 @@ export class IsoScene {
     if (!isFinite(minX)) return;   // nothing to draw
 
     gl.useProgram(this.#prog);
-    const { mvp, viewDir } = this.#frame(minX, maxX, minZ, maxZ, maxY, w / h, yawDeg);
+    const { mvp, viewDir } = this.#camera(minX, maxX, minZ, maxZ, maxY, w, h, yawDeg);
     gl.uniformMatrix4fv(this.#uMVP, false, mvp);
     gl.uniform3fv(this.#uViewDir, viewDir);
 
@@ -143,60 +288,80 @@ export class IsoScene {
     // depth write off) so it blends against whatever is in front of it.
     gl.disable(gl.BLEND);
     gl.depthMask(true);
-    if (mesh?.positions?.length) this.#draw(mesh.positions, mesh.normals, mesh.colors, null, 1);
+    if (mesh?.positions?.length) {
+      if (this.#uploaded !== mesh) this.#upload(mesh);
+      this.#drawMesh(mesh.positions.length / 3);
+    }
     if (ground) {
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       gl.depthMask(false);
-      this.#draw(ground, null, null, GROUND, 0.5);
+      this.#drawGround(ground);
       gl.depthMask(true);
       gl.disable(gl.BLEND);
     }
   }
 
-  /** One draw call. `flat` set means unlit in that colour (the ground); otherwise the vertex colours light. */
-  #draw(positions, normals, colors, flat, opacity) {
-    if (!positions.length) return;
+  /** Hand a mesh to the GPU. Done once per mesh: a zoom, a pan or a turn redraws what is already there. */
+  #upload(mesh) {
     const gl = this.#gl;
-    const zeros = flat ? new Float32Array(positions.length) : null;
+    for (const [buf, data] of [[this.#posBuf, mesh.positions], [this.#nrmBuf, mesh.normals], [this.#colBuf, mesh.colors]]) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+    }
+    this.#uploaded = mesh;
+  }
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.#posBuf);
+  #attrib(location, buf) {
+    const gl = this.#gl;
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.enableVertexAttribArray(location);
+    gl.vertexAttribPointer(location, 3, gl.FLOAT, false, 0, 0);
+  }
+
+  /** The board, lit in its vertex colours. */
+  #drawMesh(count) {
+    const gl = this.#gl;
+    this.#attrib(this.#aPos, this.#posBuf);
+    this.#attrib(this.#aNrm, this.#nrmBuf);
+    this.#attrib(this.#aCol, this.#colBuf);
+    gl.uniform3fv(this.#uColor, GROUND);
+    gl.uniform1f(this.#uUnlit, 0);
+    gl.uniform1f(this.#uOpacity, 1);
+    gl.drawArrays(gl.TRIANGLES, 0, count);
+  }
+
+  /** The datum plane, unlit and translucent; six vertices, so it is sent with each draw. */
+  #drawGround(positions) {
+    const gl = this.#gl;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.#groundBuf);
     gl.bufferData(gl.ARRAY_BUFFER, positions, gl.DYNAMIC_DRAW);
-    gl.enableVertexAttribArray(this.#aPos);
-    gl.vertexAttribPointer(this.#aPos, 3, gl.FLOAT, false, 0, 0);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.#nrmBuf);
-    gl.bufferData(gl.ARRAY_BUFFER, normals ?? zeros, gl.DYNAMIC_DRAW);
-    gl.enableVertexAttribArray(this.#aNrm);
-    gl.vertexAttribPointer(this.#aNrm, 3, gl.FLOAT, false, 0, 0);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.#colBuf);
-    gl.bufferData(gl.ARRAY_BUFFER, colors ?? zeros, gl.DYNAMIC_DRAW);
-    gl.enableVertexAttribArray(this.#aCol);
-    gl.vertexAttribPointer(this.#aCol, 3, gl.FLOAT, false, 0, 0);
-
-    gl.uniform3fv(this.#uColor, flat ?? GROUND);
-    gl.uniform1f(this.#uUnlit, flat ? 1 : 0);
-    gl.uniform1f(this.#uOpacity, opacity);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.#zeroBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions.length), gl.DYNAMIC_DRAW);
+    this.#attrib(this.#aPos, this.#groundBuf);
+    this.#attrib(this.#aNrm, this.#zeroBuf);
+    this.#attrib(this.#aCol, this.#zeroBuf);
+    gl.uniform3fv(this.#uColor, GROUND);
+    gl.uniform1f(this.#uUnlit, 1);
+    gl.uniform1f(this.#uOpacity, 0.5);
     gl.drawArrays(gl.TRIANGLES, 0, positions.length / 3);
   }
 
-  // Place the orthographic camera at the iso angle, fit its frustum to the scene, and return the
-  // view-projection matrix plus the camera-forward direction (for two-sided shading).
-  #frame(minX, maxX, minZ, maxZ, maxY, aspect, yawDeg) {
-    const center = [(minX + maxX) / 2, maxY / 2, (minZ + maxZ) / 2];
+  // Place the orthographic camera at the iso angle, fit its frustum to the scene, then zoom and pan it, and
+  // return the view-projection matrix plus the camera-forward direction (for two-sided shading).
+  #camera(minX, maxX, minZ, maxZ, maxY, w, h, yawDeg) {
+    const aspect = w / h;
+    const middle = [(minX + maxX) / 2, maxY / 2, (minZ + maxZ) / 2];
     const radius = Math.hypot(maxX - minX, maxY, maxZ - minZ);
-
-    const az = (yawDeg * Math.PI) / 180 + Math.PI / 4;
-    const dir = [Math.cos(ELEV) * Math.sin(az), Math.sin(ELEV), Math.cos(ELEV) * Math.cos(az)];
-    const eye = [center[0] + dir[0] * (radius + 10), center[1] + dir[1] * (radius + 10), center[2] + dir[2] * (radius + 10)];
-    const view = lookAt(eye, center, [0, 1, 0]);
+    const { dir } = cameraBasis(yawDeg);
+    const eyeFor = (at) => [at[0] + dir[0] * (radius + 10), at[1] + dir[1] * (radius + 10), at[2] + dir[2] * (radius + 10)];
+    const fitted = lookAt(eyeFor(middle), middle, UP);
 
     // Fit: project the 8 scene-box corners into camera space, take extents, add a margin, match aspect.
     let l = Infinity, r = -Infinity, b = Infinity, t = -Infinity;
     for (const x of [minX, maxX]) for (const y of [0, maxY]) for (const z of [minZ, maxZ]) {
-      const cx = view[0] * x + view[4] * y + view[8] * z + view[12];
-      const cy = view[1] * x + view[5] * y + view[9] * z + view[13];
+      const cx = fitted[0] * x + fitted[4] * y + fitted[8] * z + fitted[12];
+      const cy = fitted[1] * x + fitted[5] * y + fitted[9] * z + fitted[13];
       if (cx < l) l = cx; if (cx > r) r = cx; if (cy < b) b = cy; if (cy > t) t = cy;
     }
     const mx = (r - l) * 0.06, my = (t - b) * 0.06;
@@ -204,7 +369,14 @@ export class IsoScene {
     let cw = r - l, ch = t - b;
     if (cw / ch > aspect) ch = cw / aspect; else cw = ch * aspect;
     const mcx = (l + r) / 2, mcy = (b + t) / 2;
-    const proj = ortho(mcx - cw / 2, mcx + cw / 2, mcy - ch / 2, mcy + ch / 2, -radius - 50, radius * 3 + 50);
+    this.#fit = { cw, ch, w, h, yaw: yawDeg, span: [(maxX - minX) / 2, (maxZ - minZ) / 2] };
+
+    // The pan moves the camera with the point it looks at, so the board's place in camera space moves the other
+    // way; the frustum stays centred where the fit put it, and shrinks by the zoom.
+    const at = [middle[0] + this.#pan[0], middle[1], middle[2] + this.#pan[2]];
+    const view = lookAt(eyeFor(at), at, UP);
+    const hw = cw / (2 * this.#zoom), hh = ch / (2 * this.#zoom);
+    const proj = ortho(mcx - hw, mcx + hw, mcy - hh, mcy + hh, -radius - 50, radius * 3 + 50);
 
     return { mvp: multiply(proj, view), viewDir: [-dir[0], -dir[1], -dir[2]] };
   }

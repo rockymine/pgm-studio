@@ -164,6 +164,16 @@ try {
       page.faults.slice(0, 3).join(" | "));
   }
 
+  checks.section("a signed-out visitor's editor bar fits a phone");
+  await page.setViewportSize({ width: 360, height: 780 });
+  for (const path of [`/maps/${seed.sketchSlug}/sketch`, `/maps/${seed.mapSlug}/configure`]) {
+    await visit(invited, path);
+    await page.waitForSelector(".editor-bar .readonly-tag", { timeout: 20000 }).catch(() => {});
+    const over = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+    checks.add(`${path.split("/").pop()} with its View only tag fits 360px`, over <= 0, `${over}px over`);
+  }
+  await page.setViewportSize({ width: 1600, height: 900 });
+
   checks.section("a signed-out visitor cannot start a map or keep the whitelist");
   await visit(invited, "/maps?stage=sketch");
   await page.waitForSelector("button.action-btn--primary", { timeout: 20000 }).catch(() => {});

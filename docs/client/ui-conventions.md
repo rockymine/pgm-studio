@@ -237,7 +237,7 @@ element run past the window's edge unless it sits in a box that scrolls sideways
 | ≤ 1180px | The studio bar's search folds to its glyph (`app-nav.css`). |
 | ≤ 1100px | An editor's steps fold into a *Step n of m* menu (`editor-bar.css`). |
 | ≤ 959px | The studio bar's links and tools become its menu (`app-nav.css`). The page scrolls as one document rather than in columns: the rail becomes a row across the top, and a workspace wraps — a filter rail first and folded, then the canvas or the list at the full width, then the side panels, two abreast where they fit (`editor.css`, `filter-sidebar.css`). |
-| ≤ 860px | The editor bar wraps onto two rows, and the maps table reads each map as a short block (`editor-bar.css`, `map-table.css`). |
+| ≤ 860px | The editor bar wraps: the crumb on its own row, then the steps with the state, commands and Back/Next, which wrap inside their own row where a *View only* tag leaves no room. The maps table reads each map as a short block (`editor-bar.css`, `map-table.css`). |
 | ≤ 640px | The studio bar drops the studio's name beside its mark. |
 | a touch screen | A control is 44px tall, the target size of WCAG 2.5.5 (`--control-height`, `pointer: coarse`). |
 

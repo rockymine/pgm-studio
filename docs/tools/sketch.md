@@ -1137,6 +1137,13 @@ those into triangles. So the picture carries the terrain's own materials, the gr
 the structures stamped on them and the goal markers hanging over the build ceiling — none of which the
 browser can derive. It rotates in 90° steps and disables itself where WebGL is unavailable.
 
+**The picture is looked at, not rebuilt, however it is moved.** The wheel zooms it at the pointer, from the whole
+board up to forty times closer, and the canvas readout says by how much, 100% being the whole board; a drag pans
+it, and a double-click shows the whole board again, as zooming all the way out does. The pan is a shift of the
+point the camera looks at, along the ground and kept over the board, so a quarter turn keeps the same place in the
+middle of the picture. Each of these redraws the mesh in hand — it is handed to the GPU once, when it arrives —
+so none asks for a build, and the 2-D board under the preview keeps the zoom and pan it had.
+
 **In the preview the overlay chips become the board's own layers**, one per sketch layer, because what an
 author wants of a picture of a stack is to take the deck off and look under it. Every run in the payload says
 which layer drew it, so hiding one is a filter over what the browser already holds rather than a second build
