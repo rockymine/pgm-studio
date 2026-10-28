@@ -11,19 +11,19 @@ more: a sketch alone produces geometry and states no intent, so a map begun here
 no objective until Configure gives it one. Opened on a map stored from a compiled plan, it receives the compiled
 layout — the plan's abutting same-height pieces already fused into single polygons — and refines it.
 
-The route is `/maps/{slug}/sketch`. Six phases sit on the rail in the order the work is done: **Info**,
-**Draw**, **Terraform**, **Palette**, **Decoration** and **Review** — and one after them that is not a step in
-making the board: **History**, its changes. This
-document names them as the app does; the code calls Terraform the Relief phase, Palette the Theme phase, and
-Decoration the Dressing phase. Info states what the
+The route is `/maps/{slug}/sketch`. Six phases sit on the rail in the order the work is done: **Identity**,
+**Draw**, **Terraform**, **Palette**, **Decoration** and **Review** — and, at the rail's foot and outside Back and
+Next, one that is not a step in making the board: **History**, its changes. This
+document names them as the app does; the code calls Identity the Info phase, Terraform the Relief phase, Palette
+the Theme phase, and Decoration the Dressing phase. Identity states what the
 board is and is its own body; Review is the board as a player sees it, with the author's notes on it, in two
 steps: Cameras, on the canvas, and Notes, a body of its own. The
-other phases share the one live canvas, which stays mounted while Info or Notes is up so the
+other phases share the one live canvas, which stays mounted while Identity or Notes is up so the
 drawing state and the zoom survive the trip. Draw has three steps, Places, Ground and Layout, on that one canvas, and Places is an admin's only. Terraform,
 Palette, Decoration and History have no steps: each swaps what the columns hold and which overlays the layer bar offers, and the canvas is reused as it stands.
 
-**The address says where the author is.** It carries the phase by the rail's word — `info`, `draw`, `terraform`,
-`palette`, `decoration`, `review`, `history` — and its step by the bar's (`?phase=draw&step=layout`), and is
+**The address says where the author is.** It carries the phase by the rail's word — `identity`, `draw`, `terraform`,
+`palette`, `decoration`, `review`, `history` — and its step by the rail's (`?phase=draw&step=layout`), and is
 rewritten in place as the author moves, so a reload or a shared link opens there; a step the caller does not have,
 Places for anyone but an admin, opens on the phase's first step they do.
 
@@ -35,27 +35,30 @@ Decoration and Palette — takes one snapshot the bridge announces (`OnRelief`, 
 it, with the bridge handle, to its list and its inspector, which write back through the handle. The Palette
 snapshot is one value, `SketchThemes`: the registry and each theme's document, the map default, which shape
 carries which theme, where each copy came from, the room shells and the biome, announced on every change of any
-of them and on a load and a step taken back alike. A phase whose truth is the server's loads it itself: Info
+of them and on a load and a step taken back alike. A phase whose truth is the server's loads it itself: Identity
 is a component that reads its own document, and a phase with two bodies — History, and the views
 Review's two steps show — has a plain state object (`SketchHistory`, `SketchViews`) that the host holds once and
 passes to both. The map's notes are one more, `SketchNotes`, read in one place for Review and for the threads
 History names. The host keeps the phase switch, the save before a page phase opens, the canvas mode, overlays and tool,
 and the bridge's callbacks; the state objects reach the canvas and the save through delegates it hands them.
 
-The editor bar (`EditorBar`, `docs/client/routing-and-ia.md`) is the same in every phase. Its crumb reads
-*Maps › the map's name* — the name Info states, and the slug until one is saved — followed by the stage switcher,
-whose menu opens the map's Plan and Configure where it holds them; the phase and its steps are in the middle. At
-the right it carries the save state, the *View only* tag and the Problems button, then one group of icon buttons
+The editor bar (`EditorBar`, `docs/client/routing-and-ia.md`) is the same in every phase. Its path reads
+*Maps / the map's name / Sketch* — the name Identity states, and the slug until one is saved — and the tool is the
+stage switcher, whose menu opens the map's Configure where it holds one. **The rail says where the work is**: the
+open phase takes the accent and its steps hang under it on a thread, one dot each, the current one filled; a
+step is opened from there, and Back and Next walk them. The round control on the rail's edge folds it to its
+glyphs and the open phase's dots, with each name on hover; it opens unfolded, and the fold is remembered in the
+browser. At the right the bar carries the save state, the *View only* tag and the Problems button, then one group of icon buttons
 — **Undo**, **Redo**, **Download** — a divider, and Back and Next, which is the only filled button and names where
-it goes: the step after this one, or the phase after the last step (*Next: Ground*, *Next: Terraform*). A visitor
+it goes: the step after this one, or the phase after the last step (*Next: Ground*, *Next: Terraform*); on
+Review's last step it is closed, and History draws neither Back nor Next. A visitor
 who may not change the map is drawn no Undo or Redo, and one who may not have the studio build it no Download.
-Below 960px Back, Undo, Redo, the steps and Next are a foot pinned to the window's bottom; below 600px the rail is
-not drawn and the foot's middle is a button naming the phase and step, which opens a sheet of the seven phases with
-the open phase's steps under it. The number of
+Below 960px Back, Undo, Redo and Next are a foot pinned to the window's bottom; below 600px the rail is
+not drawn and the foot's middle is a button naming the phase and step, which opens a sheet drawing the rail. The number of
 groups on the board is not in the bar: the sidebar's *Shapes* list, each group with its shapes under it, is that count. The tool saves
 continuously — every change schedules a debounced write 800 ms later, and Ctrl+S flushes it at
 once. The save state reads *Saving…* while an edit waits for that write and *Saved* once every edit has landed;
-in Info it is the identity's own save, and a refused save leaves it to the Problems button's *Save blocked*. The finished map leaves by **Download** (an icon-only button titled *Download map*, which pulses while it builds) on every phase: it flushes the layout, builds
+in Identity it is the identity's own save, and a refused save leaves it to the Problems button's *Save blocked*. The finished map leaves by **Download** (an icon-only button titled *Download map*, which pulses while it builds) on every phase: it flushes the layout, builds
 the world the first time (the finish below, `POST …/sketch/finish`, which rasterizes the layout and moves the
 map to `stage=configure`), and saves the export — the world ZIP with its `map.xml`. A board built from a plan
 carries the plan's game settings, so its export needs nothing from Configure. What stops the map, and what the
@@ -872,7 +875,7 @@ loaded back into — rather than a record of which edit happened, so a press tha
 and a drag that fires on every frame between the press and the release costs exactly one. A step is the
 document and not the view: the camera and the layer being drawn on are where the author is, so both survive
 it. The symmetry setup is part of the document, so a step back restores it too: the canvas announces
-`OnSetup(mirrorMode, cx, cz)` on every load, edit and step, and the Setup controls and Info read nothing else.
+`OnSetup(mirrorMode, cx, cz)` on every load, edit and step, and the Setup controls and Identity read nothing else.
 
 **A play piece is a step too, though it is not in the layout.** A piece is the intent's, written on the server
 through `…/intent/pieces`, so placing, moving, resizing, turning, deleting or setting one keeps the intent's text
@@ -889,7 +892,7 @@ table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+
 
 | Chord | Does | Group |
 |---|---|---|
-| `1`–`7` | Go to Info · Draw · Terraform · Palette · Decoration · Review · History | Phases |
+| `1`–`7` | Go to Identity · Draw · Terraform · Palette · Decoration · Review · History | Phases |
 | `V` | Select | Tools |
 | `H` | Pan | Tools |
 | `R` | Rectangle | Tools |
@@ -919,9 +922,9 @@ table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+
 | `Ctrl`/`⌘`+`Shift`+`Z` (or `Ctrl`+`Y`) | Redo | Everywhere |
 | `Ctrl`/`⌘`+`S` | Save the sketch | Everywhere |
 
-### Info
+### Identity
 
-Two steps. **Identity** is the map's display name and its authors, loaded from `GET /api/map/{slug}` and saved
+Two steps. **Details** is the map's display name and its authors, loaded from `GET /api/map/{slug}` and saved
 with `PATCH /api/map/{slug}/metadata` as it is typed, the way Configure's Identity saves: once typing pauses for
 800 ms, and on leaving the phase. The editor bar says where the save stands — *Unsaved*, *Saving…*, *Saved*, or
 why it was not saved; a name left empty is not saved. **An author named here is named in the map's intent too**, where the map
@@ -930,20 +933,20 @@ since the observer platform's board is stamped from the intent. A panel writing 
 map on its row and leave `EX6` saying it names nobody, with nothing in the interface able to settle it. The
 traffic already ran the other way — an intent write resolves its names into the rows — so this is the return
 leg, and the intent is patched as JSON rather than round-tripped through `MapIntent`, since a rename is not the
-moment to rewrite an intent through a model. **Settings** is the symmetry the whole board is built against: the *Mode*
+moment to rewrite an intent through a model. **Symmetry** is the symmetry the whole board is built against: the *Mode*
 — `mirror_x`, `mirror_z`, `rot_180`, `rot_90` or `none` — and the centre X and Z, which the panel hides under `none`
 since nothing turns about it. Under `none` every shape is drawn once: the canvas draws no axis and no mirror
 preview, and a group's *mirrors* has nothing to fan. The words are `SymmetryModes`, and the panel offers the
 five `SymmetryModes.Sketched` names; a layout may also state the two diagonals. There is no size to set; the map area
-grows to fit whatever is drawn. A freshly created sketch opens here (`?phase=info`); an existing one opens on
-Draw.
+grows to fit whatever is drawn. Configure takes a sketched map's symmetry from here and does not ask it again. A
+freshly created sketch opens here (`?phase=identity`); an existing one opens on Draw.
 
 ### Draw
 
 The canvas, and where the geometry is made. **It has three steps, Places, Ground and Layout, one click apart in the
-bar**: Places draws the places, Ground draws the shapes, and Layout places the play pieces. Ground and Layout draw
+rail**: Places draws the places, Ground draws the shapes, and Layout places the play pieces. Ground and Layout draw
 every shape and every piece, and each works on its own: Ground picks, moves and draws the shapes and passes over the
-pieces, and Layout picks, moves, resizes, turns, adds and deletes the pieces and passes over the shapes. Draw opens on Ground, and Info's last step goes on to Draw's first
+pieces, and Layout picks, moves, resizes, turns, adds and deletes the pieces and passes over the shapes. Draw opens on Ground, and Identity's last step goes on to Draw's first
 step, where a new map starts.
 
 **Each step's panel lists what that step works on.** Places lists the places, Ground the layer and its group→shape
@@ -1955,7 +1958,7 @@ without them answers the list with the reason, and the Notes step says so instea
 **Review is two steps, Cameras and then Notes, and it opens on Cameras.** Cameras is the canvas, where the views
 are placed, kept, removed and the map's picture is chosen; Notes is the gallery of what those cameras see, with
 the author's notes beside it. On Cameras, **Back** goes to Decoration and **Next** to Notes; on Notes, **Back** goes
-to Cameras and **Next** to History, and the step bar reaches either step directly. A link to a note — `?note={id}`
+to Cameras and **Next** is closed, since Notes is the last step of the work, and the rail reaches either step directly. A link to a note — `?note={id}`
 on the route, or a thread opened from History — lands on Notes, on that thread.
 
 **Entering it saves the board's unsaved edits first**, because every picture is of the board as stored. A board that has

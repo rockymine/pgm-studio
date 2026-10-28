@@ -54,7 +54,7 @@ checks.section("Draw's Next goes to Layout, and Layout's on to Terraform");
 await page.goto(`${BASE}/maps/${seed.sketchSlug}/sketch`, { waitUntil: "networkidle" });
 const next = page.locator(".editor-bar", { hasText: "Draw" }).locator("button", { hasText: "Next" });
 await next.click();
-await page.locator(".flow-step--active", { hasText: "Layout" }).waitFor({ timeout: 30000 });
+await page.locator(".nav-rail .nav-step[aria-current]", { hasText: "Layout" }).waitFor({ timeout: 30000 });
 checks.add("Ground's next step is Layout", true);
 await next.click();
 await page.locator(".editor-bar", { hasText: "Terraform" }).waitFor({ timeout: 30000 });

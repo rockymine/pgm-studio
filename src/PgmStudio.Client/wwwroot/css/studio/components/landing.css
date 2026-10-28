@@ -89,5 +89,3 @@
 .list-go svg { width: var(--icon-md); height: var(--icon-md); }
 .list-row:hover .list-go { opacity: 1; color: var(--accent-light); }
 
-/* A rule between two groups of rail buttons — the library's chooser above its six kinds. */
-.nav-rail-div { width: 22px; height: 1px; margin: 2px 0; background: var(--border); flex: 0 0 auto; }

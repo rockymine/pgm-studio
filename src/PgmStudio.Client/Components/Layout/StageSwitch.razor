@@ -1,22 +1,22 @@
 @namespace PgmStudio.Client.Components
 @inject HttpClient Http
 
-@* The tool word of the editor bar's crumb, and the way across to the map's other tools. With a map it is a
-   button naming the current tool whose menu lists Sketch and Configure; a tool is a link where the map
-   holds that layer (MapLayers.Holds, over the same GET api/maps row the Maps table reads) and a dashed,
-   disabled entry where it does not. Without a map there is nothing to switch within, so the word is drawn as
-   text in the same box. *@
+@* The tool word that ends the editor bar's path, after its stage's dot, and the way across to the map's other
+   tools. With a map it is a button naming the current tool whose menu lists Sketch and Configure; a tool is a
+   link where the map holds that layer (MapLayers.Holds, over the same GET api/maps row the Maps table reads) and
+   a dashed, disabled entry where it does not. Without a map there is nothing to switch within, so the word is
+   drawn as text in the same box. *@
 
 @if (Slug is null)
 {
-    <span class="editor-stage"><span>@Word</span></span>
+    <span class="editor-stage">@Dot<span>@Word</span></span>
 }
 else
 {
     <span class="editor-menu-host">
         <button type="button" class="editor-stage editor-stage--button" aria-haspopup="menu"
                 aria-expanded="@(open ? "true" : "false")" title="Open this map in another tool"
-                @onclick="ToggleAsync"><span>@Word</span><svg class="editor-stage-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6.5l4 4 4-4" /></svg></button>
+                @onclick="ToggleAsync">@Dot<span>@Word</span><svg class="editor-stage-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6.5l4 4 4-4" /></svg></button>
         @if (open)
         {
             <div class="editor-menu-scrim" @onclick="() => open = false"></div>
@@ -52,6 +52,10 @@ else
 
     private MapSummary? map;
     private bool open, failed;
+
+    /// <summary>The stage's dot, the colour the map list gives it; a page that is not one of the tools has none.</summary>
+    private RenderFragment? Dot => Label is not null ? null
+        : @<span class="map-stage-dot map-stage-dot--@Stage" aria-hidden="true"></span>;
 
     private string Word => Label ?? MapLayers.All.FirstOrDefault(layer => layer.Id == Stage).Label ?? Stage;
     private string Href(string layer) => $"maps/{Slug}/{layer}";

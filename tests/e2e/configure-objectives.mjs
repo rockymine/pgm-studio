@@ -63,7 +63,7 @@ async function openPhase(title, { canvas = false } = {}) {
   await page.waitForSelector(".nav-btn", { timeout: 20000 });
   const regions = canvas ? page.waitForResponse(r => r.url().includes("/regions/tree"), { timeout: 30000 }) : null;
   await page.click(`.nav-btn:has(.nav-btn-caption:text-is("${title}"))`);
-  await page.waitForSelector(".editor-bar-phase", { timeout: 20000 });
+  await page.waitForSelector(".nav-rail .nav-btn.active .nav-btn-caption", { timeout: 20000 });
   if (regions) {
     await regions;
     await page.waitForLoadState("networkidle", { timeout: 30000 });
@@ -87,21 +87,21 @@ const objective = (await page.inputValue(".section-body textarea")).trim();
 checks.add("and the objective names both", /wool/i.test(objective) && /core/i.test(objective), objective);
 
 await openPhase("Cores", { canvas: true });
-const phaseTitle = await page.textContent(".editor-bar-phase");
+const phaseTitle = await page.textContent(".nav-rail .nav-btn.active .nav-btn-caption");
 checks.add("the Cores phase opens", phaseTitle?.trim() === "Cores", phaseTitle?.trim());
 
 const railTitles = await page.$$eval(".nav-btn .nav-btn-caption", els => els.map(e => e.textContent.trim()));
 checks.add("Wools and Cores are both on the rail", railTitles.includes("Wools") && railTitles.includes("Cores"),
            railTitles.join(" · "));
 
-const steps = await page.$$eval(".flow-steps .flow-step", els => els.map(e => e.textContent.trim()));
+const steps = await page.$$eval(".nav-rail .nav-step", els => els.map(e => e.textContent.trim()));
 checks.add("the phase walks Objectives → Casing", steps.join(",") === "Objectives,Casing", steps.join(" · "));
 
 const listed = await page.textContent(".workspace");
 checks.add("the stored core is listed", listed.includes("Probe Core"));
 
 // The casing volume is the core's region (OB8), so the step must show the box it will export, not a guess.
-await page.click(".flow-steps .flow-step:nth-child(2)");
+await page.click(".nav-rail .nav-step:nth-child(2)");
 await page.waitForSelector(".workspace", { timeout: 20000 });
 const casing = await page.textContent(".workspace");
 checks.add("the Casing step shows the region it will export",
@@ -119,7 +119,7 @@ checks.section("a core-only map is not held behind an empty wool slice");
 await arrange({ wools: [], cores: [core(owner)] });
 
 await openPhase("Export");
-const exportTitle = await page.textContent(".editor-bar-phase");
+const exportTitle = await page.textContent(".nav-rail .nav-btn.active .nav-btn-caption");
 checks.add("Export is reachable with no wools at all", exportTitle?.trim() === "Export", exportTitle?.trim());
 
 const locked = await page.$$eval(".nav-btn", els =>
@@ -140,7 +140,7 @@ await arrange({ wools: [], flags: [flag] });
 
 await openPhase("Flags", { canvas: true });
 await page.waitForLoadState("networkidle", { timeout: 30000 });
-const flagTitle = await page.textContent(".editor-bar-phase");
+const flagTitle = await page.textContent(".nav-rail .nav-btn.active .nav-btn-caption");
 checks.add("the Flags phase opens", flagTitle?.trim() === "Flags", flagTitle?.trim());
 const flagPhase = await page.textContent(".workspace");
 checks.add("the stored flag is listed", flagPhase.includes("Probe Flag"));
@@ -148,7 +148,7 @@ checks.add("a start with no banner under it says so", flagPhase.includes("Start 
 checks.add("the Flags phase raised nothing", featureFaults().length === 0, featureFaults().join(" | "));
 
 await openPhase("Export");
-const flagExport = await page.textContent(".editor-bar-phase");
+const flagExport = await page.textContent(".nav-rail .nav-btn.active .nav-btn-caption");
 checks.add("Export is reachable with a flag as the only objective", flagExport?.trim() === "Export",
            flagExport?.trim());
 
@@ -166,14 +166,14 @@ checks.add("a team's flag states no points rate", !teamFlag.includes("Points per
 checks.add("a team's flag says when its team captures", await page.locator(".field:has-text('Capture') select").count() > 0);
 
 await openPhase("Match");
-const matchTitle = await page.textContent(".editor-bar-phase");
+const matchTitle = await page.textContent(".nav-rail .nav-btn.active .nav-btn-caption");
 checks.add("the Match phase opens", matchTitle?.trim() === "Match", matchTitle?.trim());
 const timeBox = await page.inputValue(".workspace .field:has-text('Time limit') input");
 checks.add("the stored time limit is shown", timeBox === "12m", timeBox);
 checks.add("the Match phase raised nothing", featureFaults().length === 0, featureFaults().join(" | "));
 
 await openPhase("Export");
-const matchExport = await page.textContent(".editor-bar-phase");
+const matchExport = await page.textContent(".nav-rail .nav-btn.active .nav-btn-caption");
 checks.add("Export is reachable past the Match phase", matchExport?.trim() === "Export", matchExport?.trim());
 
 // ── the Score phase: a deathmatch is an objective, and a score box is listed ─────────────────────────
@@ -181,7 +181,7 @@ checks.section("a board whose kills pay reaches Export, and its score box is lis
 
 await arrange({ wools: [], flags: [], killPoints: 1 });
 await openPhase("Export");
-const killExport = await page.textContent(".editor-bar-phase");
+const killExport = await page.textContent(".nav-rail .nav-btn.active .nav-btn-caption");
 checks.add("Export is reachable with kills as the only objective", killExport?.trim() === "Export",
            killExport?.trim());
 

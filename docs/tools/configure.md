@@ -192,11 +192,17 @@ and is the subject of *What it refuses* below.
 
 Eleven phases on the rail, walked in order. A phase unlocks when the phases before it have their slice; the
 rail locks anything further on, and jumping back is always allowed. The objective phases open together:
-reaching one opens all five, so a flag-only or a deathmatch board goes straight to its own phase.
+reaching one opens all five, so a flag-only or a deathmatch board goes straight to its own phase. **The rail is
+the tool's chapter list**: the open phase takes the accent and, where it has more than one step, its steps hang
+under it on a thread, a dot each, the current one filled; a step is opened there, and Back and Next walk them. It
+folds by the round control on its edge to its glyphs and the open phase's dots, each name on hover, and is
+remembered folded or open in the browser; it opens unfolded. The editor bar holds the path
+(*Maps / the map's name / Configure*), the save state and the move, and names no phase.
 
 ### Import — phase zero
 
-Only on `/maps/new`, and only for a world that has no `map.xml`. Three steps. **Source** takes a download
+Only on `/maps/new`, and only for a world that has no `map.xml`. It is the rail's first chapter there, over the
+eleven, which wait locked until a map exists. Three steps. **Source** takes a download
 link, which is fetched server-side from an allowlisted host and extracted `region/*.mca`-only, so the browser
 never sees the archive. On a studio in `open` access mode (`docs/access.md`), the one running on its author's
 machine, it also lists the importable world folders under the imports root — a folder with `region/*.mca`, no
@@ -260,7 +266,10 @@ first Next.
 
 ### World — Scan · Islands · Symmetry
 
-Three read-and-confirm steps over the already-scanned world; only Scan's **World replacement** reads one again.
+Three read-and-confirm steps over the already-scanned world; only Scan's **World replacement** reads one again. A
+map made in Sketch has two: its symmetry is the one its sketch was drawn to (Sketch's Identity › Symmetry), so
+**Symmetry** is not asked, the intent takes the sketch setup's mode and centre where it states none, and the phase
+is complete without it.
 
 **Scan** is a look at the extracted world on the shared world canvas, with its island-base and surface layer
 toggle. On a map imported from a world it also takes a new download of that world: **World replacement**

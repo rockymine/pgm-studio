@@ -8,7 +8,7 @@ public static class ConfigurePhases
 {
     /// <summary>
     /// The phases on the activity rail, in linear order. Steps mirror the concept sections; a phase with no
-    /// steps (Identity) is a single-step form (the flow bar shows just its name).
+    /// steps (Identity) is a single-step form (the rail lists no steps under it).
     /// <para>
     /// <b>The objective phases are a group, not a choice.</b> A PGM map may carry wools, monuments,
     /// cores and flags at once, in any combination, so each objective kind gets its own phase and every one of them is
@@ -34,6 +34,9 @@ public static class ConfigurePhases
 
     /// <summary>The intent keys the objective phases author, in rail order. Every one of them contributes to
     /// the shared objective gate, so a DTC map is never held up by an empty wool slice.</summary>
+    /// <summary>The import's chapter, which stands before the phases on /maps/new, where a map has none yet.</summary>
+    public const string ImportId = "import";
+
     public static readonly string[] ObjectiveSlices = ["wools", "destroyables", "cores", "flags", "scoreBoxes"];
 
     /// <summary>Whether a phase authors one of the map's objectives (and so shares the objective gate).</summary>

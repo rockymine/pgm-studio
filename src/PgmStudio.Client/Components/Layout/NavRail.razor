@@ -1,12 +1,56 @@
 @namespace PgmStudio.Client.Components
+@inject IJSRuntime JS
 
-@* The left nav rail — a tool's own phases or sections, one NavButton each (ChildContent). The way home and
-   to the other tools is AppNav above it. *@
+@* The left nav rail — a tool's own phases or sections, one NavButton each (ChildContent), and a Foot for what is
+   not a phase (Sketch's History). The way home and to the other tools is AppNav above it.
 
-<nav class="nav-rail">
-    @ChildContent
+   An editor's rail is its chapter list (FoldKey set): each phase a row naming itself, the open phase's steps
+   under it on a thread of dots, folding by the round control on its edge to a column of glyphs and the open
+   phase's dots. It opens unfolded, and the fold is remembered per tool in the browser (studioRailFold). Drawn in
+   the phone's sheet ("NavRailInSheet") it never folds. *@
+
+<nav class="@Cls" aria-label="@Label">
+    <CascadingValue Name="NavRailFolded" Value="Folds">
+        <div class="nav-rail-list">@ChildContent</div>
+        @if (Foot is not null)
+        {
+            <div class="nav-rail-foot">@Foot</div>
+        }
+    </CascadingValue>
+    @if (FoldKey is not null && !InSheet)
+    {
+        <button type="button" class="nav-rail-fold" aria-expanded="@(folded ? "false" : "true")"
+                aria-label="@(folded ? "Unfold the chapters" : "Fold the chapters")"
+                title="@(folded ? "Unfold the chapters" : "Fold the chapters")" @onclick="ToggleAsync">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 4l-4 4 4 4" /></svg>
+        </button>
+    }
 </nav>
 
 @code {
     [Parameter] public RenderFragment? ChildContent { get; set; }
+    /// <summary>What the rail holds below its phases, set apart from them.</summary>
+    [Parameter] public RenderFragment? Foot { get; set; }
+    /// <summary>The tool whose chapters these are; set, the rail is a chapter list that folds, remembered under it.</summary>
+    [Parameter] public string? FoldKey { get; set; }
+    [Parameter] public string? Label { get; set; }
+
+    /// <summary>Set where the rail is drawn in the phone's sheet, which lists it whole.</summary>
+    [CascadingParameter(Name = "NavRailInSheet")] public bool InSheet { get; set; }
+
+    private bool folded;
+
+    private bool Folds => folded && !InSheet;
+
+    private string Cls => FoldKey is null ? "nav-rail"
+        : Folds ? "nav-rail nav-rail--outline nav-rail--folded" : "nav-rail nav-rail--outline";
+
+    /// <summary>The fold is read before the first render, so a folded rail is never drawn open first.</summary>
+    protected override void OnInitialized()
+    {
+        if (FoldKey is not null && JS is IJSInProcessRuntime local)
+            folded = local.Invoke<bool>("studioRailFold.isFolded", FoldKey);
+    }
+
+    private async Task ToggleAsync() => folded = await JS.InvokeAsync<bool>("studioRailFold.set", FoldKey, !folded);
 }

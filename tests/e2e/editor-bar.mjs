@@ -1,15 +1,15 @@
 /**
- * The editor bar the Sketch and Configure tools share: Maps › the map's name, a stage switcher
- * naming the tool, the phase and its steps, and at the right the state, the commands, a divider and
- * Back/Next.
+ * The editor bar the Sketch and Configure tools share, and the chapter rail beside it: Maps / the map's name /
+ * the tool, and at the right the state, the commands, a divider and Back/Next; the phase and its steps are the
+ * rail's.
  *
- * What is held here is the shape of the bar rather than any tool's behaviour: the first crumb goes to the
- * unfiltered Maps list; the switcher lists the map's tools and links only the ones the map holds; its label
- * sits on the same baseline, in the same font, as the crumb's words; Sketch's Download is an icon in the
- * group Undo and Redo are in, with the divider between that group and Back; the steps stay written out down to
- * 960px; below it the move is a foot pinned to the window's bottom, the bar pinned to its top, and on a phone the
- * steps are a button opening a sheet of the phases with the open phase's steps under it; and nothing overflows
- * sideways at phone width.
+ * What is held here is the shape of the bar and the rail rather than any tool's behaviour: the first crumb goes
+ * to the unfiltered Maps list; the switcher lists the map's tools and links only the ones the map holds; its
+ * label sits on the same baseline, in the same font, as the crumb's words; the bar names no phase; Sketch's
+ * Download is an icon in the group Undo and Redo are in, with the divider between that group and Back; the rail
+ * lists the open phase's steps under it and folds to its glyphs, remembered; below 960px the move is a foot
+ * pinned to the window's bottom, the bar pinned to its top, and on a phone the foot's middle opens a sheet
+ * drawing the rail; and nothing overflows sideways at phone width.
  */
 
 import { openBrowser, newPage, clearFaults, Checks, readSeed, BASE } from "./lib/harness.mjs";
@@ -69,8 +69,10 @@ try {
       && new URL(await link.evaluate(el => el.href)).search === "");
     const name = (await page.locator(".editor-crumb-name").textContent())?.trim() ?? "";
     checks.add("the map's name follows, as text", name.length > 0 && await page.locator(".editor-crumb-name a").count() === 0, name);
-    checks.add("no phase in the crumb", !(await page.locator(".editor-crumb").textContent())?.includes(
-      (await page.locator(".editor-bar-phase").first().textContent())?.trim() ?? "?"));
+    const phase = (await page.locator(".nav-rail .nav-btn.active .nav-btn-caption").first().textContent())?.trim() ?? "?";
+    checks.add("the bar names no phase; the rail does", !(await page.locator(".editor-bar").textContent())?.includes(phase), phase);
+    checks.add("the path is separated by slashes", (await page.locator(".editor-crumb-sep").allTextContents())
+      .every(sep => sep.trim() === "/"));
 
     const word = { sketch: "Sketch", configure: "Configure" }[tool];
     checks.add("the switcher names the tool", (await page.locator(".editor-stage--button span").first().textContent())?.trim() === word);
@@ -153,37 +155,49 @@ try {
   checks.add("the bar runs undo and redo, the commands, the divider, Back and Next",
     group.order.join() === "editor-bar-history,editor-bar-commands,editor-bar-divider,editor-bar-back,editor-bar-next", group.order.join());
 
-  checks.section("the bar is there in every phase");
-  for (const [path, phase] of [[`/maps/${seed.sketchSlug}/sketch?phase=info`, "Info"],
-                               [`/maps/${seed.sketchSlug}/sketch`, "History"],
-                               [`/maps/${seed.mapSlug}/configure`, "Identity"]]) {
+  checks.section("the rail names the phase in every phase, and History stands apart from the move");
+  for (const [path, phase, moves] of [[`/maps/${seed.sketchSlug}/sketch?phase=identity`, "Identity", true],
+                                      [`/maps/${seed.sketchSlug}/sketch`, "History", false],
+                                      [`/maps/${seed.mapSlug}/configure`, "Identity", true]]) {
     await open(path);
-    if (phase === "History") await page.click('.nav-btn:has(.nav-btn-caption:text-is("History"))');
-    await page.waitForFunction((want) => document.querySelector(".editor-bar-phase")?.textContent.trim() === want, phase,
-      { timeout: 10000 }).catch(() => {});
+    if (phase === "History") await page.click('.nav-rail-foot .nav-btn:has(.nav-btn-caption:text-is("History"))');
+    await page.waitForFunction((want) => document.querySelector(".nav-rail .nav-btn.active .nav-btn-caption")?.textContent.trim() === want,
+      phase, { timeout: 10000 }).catch(() => {});
     const bar = await page.evaluate(() => ({
-      phase: document.querySelector(".editor-bar-phase")?.textContent.trim(),
+      phase: document.querySelector(".nav-rail .nav-btn.active .nav-btn-caption")?.textContent.trim(),
       crumb: !!document.querySelector(".editor-crumb a"),
       move: [...document.querySelectorAll(".editor-bar-back, .editor-bar-next")].map(el => el.textContent.trim()).join(),
     }));
-    checks.add(`${path.split("?")[0].split("/").pop()} ${phase}: the crumb, the phase and Back/Next`,
-      bar.crumb && bar.phase === phase && bar.move.startsWith("Back,"), JSON.stringify(bar));
+    checks.add(`${path.split("?")[0].split("/").pop()} ${phase}: the crumb, the lit phase and ${moves ? "Back/Next" : "no move"}`,
+      bar.crumb && bar.phase === phase && (moves ? bar.move.startsWith("Back,") : bar.move === ""), JSON.stringify(bar));
   }
 
-  checks.section("the steps stay written out down to 960px");
-  await page.setViewportSize({ width: 1000, height: 800 });
-  await open(`/maps/${seed.sketchSlug}/sketch?phase=info`);
-  const narrow = await page.evaluate(() => {
-    const strip = document.querySelector(".editor-bar-steps .flow-steps");
-    return {
-      steps: !!strip && getComputedStyle(strip).display !== "none" && strip.getBoundingClientRect().width > 0,
-      overflow: document.documentElement.scrollWidth > window.innerWidth,
-      barHeight: document.querySelector(".editor-bar").getBoundingClientRect().height,
-    };
+  checks.section("the open phase lists its steps, and the rail folds to its glyphs");
+  await open(`/maps/${seed.sketchSlug}/sketch?phase=identity`);
+  const listed = await page.locator(".nav-rail .nav-step").allTextContents();
+  checks.add("Identity lists Details and Symmetry", listed.map(text => text.trim()).join() === "Details,Symmetry", listed.join());
+  checks.add("no other phase lists its steps", await page.locator(".nav-rail .nav-steps").count() === 1);
+  await page.click(".nav-rail .nav-step >> text=Symmetry");
+  checks.add("a step picked in the rail opens it", /step=symmetry/.test(page.url()), page.url());
+  const openWidth = (await page.locator(".app-body > .nav-rail").boundingBox()).width;
+  await page.click(".nav-rail-fold");
+  await page.waitForTimeout(300);
+  const folded = await page.evaluate(() => {
+    const rail = document.querySelector(".app-body > .nav-rail");
+    const caption = rail.querySelector(".nav-btn-caption").getBoundingClientRect();
+    return { width: rail.getBoundingClientRect().width, caption: caption.width * caption.height,
+             title: rail.querySelector(".nav-btn.active").getAttribute("title"),
+             dots: rail.querySelectorAll(".nav-step").length,
+             stepTitle: rail.querySelector('.nav-step[aria-current]')?.getAttribute("title") };
   });
-  checks.add("the step strip is shown", narrow.steps, JSON.stringify(narrow));
-  checks.add("the bar stays one row", narrow.barHeight < 60, `${narrow.barHeight}px`);
-  checks.add("nothing overflows sideways", !narrow.overflow);
+  checks.add("folded, the rail is the glyphs alone", folded.width < openWidth / 2 && folded.caption <= 1, JSON.stringify(folded));
+  checks.add("and names each on hover", folded.title === "Identity" && folded.stepTitle === "Symmetry", JSON.stringify(folded));
+  checks.add("the open phase keeps a dot for each step", folded.dots === 2, `${folded.dots}`);
+  await open(`/maps/${seed.sketchSlug}/sketch?phase=identity`);
+  checks.add("the fold is remembered", (await page.locator(".app-body > .nav-rail--folded").count()) === 1);
+  await page.click(".nav-rail-fold");
+  await page.waitForTimeout(300);
+  checks.add("and undone", (await page.locator(".app-body > .nav-rail--folded").count()) === 0);
 
   /** Where the bar, its foot and the rail sit, and what the foot holds. */
   const layout = () => page.evaluate(() => {
@@ -196,7 +210,7 @@ try {
     return {
       window: window.innerHeight,
       bar: box(".editor-bar"), foot: box(".editor-bar-foot"), rail: box(".app-body > .nav-rail"),
-      picker: box(".editor-bar-picker"), strip: box(".editor-bar-steps"), next: box(".editor-bar-next"),
+      picker: box(".editor-bar-picker"), next: box(".editor-bar-next"),
       history: !!document.querySelector(".editor-bar-foot .editor-bar-history .action-btn"),
     };
   });
@@ -206,33 +220,33 @@ try {
   await open(`/maps/${seed.sketchSlug}/sketch?phase=draw`);
   let at = await layout();
   checks.add("the foot rests on the window's bottom", at.foot?.bottom === at.window, JSON.stringify(at.foot));
-  checks.add("it holds Undo and Redo and the steps written out, with Next", at.history && !!at.strip && !at.picker && !!at.next, JSON.stringify(at));
-  checks.add("the rail is a column beside the page", !!at.rail && at.rail.width < 80 && at.rail.top >= at.bar.bottom - 1, JSON.stringify(at.rail));
+  checks.add("it holds Undo and Redo, with Next", at.history && !at.picker && !!at.next, JSON.stringify(at));
+  checks.add("the rail is a column beside the page", !!at.rail && at.rail.top >= at.bar.bottom - 1, JSON.stringify(at.rail));
   await page.mouse.wheel(0, 600);
   await page.waitForTimeout(400);
   at = await layout();
   checks.add("scrolled, the bar is still at the top and the foot at the bottom", at.bar.top === 0 && at.foot.bottom === at.window,
     `bar ${at.bar.top}, foot ${at.foot.bottom} of ${at.window}`);
 
-  checks.section("on a phone the steps open a sheet of the phases");
+  checks.section("on a phone the foot's middle opens a sheet drawing the rail");
   page = await newPage(browser, { width: 390, height: 844, touch: true });
   await open(`/maps/${seed.sketchSlug}/sketch?phase=draw`);
   const mark = await page.locator(".editor-studio-btn").boundingBox();
   checks.add("the studio's mark is a finger's size", mark.width >= 44 && mark.height >= 44, `${mark.width} × ${mark.height}`);
   at = await layout();
   checks.add("no rail is drawn", at.rail === null, JSON.stringify(at.rail));
-  checks.add("the foot's middle is the phase and step", !!at.picker && !at.strip, JSON.stringify(at));
+  checks.add("the foot's middle is the phase and step", !!at.picker, JSON.stringify(at));
   checks.add("the bar and the foot together take under a sixth of the window",
     at.bar.height + at.foot.height < at.window / 6, `${at.bar.height} + ${at.foot.height} of ${at.window}`);
   const picked = (await page.locator(".editor-bar-picker").textContent())?.replace(/\s+/g, " ").trim();
-  checks.add("it names the phase, the step and how far along", /^Draw · \d of \d \w+/.test(picked ?? ""), picked);
+  checks.add("it names the phase and the step", /^Draw \w+/.test(picked ?? ""), picked);
   await page.click(".editor-bar-picker");
   await page.waitForSelector(".editor-sheet", { timeout: 5000 });
   const sheet = await page.evaluate(() => {
-    const rows = [...document.querySelectorAll(".editor-sheet .nav-btn, .editor-sheet-step")]
+    const rows = [...document.querySelectorAll(".editor-sheet .nav-btn, .editor-sheet .nav-step")]
       .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
     return {
-      rows: rows.map(el => (el.classList.contains("editor-sheet-step") ? "  " : "") + el.textContent.replace(/^\d+/, "").trim()),
+      rows: rows.map(el => (el.classList.contains("nav-step") ? "  " : "") + el.textContent.trim()),
       focus: document.activeElement?.classList.contains("editor-sheet"),
       short: Math.min(...rows.map(el => el.getBoundingClientRect().height)),
     };

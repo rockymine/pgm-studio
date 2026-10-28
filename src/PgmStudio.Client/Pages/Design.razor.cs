@@ -95,7 +95,7 @@ public partial class Design
         ("Rules", [("rules", "Usage rules")]),
     ];
 
-    private static readonly IReadOnlyList<string> FlowSteps = ["Colours", "Spawn & room", "Monuments"];
+    private static readonly IReadOnlyList<string> FlowSteps = ["Places", "Ground", "Layout"];
 
     private static readonly IReadOnlyList<DockItem> DockFamily =
     [

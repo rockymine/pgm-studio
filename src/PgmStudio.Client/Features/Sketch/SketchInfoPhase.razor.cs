@@ -12,7 +12,7 @@ public partial class SketchInfoPhase : IAsyncDisposable
 {
     [Parameter] public string Slug { get; set; } = "";
     /// <summary>The steps of the phase, in order; the host's editor bar lists them.</summary>
-    public static readonly IReadOnlyList<string> Steps = ["Identity", "Settings"];
+    public static readonly IReadOnlyList<string> Steps = ["Details", "Symmetry"];
     /// <summary>The step shown, an index into <see cref="Steps"/>.</summary>
     [Parameter] public int Step { get; set; }
     /// <summary>The name the map was saved under, once a save lands.</summary>

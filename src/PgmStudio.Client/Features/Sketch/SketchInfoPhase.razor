@@ -2,10 +2,10 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 
-@* Sketch Info phase — two steps: Identity (display name + authors, saved to the map metadata via
-   GET/PATCH api/map/{slug}, since sketches are map rows, as they are typed) and Settings (symmetry mode +
-   centre, which drive the live canvas through the host's callbacks). The host's editor bar holds the step and
-   moves it. *@
+@* Sketch Identity phase — two steps: Details (display name + authors, saved to the map metadata via
+   GET/PATCH api/map/{slug}, since sketches are map rows, as they are typed) and Symmetry (mode + centre, which
+   drive the live canvas through the host's callbacks). The host's rail lists the steps and its bar's Back and
+   Next move between them. *@
 
 <div class="phase-body">
   <Workspace>

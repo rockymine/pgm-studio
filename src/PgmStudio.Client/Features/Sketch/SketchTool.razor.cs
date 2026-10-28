@@ -114,8 +114,11 @@ public partial class SketchTool
     // ── The editor bar's phase: what each phase is called, which of its steps is up, and where Back and Next go.
     private int infoStep;
 
+    /// <summary>The open phase as the bar and the rail show it. <paramref name="Moves"/> is false where Back and
+    /// Next have nothing to move between (History), and <paramref name="NextOpen"/> false at the last step.</summary>
     private sealed record BarPhase(string Title, IReadOnlyList<string> Steps, int Step, string NextLabel,
-                                   Func<Task> OnBack, Func<Task> OnNext, Func<int, Task> OnStep);
+                                   Func<Task> OnBack, Func<Task> OnNext, Func<int, Task> OnStep,
+                                   bool Moves = true, bool NextOpen = true);
 
     private static readonly Func<int, Task> NoStep = _ => Task.CompletedTask;
 
@@ -129,7 +132,7 @@ public partial class SketchTool
             if (InfoActive)
             {
                 var last = SketchInfoPhase.Steps.Count - 1;
-                return new("Info", SketchInfoPhase.Steps, infoStep,
+                return new("Identity", SketchInfoPhase.Steps, infoStep,
                     NextTo(infoStep == last ? "Draw" : SketchInfoPhase.Steps[infoStep + 1]),
                     () => { infoStep = 0; return Task.CompletedTask; },
                     () => { if (infoStep < last) { infoStep++; return Task.CompletedTask; } return OpenDraw(); },
@@ -138,9 +141,9 @@ public partial class SketchTool
             if (ThemeActive) return new("Palette", [], 0, NextTo("Decoration"), GoRelief, GoDressing, NoStep);
             if (DressingActive) return new("Decoration", [], 0, NextTo("Review"), GoTheme, GoReview, NoStep);
             if (ReliefActive) return new("Terraform", [], 0, NextTo("Palette"), GoDraw, GoTheme, NoStep);
-            if (HistoryActive) return new("History", [], 0, "Draw", GoReview, GoDraw, NoStep);
+            if (HistoryActive) return new("History", [], 0, "Next", GoReview, GoDraw, NoStep, Moves: false);
             if (CamerasActive) return new("Review", ReviewSteps, 0, NextTo(ReviewSteps[1]), GoDressing, ShowNotes, StepReview);
-            if (NotesActive) return new("Review", ReviewSteps, 1, NextTo("History"), ShowCameras, GoHistory, StepReview);
+            if (NotesActive) return new("Review", ReviewSteps, 1, "Next", ShowCameras, () => Task.CompletedTask, StepReview, NextOpen: false);
             // A step's index is into the names this render draws, so the offset that maps it back is the one they
             // were drawn with: the Places step can arrive between a render and the click on it.
             var first = FirstDrawStep;
@@ -336,7 +339,7 @@ public partial class SketchTool
         : selectedShapeId is not null ? new[] { selectedShapeId }
         : [];
 
-    // A freshly-created sketch lands on Info (?phase=info) to name it; opening an existing one goes
+    // A freshly-created sketch lands on Identity (?phase=identity) to name it; opening an existing one goes
     // straight to Draw, or to the phase and step its address names (SketchTool.Address.cs).
     protected override void OnInitialized()
     {
@@ -551,7 +554,7 @@ public partial class SketchTool
     /// palette render, and the registry refuses an entry without them.</summary>
     private static readonly object[] Shortcuts =
     [
-        new { id = "sketch.phase.info",      keys = "1", label = "Go to Info",     group = "Phases" },
+        new { id = "sketch.phase.info",      keys = "1", label = "Go to Identity", group = "Phases" },
         new { id = "sketch.phase.draw",      keys = "2", label = "Go to Draw",     group = "Phases" },
         new { id = "sketch.phase.relief",    keys = "3", label = "Go to Terraform", group = "Phases" },
         new { id = "sketch.phase.theme",     keys = "4", label = "Go to Palette",  group = "Phases" },
@@ -1018,10 +1021,10 @@ public partial class SketchTool
     /// <summary>What the studio answered the last save with: the refusal's findings, or the warnings a landed
     /// save carried.</summary>
     private IReadOnlyList<Finding> saveFindings = [];
-    /// <summary>Where Info's identity save stands, shown in the tool bar while Info is up.</summary>
+    /// <summary>Where Identity's save stands, shown in the tool bar while Identity is up.</summary>
     private string? infoSave;
 
-    /// <summary>What the bar says about saving, in every phase: Info's identity save while Info is up and has
+    /// <summary>What the bar says about saving, in every phase: Identity's save while Identity is up and has
     /// one to report, and the drawing's otherwise — Saving… while an edit waits for its debounced write, Saved once every edit has
     /// landed. A refused save says nothing here, because the Problems button already says it cannot save, and a
     /// view-only map says nothing at all.</summary>

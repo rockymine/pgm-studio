@@ -385,10 +385,15 @@
         <h3>Three-column workspace: NavRail, Sidebar, canvas, Inspector</h3>
         <div class="ds-workspace-frame">
           <div class="app-body">
-            <NavRail>
-              <NavButton Icon="pencil-ruler" Title="Sketch" Status="green" Active />
-              <NavButton Icon="settings-2" Title="Configure" Status="yellow" />
-              <NavButton Icon="box" Title="Export" Disabled />
+            <NavRail FoldKey="design" Label="Sample chapters">
+              <ChildContent>
+                <NavButton Icon="book-open-text" Title="Identity" Status="green" />
+                <NavButton Icon="pencil-ruler" Title="Draw" Active Steps="FlowSteps" CurrentStep="1" />
+                <NavButton Icon="eye" Title="Review" Disabled />
+              </ChildContent>
+              <Foot>
+                <NavButton Icon="history" Title="History" />
+              </Foot>
             </NavRail>
             <div class="activity-viewport">
               <Workspace>
@@ -428,18 +433,17 @@
       <div class="ds-subsection">
         <h3>Editor bar</h3>
         <p class="ds-theming-note">The one bar the Sketch and Configure editors draw in place of the studio's own
-           (<code>EditorBar</code>). Left, the studio's mark, which opens the studio's menu on an editor's page, then
-           the crumb — <strong>Maps</strong>, the map's name — and the
-           <strong>stage switcher</strong> (<code>StageSwitch</code>), a button naming the current tool whose menu
-           opens the map's other tools, dashed where the map has no such layer. Middle, the
-           phase's name (<code>editor-bar-phase</code>) and flat-text step labels with an accent underline on the active
-           one. Right, the state, Undo and Redo, the tool's other commands, a divider, then Back/Next. Below 960 px Back,
-           Undo, Redo, the steps and Next move to a foot pinned to the window's bottom, and below 600 px the steps
-           become a button that opens a sheet of the rail's phases with the open phase's steps under it.</p>
+           (<code>EditorBar</code>). Left, the studio's mark and, on a wide window, its name, which open the studio's
+           menu on an editor's page, then the path — <strong>Maps</strong> / the map's name / the tool — separated by
+           slashes. The tool is the <strong>stage switcher</strong> (<code>StageSwitch</code>), its stage's dot and a
+           button naming it whose menu opens the map's other tools, dashed where the map has no such layer. Right, the
+           state, Undo and Redo, the tool's other commands, a divider, then Back/Next. The phase and its step are the
+           rail's to name (above). Below 960 px Back, Undo, Redo and Next move to a foot pinned to the window's bottom,
+           and below 600 px the foot's middle names the phase and step and opens a sheet drawing the rail.</p>
         <div class="ds-bar-frame">
         <CascadingValue Name="StudioMenu" Value="StudioMenu.Closed">
         <EditorBar MapName="Harbour Run" Slug="harbour_run" Stage="@MapStage.Sketch"
-                   PhaseTitle="Wools" Steps="FlowSteps"
+                   PhaseTitle="Draw" Steps="FlowSteps"
                    CurrentStep="1" BackEnabled="true">
           <State>Saved</State>
           <History>
