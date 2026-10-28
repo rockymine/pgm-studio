@@ -941,7 +941,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (this.moving) return false;
       this.moving = true;
       try {
-        await pieceSettled;
+        if (pieceDepth > 0) await pieceSettled;
         if (!from.length) return false;
         const entry = from[from.length - 1];
         const current = { layout: snapshot() };
@@ -1855,8 +1855,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         })),
       };
     },
-    undo() { history.undo(); },
-    redo() { history.redo(); },
+    undo() { return history.undo(); },
+    redo() { return history.redo(); },
     fitToBbox() { canvas.fitToBbox(); },
     dispose() {
       paintFeed.cancel();
