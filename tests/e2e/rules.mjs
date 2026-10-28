@@ -2,7 +2,7 @@
  * A rule id leads somewhere, and a check list reads by rule.
  *
  * The rules page answers `/rules?rule=ID` by opening on that rule, and its filters narrow the list; the studio
- * bar links it and the account menu links the API docs. A check list reads one row per rule, whose id links to
+ * bar links it and the account menu links the API docs for an admin. A check list reads one row per rule, whose id links to
  * that page in a new tab.
  */
 

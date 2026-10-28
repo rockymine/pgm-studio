@@ -209,11 +209,14 @@ once with a copy button, and lists theirs with what each is for and when it was 
 *Delete this token*. An admin sees one more box there, *Access to map notes*, and a token issued with it is
 marked *Notes* in the list.
 
-A page the caller may not write opens read-only: the tool's bar says *View only*, with the reason on hover, the
+A page the caller may not write opens read-only: the tool's bar says *View only* to someone signed in, with the
+reason on hover, and offers a signed-out visitor *Sign in* in its place, since the reason is that they are not; the
 panels and the sidebars grey every field that writes, and the canvas keeps only the tools that look: it pans,
 zooms, selects and measures, and a drag, a draw or a key that would change the map moves nothing and sends
 nothing. Signed in, a read-only Sketch page
-still draws the ground's contours, its paint and the 3-D preview; signed out, it draws the outlines alone.
+still draws the ground's contours, its paint and the 3-D preview; signed out, it draws the outlines alone. A
+library entry's preview is a build from the draft, so where the caller may not build the editor draws no preview
+column and its fields take the width.
 
 **An action the caller may not take is greyed wherever it sits, with the reason on hover.** That holds on a
 page that writes nothing as much as on one that writes: the map list's *New map* and *Import a

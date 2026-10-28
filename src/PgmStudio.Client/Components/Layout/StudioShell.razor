@@ -10,8 +10,9 @@
    reaches the Bar as "StudioMenu", so the studio bar's button and the editor's open the one menu, and a move to
    another page closes it. The Rail reaches the Bar as "StudioRail", so an editor's bar can list its phases where
    the rail is not drawn. A focused page drops the footer too, so the editor has the window's full height. A page
-   with no Bar of its own draws a Topbar only to say it opens read-only. The default body is .app-body with an
-   optional Rail (a NavRail)
+   with no Bar of its own draws a Topbar only to say it opens read-only to someone signed in; a visitor is told
+   by the sign-in itself, and whether the browser is signed in reaches the Bar as "StudioSignedIn". The default
+   body is .app-body with an optional Rail (a NavRail)
    beside the .activity-viewport that wraps ChildContent. Two escapes: Viewport=false drops the viewport
    wrapper (ChildContent sits directly in .app-body); Bare=true drops .app-body entirely for pages that own
    their own body layout (the generator's gen-body, the /design ds-layout).
@@ -32,15 +33,17 @@
     <CascadingValue Name="StudioDeleteReason" Value="deleteReason">
     <CascadingValue Name="StudioBuildReason" Value="buildReason">
     <CascadingValue Name="StudioReadOnlyReason" Value="readOnlyReason">
+    <CascadingValue Name="StudioSignedIn" Value="signedIn">
     <CascadingValue Name="StudioRail" Value="Rail">
         @if (Bar is not null)
         {
             @Bar
         }
-        else if (ReadOnly)
+        else if (ReadOnly && signedIn)
         {
             <Topbar />
         }
+    </CascadingValue>
     </CascadingValue>
     </CascadingValue>
     <CascadingValue Name="StudioReadOnly" Value="ReadOnly">
@@ -83,6 +86,7 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     private string? readOnlyReason;
+    private bool signedIn;
     private const string Asking = "Checking whether you can change this…";
     private string? writeReason = Asking;
     private string? deleteReason = Asking;
@@ -127,6 +131,8 @@
     private async Task AskAsync()
     {
         var path = Nav.ToBaseRelativePath(Nav.Uri);
+        var caller = await Access.MeAsync();
+        signedIn = caller.SignedIn || caller.Mode == AccessModes.Open;
         readOnlyReason = await Access.ReadOnlyReasonAsync(path);
         writeReason = await Access.WriteReasonAsync(path);
         deleteReason = await Access.DeleteReasonAsync(path);

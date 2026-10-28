@@ -151,7 +151,6 @@
 }
 .account-menu-item .account-waiting { margin-left: auto; }
 .account-local { color: var(--nav-text); }
-.account-visitor { display: flex; align-items: center; gap: var(--space-2); }
 .account-signin {
   display: flex;
   align-items: center;
@@ -224,4 +223,7 @@
   font-size: var(--font-sm);
 }
 .readonly-tag svg { width: 14px; height: 14px; color: var(--color-warning); }
+/* A visitor's tag is the sign-in itself, in Discord's own colour like the studio bar's. */
+.readonly-signin { background: #5865f2; color: #fff; text-decoration: none; font-weight: 600; }
+.readonly-signin svg { color: currentColor; }
 

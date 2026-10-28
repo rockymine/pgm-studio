@@ -179,6 +179,25 @@ a.lib-card-fig { text-decoration: none; }
   background: var(--bg-panel); border-top: 1px solid var(--border);
 }
 .lib-foot .panel-actions { margin: 0 0 0 auto; }
+
+/* A narrow window stacks the editor: the preview at the full width, then the outline, then the fields, each a
+   row of its own; the page scrolls as one (editor.css). */
+@media (max-width: 959px) {
+  .lib-workspace > .lib-preview {
+    order: -1; flex: 1 1 100%; width: auto !important; min-height: max(320px, 50vh);
+    border-left: 0; border-bottom: 1px solid var(--border);
+  }
+  .lib-workspace > .workspace-sidebar { order: 0; flex: 1 1 100%; }
+  .lib-workspace > .lib-fields { order: 1; flex: 1 1 100%; overflow: visible; border-top: 1px solid var(--border); }
+  .lib-fields-scroll { overflow: visible; }
+  /* A column the window's width has no room beside the picture for its chrome, so the chips and the
+     sample dock join the flow above and below it instead of hanging over it. */
+  .lib-workspace > .lib-preview { flex-direction: column; gap: var(--space-3); }
+  .lib-preview .canvas-layer-bar,
+  .lib-preview .canvas-dock,
+  .lib-preview .canvas-note { position: static; transform: none; }
+  .lib-preview .canvas-layer-bar { justify-content: center; flex-wrap: wrap; }
+}
 .lib-foot-note { margin: 0; }
 
 /* The picture, as a companion rather than a stage: a fixed column the resize handle can widen, positioned

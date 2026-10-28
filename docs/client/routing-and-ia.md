@@ -95,7 +95,8 @@ left out of the filter and the column. The Author column shows the first credite
 rest.
 
 A search box over the table narrows it by name, slug or author and stays out of the address. The header
-carries **New map** and **Import a world** whatever the filters are.
+carries **New map**, which makes a sketch and opens it on its Info phase, and **Import a world** whatever the
+filters are.
 
 **A row opens the tool at its map's stage.** A map at `edit` has no tool at its stage, so its row opens the
 last layer it holds — Configure, where it has a world — and one holding no layer opens nothing. The **Open in**
@@ -120,7 +121,7 @@ only the studio's own bar above the page. The page is one centred column, 1240px
 
 **The hero names what the studio makes and offers two ways in.** Two equal columns: an eyebrow naming the game
 modes, a title and lead describing the pipeline from layout to `map.xml`, and two 44px buttons (`Button` with
-`Size="lg"`) — **New map** opens the maps page at the sketch stage (`maps?stage=sketch`), **Browse maps** opens it unfiltered. Beside the
+`Size="lg"`) — **New map** (`NewMapButton`, the same button the map list's header carries) makes a sketch and opens it on its Info phase, and **Browse maps** opens the maps page unfiltered. Beside the
 text sits a 16:9 `MapThumb` of the newest built map — a sketch layout and its world — drawn in game; with no such map it is
 the studio mark on a token-coloured panel.
 
@@ -170,11 +171,12 @@ studio's own bar (`AppNav`) is the same everywhere: the studio's mark and name, 
 Generator · Library · Rules · Glossary**, each lit on the page it names and every page under it, so Maps is lit in a
 map's tools; and at the right a search that opens the command palette (what `Ctrl K` also opens), icon buttons for
 the keyboard shortcuts (the sheet `?` also opens) and the design reference (`/design`), then the text size, the theme
-and the account. The account menu carries Tokens, Users for an admin, and **API docs** (`/api-docs`, which opens in a
-new tab, being the API's own page rather than the client's); in an open studio the `local admin` button opens it
-with Users and API docs, and a visitor's sign-in has a menu beside it holding API docs. The page's bar under it is
-the trail to where the page is and the page's own state and actions: a `Topbar`, drawn where the page has a trail
-of more than its own name, actions, or a *View only* tag to show. A page whose bar would hold only its own name —
+and the account. The account menu carries Tokens, and for an admin Users and **API docs** (`/api-docs`, which
+opens in a new tab, being the API's own page rather than the client's); the page and its schema stay reachable to
+anyone who has the address, and only the link is an admin's. In an open studio the `local admin` button opens the
+menu with Users and API docs. A visitor is shown *Sign in with Discord* alone, with no menu beside it. The page's
+bar under it is the trail to where the page is and the page's own state and actions: a `Topbar`, drawn where the
+page has a trail of more than its own name, actions, or a *View only* tag to show someone signed in. A page whose bar would hold only its own name —
 Maps, the generator, the rules, the glossary — draws none, since its heading names it and the lit link above says
 where it is. So getting to another tool is one click in the top bar, and the page's bar holds nothing that is not
 the page's.

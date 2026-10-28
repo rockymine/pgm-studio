@@ -1,13 +1,13 @@
 @namespace PgmStudio.Client.Components
 
 @* The bar of a page that is not an editor, under the studio's own — the trail to where the page is (the Crumbs
-   slot composed from Crumb), a "view only" tag where the page opens read-only, and the page's state and
+   slot composed from Crumb), a "view only" tag where the page opens read-only to someone signed in, and the page's state and
    actions at the right (Right). The editors draw EditorBar instead. What belongs to the studio rather than the
    page — its pages, the theme, the account — is AppNav above it. *@
 
 <div class="topbar">
     @Crumbs
-    @if (ReadOnlyReason is not null)
+    @if (ReadOnlyReason is not null && SignedIn)
     {
         <span class="readonly-tag" role="status" title="@ReadOnlyReason"><i data-lucide="eye"></i><span>View only</span></span>
     }
@@ -21,4 +21,7 @@
     [Parameter] public RenderFragment? Crumbs { get; set; }
     [Parameter] public RenderFragment? Right { get; set; }
     [CascadingParameter(Name = "StudioReadOnlyReason")] public string? ReadOnlyReason { get; set; }
+    /// <summary>Whether the browser is signed in; a visitor's sign-in in the studio bar already says the page is
+    /// closed to them, so the tag is for someone signed in alone.</summary>
+    [CascadingParameter(Name = "StudioSignedIn")] public bool SignedIn { get; set; }
 }

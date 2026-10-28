@@ -45,9 +45,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **Chrome that carries nothing is not drawn (`C116`).** A page whose bar would only repeat its own name draws
   none; a read-only editor draws no Undo or Redo, and no Download for someone who may not build; the studio menu
   names each tool beside its glyph and offers a touch screen no keyboard shortcuts. `docs/client/ui-conventions.md`.
+- **A visitor is asked to sign in once (`C117`).** The account is *Sign in with Discord*, with Discord's mark and
+  no menu; an editor's bar offers *Sign in* where it tells someone signed in *View only*, and no other bar says
+  it a second time. Only an admin's menu links the API docs. `docs/client/routing-and-ia.md`, *Exits*.
+- **The reference pages read on a phone (`C118`).** Below 960px the studio bar stays pinned; the rules' filters fold
+  above the list behind *Filters* with the count, every group shown once opened, and a rule shows all it holds at
+  once with no copy button; the glossary's search and letters stick under the studio bar in one row that scrolls
+  across, so its lead is whole and a jump lands clear of them. `docs/client/ui-conventions.md`, `docs/refusals.md`.
 - **The studio bar holds tools and two references (`C105`).** Maps, Generator, Library, Rules and Glossary,
   with no divider; at the right the keyboard-shortcuts and Design icons, text size, theme and the account, whose
-  menu holds Tokens, Users (admin) and API docs — in an open studio too. The footer is the brand and GitHub.
+  menu holds Tokens, and Users and API docs for an admin — in an open studio too. The footer is the brand and GitHub.
   `docs/client/routing-and-ia.md`.
 - **A glossary page (`RP99`).** `/glossary` lists every term `GET /api/glossary` serves, alphabetically under
   letter headings with their other names and related terms, filtered by a search kept in `?q=`, each entry
@@ -248,6 +255,10 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **A generator card is its picture (`TG4`).** Generator, Catalog and Library cards are one `PictureCard`: the
   picture and a name — a layout's id on the Generator. The Generator's rail filters by player band chips and links
   the shape catalog; it shows no score. `docs/tools/generator.md`.
+- **A library entry reads on a phone (`TL47`).** Below 960px the editor stacks the preview, the outline and the
+  fields at the window's width, the preview's chips above and below its picture rather than over it; the rail is
+  the nine kinds and scrolls across at phone width; a caller the studio will not build for is drawn no preview.
+  `docs/tools/library.md`, *The editor page*.
 - **Library structures stand on grass (`TL46`).** Textured tree and boulder cards grow on one course of grass
   over dirt (`DressingPreview.GrassGround`), and the house sample stands on grass over dirt rather than stone.
   `docs/tools/library.md`.
@@ -10991,6 +11002,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   under the box what they take; Soft rim shows its default, 0, a hard edge; a paint rule's empty conditions read
   *Any*. A stack row is the operation's icon and the name across the row: the kind tag beside a renamed
   modifier is gone, and the row's buttons take no room until hover or pick.
+- **New map starts a map, under a fresh id (`TS234`).** *New map* on the start page and the map list makes a sketch
+  and opens it on Info; a map made without a stated slug (`POST /sketch`, a compose) takes 16 random characters
+  rather than a name with a counter, and a stated slug is kept. `docs/tools/sketch.md`.
 - **An undo pressed just after a piece is placed undoes that piece (`TS233`).** Piece writes and steps over the
   intent take turns, so two pieces placed close together are two steps, and an undo or redo pressed while a write
   is in flight waits for it rather than stepping over the piece before it. `docs/tools/sketch.md`, *Undo*.

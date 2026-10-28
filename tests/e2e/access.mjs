@@ -28,6 +28,8 @@ async function visit(base, path) {
 const readState = () => page.evaluate(() => ({
   banner: document.querySelector(".editor-bar .readonly-tag, .topbar .readonly-tag")?.getAttribute("title") ?? null,
   signIn: !!document.querySelector('a.account-signin[href*="api/auth/discord"]'),
+  signInTag: !!document.querySelector('.editor-bar a.readonly-signin[href*="api/auth/discord"]'),
+  menu: !!document.querySelector(".account-button, .account-local"),
   greyed: document.querySelectorAll("fieldset.readonly-fieldset[disabled]").length,
   select: !!document.querySelector('.canvas-dock button[aria-label="Select"]'),
   rectangle: !!document.querySelector('.canvas-dock button[aria-label="Rectangle"]'),
@@ -153,8 +155,10 @@ try {
     if (canvas) await page.waitForSelector(".canvas-dock", { timeout: 20000 }).catch(() => {});
     await page.waitForSelector("fieldset.readonly-fieldset", { timeout: 10000 }).catch(() => {});
     state = await readState();
-    checks.add("the editor bar says view only, and why", /Sign in to/.test(state.banner ?? ""), state.banner ?? "no tag");
+    checks.add("the editor bar offers the sign-in where View only would be, and says why",
+      state.signInTag && /Sign in to/.test(state.banner ?? ""), state.banner ?? "no tag");
     checks.add("the studio bar offers the sign-in", state.signIn);
+    checks.add("and no menu beside it", !state.menu);
     checks.add("the panels are greyed", state.greyed > 0,
       `${state.greyed} disabled fieldset(s) over ${state.inspector} panel(s)`);
     if (canvas) checks.add("the tools that only look stay", state.select);
@@ -180,6 +184,15 @@ try {
   const newSketch = await page.evaluate(() =>
     [...document.querySelectorAll("button")].find(b => /New map/.test(b.textContent))?.disabled ?? null);
   checks.add("New map is greyed", newSketch === true, String(newSketch));
+  checks.add("the page's bar does not say View only a second time",
+    (await page.locator(".topbar .readonly-tag").count()) === 0);
+
+  checks.section("a signed-out visitor's library entry draws no preview");
+  const [roof] = await fetch(`${invited}/api/roof-styles`).then(r => r.json());
+  await visit(invited, `/library/roofs/${roof.id}`);
+  await page.waitForSelector(".lib-fields", { timeout: 20000 }).catch(() => {});
+  checks.add("the entry's fields are there", (await page.locator(".lib-fields").count()) === 1);
+  checks.add("and no preview column, which is a build", (await page.locator(".lib-preview").count()) === 0);
   await visit(invited, "/maps?stage=configure");
   const importWorld = await settle(/^Import a world$/, true);
   checks.add("Import a world goes nowhere, and says why", importWorld?.closed === true

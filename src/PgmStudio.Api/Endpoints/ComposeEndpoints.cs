@@ -143,7 +143,7 @@ public sealed class ComposeMapEndpoint(
             intent = sketch.Intent,
             note = $"composed: {band} {board.Symmetry} seed {board.Seed} by composer {board.ComposerVersion}",
         }, MapArtifactStore.Json);
-        var slug = await repo.UniqueSlugAsync(Slugs.Of(sketch.Name), ct);
+        var slug = await MapOrigin.FreeSlugAsync(repo, null, ct);
         var applied = await MapSource.ApplyAsync(HttpContext, slug, source, dry: false, discarding: null,
             repo, reader, writer, artifacts, features, db, players, log, names, ct);
         if (applied.Refusal is { } refusal)

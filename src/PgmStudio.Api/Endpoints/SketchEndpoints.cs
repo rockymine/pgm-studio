@@ -27,7 +27,8 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Api.Endpoints;
 
 /// <summary>POST /api/sketch — originate a sketch: create a draft (geometry-less) map + its layout artifact.
-/// Returns the slug; the client navigates to <c>/maps/{slug}/sketch</c>. Body: optional {name} and an
+/// Returns the slug, a fresh random id unless the body states one; the client navigates to
+/// <c>/maps/{slug}/sketch</c>. Body: optional {name}, optional {slug} and an
 /// optional working frame {width, depth, mode, centerX, centerZ}. When a frame is given the layout is seeded
 /// with a <c>setup</c> (origin-centred bbox + symmetry centre + mode) so the editor frames the canvas on
 /// open; without one the layout is empty {} and the editor falls back to its landscape default on load.</summary>
@@ -47,6 +48,7 @@ public sealed class SketchCreateEndpoint(MapRepository repo, MapArtifactStore ar
     public override async Task HandleAsync(CancellationToken ct)
     {
         var name = DraftDiscard.SketchName;
+        string? statedSlug = null;
         var hasFrame = false;
         double width = DefaultWidth, depth = DefaultDepth, centerX = 0, centerZ = 0;
         var mode = DefaultMode;
@@ -56,6 +58,7 @@ public sealed class SketchCreateEndpoint(MapRepository repo, MapArtifactStore ar
             var root = doc.RootElement;
             if (root.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String
                 && n.GetString() is { } s && !string.IsNullOrWhiteSpace(s)) name = s.Trim();
+            if (root.TryGetProperty("slug", out var stated) && stated.ValueKind == JsonValueKind.String) statedSlug = stated.GetString();
             if (root.TryGetProperty("width", out var w) && w.ValueKind == JsonValueKind.Number) { width = w.GetDouble(); hasFrame = true; }
             if (root.TryGetProperty("depth", out var d) && d.ValueKind == JsonValueKind.Number) { depth = d.GetDouble(); hasFrame = true; }
             if (root.TryGetProperty("mode", out var m) && m.ValueKind == JsonValueKind.String
@@ -66,7 +69,7 @@ public sealed class SketchCreateEndpoint(MapRepository repo, MapArtifactStore ar
         catch { /* empty / invalid body → default name, no frame */ }
 
         var (mapId, slug) = await MapOrigin.UnderFreeSlugAsync(
-            repo, name, MapStage.Sketch, await Callers.OriginatorOfAsync(HttpContext), ct);
+            repo, statedSlug, name, MapStage.Sketch, await Callers.OriginatorOfAsync(HttpContext), ct);
         var seed = Seed(hasFrame ? Math.Max(16, width) : null, Math.Max(16, depth), mode, centerX, centerZ);
         await artifacts.SaveAsync(mapId, ArtifactKind.SketchLayoutJson, seed, ct);
         await Send.OkAsync(new OriginatedDto(slug), ct);

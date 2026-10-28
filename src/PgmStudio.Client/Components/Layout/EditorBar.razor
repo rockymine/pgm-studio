@@ -1,9 +1,11 @@
 @namespace PgmStudio.Client.Components
 @inject IJSRuntime JS
+@inject NavigationManager Nav
 
 @* The one bar the editors draw, in place of the studio's own on a focused page. Left: the studio's mark, which opens
    the studio's menu (StudioShell's "StudioMenu"), then where the page is — Maps, the map's name and the stage
-   switcher. Middle: the phase's name and its steps. Right: the read-only tag, the state (State), Undo and Redo
+   switcher. Middle: the phase's name and its steps. Right: the read-only tag (for a visitor, the sign-in in its
+   place), the state (State), Undo and Redo
    (History), the tool's other commands (Commands), a divider, and Back/Next. A page with no phase to show leaves
    PhaseTitle empty, and one with nothing to move between sets NoMove.
 
@@ -30,9 +32,14 @@
   </nav>
   <span class="editor-bar-spacer" aria-hidden="true"></span>
   <div class="editor-bar-end">
-    @if (ReadOnlyReason is not null)
+    @if (ReadOnlyReason is not null && SignedIn)
     {
       <span class="readonly-tag" role="status" title="@ReadOnlyReason"><i data-lucide="eye"></i><span>View only</span></span>
+    }
+    else if (ReadOnlyReason is not null)
+    {
+      <a class="readonly-tag readonly-signin" title="@ReadOnlyReason"
+         href="@StudioAccess.SignInHref(Nav.ToBaseRelativePath(Nav.Uri))"><DiscordMark /><span>Sign in</span></a>
     }
     @if (State is not null)
     {
@@ -167,6 +174,9 @@
     [Parameter] public EventCallback OnNext { get; set; }
 
     [CascadingParameter(Name = "StudioReadOnlyReason")] public string? ReadOnlyReason { get; set; }
+    /// <summary>Whether the browser is signed in: a visitor is offered the sign-in where someone signed in is told
+    /// the page is view only.</summary>
+    [CascadingParameter(Name = "StudioSignedIn")] public bool SignedIn { get; set; }
     /// <summary>The studio's menu, on a focused page; elsewhere the studio bar carries it and this is null.</summary>
     [CascadingParameter(Name = "StudioMenu")] public StudioMenu? Menu { get; set; }
     /// <summary>The page's rail, which the phone's sheet lists in its place.</summary>

@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -12,14 +13,15 @@ namespace PgmStudio.Api.Tests;
 public sealed class DraftDiscardTests
 {
     [Test]
-    public async Task An_untouched_sketch_is_discarded_and_its_slug_is_free_again()
+    public async Task An_untouched_sketch_is_discarded_and_is_gone()
     {
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
 
         var slug = await OriginateAsync(client, "/api/sketch", "Untitled sketch");
         await Assert.That(await DiscardAsync(client, slug)).IsTrue();
-        await Assert.That(await OriginateAsync(client, "/api/sketch", "Untitled sketch")).IsEqualTo(slug);
+        using var gone = await client.GetAsync($"/api/map/{slug}");
+        await Assert.That(gone.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
     }
 
     [Test]

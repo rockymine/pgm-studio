@@ -1,0 +1,34 @@
+@namespace PgmStudio.Client.Components
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+@* The one way a map is started from the studio's pages: a new sketch is made and opened on its Info phase. It
+   writes, so it is closed where the caller may not, and it is disabled while the sketch is being made. *@
+
+<Button Variant="primary" Size="@Size" Icon="plus" Class="@Class" Writes Disabled="@creating" OnClick="CreateAsync">New map</Button>
+
+@code {
+    /// <summary>The button's size, as <see cref="Button.Size"/> takes it.</summary>
+    [Parameter] public string? Size { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    private bool creating;
+
+    private async Task CreateAsync()
+    {
+        if (creating) return;
+        creating = true;
+        try
+        {
+            var resp = await Http.PostAsJsonAsync("api/sketch", new { name = "Untitled sketch" });
+            if (resp.IsSuccessStatusCode
+                && await resp.Content.ReadFromJsonAsync<OriginatedDto>() is { Slug: { Length: > 0 } slug })
+            {
+                Nav.NavigateTo($"maps/{slug}/sketch?phase=info");
+                return;
+            }
+        }
+        catch (HttpRequestException) { /* the button re-enables so the author can try again */ }
+        creating = false;
+    }
+}

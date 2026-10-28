@@ -708,8 +708,10 @@ the id, the first sentence of `means`, and the category as the action it asks fo
 kind (a gate's check or a layout rule), by that action and by `concerns`; the nine categories read *Fix the
 format*, *Fix a name*, *Choose which wins*, *Change the design*, *Make it playable*, *Finish it*, and after a rule — being
 the three that are not the author's to fix — *Ask for something else*, *Try again later* and *Report it*.
-Opening a rule shows `means` and `fix`; then its `concerns`, the bands its terms score against, and the rule's place
-on the reachability ladder above. `/rules?rule=PL9` opens on one rule, which is where every check list in the
+Below 960px the rail folds above the list behind a *Filters* button that carries the count. Opening a rule
+shows, all at once, `means` and `fix`; then its `concerns`, the bands its terms score against, the rule's place on
+the reachability ladder above, the type that defines it and its address at `GET /api/rules?rule=ID`, beside which
+an admin finds the API docs. `/rules?rule=PL9` opens on one rule, which is where every check list in the
 studio links a rule id to. The rules' own words are the server's; what the client adds is the action names,
 the family names, the term labels and the ladder's five questions (`RuleWords`).
 

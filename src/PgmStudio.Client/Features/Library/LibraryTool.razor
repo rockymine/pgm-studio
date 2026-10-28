@@ -38,8 +38,6 @@
   </Bar>
   <Rail>
     <NavRail>
-      <NavButton Icon="library" Title="All libraries" Href="/library" Active="@(Open is null)" />
-      <div class="nav-rail-div"></div>
       @foreach (var kind in LibraryKinds.All)
       {
         <NavButton Icon="@kind.Icon" Title="@kind.Title" Href="@($"/library/{kind.Slug}")"

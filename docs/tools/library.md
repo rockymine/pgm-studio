@@ -15,7 +15,7 @@ without adding a block. A style is browsed by what it looks like, everything abo
 recipe by what it builds, and a biome by the ground it colours. A house's row is a `room_style` and composes to a
 `HouseStyle`; the surface calls it what the thing is.
 
-Three routes, and the rail carries the nine kinds. `/library` is the chooser — one card per kind, grouped as
+Three routes, and the rail carries the nine kinds and nothing else. `/library` is the chooser, reached by the studio bar's *Library* and the crumb — one card per kind, grouped as
 *Ground* (styles, themes, biomes), *Buildings* (houses, roofs, storeys, porches) and *Nature* (trees,
 boulders), each over the pictures of the newest three entries it holds and its count. `/library/{kind}` browses that kind: a strip carrying a name search,
 whatever else the kind filters by, and **New**, over a grid of cards. `/library/{kind}/{id}`, or
@@ -696,7 +696,10 @@ since it is the one being authored — with the save, copy and delete bar agains
 so a document long enough to scroll is exactly the one whose save should not have to be hunted for. The
 **preview** is a fixed-width companion on the right (`.lib-preview`, `420px`), resizable by the same handle
 every other panel in the studio carries. There is no inspector on the route: the fields column sits directly
-off the outline instead of across a canvas from it.
+off the outline instead of across a canvas from it. Below 960px the three stack, each at the window's width: the
+preview first, with its view chips above the picture and the sample sizes under it, then the outline, then the
+fields. The preview is a build from the draft, so for a caller the studio will not build for (a signed-out
+visitor) the editor draws no preview at all.
 
 **An entry that has not arrived says it is being read, and a refusal is the header's.** The two states look
 alike from the fields column — there is nothing to draw either way — and they are not alike at all, so the

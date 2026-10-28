@@ -8,16 +8,19 @@ namespace PgmStudio.Contracts;
 /// built. A fourth door, <c>PUT /map/{slug}/source</c>, takes a map's whole source rather than a few fields and
 /// carries its own request beside them.
 ///
-/// <para>The slug is never stated to these three. It is derived from the name and made unique against what is
-/// stored, so a second map called the same thing is a second slug rather than a refusal, and the answer is
-/// what to use from then on. The fourth states it in its route, because storing a source again is storing the
-/// same map.</para>
+/// <para>Each answers the slug it took, which is what to use from then on. A sketch takes a fresh random id
+/// unless the request states a slug; a world read from a folder or a link takes that folder's or link's name.
+/// A stated or derived slug is made unique against what is stored, so a second map of the same name is a
+/// second slug rather than a refusal. The fourth states it in its route, because storing a source again is
+/// storing the same map.</para>
 /// </summary>
 /// <remarks>Originate a blank sketch — a map at the sketch stage with an empty board, which the sketch tool
 /// draws on. The whole body is optional, and an empty one originates <c>Untitled sketch</c> on the default
 /// frame.</remarks>
-/// <param name="Name">What the map is called, and what its slug is derived from. Absent means
-/// <c>Untitled sketch</c>, which is also the mark of a draft nobody has touched.</param>
+/// <param name="Name">What the map is called. Absent means <c>Untitled sketch</c>, which is also the mark of a
+/// draft nobody has touched.</param>
+/// <param name="Slug">The slug to take, made unique against what is stored. Absent means a fresh random id of
+/// 16 lowercase letters and digits.</param>
 /// <param name="Width">The board's east–west extent, in blocks. Absent means 120.</param>
 /// <param name="Depth">The board's north–south extent, in blocks. Absent means 80.</param>
 /// <param name="Mode">The symmetry the board is authored under, <c>none</c> for none. Absent, or a word
@@ -26,6 +29,7 @@ namespace PgmStudio.Contracts;
 /// <param name="CenterZ">Where the board is centred, north–south. Absent means 0.</param>
 public sealed record SketchOriginateRequest(
     string? Name = null,
+    string? Slug = null,
     double? Width = null,
     double? Depth = null,
     [property: WordSet(typeof(SymmetryModes))] string? Mode = null,

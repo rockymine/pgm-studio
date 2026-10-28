@@ -261,7 +261,8 @@ these words and never explains one, and a new word joins the glossary before it 
 **The glossary page is browsed A to Z and searched by name first.** `/glossary` files every term and every
 retired name under its own letter — a retired name as a *see* entry pointing at the term that replaced it, so a
 reader looking up an old word lands on the current one — under a letter bar that stays in view and shows a
-letter with no word as unavailable rather than dropping it. A search ranks a term whose name holds the words
+letter with no word as unavailable rather than dropping it. Below 960px the bar sticks under the pinned studio
+bar, and its letters are one row that scrolls across, so the two hold one height and a jump lands clear of them. A search ranks a term whose name holds the words
 above a retired name that does, and both above a term whose definition does, and marks every match. A link to a
 term (`/glossary#hub`, which every `?` carrying a term ends with) always lands on it: a search that would hide
 the entry is cleared, and the entry is brought into view below the bar, highlighted and given focus.
