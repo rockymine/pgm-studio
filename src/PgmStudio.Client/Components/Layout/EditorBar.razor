@@ -81,7 +81,9 @@
                   var cls = idx < CurrentStep ? "flow-step flow-step--done"
                           : idx == CurrentStep ? "flow-step flow-step--active"
                           : "flow-step";
-                  <button class="@cls" disabled="@(idx > MaxStep)" aria-current="@(idx == CurrentStep ? "step" : null)"
+                  @* Keyed by name, so a step inserted before it leaves this button this step's: a click landing as
+                     the strip re-renders goes where it was aimed. *@
+                  <button @key="Steps[idx]" class="@cls" disabled="@(idx > MaxStep)" aria-current="@(idx == CurrentStep ? "step" : null)"
                           @onclick="() => OnStep.InvokeAsync(idx)">@Steps[idx]</button>
                 }
               </div>
@@ -109,7 +111,7 @@
         @for (var j = 0; j < Steps.Count; j++)
         {
           var idx = j;
-          <button type="button" class="editor-sheet-step" role="listitem" disabled="@(idx > MaxStep)"
+          <button @key="Steps[idx]" type="button" class="editor-sheet-step" role="listitem" disabled="@(idx > MaxStep)"
                   aria-current="@(idx == CurrentStep ? "step" : null)" @onclick="() => PickStep(idx)">
             <span class="editor-sheet-step-n">@(idx + 1)</span>@Steps[idx]
           </button>
