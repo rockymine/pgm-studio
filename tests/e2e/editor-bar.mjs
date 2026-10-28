@@ -6,8 +6,10 @@
  * What is held here is the shape of the bar rather than any tool's behaviour: the first crumb goes to the
  * unfiltered Maps list; the switcher lists the map's tools and links only the ones the map holds; its label
  * sits on the same baseline, in the same font, as the crumb's words; Sketch's Download is an icon in the
- * group Undo and Redo are in, with the divider between that group and Back; the steps become a menu on a
- * narrow window; and nothing overflows sideways at phone width.
+ * group Undo and Redo are in, with the divider between that group and Back; the steps stay written out down to
+ * 960px; below it the move is a foot pinned to the window's bottom, the bar pinned to its top, and on a phone the
+ * steps are a button opening a sheet of the phases with the open phase's steps under it; and nothing overflows
+ * sideways at phone width.
  */
 
 import { openBrowser, newPage, clearFaults, Checks, readSeed, BASE } from "./lib/harness.mjs";
@@ -15,7 +17,8 @@ import { openBrowser, newPage, clearFaults, Checks, readSeed, BASE } from "./lib
 const seed = await readSeed();
 const checks = new Checks("editor bar");
 const browser = await openBrowser();
-const page = await newPage(browser, { width: 1600, height: 1000 });
+let page = await newPage(browser, { width: 1600, height: 1000 });
+const wide = page;
 
 const TOOLS = [
   ["sketch", `/maps/${seed.mapSlug}/sketch`],
@@ -25,7 +28,8 @@ const TOOLS = [
 async function open(path) {
   clearFaults(page);
   await page.goto(`${BASE}${path}`, { waitUntil: "networkidle", timeout: 30000 });
-  await page.waitForSelector(".editor-bar .editor-bar-phase", { timeout: 30000 });
+  await page.waitForSelector(".editor-bar .editor-crumb-name", { timeout: 30000 });
+  await page.waitForTimeout(300);
 }
 
 /** Where a piece of text sits: the top and bottom of its glyph box, the y of its baseline, and the font it is
@@ -113,12 +117,14 @@ try {
 
   checks.section("sketch: undo, redo and download are one group, apart from Back and Next");
   await open(`/maps/${seed.sketchSlug}/sketch`);
-  await page.waitForFunction(() => !document.querySelector('.editor-bar-commands [title^="Checking"]'), null, { timeout: 10000 });
+  await page.waitForFunction(() => !document.querySelector('.editor-bar-commands [title^="Checking"], .editor-bar-history [title^="Checking"]')
+    && document.querySelectorAll(".editor-bar-history .action-btn, .editor-bar-commands .action-btn").length === 3, null, { timeout: 10000 });
   const group = await page.evaluate(() => {
     const bar = document.querySelector(".editor-bar");
-    const commands = [...bar.querySelectorAll(".editor-bar-commands .action-btn")];
+    const commands = [...bar.querySelectorAll(".editor-bar-history .action-btn, .editor-bar-commands .action-btn")]
+      .sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
     const download = commands.at(-1);
-    const back = [...bar.querySelectorAll(".editor-bar-move .action-btn")].find(el => el.textContent.trim() === "Back");
+    const back = bar.querySelector(".editor-bar-back");
     const divider = bar.querySelector(".editor-bar-divider").getBoundingClientRect();
     return {
       titles: commands.map(el => el.getAttribute("title") ?? ""),
@@ -128,10 +134,11 @@ try {
       downloadPrimary: download.classList.contains("action-btn--primary"),
       primaries: [...bar.querySelectorAll(".action-btn--primary")].map(el => el.textContent.trim()),
       gapToBack: back.getBoundingClientRect().left - download.getBoundingClientRect().right,
-      gapInside: commands[1].getBoundingClientRect().left - commands[0].getBoundingClientRect().right,
+      gapInside: Math.max(...commands.slice(1).map((el, i) => el.getBoundingClientRect().left - commands[i].getBoundingClientRect().right)),
       dividerBetween: divider.left > download.getBoundingClientRect().right && divider.right < back.getBoundingClientRect().left,
       dividerHeight: divider.height,
-      order: [...bar.querySelectorAll(".editor-bar-commands, .editor-bar-divider, .editor-bar-move")].map(el => el.className.split(" ")[0]),
+      order: [...bar.querySelectorAll(".editor-bar-history, .editor-bar-commands, .editor-bar-divider, .editor-bar-back, .editor-bar-next")]
+        .sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left).map(el => el.className.split(" ").find(c => c.startsWith("editor-bar-"))),
     };
   });
   checks.add("the group is Undo, Redo, Download — icons only", group.iconOnly && group.titles.length === 3
@@ -143,8 +150,8 @@ try {
   checks.add("the buttons of the group sit together", group.gapInside < 8, `${group.gapInside}px`);
   checks.add("a divider with room either side separates the group from Back", group.dividerBetween && group.gapToBack >= 24
     && group.dividerHeight >= 20, `${group.gapToBack}px, divider ${group.dividerHeight}px tall`);
-  checks.add("the bar runs commands, divider, move", group.order.join() === "editor-bar-commands,editor-bar-divider,editor-bar-move",
-    group.order.join());
+  checks.add("the bar runs undo and redo, the commands, the divider, Back and Next",
+    group.order.join() === "editor-bar-history,editor-bar-commands,editor-bar-divider,editor-bar-back,editor-bar-next", group.order.join());
 
   checks.section("the bar is there in every phase");
   for (const [path, phase] of [[`/maps/${seed.sketchSlug}/sketch?phase=info`, "Info"],
@@ -157,36 +164,95 @@ try {
     const bar = await page.evaluate(() => ({
       phase: document.querySelector(".editor-bar-phase")?.textContent.trim(),
       crumb: !!document.querySelector(".editor-crumb a"),
-      move: [...document.querySelectorAll(".editor-bar-move .action-btn")].map(el => el.textContent.trim()).join(),
+      move: [...document.querySelectorAll(".editor-bar-back, .editor-bar-next")].map(el => el.textContent.trim()).join(),
     }));
     checks.add(`${path.split("?")[0].split("/").pop()} ${phase}: the crumb, the phase and Back/Next`,
       bar.crumb && bar.phase === phase && bar.move.startsWith("Back,"), JSON.stringify(bar));
   }
 
-  checks.section("a narrow window folds the steps into a menu");
+  checks.section("the steps stay written out down to 960px");
   await page.setViewportSize({ width: 1000, height: 800 });
   await open(`/maps/${seed.sketchSlug}/sketch?phase=info`);
   const narrow = await page.evaluate(() => {
-    const visible = (el) => !!el && getComputedStyle(el).display !== "none";
+    const strip = document.querySelector(".editor-bar-steps .flow-steps");
     return {
-      steps: visible(document.querySelector(".flow-steps")),
-      compact: visible(document.querySelector(".flow-steps-compact")),
-      compactText: document.querySelector(".flow-steps-compact")?.textContent.trim(),
+      steps: !!strip && getComputedStyle(strip).display !== "none" && strip.getBoundingClientRect().width > 0,
       overflow: document.documentElement.scrollWidth > window.innerWidth,
       barHeight: document.querySelector(".editor-bar").getBoundingClientRect().height,
     };
   });
-  checks.add("the step strip is hidden and the menu stands in", !narrow.steps && narrow.compact, JSON.stringify(narrow));
-  checks.add("it says where the work is", /^Step \d+ of \d+$/.test(narrow.compactText ?? ""), narrow.compactText);
+  checks.add("the step strip is shown", narrow.steps, JSON.stringify(narrow));
   checks.add("the bar stays one row", narrow.barHeight < 60, `${narrow.barHeight}px`);
   checks.add("nothing overflows sideways", !narrow.overflow);
-  await page.click(".flow-steps-compact .editor-stage--button");
-  const stepItems = await page.locator(".flow-steps-compact .editor-menu-item").count();
-  checks.add("the menu lists the steps", stepItems >= 2, String(stepItems));
-  await page.click(".flow-steps-compact .editor-menu-scrim");
 
-  checks.section("at phone width the bar wraps rather than overflowing");
-  await page.setViewportSize({ width: 390, height: 800 });
+  /** Where the bar, its foot and the rail sit, and what the foot holds. */
+  const layout = () => page.evaluate(() => {
+    const box = (selector) => {
+      const el = document.querySelector(selector);
+      if (!el || getComputedStyle(el).display === "none") return null;
+      const rect = el.getBoundingClientRect();
+      return { top: Math.round(rect.top), bottom: Math.round(rect.bottom), height: Math.round(rect.height), width: Math.round(rect.width) };
+    };
+    return {
+      window: window.innerHeight,
+      bar: box(".editor-bar"), foot: box(".editor-bar-foot"), rail: box(".app-body > .nav-rail"),
+      picker: box(".editor-bar-picker"), strip: box(".editor-bar-steps"), next: box(".editor-bar-next"),
+      history: !!document.querySelector(".editor-bar-foot .editor-bar-history .action-btn"),
+    };
+  });
+
+  checks.section("on a tablet the move is a foot pinned to the window's bottom, beside a rail column");
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await open(`/maps/${seed.sketchSlug}/sketch?phase=draw`);
+  let at = await layout();
+  checks.add("the foot rests on the window's bottom", at.foot?.bottom === at.window, JSON.stringify(at.foot));
+  checks.add("it holds Undo and Redo and the steps written out, with Next", at.history && !!at.strip && !at.picker && !!at.next, JSON.stringify(at));
+  checks.add("the rail is a column beside the page", !!at.rail && at.rail.width < 80 && at.rail.top >= at.bar.bottom - 1, JSON.stringify(at.rail));
+  await page.mouse.wheel(0, 600);
+  await page.waitForTimeout(400);
+  at = await layout();
+  checks.add("scrolled, the bar is still at the top and the foot at the bottom", at.bar.top === 0 && at.foot.bottom === at.window,
+    `bar ${at.bar.top}, foot ${at.foot.bottom} of ${at.window}`);
+
+  checks.section("on a phone the steps open a sheet of the phases");
+  page = await newPage(browser, { width: 390, height: 844, touch: true });
+  await open(`/maps/${seed.sketchSlug}/sketch?phase=draw`);
+  const mark = await page.locator(".editor-studio-btn").boundingBox();
+  checks.add("the studio's mark is a finger's size", mark.width >= 44 && mark.height >= 44, `${mark.width} × ${mark.height}`);
+  at = await layout();
+  checks.add("no rail is drawn", at.rail === null, JSON.stringify(at.rail));
+  checks.add("the foot's middle is the phase and step", !!at.picker && !at.strip, JSON.stringify(at));
+  checks.add("the bar and the foot together take under a sixth of the window",
+    at.bar.height + at.foot.height < at.window / 6, `${at.bar.height} + ${at.foot.height} of ${at.window}`);
+  const picked = (await page.locator(".editor-bar-picker").textContent())?.replace(/\s+/g, " ").trim();
+  checks.add("it names the phase, the step and how far along", /^Draw · \d of \d \w+/.test(picked ?? ""), picked);
+  await page.click(".editor-bar-picker");
+  await page.waitForSelector(".editor-sheet", { timeout: 5000 });
+  const sheet = await page.evaluate(() => {
+    const rows = [...document.querySelectorAll(".editor-sheet .nav-btn, .editor-sheet-step")]
+      .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
+    return {
+      rows: rows.map(el => (el.classList.contains("editor-sheet-step") ? "  " : "") + el.textContent.replace(/^\d+/, "").trim()),
+      focus: document.activeElement?.classList.contains("editor-sheet"),
+      short: Math.min(...rows.map(el => el.getBoundingClientRect().height)),
+    };
+  });
+  const drawAt = sheet.rows.indexOf("Draw");
+  checks.add("it lists every phase", sheet.rows.filter(row => !row.startsWith(" ")).length === 7, sheet.rows.join(" | "));
+  checks.add("with the open phase's steps under it", drawAt >= 0 && sheet.rows[drawAt + 1]?.startsWith("  ")
+    && sheet.rows.slice(drawAt + 1).findIndex(row => !row.startsWith(" ")) >= 2, sheet.rows.join(" | "));
+  checks.add("it takes focus, and every row is a finger's height", sheet.focus && sheet.short >= 40, `${sheet.short}px`);
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(300);
+  checks.add("Escape closes it", await page.locator(".editor-sheet").count() === 0);
+  await page.click(".editor-bar-picker");
+  await page.locator('.editor-sheet .nav-btn:has(.nav-btn-caption:text-is("Terraform"))').click();
+  await page.waitForTimeout(500);
+  checks.add("a phase picked in it opens that phase and closes it",
+    await page.locator(".editor-sheet").count() === 0
+    && /Terraform/.test((await page.locator(".editor-bar-picker").textContent()) ?? ""));
+
+  checks.section("at phone width the bar fits");
   for (const [tool, path] of TOOLS) {
     await open(path);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
@@ -195,7 +261,8 @@ try {
 } catch (e) {
   page.faults.push(`editor bar: ${String(e).split("\n")[0]}`);
 }
-checks.add("and the checks raised nothing", page.faults.length === 0, page.faults.slice(0, 3).join(" | "));
+const faults = page === wide ? wide.faults : [...wide.faults, ...page.faults];
+checks.add("and the checks raised nothing", faults.length === 0, faults.slice(0, 3).join(" | "));
 
 await browser.close();
 checks.finish();

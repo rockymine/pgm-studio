@@ -111,7 +111,7 @@ canvas layer can then reuse or test it.
 | `render/canvas-chrome.js` | viewport-derived chrome shared by the drawing canvases: the visible-world rect, the grid-step ladder, the painted working area, the scale bar, the dimension pill, and the **transform box** every surface scales a selection by (§5) |
 | `render/shape-render.js`, `sketch-render.js`, `symmetry-render.js`, `block-render.js` | shared stateless painting for primitives, sketch overlays, symmetry axes, block PNGs |
 | `render/primitive-style.js` | the one place a primitive's fill/stroke style is decided, for the world canvas and the sketch alike |
-| `render/iso-webgl.js` | the depth-buffered 3-D preview, on raw WebGL, lazily imported |
+| `render/iso-webgl.js` | the depth-buffered 3-D preview, on raw WebGL, lazily imported: a mesh uploaded once, a camera fitted to the board then zoomed at the pointer and panned along the ground, and `navigate(target)`, the wheel, drag and double-click a host wires to whatever element receives its input |
 | `render/column-mesh.js` | the server's per-column runs → the triangles that preview draws; decides which faces are seen, and drops the runs of any sketch layer the viewer has hidden before deciding |
 | `bridge/live-feed.js` | the one debounced, sequence-guarded POST of a bridge's document to a route, answering only the latest request, and the one `refusalText` that reads the sentence out of a refusal envelope |
 | `bridge/iso-preview.js` | the 3-D preview the sketch bridge drives: enter, the mesh kept against the document it came from, rebuild on demand, rotate, layer hiding, and the two reasons it cannot run |
@@ -334,7 +334,10 @@ route, the document as a wire body (which is also the cache stamp), the bounds t
 `onUnavailable(reason)`, and `onBuilt(payload, hidden)` where the sketch reports what the build left out and
 which layers it has. `show()` enters the preview and draws the cached mesh when the stamp still matches the
 document, else asks for the columns; `drop()` is what every edit calls; `hide()`, `rotate()` and
-`setLayerShown()` are the rest. On the Blazor side one `IsoView` (state, in `Components/Canvas`) and one
+`setLayerShown()` are the rest. Zoom and pan are the scene's own rather than the preview's: `CanvasBase` hands its
+drawing surface to `IsoScene.navigate`, so while the preview is shown the wheel and a drag move the 3-D picture and
+the 2-D board's handlers stand aside, entering resets the picture to the whole board, and the readout shows the 3-D
+zoom until the preview is left. On the Blazor side one `IsoView` (state, in `Components/Canvas`) and one
 `IsoToggle` (the 2D/3D switch with the note that says why it is disabled) serve the sketch tool's host.
 
 **The sketch bridge's verb table is where an edit is gated.** `MUTATORS` in `sketch-bridge.js` names every handle verb

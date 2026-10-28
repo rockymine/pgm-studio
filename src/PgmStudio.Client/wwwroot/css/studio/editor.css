@@ -314,14 +314,18 @@
 }
 
 /* ── A narrow window ──
-   Below 960px the page scrolls as one document rather than in columns: the rail becomes a row across the top,
-   and a workspace wraps — a filter rail first, then the canvas or the list at the full width, then the two side
-   panels, side by side where two fit and stacked where they do not. A width a resize handle set is the wide
-   window's, so it gives way here. */
+   Below 960px the page scrolls as one document rather than in columns, and a workspace wraps — a filter rail
+   first, then the canvas or the list at the full width, then the two side panels, side by side where two fit and
+   stacked where they do not. A width a resize handle set is the wide window's, so it gives way here. An editor's
+   canvas fills the window between its pinned bar and foot, so its own dock is on screen.
+
+   The rail stays a column down to 600px; on an editor it is held in view beside the page as it scrolls. Below
+   600px an editor draws no rail, since its bar's foot lists the phases, and any other page lays its rail across
+   the top with every button sharing the row. */
 @media (max-width: 959px) {
   .editor-page { height: auto; min-height: 100vh; min-height: 100dvh; overflow: visible; }
-  .app-body { flex-direction: column; overflow: visible; }
-  .activity-viewport, .phase-body { overflow: visible; }
+  .app-body { overflow: visible; }
+  .activity-viewport, .phase-body { overflow: visible; min-width: 0; }
   .workspace { flex-wrap: wrap; align-content: flex-start; min-width: 0; overflow: visible; }
   .workspace > .workspace-sidebar,
   .workspace > .workspace-inspector { flex: 1 1 calc(320px * var(--ui-scale)); width: auto !important; min-width: 0; overflow: visible; }
@@ -331,13 +335,25 @@
   .workspace > .workspace-canvas,
   .workspace > .workspace-scroll { order: -1; flex: 1 1 100%; min-width: 0; }
   .workspace > .workspace-canvas { height: max(420px, 64vh); }
+  .editor-page--focused .workspace > .workspace-canvas {
+    height: max(240px, calc(100dvh - 2 * (var(--control-height) + var(--space-3) + 1px) - env(safe-area-inset-bottom, 0px)));
+  }
   .workspace-scroll { overflow: visible; min-height: auto; }
   .sidebar-handle { display: none; }
+  .editor-page--focused .app-body > .nav-rail {
+    position: sticky; top: calc(var(--control-height) + var(--space-3) + 1px); align-self: flex-start; z-index: 20;
+    height: calc(100dvh - 2 * (var(--control-height) + var(--space-3) + 1px) - env(safe-area-inset-bottom, 0px)); overflow-y: auto;
+  }
+}
+@media (max-width: 599px) {
+  .app-body { flex-direction: column; }
+  .editor-page--focused .app-body > .nav-rail { display: none; }
   .nav-rail {
-    width: auto; flex-direction: row; overflow-x: auto; padding: var(--space-1) var(--space-2);
+    width: auto; flex-direction: row; padding: var(--space-1) var(--space-2);
     border-right: 0; border-bottom: 1px solid var(--border);
   }
-  .nav-rail .nav-btn { flex: none; }
+  .nav-rail .nav-btn { flex: 1 1 0; width: auto; min-width: 0; }
+  .nav-rail .nav-btn-caption { max-width: 100%; }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

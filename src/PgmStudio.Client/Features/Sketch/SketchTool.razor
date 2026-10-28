@@ -12,7 +12,7 @@
   <Bar>
     @{ var move = BarMove; }
     <EditorBar MapName="@(string.IsNullOrWhiteSpace(mapName) ? Slug.Replace('_', ' ') : mapName)" Slug="@Slug" Stage="@MapStage.Sketch"
-               PhaseIcon="@move.Icon" PhaseTitle="@move.Title" Steps="@move.Steps" CurrentStep="@move.Step"
+               PhaseTitle="@move.Title" Steps="@move.Steps" CurrentStep="@move.Step"
                BackEnabled="true" NextLabel="@move.NextLabel" NextEnabled="true"
                OnStep="move.OnStep" OnBack="move.OnBack" OnNext="move.OnNext">
       <State>
@@ -45,10 +45,12 @@
           </span>
         }
       </State>
-      <Commands>
+      <History>
         <Button Variant="icon" Icon="undo-2" Title="Undo" Disabled="@(!canUndo)" Writes OnClick="Undo" />
         <Button Variant="icon" Icon="redo-2" Title="Redo" Disabled="@(!canRedo)" Writes OnClick="Redo" />
-        <Button Variant="icon" Icon="download" Busy="downloading" Builds OnClick="DownloadMap"
+      </History>
+      <Commands>
+        <Button Variant="icon" Icon="download" Busy="downloading" Builds OmitClosed OnClick="DownloadMap"
                 Title="@(downloading ? "Building the map…" : DownloadTitle)" aria-label="@DownloadTitle" aria-busy="@(downloading ? "true" : null)" />
       </Commands>
     </EditorBar>

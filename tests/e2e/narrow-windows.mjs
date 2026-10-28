@@ -3,8 +3,10 @@
  *
  * What is held: no page lets a control or a column run past the window's right edge, unless it sits in a box that
  * scrolls sideways; the studio bar folds its links into a menu that opens, takes focus, closes on Escape, hands
- * focus back and closes on a link; an editor draws no studio bar, and the mark in its own bar opens the same menu,
- * which then carries the search and the account; and a filter rail folds behind its button above the list.
+ * focus back and closes on a link, and names each of its tools; on a touch screen it offers no keyboard shortcuts;
+ * a page draws a bar under the studio's only where it carries a trail, actions or a View only tag; an editor draws
+ * no studio bar, and the mark in its own bar opens the same menu, which then carries the search and the account;
+ * and a filter rail folds behind its button above the list.
  */
 
 import { openBrowser, newPage, clearFaults, Checks, readSeed, BASE } from "./lib/harness.mjs";
@@ -71,6 +73,9 @@ try {
   checks.add("the menu lists the studio's pages", opened.links === "Maps, Generator, Library, Rules, Glossary", opened.links);
   checks.add("it takes focus and says it is open", opened.focus === "app-nav-panel" && opened.expanded === "true", JSON.stringify(opened));
   checks.add("it holds the four tools", (await page.locator(".app-nav-panel .app-nav-tools .topbar-icon-btn").count()) >= 4);
+  const named = await page.locator(".app-nav-panel .app-nav-tool-label").evaluateAll(els =>
+    els.filter(el => el.getBoundingClientRect().width > 0).map(el => el.textContent.trim()));
+  checks.add("and names each of them", named.length >= 4 && named.includes("Design reference") && named.includes("Text size"), named.join(", "));
   await page.keyboard.press("Escape");
   await page.waitForTimeout(300);
   checks.add("Escape closes it", !(await visible(".app-nav-panel .app-nav-link")));
@@ -81,6 +86,14 @@ try {
   await page.waitForURL(/\/generator/, { timeout: 10000 });
   await page.waitForTimeout(300);
   checks.add("a link closes it", !(await visible(".app-nav-panel .app-nav-link")));
+
+  checks.section("a page bar is drawn only where it carries something");
+  for (const path of ["/maps", "/rules", "/glossary"]) {
+    await open(path);
+    checks.add(`${path} names itself in its heading alone`, (await page.locator(".topbar").count()) === 0);
+  }
+  await open("/design");
+  checks.add("the design reference keeps its bar, which lists its files", (await page.locator(".topbar .ds-file-list").count()) === 1);
 
   checks.section("a filter rail folds above the list");
   await open("/maps");
@@ -104,6 +117,17 @@ try {
   await page.click(".app-nav-scrim");
   await page.waitForTimeout(300);
   checks.add("the dimmed page closes it", !(await visible(".app-nav-panel .app-nav-link")));
+
+  checks.section("a touch screen is offered no keyboard shortcuts");
+  const touch = await newPage(browser, { width: 390, height: 844, touch: true });
+  await touch.goto(`${BASE}/maps`, { waitUntil: "networkidle", timeout: 30000 });
+  await touch.waitForSelector(".app-nav-menu", { timeout: 30000 });
+  await touch.click(".app-nav-menu");
+  await touch.waitForTimeout(300);
+  checks.add("the menu has no shortcuts button", !(await touch.locator(".app-nav-panel .app-nav-keys").isVisible()));
+  checks.add("and the search no Ctrl K", !(await touch.locator(".app-nav-panel .app-nav-kbd").isVisible()));
+  page.faults.push(...touch.faults);
+  await touch.close();
 } catch (e) {
   page.faults.push(`narrow windows: ${String(e).split("\n")[0]}`);
 }

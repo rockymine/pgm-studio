@@ -34,6 +34,7 @@ export class CanvasBase {
   #chromeFrame  = 0;      // pending rAF for the viewport-chrome repaint (see _applyViewportTransform)
   #pendingZoom  = null;   // scale awaiting report on that frame (see _reportZoom)
   #iso          = null;   // lazily-created WebGL iso renderer (see _enterIso)
+  #isoNavOff    = null;   // stops the preview's own wheel, drag and double-click
   #isoBusy      = null;   // the "still building" overlay, created with it
   #onDocMove    = null;   // the document-level drag listeners, kept so dispose can remove them
   #onDocUp      = null;
@@ -284,6 +285,9 @@ export class CanvasBase {
       try {
         const { IsoScene } = await import("../render/iso-webgl.js");
         this.#iso = new IsoScene(this._wrap);
+        // The preview takes the drawing surface's input while it is shown: its wheel zooms the 3-D picture and a
+        // drag pans it, where in 2-D they move the board.
+        this.#isoNavOff = this.#iso.navigate(this._svg, { onZoom: (zoom) => this._reportZoom(zoom) });
       } catch (e) {
         console.warn(`[${this._isoTag()}] 3-D preview unavailable:`, e?.message ?? e);
         return false;
@@ -292,6 +296,8 @@ export class CanvasBase {
     this._isoOn = true;
     this._onIsoEnter();
     showLayers(this._isoLayers(), false);
+    this.#iso.resetView();
+    this._reportZoom(this.#iso.zoom);
     this.#iso.show();
     this._isoBusy(true);
     return true;
@@ -322,6 +328,7 @@ export class CanvasBase {
     this._isoBusy(false);
     this.#iso?.hide();
     showLayers(this._isoLayers(), true);
+    this._reportZoom(this._scale);
   }
 
   /** Release the observer, the document listeners + the WebGL context. Subclasses call this from their own `dispose`. */
@@ -330,6 +337,7 @@ export class CanvasBase {
     if (this.#onDocUp)   { document.removeEventListener("mouseup", this.#onDocUp); this.#onDocUp = null; }
     if (this.#chromeFrame) { cancelAnimationFrame(this.#chromeFrame); this.#chromeFrame = 0; }
     this.#ro?.disconnect(); this.#ro = null;
+    this.#isoNavOff?.(); this.#isoNavOff = null;
     this.#iso?.dispose(); this.#iso = null;
     this.#isoBusy?.remove(); this.#isoBusy = null;
   }
@@ -339,7 +347,7 @@ export class CanvasBase {
   _setupBaseEvents() {
     // Zoom wheel
     this._svg.addEventListener("wheel", (e) => {
-      if (!this._viewportG) return;
+      if (!this._viewportG || this._isoOn) return;
       e.preventDefault();
       const factor   = e.deltaY < 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
       const newScale = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, this._scale * factor));
@@ -355,7 +363,7 @@ export class CanvasBase {
 
     // Pan / tool start
     this._svg.addEventListener("mousedown", (e) => {
-      if (!this._viewportG) return;
+      if (!this._viewportG || this._isoOn) return;
       if (e.button === 1) {
         e.preventDefault();
         this.#midDragging = true;
@@ -451,6 +459,7 @@ export class CanvasBase {
 
     // Double-click (go one level deeper into what is selected)
     this._svg.addEventListener("dblclick", (e) => {
+      if (this._isoOn) return;
       if (this._activeTool !== null && this._activeTool !== "select") return;
       this._onCanvasDblClick(e, this._clientToSvg(e.clientX, e.clientY));
     });

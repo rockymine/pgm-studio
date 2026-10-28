@@ -733,7 +733,8 @@ SVG the server drew. What the building *looks like* is not drawn on the server a
 stamped world's own per-column runs and the browser meshes them into the same WebGL scene a plan and a sketch
 are turned in, so a house is drawn by the one renderer the studio has rather than by a second one free to
 disagree with it — and it **turns**, a quarter at a press, which is the whole reason a building is worth
-drawing in 3-D rather than in projection. The turn sits over the picture and appears on hover, because the
+drawing in 3-D rather than in projection. It zooms the same way the sketch's preview does: the wheel at the
+pointer, a drag to pan, a double-click for the whole building. The turn sits over the picture and appears on hover, because the
 canvas fills its box and a control in the flow would push the box the scene measures. Where WebGL cannot run
 the box says so and the three cuts still read. A theme's preview is the single composed picture, the
 plateau its buckets and edges finish. The chips above the picture and the dock beneath it answer different

@@ -2,8 +2,8 @@
    EDITOR BAR  (the one bar an editor draws in place of the studio's own: where the
    page is, what phase and step the work is at, what the tool can do, and Back/Next.)
    Left to right: the studio's mark, which opens the studio's menu, the crumb and its
-   stage switcher, the phase and its steps, then the state, the commands, a divider
-   and the move.
+   stage switcher, the phase and its steps, then the state, Undo and Redo, the other
+   commands, a divider and the move. Below 960px the move is a foot of its own.
    ══════════════════════════════════════════════════════════════════════════ */
 .editor-bar {
   display: flex; align-items: center; gap: var(--space-4);
@@ -14,8 +14,16 @@
   border-bottom: 1px solid var(--border);
 }
 
-.editor-studio-btn { width: var(--control-height); height: var(--control-height); margin-left: calc(-1 * var(--space-2)); }
+/* Scoped to the bar so it outranks the icon button's own size, which the cascade would otherwise let win. */
+.editor-bar .editor-studio-btn {
+  width: auto; min-width: var(--control-height); height: var(--control-height); gap: 1px;
+  padding: 0 var(--space-1); margin-left: calc(-1 * var(--space-2));
+}
 .editor-studio-btn .studio-mark { width: var(--icon-lg); height: var(--icon-lg); }
+.editor-studio-chevron {
+  flex: none; width: 10px; height: 10px; color: var(--text-muted);
+  fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
 
 /* The crumb and the switcher share one line box: every item takes the same font, size, weight and line height
    and no vertical padding, so their text sits on one baseline whatever the item is. */
@@ -77,36 +85,145 @@
 }
 .editor-menu-item:disabled { opacity: 0.5; }
 
-/* The phase and its steps. */
-.editor-bar-flow { display: flex; align-items: center; align-self: stretch; flex: 1 1 auto; min-width: 0; gap: var(--space-4); }
+/* On a touch screen every control the bar draws is a full control's height, however small its text. */
+@media (pointer: coarse) {
+  .editor-crumb-link, .editor-stage--button { display: inline-flex; align-items: center; min-height: var(--control-height); height: auto; }
+  .editor-menu-item { min-height: var(--control-height); }
+}
+
+/* On a wide window the end and the foot are items of the bar's own row, so the phase and its steps, which the foot
+   holds, sit after the crumb; the spacer pushes the state, Undo and Redo, the other commands, the divider and the
+   move to the right, in that order. */
+.editor-bar > .editor-studio-btn { order: 0; }
+.editor-crumb { order: 1; }
+.editor-bar-spacer { order: 3; flex: 1 1 0; min-width: 0; }
+.editor-bar-end, .editor-bar-foot { display: contents; }
+.editor-bar-steps { order: 2; display: flex; align-items: stretch; align-self: stretch; gap: var(--space-4); min-width: 0; }
 .editor-bar-phase {
-  display: flex; align-items: center; gap: var(--space-2); align-self: center;
+  display: flex; align-items: center; align-self: center;
   color: var(--text-strong); font-weight: 600; font-size: var(--font-md); white-space: nowrap;
 }
-.editor-bar-phase:has(+ .flow-steps, + .flow-steps-compact) { padding-right: var(--space-4); border-right: 1px solid var(--border); }
-.editor-bar-phase svg { width: var(--icon-md); height: var(--icon-md); color: var(--accent); }
+.editor-bar-phase:has(+ .flow-steps) { padding-right: var(--space-4); border-right: 1px solid var(--border); }
 .flow-steps { display: flex; align-items: center; gap: var(--space-5); align-self: stretch; }
-.flow-steps-compact { display: none; position: relative; align-self: center; }
-.flow-steps-compact .editor-stage { color: var(--text-secondary); font-size: var(--font-base); }
 
-/* State, commands, then the move. The divider is the app bar's rule at the bar's own spacing. */
-.editor-bar-end { display: flex; align-items: center; flex: none; margin-left: auto; gap: var(--space-3); }
-.editor-bar-state { display: flex; align-items: center; gap: var(--space-3); font-size: var(--font-sm); color: var(--text-muted); white-space: nowrap; }
-.editor-bar-commands { display: flex; align-items: center; gap: var(--space-1); }
+.editor-bar-end > .readonly-tag { order: 4; }
+.editor-bar-state { order: 5; display: flex; align-items: center; gap: var(--space-3); font-size: var(--font-sm); color: var(--text-muted); white-space: nowrap; }
+.editor-bar-history { order: 6; display: flex; align-items: center; gap: var(--space-1); }
+.editor-bar-history:not(:has(*)) { display: none; }
+.editor-bar-commands { order: 7; display: flex; align-items: center; gap: var(--space-1); }
 .editor-bar-commands--labelled { gap: var(--space-2); }
-.editor-bar-divider { flex: none; width: 1px; height: calc(24px * var(--ui-scale)); margin: 0 var(--space-2); background: var(--border); }
-.editor-bar-move { display: flex; align-items: center; gap: var(--space-2); }
+.editor-bar-commands:not(:has(*)) { display: none; }
+.editor-bar:has(.editor-bar-history .action-btn) .editor-bar-commands { margin-left: calc(var(--space-1) - var(--space-4)); }
+.editor-bar-divider { order: 8; flex: none; width: 1px; height: calc(24px * var(--ui-scale)); margin: 0 var(--space-1); background: var(--border); }
+.editor-bar-back { order: 9; }
+.editor-bar-next { order: 10; margin-left: calc(var(--space-2) - var(--space-4)); }
+.editor-bar-back svg { display: none; }
+.editor-bar-picker { display: none; }
 .editor-bar .readonly-tag { margin-left: 0; }
+.editor-bar-end > .readonly-tag + .editor-bar-state { margin-left: calc(var(--space-3) - var(--space-4)); }
 
-@media (max-width: 1100px) {
-  .editor-bar .flow-steps { display: none; }
-  .editor-bar .flow-steps-compact { display: block; }
+/* The foot's middle on a phone: the phase and step, as a button that opens the sheet. */
+.editor-bar-picker {
+  align-items: center; justify-content: space-between; gap: var(--space-2);
+  flex: 1 1 auto; min-width: 0; height: var(--control-height); padding: 0 var(--space-3);
+  border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-base);
+  color: var(--text-primary); font: inherit; text-align: left; cursor: pointer;
 }
-@media (max-width: 860px) {
-  .editor-bar { flex-wrap: wrap; gap: var(--space-2) var(--space-3); padding: var(--space-2) var(--space-4); }
-  .editor-crumb { flex: 1 1 calc(100% - var(--control-height) - var(--space-3)); }
-  .editor-bar-flow { flex: 1 1 auto; }
-  .editor-bar-end { flex-wrap: wrap; justify-content: flex-end; }
+.editor-bar-picker:hover, .editor-bar-picker[aria-expanded="true"] { background: var(--bg-vis-hover); }
+.editor-bar-picker:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.editor-bar-picker-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; }
+.editor-bar-picker-text small { color: var(--text-muted); font-size: var(--font-xs); white-space: nowrap; }
+.editor-bar-picker-text span {
+  color: var(--text-strong); font-weight: 500; font-size: var(--font-md);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* The sheet the picker opens: the rail's phases as rows, with the open phase's steps under it. The steps come
+   after the rail in the page, and the ordering puts them under the lit phase. */
+.editor-sheet-scrim { position: fixed; inset: 0; z-index: 60; background: rgb(0 0 0 / 0.4); }
+.editor-sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 61;
+  display: flex; flex-direction: column; gap: 2px;
+  max-height: 80dvh; overflow-y: auto;
+  padding: var(--space-3) var(--space-2) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+  background: var(--bg-panel); border-top: 1px solid var(--border);
+  border-radius: calc(2 * var(--radius-md)) calc(2 * var(--radius-md)) 0 0; box-shadow: var(--shadow-float);
+}
+.editor-sheet:focus { outline: none; }
+.editor-sheet-phases, .editor-sheet .nav-rail { display: contents; }
+.editor-sheet .nav-rail-div { display: none; }
+.editor-sheet .nav-btn {
+  flex-direction: row; justify-content: flex-start; gap: var(--space-3);
+  width: auto; min-height: var(--control-height); padding: 0 var(--space-3);
+  border-radius: var(--radius-sm); color: var(--text-primary); font-size: var(--font-md); text-decoration: none;
+}
+.editor-sheet .nav-btn svg { width: var(--icon-md); height: var(--icon-md); color: var(--text-muted); }
+.editor-sheet .nav-btn-caption { max-width: none; font-size: inherit; text-align: left; }
+.editor-sheet .nav-btn.active { color: var(--text-strong); font-weight: 600; }
+.editor-sheet .nav-btn.active svg { color: var(--accent); }
+.editor-sheet .nav-btn.active::before { display: none; }
+.editor-sheet .nav-btn::after { top: auto; bottom: auto; right: var(--space-3); }
+.editor-sheet .nav-btn.active ~ * { order: 2; }
+.editor-sheet-steps { order: 1; display: flex; flex-direction: column; gap: 2px; margin-left: calc(var(--icon-md) + var(--space-3) * 2); }
+.editor-sheet-step {
+  display: flex; align-items: center; gap: var(--space-2);
+  min-height: var(--control-height); padding: 0 var(--space-3);
+  border: 0; border-radius: var(--radius-sm); background: none;
+  color: var(--text-secondary); font: inherit; font-size: var(--font-md); text-align: left; cursor: pointer;
+}
+.editor-sheet-step:hover { background: var(--bg-vis-hover); }
+.editor-sheet-step[aria-current] { background: var(--bg-selected); color: var(--text-strong); }
+.editor-sheet-step:disabled { opacity: 0.4; cursor: default; }
+.editor-sheet-step-n { min-width: 1.2em; color: var(--text-muted); font-family: var(--font-mono); font-size: var(--font-xs); }
+
+/* A narrow window. The bar keeps one row, pinned to the top of an editor's window: the mark, where the page is,
+   the read-only tag or the state, and the commands. The foot is pinned to its bottom: Back, Undo and Redo, the
+   steps written out beside the rail's column, and Next. Below 600px the rail is not drawn, so the steps become the
+   picker, the crumb drops Maps (the studio's menu has it) and stacks the map's name over its stage, and Back keeps
+   only its arrow. A page that is not an editor (the design reference's sample) wraps the foot into the bar. */
+@media (max-width: 959px) {
+  .editor-bar { gap: var(--space-2) var(--space-3); padding: 0 var(--space-3); }
+  .editor-bar-end { display: flex; align-items: center; gap: var(--space-3); flex: 0 1 auto; min-width: 0; margin-left: auto; order: 4; }
+  .editor-bar-end > .editor-bar-divider, .editor-bar-end > .readonly-tag ~ .editor-bar-state { display: none; }
+  .editor-bar-spacer { display: none; }
+  .editor-bar-foot {
+    display: flex; align-items: center; gap: var(--space-2);
+    min-height: calc(var(--control-height) + var(--space-3)); padding: 0 var(--space-3);
+    background: var(--bg-panel); border-top: 1px solid var(--border);
+  }
+  .editor-bar-foot > * { order: 0; }
+  .editor-bar-next, .editor-bar:has(.editor-bar-history .action-btn) .editor-bar-commands { margin-left: 0; }
+  .editor-bar-steps { justify-content: center; flex: 1 1 auto; overflow-x: auto; }
+  .editor-bar-foot:not(:has(.editor-bar-steps)) .editor-bar-history { margin-right: auto; }
+  .editor-bar-foot:not(:has(.editor-bar-steps)):not(:has(.editor-bar-history)) .editor-bar-back { margin-right: auto; }
+
+  .editor-page--focused .editor-bar { position: sticky; top: 0; z-index: 30; flex-wrap: nowrap; }
+  .editor-page--focused .editor-bar-foot {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: max(var(--space-3), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--space-3), env(safe-area-inset-right, 0px));
+  }
+  .editor-page--focused:has(.editor-bar-foot) {
+    padding-bottom: calc(var(--control-height) + var(--space-3) + 1px + env(safe-area-inset-bottom, 0px));
+  }
+  .editor-page:not(.editor-page--focused) .editor-bar { flex-wrap: wrap; padding-top: var(--space-2); }
+  .editor-page:not(.editor-page--focused) .editor-bar-end { flex-wrap: wrap; }
+  .editor-page:not(.editor-page--focused) .editor-bar-foot { flex: 1 1 100%; margin: 0 calc(-1 * var(--space-3)); }
+}
+@media (max-width: 599px) {
+  .editor-page--focused .editor-bar-steps { display: none; }
+  .editor-page--focused .editor-bar-picker { display: flex; }
+  .editor-page--focused .editor-bar-foot:has(.editor-bar-picker) .editor-bar-history { margin-right: 0; }
+  .editor-page--focused .editor-bar-foot:has(.editor-bar-picker) .editor-bar-back { margin-right: 0; }
+  .editor-crumb { display: grid; grid-template-columns: minmax(0, auto); row-gap: 0; flex: 1 1 auto; }
+  .editor-crumb-link, .editor-crumb-sep { display: none; }
+  .editor-crumb-name { font-weight: 500; }
+  .editor-crumb .editor-menu-host { justify-self: start; }
+  .editor-crumb .editor-stage { font-size: var(--font-sm); }
+  .editor-bar-back { width: var(--control-height); padding: 0; justify-content: center; }
+  .editor-bar-back svg { display: inline-block; }
+  .editor-bar-back-label { display: none; }
 }
 
 /* An icon-only action that is running says so in place of a label: its glyph pulses. */

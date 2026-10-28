@@ -38,6 +38,8 @@ export async function mount(wrapEl) {
   // beside it do.
   const observer = new ResizeObserver(paint);
   observer.observe(wrapEl);
+  // The wheel zooms at the pointer, a drag pans and a double-click shows the whole house again.
+  const stopNavigating = scene.navigate(wrapEl);
 
   return {
     /** Draw a world a preview call answered — the `columns` node of a RoomStylePreviewDto. */
@@ -58,6 +60,6 @@ export async function mount(wrapEl) {
     /** A quarter turn, so four presses come back to where they started. */
     rotate() { yaw = (yaw + 90) % 360; paint(); },
 
-    dispose() { observer.disconnect(); scene.dispose(); },
+    dispose() { observer.disconnect(); stopNavigating(); scene.dispose(); },
   };
 }

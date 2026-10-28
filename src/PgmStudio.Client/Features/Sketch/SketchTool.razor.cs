@@ -114,7 +114,7 @@ public partial class SketchTool
     // ── The editor bar's phase: what each phase is called, which of its steps is up, and where Back and Next go.
     private int infoStep;
 
-    private sealed record BarPhase(string Icon, string Title, IReadOnlyList<string> Steps, int Step, string NextLabel,
+    private sealed record BarPhase(string Title, IReadOnlyList<string> Steps, int Step, string NextLabel,
                                    Func<Task> OnBack, Func<Task> OnNext, Func<int, Task> OnStep);
 
     private static readonly Func<int, Task> NoStep = _ => Task.CompletedTask;
@@ -129,22 +129,22 @@ public partial class SketchTool
             if (InfoActive)
             {
                 var last = SketchInfoPhase.Steps.Count - 1;
-                return new("book-open-text", "Info", SketchInfoPhase.Steps, infoStep,
+                return new("Info", SketchInfoPhase.Steps, infoStep,
                     NextTo(infoStep == last ? "Draw" : SketchInfoPhase.Steps[infoStep + 1]),
                     () => { infoStep = 0; return Task.CompletedTask; },
                     () => { if (infoStep < last) { infoStep++; return Task.CompletedTask; } return OpenDraw(); },
                     step => { infoStep = step; return Task.CompletedTask; });
             }
-            if (ThemeActive) return new("palette", "Palette", [], 0, NextTo("Decoration"), GoRelief, GoDressing, NoStep);
-            if (DressingActive) return new("trees", "Decoration", [], 0, NextTo("Review"), GoTheme, GoReview, NoStep);
-            if (ReliefActive) return new("mountain", "Terraform", [], 0, NextTo("Palette"), GoDraw, GoTheme, NoStep);
-            if (HistoryActive) return new("history", "History", [], 0, "Draw", GoReview, GoDraw, NoStep);
-            if (CamerasActive) return new("eye", "Review", ReviewSteps, 0, NextTo(ReviewSteps[1]), GoDressing, ShowNotes, StepReview);
-            if (NotesActive) return new("eye", "Review", ReviewSteps, 1, NextTo("History"), ShowCameras, GoHistory, StepReview);
+            if (ThemeActive) return new("Palette", [], 0, NextTo("Decoration"), GoRelief, GoDressing, NoStep);
+            if (DressingActive) return new("Decoration", [], 0, NextTo("Review"), GoTheme, GoReview, NoStep);
+            if (ReliefActive) return new("Terraform", [], 0, NextTo("Palette"), GoDraw, GoTheme, NoStep);
+            if (HistoryActive) return new("History", [], 0, "Draw", GoReview, GoDraw, NoStep);
+            if (CamerasActive) return new("Review", ReviewSteps, 0, NextTo(ReviewSteps[1]), GoDressing, ShowNotes, StepReview);
+            if (NotesActive) return new("Review", ReviewSteps, 1, NextTo("History"), ShowCameras, GoHistory, StepReview);
             // A step's index is into the names this render draws, so the offset that maps it back is the one they
             // were drawn with: the Places step can arrive between a render and the click on it.
             var first = FirstDrawStep;
-            return new("pencil-ruler", "Draw", DrawStepNames, drawStep - first,
+            return new("Draw", DrawStepNames, drawStep - first,
                 NextTo(drawStep == LayoutStep ? "Terraform" : DrawStepNames[drawStep - first + 1]),
                 drawStep == first ? GoInfo : () => StepDraw(drawStep - 1),
                 drawStep == LayoutStep ? GoRelief : () => StepDraw(drawStep + 1), step => StepDraw(step + first));

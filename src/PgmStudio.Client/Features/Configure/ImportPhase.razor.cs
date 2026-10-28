@@ -131,7 +131,7 @@ public partial class ImportPhase : IAsyncDisposable
     // What each phase does, in a sentence — leads with the studio's automation so the card sells the help.
     private static string PlanBlurb(string phaseId) => phaseId switch
     {
-        "info"   => "Name the map and credit its authors. Version, game mode and objective are set automatically.",
+        "info"   => "Name the map and credit its authors. Version, gamemode and objective are set automatically.",
         "world"  => "Confirm the detected islands and symmetry. The symmetry suggests how many teams to create.",
         "teams"  => "Set up one team's islands, spawn and protection. Every other team gets a symmetry copy.",
         "build"  => "Set the build ceiling and mark where players can build over the void. Island ground is already buildable.",

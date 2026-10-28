@@ -98,14 +98,14 @@ public partial class Maps
             .Distinct()
             .Order(StringComparer.OrdinalIgnoreCase)];
 
-    /// <summary>The game modes any map is played for, in the order the studio names them.</summary>
+    /// <summary>The gamemodes any map is played for, in the order the studio names them.</summary>
     private IReadOnlyList<string> GamemodesPresent =>
         maps is null ? [] : [.. maps.SelectMany(map => map.Gamemodes).Distinct().Order(StringComparer.Ordinal)];
 
-    /// <summary>A game mode by its full name; a mode the list has no name for shows its own word.</summary>
+    /// <summary>A gamemode by its full name; a mode the list has no name for shows its own word.</summary>
     private static string GamemodeLabel(string gamemode) => gamemode switch
     {
-        NoGamemode => "No game mode",
+        NoGamemode => "No gamemode",
         "ctw" => "Capture the Wool",
         "dtm" => "Destroy monuments",
         "dtc" => "Destroy cores",

@@ -10,7 +10,8 @@
    Topbar under it.
 
    The links and the four tools sit in one panel. Below 960px that panel is a menu sliding in from the left, opened
-   by the bar's menu button and closed by its ✕, the dimmed page, Escape or a link. An editor (Focused) draws no bar
+   by the bar's menu button and closed by its ✕, the dimmed page, Escape or a link; in the menu each tool is a row
+   with its name beside its glyph, and a touch screen is offered no keyboard shortcuts. An editor (Focused) draws no bar
    at all: the same menu, holding the search and the account as well, is opened from the editor's own bar. Whether
    it is open is StudioShell's, so either opener reaches it. *@
 
@@ -89,13 +90,13 @@ else
                 }
             </div>
             <div class="app-nav-tools">
-                <button type="button" class="topbar-icon-btn app-nav-icon" @onclick="ShowKeysAsync"
+                <button type="button" class="topbar-icon-btn app-nav-icon app-nav-keys" @onclick="ShowKeysAsync"
                         title="Show keyboard shortcuts (?)" aria-label="Show keyboard shortcuts">
-                    <i data-lucide="keyboard"></i>
+                    <i data-lucide="keyboard"></i><span class="app-nav-tool-label">Keyboard shortcuts</span>
                 </button>
                 <a class="topbar-icon-btn app-nav-icon" href="@DesignLink.Href" title="Open the design reference" aria-label="Open the design reference"
                    aria-current="@(IsHere(DesignLink) ? "page" : null)">
-                    <i data-lucide="palette"></i>
+                    <i data-lucide="palette"></i><span class="app-nav-tool-label">Design reference</span>
                 </a>
                 <TextSizeMenu />
                 <ThemeToggle />
