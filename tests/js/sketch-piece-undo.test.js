@@ -36,3 +36,21 @@ test("an undo pressed while a piece write is open takes back that write, not the
   await handle.redo();
   assert.equal(held.intent, '{"pieces":"spawn and wool room"}', "and redo puts the wool room back");
 });
+
+test("two piece writes made close together are two steps, and one undo takes back only the second", async () => {
+  const held = studio('{"pieces":"none"}');
+  const { handle } = await mountSketchBridge({ slug: "m" });
+
+  await handle.beginPieceStep();
+  held.intent = '{"pieces":"spawn"}';
+  const second = handle.beginPieceStep();     // the wool room's write starts before the spawn's step has closed
+  await handle.endPieceStep();
+  await second;
+  held.intent = '{"pieces":"spawn and wool room"}';
+  await handle.endPieceStep();
+
+  await handle.undo();
+  assert.equal(held.intent, '{"pieces":"spawn"}', "the wool room alone is taken back");
+  await handle.undo();
+  assert.equal(held.intent, '{"pieces":"none"}', "and a second undo takes the spawn");
+});

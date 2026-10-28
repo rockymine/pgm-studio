@@ -878,9 +878,10 @@ it. The symmetry setup is part of the document, so a step back restores it too: 
 through `…/intent/pieces`, so placing, moving, resizing, turning, deleting or setting one keeps the intent's text
 beside the layout as one step, and stepping over it writes that text back with `PUT /api/map/{slug}/intent` before
 the layout is restored. The room ground a placement brings is part of the placement's step rather than one of its
-own. A step the studio refuses is not taken, and the note beside the rail says why. A piece's step is kept only
-once its write is answered and the intent read back, so an undo pressed before that waits for it and steps over
-the piece just placed rather than the step before it.
+own. A step the studio refuses is not taken, and the note beside the rail says why. Whatever writes the intent takes
+a turn: a piece write waits for the one before it to be kept, so two pieces placed close together are two steps,
+and an undo or redo pressed while a write is in flight waits for it and steps over the piece just placed rather
+than the step before it.
 
 **Every chord below is also live in the sheet and the palette.** `?` opens the keyboard sheet grouped like the
 table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+`K` runs any of them by name.
