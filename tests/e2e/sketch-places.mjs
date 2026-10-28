@@ -113,7 +113,7 @@ await page.reload({ waitUntil: "networkidle" });
 await page.locator(".flow-step--active", { hasText: "Layout" }).waitFor({ timeout: 60000 }).catch(() => {});
 const reopened = await page.$$eval(".flow-step--active", els => els.map(e => e.textContent.trim()));
 checks.add("a reload opens on Layout", reopened.join() === "Layout", reopened.join());
-await page.click(".editor-bar-move .action-btn--primary");
+await page.click(".editor-bar-next");
 await page.waitForFunction(() => location.search.includes("terraform"), null, { timeout: 10000 }).catch(() => {});
 checks.add("Next names Terraform by its rail word", new URL(page.url()).search === "?phase=terraform", new URL(page.url()).search);
 

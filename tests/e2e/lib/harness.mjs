@@ -129,8 +129,8 @@ function installedChromium() {
  * A page that records everything that went wrong on it. `page.faults` holds the un-allowed ones;
  * `page.allowed` holds the tolerated ones, so a run can still report what it chose to ignore.
  */
-export async function newPage(browser, { width = 1600, height = 900 } = {}) {
-  const page = await browser.newPage({ viewport: { width, height } });
+export async function newPage(browser, { width = 1600, height = 900, touch = false } = {}) {
+  const page = await browser.newPage({ viewport: { width, height }, hasTouch: touch, isMobile: touch });
   page.faults = [];
   page.allowed = [];
   const note = (text) => (isAllowed(text) ? page.allowed : page.faults).push(text);

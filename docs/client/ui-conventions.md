@@ -90,10 +90,12 @@ the row carries), `DetailHeader` (an inspector head: icon, label, trailing badge
 `Focused` makes it an editor's page: no studio bar and no footer, the studio's menu opened from the `EditorBar`
 instead, with whether that menu is open held by the shell and cascaded to the bar as `StudioMenu`;
 `AppNav` is the studio's own bar on every other page — the `StudioMark` and name (home), the links Maps, Generator, Library, Rules and Glossary, and at the right a search that opens the command palette, icon buttons for the keyboard shortcuts and the design reference, `TextSizeMenu`, the theme and
-`AccountMenu`, who is signed in, whose menu holds Tokens, Users (admin) and API docs. Its links and its four tools sit in one panel, which is the bar's own row on a wide window, a menu sliding in from the left below 960px, and the only form it takes on a focused page, where it carries the search and the account too; `Topbar` is a browse or admin page's bar under it — a `Crumbs` slot composed from `Crumb`, a *View
-only* tag on a read-only page, and the page's actions; `EditorBar` is the one bar the editors draw instead (the `StudioMark` that opens the studio's menu, the crumb
-*Maps › the map's name*, a `StageSwitch` between the map's tools, the phase and its steps, then `State`, `Commands`, a divider and Back/Next;
-`NoMove` drops Back/Next, and `LabelledCommands` spaces text buttons wider than icon-only ones); `AppFooter` closes every page but an editor's with a brand caption and the repository; `NavRail` and `NavButton` are the
+`AccountMenu`, who is signed in, whose menu holds Tokens, Users (admin) and API docs. Its links and its four tools sit in one panel, which is the bar's own row on a wide window, a menu sliding in from the left below 960px, and the only form it takes on a focused page, where it carries the search and the account too; in the menu each tool is a row naming itself, and a touch screen is offered no keyboard shortcuts; `Topbar` is a page's bar under it where the page has something to put there — a `Crumbs` trail composed from `Crumb`, a *View
+only* tag on a read-only page, and the page's actions — and a page whose only crumb would be its own name draws none, its heading being that name; the shell draws a bare `Topbar` for such a page only to say it opens read-only. A `Button` marked `OmitClosed` is not drawn where its action is closed; `EditorBar` is the one bar the editors draw instead (the `StudioMark` that opens the studio's menu, the crumb
+*Maps › the map's name*, a `StageSwitch` between the map's tools, the phase's name and its steps, then `State`, `History` (Undo and Redo,
+not drawn on a read-only page), `Commands`, a divider and Back/Next; Back, `History`, the steps and Next are its foot, which joins the row
+on a wide window and is pinned to the window's bottom on a narrow one; the page's rail reaches it as `StudioRail`, which a phone's sheet
+lists in the rail's place; `NoMove` drops Back/Next, and `LabelledCommands` spaces text buttons wider than icon-only ones); `AppFooter` closes every page but an editor's with a brand caption and the repository; `NavRail` and `NavButton` are the
 left rail, each button its glyph over its name, since a rail of glyphs alone leaves the reader to remember which is which; `Workspace`, `Sidebar`, `Inspector` and `ContentColumn` are the four content shells every tool
 arranges itself from, and `FilterSidebar` is the `Sidebar` of a page that narrows a list or jumps between sections of one page (the `/design` contents rail), which on a narrow window folds behind a button naming it (`Title`, *Filters* unless the page says otherwise); `PageHeading` is the one heading a browse or admin page opens on; `LandingHero` is the studio entry's opening block, mounted by `Index` and shown on `/design`, and `MapThumb` the 16:9 picture box of a map (the in-game picture over a placeholder that stays where none can be drawn); `SideDrawer` (a title, optional `HeaderActions` icon buttons beside the close button, a scrolling body and an optional footer; `Wide` for a picture rather than a form)
 finishes the set.
@@ -170,7 +172,9 @@ would change the document; the sketch marks nothing dirty, so nothing is saved o
 world written, the ZIP packed — and the server gives it the `member` policy (`docs/access.md`). A `Button`
 marked `Builds` (the sketch's *Download*, the plan's world ZIP, Configure's export, where an `EditorBar`
 takes `NextBuilds`) reads `StudioBuildReason`, which is `StudioAccess.BuildReasonAsync`: open to anyone on the
-whitelist whichever map the page is on, and closed with the reason to anyone else.
+whitelist whichever map the page is on, and closed with the reason to anyone else. The sketch's *Download* is also
+marked `OmitClosed`, so where it is closed the editor bar draws nothing in its place, as it draws no Undo or Redo on
+a read-only page: a row of controls a visitor cannot use only takes the room the canvas needs.
 
 The server refuses every write the caller may not make whatever the page shows (`docs/access.md`); this is
 what lets the page say so before an edit rather than after it.
@@ -235,10 +239,10 @@ element run past the window's edge unless it sits in a box that scrolls sideways
 | Width | What changes |
 |---|---|
 | ≤ 1180px | The studio bar's search folds to its glyph (`app-nav.css`). |
-| ≤ 1100px | An editor's steps fold into a *Step n of m* menu (`editor-bar.css`). |
-| ≤ 959px | The studio bar's links and tools become its menu (`app-nav.css`). The page scrolls as one document rather than in columns: the rail becomes a row across the top, and a workspace wraps — a filter rail first and folded, then the canvas or the list at the full width, then the side panels, two abreast where they fit (`editor.css`, `filter-sidebar.css`). |
-| ≤ 860px | The editor bar wraps: the crumb on its own row, then the steps with the state, commands and Back/Next, which wrap inside their own row where a *View only* tag leaves no room. The maps table reads each map as a short block (`editor-bar.css`, `map-table.css`). |
+| ≤ 959px | The studio bar's links and tools become its menu (`app-nav.css`). The page scrolls as one document rather than in columns, and a workspace wraps — a filter rail first and folded, then the canvas or the list at the full width, then the side panels, two abreast where they fit (`editor.css`, `filter-sidebar.css`). An editor's bar is one row pinned to the window's top — the mark, the crumb, the state or the *View only* tag, the commands — and its foot is pinned to the bottom: Back, Undo and Redo, the phase and its steps written out, Next. The canvas fills the window between them, and the rail is a column held beside the page as it scrolls (`editor-bar.css`, `editor.css`). |
+| ≤ 860px | The maps table reads each map as a short block (`map-table.css`). |
 | ≤ 640px | The studio bar drops the studio's name beside its mark. |
+| ≤ 599px | An editor draws no rail: the middle of its foot is a button naming the phase and step, which opens a sheet listing the rail's phases with the open phase's steps under the lit one. Its crumb drops *Maps* and stacks the map's name over the stage, and Back keeps only its arrow. Any other page lays its rail across the top, every button sharing the row (`editor-bar.css`, `editor.css`). |
 | a touch screen | A control is 44px tall, the target size of WCAG 2.5.5 (`--control-height`, `pointer: coarse`). |
 
 ## How a row of things lines up

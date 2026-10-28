@@ -8,7 +8,10 @@
    Bar (a Topbar, or an editor's EditorBar), the body and the footer. An editor sets Focused: its page draws no
    studio bar, and the studio's menu opens from the EditorBar instead; whether that menu is open is held here and
    reaches the Bar as "StudioMenu", so the studio bar's button and the editor's open the one menu, and a move to
-   another page closes it. A focused page drops the footer too, so the editor has the window's full height. The default body is .app-body with an optional Rail (a NavRail)
+   another page closes it. The Rail reaches the Bar as "StudioRail", so an editor's bar can list its phases where
+   the rail is not drawn. A focused page drops the footer too, so the editor has the window's full height. A page
+   with no Bar of its own draws a Topbar only to say it opens read-only. The default body is .app-body with an
+   optional Rail (a NavRail)
    beside the .activity-viewport that wraps ChildContent. Two escapes: Viewport=false drops the viewport
    wrapper (ChildContent sits directly in .app-body); Bare=true drops .app-body entirely for pages that own
    their own body layout (the generator's gen-body, the /design ds-layout).
@@ -29,7 +32,16 @@
     <CascadingValue Name="StudioDeleteReason" Value="deleteReason">
     <CascadingValue Name="StudioBuildReason" Value="buildReason">
     <CascadingValue Name="StudioReadOnlyReason" Value="readOnlyReason">
-        @Bar
+    <CascadingValue Name="StudioRail" Value="Rail">
+        @if (Bar is not null)
+        {
+            @Bar
+        }
+        else if (ReadOnly)
+        {
+            <Topbar />
+        }
+    </CascadingValue>
     </CascadingValue>
     <CascadingValue Name="StudioReadOnly" Value="ReadOnly">
         @if (Bare)

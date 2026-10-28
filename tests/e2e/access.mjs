@@ -187,9 +187,11 @@ try {
 
   checks.section("a signed-out visitor cannot download a map or build its 3-D preview");
   await visit(invited, `/maps/${seed.sketchSlug}/sketch`);
-  const download = await settle(/^Download map/, true);
-  checks.add("Download is closed, and says why", download?.closed === true && /Sign in/.test(download.title),
-    JSON.stringify(download));
+  await page.waitForFunction(() => !document.querySelector('[title^="Checking"]'), null, { timeout: 10000 }).catch(() => {});
+  const closedCommands = await page.evaluate(() =>
+    [...document.querySelectorAll(".editor-bar .action-btn--icon")].map(el => el.getAttribute("aria-label") ?? el.title));
+  checks.add("the editor bar draws no Undo, Redo or Download a visitor could not use",
+    !closedCommands.some(label => /^(Undo|Redo|Download)/.test(label)), closedCommands.join(", "));
   const exported = await fetch(`${invited}/api/map/${seed.sketchSlug}/export`);
   checks.add("the export itself is refused", exported.status === 401, String(exported.status));
   // The 3-D preview is a build too, so the switch is greyed before it is pressed rather than after it fails.

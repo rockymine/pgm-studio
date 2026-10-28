@@ -20,9 +20,13 @@
    something on request (a map's export), which needs someone on the whitelist. Where the shell's
    "StudioWriteReason", "StudioDeleteReason" or "StudioBuildReason" says the caller may not, the button is
    disabled and its tooltip is the reason; a link is drawn without its href and with aria-disabled, so it
-   goes nowhere. *@
+   goes nowhere. OmitClosed draws nothing at all where the action is closed, for a bar whose room a control the
+   caller cannot use would only take. *@
 
-@if (Href is not null && Closed is not null)
+@if (OmitClosed && Closed is not null)
+{
+}
+else if (Href is not null && Closed is not null)
 {
     <a class="@Cls" role="link" aria-disabled="true" title="@Closed" @attributes="Extra">
         @if (Icon is not null) { <i data-lucide="@Icon"></i> }
@@ -65,6 +69,7 @@ else
     [Parameter] public bool Writes { get; set; }            // creates or changes something: closed where the caller may not write
     [Parameter] public bool Deletes { get; set; }           // deletes a shared row: closed to all but an admin
     [Parameter] public bool Builds { get; set; }            // has the server build on request: closed to all but the whitelist
+    [Parameter] public bool OmitClosed { get; set; }        // closed → not drawn, rather than drawn disabled
     [Parameter] public bool Fill { get; set; }              // action-btn--fill
     [Parameter] public bool Full { get; set; }              // action-btn--full
     [Parameter] public string? Class { get; set; }          // extra modifiers

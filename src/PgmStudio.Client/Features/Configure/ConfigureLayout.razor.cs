@@ -19,7 +19,6 @@ public partial class ConfigureLayout
     /// <summary>The furthest phase a click may open, at or past <see cref="Furthest"/>; below it, Furthest.</summary>
     [Parameter] public int Reach { get; set; } = -1;
 
-    [Parameter] public string PhaseIcon { get; set; } = "";
     [Parameter] public string PhaseTitle { get; set; } = "";
     [Parameter] public IReadOnlyList<string> Steps { get; set; } = Array.Empty<string>();
     [Parameter] public int CurrentStep { get; set; }

@@ -1,7 +1,9 @@
 @* Topbar appearance switch — calls window.studioTheme.toggle(). The active icon is chosen purely by CSS
-   from <html data-theme> and reflects the current appearance: a moon in dark mode, a sun in light mode. *@
+   from <html data-theme> and reflects the current appearance: a moon in dark mode, a sun in light mode. Its name shows where the studio
+   menu lists its tools as rows. *@
 <button class="topbar-icon-btn theme-toggle" @onclick="Toggle"
         title="Switch the appearance" aria-label="Switch the appearance">
   <span class="theme-toggle-icon theme-toggle-icon--sun"><i data-lucide="sun"></i></span>
   <span class="theme-toggle-icon theme-toggle-icon--moon"><i data-lucide="moon"></i></span>
+  <span class="app-nav-tool-label">Switch the appearance</span>
 </button>

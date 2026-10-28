@@ -37,6 +37,14 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   above its list, a workspace stacks the canvas over its panels, the maps table reads as blocks, and a touch screen
   gets 44px controls. `tests/e2e/narrow-windows.mjs` holds that nothing runs past the window at 390 and 768px.
   `docs/client/ui-conventions.md`, *A narrow window*.
+- **An editor on a narrow window keeps its move in reach (`C115`).** Below 960px the editor bar is one row pinned
+  to the window's top and Back, Undo, Redo, the steps and Next are a foot pinned to its bottom, with the rail a
+  column beside the page and the canvas filling the window between the two; below 600px the foot's middle names the
+  phase and step and opens a sheet of the phases with the open phase's steps under it. The steps stay written out
+  down to 960px, and the mark is a 44px target on a touch screen. `docs/client/routing-and-ia.md`, *Exits*.
+- **Chrome that carries nothing is not drawn (`C116`).** A page whose bar would only repeat its own name draws
+  none; a read-only editor draws no Undo or Redo, and no Download for someone who may not build; the studio menu
+  names each tool beside its glyph and offers a touch screen no keyboard shortcuts. `docs/client/ui-conventions.md`.
 - **The studio bar holds tools and two references (`C105`).** Maps, Generator, Library, Rules and Glossary,
   with no divider; at the right the keyboard-shortcuts and Design icons, text size, theme and the account, whose
   menu holds Tokens, Users (admin) and API docs — in an open studio too. The footer is the brand and GitHub.

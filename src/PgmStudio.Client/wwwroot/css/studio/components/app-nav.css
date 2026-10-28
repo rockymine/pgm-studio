@@ -123,6 +123,21 @@
   border-top: 1px solid var(--border);
 }
 .app-nav-panel .topbar-icon-btn { width: 44px; height: 44px; }
+/* In the menu each tool is a full-width row naming itself, the way the links above it are. */
+.app-nav-tool-label { display: none; }
+.app-nav-panel .app-nav-tools { flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 2px; }
+.app-nav-panel .app-nav-tools .text-size { display: flex; }
+.app-nav-panel .app-nav-tools .topbar-icon-btn {
+  width: 100%; height: auto; min-height: 44px; justify-content: flex-start; gap: var(--space-3);
+  padding: 0 var(--space-3); font: inherit; text-decoration: none;
+}
+.app-nav-panel .app-nav-tools .theme-toggle-icon { flex: none; }
+.app-nav-panel .app-nav-tool-label { display: inline; color: var(--nav-text); font-size: var(--font-md); }
+.app-nav-panel .app-nav-tools .account { align-self: flex-start; margin-top: var(--space-2); }
+/* A touch screen has no keyboard to offer shortcuts for. */
+@media (pointer: coarse) {
+  .app-nav-panel .app-nav-keys, .app-nav-search .app-nav-kbd { display: none; }
+}
 /* At the foot of the menu a tool's own menu opens upward, from its left edge. */
 .app-nav-panel .account-menu { top: auto; bottom: calc(100% + 6px); left: 0; right: auto; }
 .app-nav-scrim { position: fixed; inset: 0; z-index: 65; background: rgb(0 0 0 / 0.4); }
@@ -139,8 +154,9 @@
   .app-nav .app-nav-links { flex-direction: row; align-items: center; min-width: 0; }
   .app-nav .app-nav-link { min-height: 0; padding: 6px 10px; }
   .app-nav .app-nav-search { order: 1; margin-left: auto; }
-  .app-nav .app-nav-tools { order: 2; flex-wrap: nowrap; margin: 0 0 0 var(--space-2); padding: 0; border: 0; }
-  .app-nav .app-nav-panel .topbar-icon-btn { width: 28px; height: 28px; }
+  .app-nav .app-nav-tools { order: 2; flex-direction: row; align-items: center; gap: var(--space-1); margin: 0 0 0 var(--space-2); padding: 0; border: 0; }
+  .app-nav .app-nav-panel .app-nav-tools .topbar-icon-btn { width: 28px; height: 28px; min-height: 0; padding: 0; justify-content: center; }
+  .app-nav .app-nav-panel .app-nav-tool-label { display: none; }
   .app-nav .app-nav-panel .account-menu { top: calc(100% + 6px); bottom: auto; left: auto; right: 0; }
   .app-nav > .account { order: 3; margin-left: var(--space-2); }
 }

@@ -47,7 +47,11 @@ The editor bar (`EditorBar`, `docs/client/routing-and-ia.md`) is the same in eve
 whose menu opens the map's Plan and Configure where it holds them; the phase and its steps are in the middle. At
 the right it carries the save state, the *View only* tag and the Problems button, then one group of icon buttons
 — **Undo**, **Redo**, **Download** — a divider, and Back and Next, which is the only filled button and names where
-it goes: the step after this one, or the phase after the last step (*Next: Ground*, *Next: Terraform*). The number of
+it goes: the step after this one, or the phase after the last step (*Next: Ground*, *Next: Terraform*). A visitor
+who may not change the map is drawn no Undo or Redo, and one who may not have the studio build it no Download.
+Below 960px Back, Undo, Redo, the steps and Next are a foot pinned to the window's bottom; below 600px the rail is
+not drawn and the foot's middle is a button naming the phase and step, which opens a sheet of the seven phases with
+the open phase's steps under it. The number of
 groups on the board is not in the bar: the sidebar's *Shapes* list, each group with its shapes under it, is that count. The tool saves
 continuously — every change schedules a debounced write 800 ms later, and Ctrl+S flushes it at
 once. The save state reads *Saving…* while an edit waits for that write and *Saved* once every edit has landed;
