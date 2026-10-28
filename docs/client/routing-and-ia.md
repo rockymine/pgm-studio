@@ -76,7 +76,7 @@ the **Clear** beside the sidebar's *Filters* heading drops them all. The sidebar
 |---|---|---|
 | **Stage** | `?stage=sketch\|configure` | the maps standing at that stage |
 | **Author** | `?author=` (repeated) | maps credited to any one of the ticked authors |
-| **Game mode** | `?gamemode=ctw\|dtm\|dtc\|none` (repeated) | maps played for any one of the ticked game modes, each shown by its full name, `none` for a map with none |
+| **Gamemode** | `?gamemode=ctw\|dtm\|dtc\|none` (repeated) | maps played for any one of the ticked gamemodes, each shown by its full name, `none` for a map with none |
 | **Sort** | `?sort=name\|author\|stage` | the order; absent is last changed |
 
 **A map's gamemodes are read off its objectives, never off its `<gamemode>` label.** Its wools, shown

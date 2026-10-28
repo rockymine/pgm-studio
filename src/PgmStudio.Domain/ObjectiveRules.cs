@@ -114,8 +114,8 @@ public static class ObjectiveRules
     [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.World)]
     public const string OverBuildCeiling = "OB23";
 
-    /// <summary>A map names a game mode that PGM does not have.</summary>
-    /// <remarks>Either change the unknown entry in <c>gamemode</c> to a game mode that PGM has, or delete it from
+    /// <summary>A map names a gamemode that PGM does not have.</summary>
+    /// <remarks>Either change the unknown entry in <c>gamemode</c> to a gamemode that PGM has, or delete it from
     /// <c>gamemode</c>.</remarks>
     [Rule(RuleCategory.Unknown, RuleConcern.Intent, RuleConcern.World)]
     public const string UnknownGamemode = "OB20";
