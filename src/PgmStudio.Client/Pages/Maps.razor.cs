@@ -42,7 +42,6 @@ public partial class Maps
     private List<MapSummary>? maps;
     private string search = "";
     private string authorSearch = "";
-    private bool creatingSketch;
     private string? loadError;
 
     private string? CurrentStage => StageWords.Any(entry => entry.Word == Stage) ? Stage : null;
@@ -50,25 +49,6 @@ public partial class Maps
     private IReadOnlyList<string> Picked => Author ?? [];
     private IReadOnlyList<string> PickedGamemodes => Gamemode ?? [];
     private bool Filtering => CurrentStage is not null || Picked.Count > 0 || PickedGamemodes.Count > 0;
-
-
-    private async Task NewSketch()
-    {
-        if (creatingSketch) return;
-        creatingSketch = true;
-        try
-        {
-            var resp = await Http.PostAsJsonAsync("api/sketch", new { name = "Untitled sketch" });
-            if (resp.IsSuccessStatusCode
-                && await resp.Content.ReadFromJsonAsync<OriginatedDto>() is { Slug: { Length: > 0 } slug })
-            {
-                Nav.NavigateTo($"maps/{slug}/sketch?phase=info");
-                return;
-            }
-        }
-        catch (HttpRequestException) { /* the button re-enables so the user can retry */ }
-        creatingSketch = false;
-    }
 
 
     private void Open(MapSummary map)

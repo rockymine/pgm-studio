@@ -37,7 +37,7 @@ states, so nothing is lost that the fill cannot make again.
 
 **Making a map writes a map**, through the road a map's source takes (`PUT /api/map/{slug}/source`,
 `docs/tools/flow.md`): the library board the card names, labelled for the card's player count, is stored as the
-base of a map — its layout and its intent, each island given its team — under the first free slug its name gives, `composed-p12-t2-2` and then `composed-p12-t2-2-2`. The world is built
+base of a map — its layout and its intent, each island given its team — under a fresh random id of 16 lowercase letters and digits, keeping the board's name, `Composed p12 t2 #2`. The world is built
 and the intent projected in the same call, so the map stands at `stage=configure` and the Sketch tool opens on it.
 The board stays in the library: the map holds its own copy from that moment on, and a second map of the same
 card is a second map.
@@ -357,13 +357,13 @@ The whole loop is two calls.
 
 ```
 GET  /api/compose?players=20&symmetry=rot_180&count=9
-POST /api/compose/map        <the chosen card's descriptor verbatim>   → {"slug": "composed-p20-t2-42"}
+POST /api/compose/map        <the chosen card's descriptor verbatim>   → {"slug": "k3f9x2m8q1w7b4zt"}
 ```
 
 From there the map is an ordinary sketched map, read and written by its slug — `GET /api/map/{slug}/sketch`,
 and `GET /api/map/{slug}/intent` hand over its two documents, and
-`PUT /api/map/{slug}/source` stores it again with a refinement on it. The slug is the board's name slugified —
-`Composed p20 t2 #42` becomes `composed-p20-t2-42`.
+`PUT /api/map/{slug}/source` stores it again with a refinement on it. The slug is a fresh random id of 16
+lowercase letters and digits; the map keeps the board's name, `Composed p20 t2 #42`.
 
 **The feed never hands over a board's documents**, which is the one thing worth knowing before scripting
 against it: a card carries its descriptor and a picture, so a page of 48 stays light, and the only call that

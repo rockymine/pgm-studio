@@ -24,6 +24,27 @@ public sealed class SketchEndpointTests
     /// layer rather than leaving the first surface to draw on it to invent one. Without a frame that is the
     /// whole of the layout, and the editor falls back to its landscape default on load.</summary>
     [Test]
+    public async Task A_sketch_takes_a_fresh_id_unless_a_slug_is_stated()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        var fresh = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Untitled sketch" }))
+            .Content.ReadFromJsonAsync<OriginatedDto>())!.Slug;
+        var another = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Untitled sketch" }))
+            .Content.ReadFromJsonAsync<OriginatedDto>())!.Slug;
+        await Assert.That(System.Text.RegularExpressions.Regex.IsMatch(fresh, "^[a-z0-9]{16}$")).IsTrue().Because(fresh);
+        await Assert.That(another).IsNotEqualTo(fresh);
+
+        var stated = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Weirgate", slug = "Weirgate" }))
+            .Content.ReadFromJsonAsync<OriginatedDto>())!.Slug;
+        var again = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Weirgate", slug = "Weirgate" }))
+            .Content.ReadFromJsonAsync<OriginatedDto>())!.Slug;
+        await Assert.That(stated).IsEqualTo("weirgate");
+        await Assert.That(again).IsEqualTo("weirgate-2");
+    }
+
+    [Test]
     public async Task Create_returns_a_slug_and_seeds_the_ground_layer()
     {
         await ApiTestFactory.ResetSchemaAsync();
@@ -32,9 +53,10 @@ public sealed class SketchEndpointTests
         var resp = await client.PostAsJsonAsync("/api/sketch", new { name = "My Sketch" });
         await Assert.That(resp.IsSuccessStatusCode).IsTrue();
         var created = await resp.Content.ReadFromJsonAsync<JsonElement>();
-        await Assert.That(created.GetProperty("slug").GetString()).IsEqualTo("my-sketch");
+        var slug = created.GetProperty("slug").GetString();
+        await Assert.That(slug).IsNotNull();
 
-        var layout = await client.GetFromJsonAsync<JsonElement>("/api/map/my-sketch/sketch");
+        var layout = await client.GetFromJsonAsync<JsonElement>($"/api/map/{slug}/sketch");
         await Assert.That(layout.EnumerateObject().Select(field => field.Name)).IsEquivalentTo(new[] { "layers" });
 
         var ground = layout.GetProperty("layers")[0];
@@ -221,21 +243,6 @@ public sealed class SketchEndpointTests
         await Assert.That(shapes.GetArrayLength()).IsEqualTo(1);
         await Assert.That(shapes[0].GetProperty("id").GetString()).IsEqualTo("s1");
         await Assert.That(ground.GetProperty("groups")[0].GetProperty("name").GetString()).IsEqualTo("North");
-    }
-
-    [Test]
-    public async Task Create_dedupes_the_slug()
-    {
-        await ApiTestFactory.ResetSchemaAsync();
-        using var client = ApiTestFactory.Shared.CreateClient();
-
-        var first = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Dup" }))
-            .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString();
-        var second = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Dup" }))
-            .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString();
-
-        await Assert.That(first).IsEqualTo("dup");
-        await Assert.That(second).IsEqualTo("dup-2");
     }
 
     [Test]

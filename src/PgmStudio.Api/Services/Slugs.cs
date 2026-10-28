@@ -1,9 +1,14 @@
+using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 
 namespace PgmStudio.Api.Services;
 
 /// <summary>
 /// What a map is called in a URL.
+///
+/// <para>A map the studio makes with no slug stated takes <see cref="Fresh"/>, a random id, rather than one
+/// from its name: a new map is named "Untitled sketch" until its author names it, and a slug never follows a
+/// rename, so a name-made slug would leave every new map at <c>untitled-sketch-n</c> for good.</para>
 ///
 /// <para><b>Two derivations, and the difference is deliberate.</b> A name an author typed becomes a slug one
 /// way and a folder on disk becomes one another way, because the two are different things: an author's name
@@ -30,6 +35,16 @@ public static class Slugs
         var slug = NotAFolder.Replace(folder.Trim().ToLowerInvariant(), "-").Trim('-', '_');
         return slug.Length > 64 ? slug[..64] : slug;
     }
+
+    /// <summary>How many characters a <see cref="Fresh"/> id has.</summary>
+    public const int FreshLength = 16;
+
+    private const string FreshAlphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
+
+    /// <summary>A random id of <see cref="FreshLength"/> lowercase letters and digits, for a map made with no
+    /// slug stated.</summary>
+    public static string Fresh() =>
+        new(Enumerable.Range(0, FreshLength).Select(_ => FreshAlphabet[RandomNumberGenerator.GetInt32(FreshAlphabet.Length)]).ToArray());
 
     private static readonly Regex NotAName = new("[^a-z0-9]+", RegexOptions.Compiled);
     private static readonly Regex NotAFolder = new("[^a-z0-9_]+", RegexOptions.Compiled);

@@ -3,13 +3,14 @@
    ══════════════════════════════════════════════════════════════════════════ */
 
 .glossary-search { display: flex; flex-direction: column; gap: var(--space-1); }
-/* The search and the A to Z bar stay in view while the list scrolls under them. */
+/* The search and the A to Z bar stay in view while the list scrolls under them. Wide, they stick at the scroll
+   area's top edge rather than under its padding, so no line shows above them; below 960px they stick under the
+   studio bar, which stays pinned too (app-nav.css). */
 .glossary-tools {
-  position: sticky; top: 0; z-index: 2; display: grid; gap: var(--space-2);
+  --glossary-tools-top: calc(-1 * var(--space-4));
+  position: sticky; top: var(--glossary-tools-top); z-index: 2; display: grid; gap: var(--space-2);
   margin-bottom: var(--space-4); padding: var(--space-2) 0; background: var(--bg-base);
   border-bottom: 1px solid var(--border);
-  /* The band above it, inside the column's padding, is covered too, so nothing scrolls into view over it. */
-  box-shadow: 0 -48px 0 0 var(--bg-base);
 }
 .glossary-az { display: flex; flex-wrap: wrap; gap: 2px; }
 .glossary-az-letter {
@@ -19,7 +20,7 @@
 }
 .glossary-az-letter:hover { background: var(--bg-selected-hover); }
 .glossary-az-letter--empty { color: var(--text-muted); opacity: .45; font-weight: 400; }
-/* A target clears the sticky bar above it. */
+/* A target clears the sticky bars above it. */
 .glossary-letter { scroll-margin-top: 120px; }
 .glossary-letter { margin-bottom: var(--space-5); }
 .glossary-letter-head { padding-bottom: var(--space-1); border-bottom: 1px solid var(--border); }
@@ -39,10 +40,10 @@
 .glossary-see { margin: 0; padding: var(--space-1) var(--space-2); font-size: var(--font-base); color: var(--text-muted); }
 .glossary-see-name { font-style: italic; color: var(--text-primary); }
 .glossary-match { background: var(--color-warning-bg); color: inherit; border-radius: 2px; padding: 0 1px; }
-.glossary-top {
-  position: fixed; right: max(var(--space-4), env(safe-area-inset-right, 0px)); bottom: max(var(--space-4), env(safe-area-inset-bottom, 0px));
-  z-index: 3; padding: var(--space-1) var(--space-3); border: 1px solid var(--border); border-radius: 999px;
-  background: var(--bg-panel); color: var(--text-primary); font-size: var(--font-sm); text-decoration: none;
-  box-shadow: 0 1px 3px color-mix(in srgb, var(--bg-deep) 60%, transparent);
+/* Narrow: the A to Z is one row that scrolls across, so the bars hold one height and a jump clears them. */
+@media (max-width: 959px) {
+  .glossary-tools { --glossary-tools-top: calc(48px * var(--ui-scale)); }
+  .glossary-az { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .glossary-az-letter { flex: none; min-width: 32px; height: 32px; }
+  .glossary-letter, .glossary-term { scroll-margin-top: calc(48px * var(--ui-scale) + 150px); }
 }
-.glossary-top:hover { background: var(--bg-selected-hover); }

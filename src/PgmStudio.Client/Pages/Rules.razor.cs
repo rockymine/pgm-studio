@@ -1,5 +1,3 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using PgmStudio.Client.Components;
@@ -30,12 +28,6 @@ public partial class Rules
         (Kind.Layout, "Layout"),
     ];
 
-    private static readonly JsonSerializerOptions Wire = new(JsonSerializerDefaults.Web)
-    {
-        WriteIndented = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    };
-
     private IReadOnlyDictionary<string, RuleDto>? rules;
     private IReadOnlyList<TermDto> terms = [];
     private ElementReference list;
@@ -46,7 +38,6 @@ public partial class Rules
     private readonly HashSet<RuleConcern> concerns = [];
     private string? selected;
     private bool reveal;
-    private bool copied;
     private bool admin;
     private bool settingLevel;
     private string? levelError;
@@ -72,7 +63,6 @@ public partial class Rules
         if (Asked is not null && Asked != selected && rules.ContainsKey(Asked))
         {
             selected = Asked;
-            copied = false;
             reveal = true;
         }
         selected ??= Shown.FirstOrDefault()?.FirstOrDefault()?.Rule;
@@ -159,12 +149,8 @@ public partial class Rules
     private void Select(string rule)
     {
         selected = rule;
-        copied = false;
         Nav.NavigateTo(Nav.GetUriWithQueryParameter("rule", rule), replace: true);
     }
-
-    private async Task CopyAsync(RuleDto rule) =>
-        copied = await JS.InvokeAsync<bool>("studio.copyText", JsonSerializer.Serialize(rule, Wire));
 
     /// <summary>What a finding citing <paramref name="rule"/> does here, and who said so.</summary>
     private static string LevelText(RuleDto rule)

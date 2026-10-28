@@ -44,6 +44,8 @@
 .topbar-sep  { color: var(--text-muted); font-size: var(--font-base); user-select: none; }
 .topbar-crumb { font-size: var(--font-md); color: var(--text-primary); white-space: nowrap; }
 .topbar-crumb--dim { color: var(--text-secondary); }
+/* The page's own name is the crumb that gives way on a narrow bar: the trail to it stays whole. */
+span.topbar-crumb { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
 .topbar-right {
   margin-left: auto;
@@ -191,6 +193,7 @@
   color: var(--text-muted);
   cursor: pointer;
   padding: 0;
+  text-decoration: none;
   transition: color var(--transition-fast);
 }
 .nav-rail .nav-btn svg { width: var(--icon-lg); height: var(--icon-lg); flex: 0 0 auto; }
@@ -321,7 +324,7 @@
 
    The rail stays a column down to 600px; on an editor it is held in view beside the page as it scrolls. Below
    600px an editor draws no rail, since its bar's foot lists the phases, and any other page lays its rail across
-   the top with every button sharing the row. */
+   the top, each button the width it has in the column and the row scrolling sideways where they do not fit. */
 @media (max-width: 959px) {
   .editor-page { height: auto; min-height: 100vh; min-height: 100dvh; overflow: visible; }
   .app-body { overflow: visible; }
@@ -349,11 +352,10 @@
   .app-body { flex-direction: column; }
   .editor-page--focused .app-body > .nav-rail { display: none; }
   .nav-rail {
-    width: auto; flex-direction: row; padding: var(--space-1) var(--space-2);
+    width: auto; flex-direction: row; padding: var(--space-1) var(--space-2); overflow-x: auto;
     border-right: 0; border-bottom: 1px solid var(--border);
   }
-  .nav-rail .nav-btn { flex: 1 1 0; width: auto; min-width: 0; }
-  .nav-rail .nav-btn-caption { max-width: 100%; }
+  .nav-rail .nav-btn { flex: none; }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

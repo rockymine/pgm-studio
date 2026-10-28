@@ -29,7 +29,7 @@ public sealed class WriteRequestShapeTests
         using var client = await FreshAsync();
 
         var made = await client.PostAsJsonAsync("/api/sketch", new SketchOriginateRequest(
-            Name: "Weirgate", Width: 200, Depth: 140, Mode: "mirror_x", CenterX: 12, CenterZ: -8));
+            Name: "Weirgate", Slug: "weirgate", Width: 200, Depth: 140, Mode: "mirror_x", CenterX: 12, CenterZ: -8));
         await Assert.That(made.IsSuccessStatusCode).IsTrue().Because(await made.Content.ReadAsStringAsync());
 
         var slug = (await made.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString();

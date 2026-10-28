@@ -20,7 +20,7 @@
       }
       else
       {
-        <aside class="rules-rail" aria-label="Filter rules">
+        <FilterSidebar Class="rules-rail" Title="@($"Filters · {CountText}")" aria-label="Filter rules">
           <div class="rules-rail-group">
             <input class="field-input" type="search" placeholder="Search rules" aria-label="Search rules"
                    @bind="query" @bind:event="oninput" @bind:after="Reveal" />
@@ -61,28 +61,23 @@
               }
             </div>
           </div>
-          <details class="rules-rail-group rules-more">
-            <summary class="rules-disclosure">
-              <i data-lucide="chevron-right"></i>@(concerns.Count == 0 ? "More filters" : $"More filters · {concerns.Count} on")
-            </summary>
-            <div class="rules-more-body">
-              <h3 class="section-title">About</h3>
-              <div class="filter-group-options">
-                @foreach (var concern in AllConcerns)
-                {
-                  var on = concerns.Contains(concern);
-                  var n = Count(each => Passes(each, Facet.Concerns) && Concerns(each).Contains(concern)
-                                        && concerns.All(Concerns(each).Contains));
-                  <button type="button" class="filter-chip@(on ? " filter-chip--active" : null)"
-                          aria-pressed="@(on ? "true" : "false")" disabled="@(n == 0 && !on)"
-                          @onclick="() => ToggleConcern(concern)">
-                    @RuleWords.ConcernLabel(concern)<span class="filter-chip-n">@n</span>
-                  </button>
-                }
-              </div>
+          <div class="rules-rail-group">
+            <h3 class="section-title">About</h3>
+            <div class="filter-group-options">
+              @foreach (var concern in AllConcerns)
+              {
+                var on = concerns.Contains(concern);
+                var n = Count(each => Passes(each, Facet.Concerns) && Concerns(each).Contains(concern)
+                                      && concerns.All(Concerns(each).Contains));
+                <button type="button" class="filter-chip@(on ? " filter-chip--active" : null)"
+                        aria-pressed="@(on ? "true" : "false")" disabled="@(n == 0 && !on)"
+                        @onclick="() => ToggleConcern(concern)">
+                  @RuleWords.ConcernLabel(concern)<span class="filter-chip-n">@n</span>
+                </button>
+              }
             </div>
-          </details>
-        </aside>
+          </div>
+        </FilterSidebar>
 
         <div class="rules-list@(category is null ? null : " rules-list--category")" role="listbox" aria-label="Rules"
              @ref="list">
@@ -184,39 +179,34 @@
                 </div>
               }
 
-              <details class="rules-d-sec">
-                <summary class="rules-disclosure"><i data-lucide="chevron-right"></i>Details</summary>
-                <div class="rules-d-more">
-                  @if (RuleWords.Reachability.Any(step => step.Rule == rule.Rule))
-                  {
-                    <div class="rules-d-sec">
-                      <h3 class="section-title">At every stage</h3>
-                      <div class="rules-ladder">
-                        @foreach (var step in RuleWords.Reachability)
-                        {
-                          <div class="@(step.Rule == rule.Rule ? "rules-ladder--me" : null)">
-                            <code>@step.Rule</code><span>@step.Asks</span>
-                          </div>
-                        }
+              @if (RuleWords.Reachability.Any(step => step.Rule == rule.Rule))
+              {
+                <div class="rules-d-sec">
+                  <h3 class="section-title">At every stage</h3>
+                  <div class="rules-ladder">
+                    @foreach (var step in RuleWords.Reachability)
+                    {
+                      <div class="@(step.Rule == rule.Rule ? "rules-ladder--me" : null)">
+                        <code>@step.Rule</code><span>@step.Asks</span>
                       </div>
-                    </div>
-                  }
-                  <div class="rules-d-sec">
-                    <h3 class="section-title">Defined in</h3>
-                    <p class="rules-owner"><code>@rule.Owner</code></p>
-                  </div>
-                  <div class="rules-d-sec">
-                    <h3 class="section-title">For agents</h3>
-                    <div class="rules-api">
-                      <code>GET /api/rules?rule=@rule.Rule</code>
-                      <a class="action-btn" href="/api-docs" target="_blank" rel="noopener">API docs <i data-lucide="external-link"></i></a>
-                      <button type="button" class="action-btn" @onclick="() => CopyAsync(rule)">
-                        <i data-lucide="copy"></i>@(copied ? "Copied" : "Copy JSON")
-                      </button>
-                    </div>
+                    }
                   </div>
                 </div>
-              </details>
+              }
+              <div class="rules-d-sec">
+                <h3 class="section-title">Defined in</h3>
+                <p class="rules-owner"><code>@rule.Owner</code></p>
+              </div>
+              <div class="rules-d-sec">
+                <h3 class="section-title">For agents</h3>
+                <div class="rules-api">
+                  <code>GET /api/rules?rule=@rule.Rule</code>
+                  @if (admin)
+                  {
+                    <a class="action-btn" href="/api-docs" target="_blank" rel="noopener">API docs <i data-lucide="external-link"></i></a>
+                  }
+                </div>
+              </div>
             </div>
           }
         </aside>

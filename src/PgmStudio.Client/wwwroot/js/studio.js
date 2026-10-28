@@ -125,25 +125,6 @@ window.studio = {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   },
 
-  // Copy a string to the clipboard; returns true on success. Falls back to a hidden textarea +
-  // execCommand where the async Clipboard API is unavailable (older / insecure contexts).
-  async copyText(text) {
-    try {
-      if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); return true; }
-    } catch { /* fall through to the legacy path */ }
-    try {
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      ta.style.position = "fixed";
-      ta.style.opacity = "0";
-      document.body.appendChild(ta);
-      ta.select();
-      const ok = document.execCommand("copy");
-      ta.remove();
-      return ok;
-    } catch { return false; }
-  },
-
   // Infinite scroll: invoke dotnetRef.LoadMore() ([JSInvokable]) whenever `sentinelEl` scrolls near view.
   // Returns the IntersectionObserver as a JS reference; call .disconnect() on it to stop. The C# side guards
   // against overlapping loads, so a burst of intersections is safe.

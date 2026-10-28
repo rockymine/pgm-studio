@@ -5,9 +5,9 @@
 @inject IJSRuntime JS
 
 @* Who the browser is, at the right of the studio's bar, opening a menu. Signed in: the head, name and role,
-   and in the menu the tokens that sign in as them, the whitelist for an admin, the API docs and sign out.
-   An open studio: "local admin" with the whitelist and the API docs. A visitor: the sign-in, and beside it a
-   menu holding the API docs. *@
+   and in the menu the tokens that sign in as them, the whitelist and the API docs for an admin, and sign out.
+   An open studio: "local admin" with the whitelist and the API docs. A visitor: the sign-in with Discord's mark,
+   and no menu. *@
 
 @if (me is not null)
 {
@@ -33,15 +33,9 @@
         }
         else
         {
-            <div class="account-visitor">
-                <a class="account-signin" href="@StudioAccess.SignInHref(Nav.ToBaseRelativePath(Nav.Uri))">
-                    <i data-lucide="log-in"></i><span>Sign in with Discord</span>
-                </a>
-                <button type="button" class="topbar-icon-btn app-nav-icon" aria-haspopup="menu"
-                        aria-expanded="@(open ? "true" : "false")" title="More" aria-label="More" @onclick="() => open = !open">
-                    <i data-lucide="chevron-down"></i>
-                </button>
-            </div>
+            <a class="account-signin" href="@StudioAccess.SignInHref(Nav.ToBaseRelativePath(Nav.Uri))">
+                <DiscordMark /><span>Sign in with Discord</span>
+            </a>
         }
         @if (open)
         {
@@ -71,11 +65,11 @@
                         <i data-lucide="users"></i><span>Users</span>
                         @if (waiting > 0) { <span class="account-waiting" title="Waiting for approval">@waiting</span> }
                     </a>
+                    <a class="account-menu-item" role="menuitem" href="/api-docs" target="_blank" rel="noopener"
+                       @onclick="() => open = false">
+                        <i data-lucide="file-code"></i><span>API docs</span><i data-lucide="external-link" class="account-menu-ext"></i>
+                    </a>
                 }
-                <a class="account-menu-item" role="menuitem" href="/api-docs" target="_blank" rel="noopener"
-                   @onclick="() => open = false">
-                    <i data-lucide="file-code"></i><span>API docs</span><i data-lucide="external-link" class="account-menu-ext"></i>
-                </a>
                 @if (me.SignedIn && me.Mode != AccessModes.Open)
                 {
                     <button type="button" class="account-menu-item" role="menuitem" @onclick="SignOutAsync">

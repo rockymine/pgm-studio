@@ -37,6 +37,9 @@ public partial class LibraryEditor
     [Parameter, EditorRequired] public LibraryKind Kind { get; set; } = default!;
     /// <summary>Set on a read-only page: the name, the fields and the save sit in a disabled fieldset.</summary>
     [CascadingParameter(Name = "StudioReadOnly")] public bool ReadOnly { get; set; }
+    /// <summary>Why the studio will not build for the caller, or null where it will. The preview is built from
+    /// the draft, so where building is closed there is no picture to draw and no column is kept for one.</summary>
+    [CascadingParameter(Name = "StudioBuildReason")] public string? BuildReason { get; set; }
     [Parameter] public string Name { get; set; } = "";
     [Parameter] public EventCallback<string> NameChanged { get; set; }
 

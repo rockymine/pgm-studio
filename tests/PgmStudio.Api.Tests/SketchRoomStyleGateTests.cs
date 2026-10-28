@@ -67,7 +67,7 @@ public sealed class SketchMaterialGateTests
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
 
-        await client.PostAsJsonAsync("/api/sketch", new { name = "Gate" });
+        await client.PostAsJsonAsync("/api/sketch", new { name = "Gate", slug = "gate" });
 
         // 1 · the plain PUT — the road a person takes
         await Assert.That(await RefusedAsync(
@@ -94,7 +94,7 @@ public sealed class SketchMaterialGateTests
     {
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
-        await client.PostAsJsonAsync("/api/sketch", new { name = "Dressed" });
+        await client.PostAsJsonAsync("/api/sketch", new { name = "Dressed", slug = "dressed" });
 
         var resp = await client.PutAsync("/api/map/dressed/sketch", Body(LogVergeProp));
         await Assert.That(await RefusedAsync(resp)).IsEqualTo("HS3");
@@ -130,7 +130,7 @@ public sealed class SketchMaterialGateTests
     {
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
-        await client.PostAsJsonAsync("/api/sketch", new { name = "Beams" });
+        await client.PostAsJsonAsync("/api/sketch", new { name = "Beams", slug = "beams" });
 
         var resp = await client.PutAsync("/api/map/beams/sketch", Body(layout));
         var text = await resp.Content.ReadAsStringAsync();
@@ -166,7 +166,7 @@ public sealed class SketchMaterialGateTests
     {
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
-        await client.PostAsJsonAsync("/api/sketch", new { name = "Retired" });
+        await client.PostAsJsonAsync("/api/sketch", new { name = "Retired", slug = "retired" });
 
         var resp = await client.PutAsync("/api/map/retired/sketch", Body(layout));
         var text = await resp.Content.ReadAsStringAsync();
@@ -200,7 +200,7 @@ public sealed class SketchMaterialGateTests
     {
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
-        await client.PostAsJsonAsync("/api/sketch", new { name = "Stilts" });
+        await client.PostAsJsonAsync("/api/sketch", new { name = "Stilts", slug = "stilts" });
 
         var put = await client.PutAsync("/api/map/stilts/sketch", Body(StiltsOnAFloor));
         await Assert.That(put.IsSuccessStatusCode).IsTrue().Because(await put.Content.ReadAsStringAsync());
@@ -224,7 +224,7 @@ public sealed class SketchMaterialGateTests
     {
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
-        await client.PostAsJsonAsync("/api/sketch", new { name = "Bare" });
+        await client.PostAsJsonAsync("/api/sketch", new { name = "Bare", slug = "bare" });
 
         var put = await client.PutAsync("/api/map/bare/sketch", Body(Clean));
         await Assert.That(put.IsSuccessStatusCode).IsTrue().Because(await put.Content.ReadAsStringAsync());

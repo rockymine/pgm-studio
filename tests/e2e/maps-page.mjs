@@ -4,10 +4,11 @@
  * Two claims. Every row says who made the map: the list endpoint carries each map's credited authors, and a
  * credit with no account behind it, which is how an agent is credited, is drawn as a robot. And the filters are
  * the address: a stage chip, a ticked author and Select all each land in the query, narrow the table to what
- * they name, and come back off it with one click.
+ * they name, and come back off it with one click. The start page's New map starts a map there and then, under a
+ * fresh id, and opens it.
  */
 
-import { openBrowser, newPage, clearFaults, Checks, readSeed, api, BASE } from "./lib/harness.mjs";
+import { openBrowser, newPage, clearFaults, Checks, readSeed, api, apiRaw, BASE } from "./lib/harness.mjs";
 
 const seed = await readSeed();
 const checks = new Checks("maps page");
@@ -66,6 +67,14 @@ try {
   const byAgents = all.filter(m => m.authors.some(a => a.role !== "contributor" && a.uuid === "")).map(m => m.slug).sort();
   checks.add("it lists the maps credited by name alone",
     JSON.stringify((await slugs()).sort()) === JSON.stringify(byAgents), (await slugs()).join(", "));
+
+  checks.section("the start page's New map starts a map");
+  await page.goto(`${BASE}/`, { waitUntil: "networkidle", timeout: 30000 });
+  await page.locator(".landing-hero button", { hasText: "New map" }).click();
+  await page.waitForURL(/\/maps\/[a-z0-9]{16}\/sketch\?phase=info$/, { timeout: 15000 }).catch(() => {});
+  const started = /\/maps\/([a-z0-9]{16})\/sketch\?phase=info$/.exec(page.url())?.[1];
+  checks.add("it opens a new sketch on its Info phase, under a fresh 16-character id", !!started, page.url());
+  if (started) await apiRaw(`/map/${started}`, { method: "DELETE" });
 
   checks.add("the page raised no faults", page.faults.length === 0, page.faults.slice(0, 3).join(" | "));
   drove = true;

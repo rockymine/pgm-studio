@@ -212,7 +212,8 @@ public sealed class ComposeEndpointsTests
 
         var card = (await client.GetFromJsonAsync<ComposePage>("/api/compose?players=10&symmetry=rot_180&count=1"))!.Cards[0];
         var made = await (await client.PostAsJsonAsync("/api/compose/map", card.Descriptor)).Content.ReadFromJsonAsync<OriginatedDto>();
-        await Assert.That(made!.Slug).IsEqualTo($"composed-p10-t2-{card.Descriptor.Seed}");
+        await Assert.That(System.Text.RegularExpressions.Regex.IsMatch(made!.Slug, "^[a-z0-9]{16}$")).IsTrue()
+            .Because($"a made map takes a fresh id, not one from its name: {made.Slug}");
 
         var layout = JsonDocument.Parse(await client.GetStringAsync($"/api/map/{made.Slug}/sketch")).RootElement;
         var ground = layout.GetProperty("layers")[0].GetProperty("layout");
@@ -238,7 +239,7 @@ public sealed class ComposeEndpointsTests
         await Assert.That(places!.Places ?? []).IsEmpty().Because("a composed map states no places");
 
         var second = await (await client.PostAsJsonAsync("/api/compose/map", card.Descriptor)).Content.ReadFromJsonAsync<OriginatedDto>();
-        await Assert.That(second!.Slug).IsEqualTo($"{made.Slug}-2").Because("a second map of one board is a second map");
+        await Assert.That(second!.Slug).IsNotEqualTo(made.Slug).Because("a second map of one board is a second map");
     }
 
     [Test]

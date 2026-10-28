@@ -21,20 +21,33 @@ namespace PgmStudio.Api.Services;
 /// account, so a map it originates belongs and is credited to nobody.</para>
 ///
 /// <para><b>Two ways to take a slug, and the difference is a product statement.</b> Everything an author
-/// originates suffixes past a collision, because two sketches called "Weirgate" are two maps. A load from
+/// originates gets a slug of its own — a fresh id, or a stated slug suffixed past a collision, because two
+/// sketches called "Weirgate" are two maps. A load from
 /// documents replaces instead, because the documents name one map and loading them twice is a reload.</para>
 /// </summary>
 public static class MapOrigin
 {
-    /// <summary>A map under the first free slug from <paramref name="name"/> — <c>weirgate</c>, then
-    /// <c>weirgate-2</c>. Answers the id and the slug it actually took, which is not always the one asked
-    /// for.</summary>
+    /// <summary>A map under a slug of its own: the first free one from <paramref name="statedSlug"/> where the
+    /// caller states one — <c>weirgate</c>, then <c>weirgate-2</c> — and a fresh random id where it does not
+    /// (<see cref="Slugs.Fresh"/>). Answers the id and the slug it actually took, which is not always the one
+    /// asked for.</summary>
     public static async Task<(long Id, string Slug)> UnderFreeSlugAsync(
-        MapRepository repo, string name, string stage, MapOriginator? originator, CancellationToken ct)
+        MapRepository repo, string? statedSlug, string name, string stage, MapOriginator? originator, CancellationToken ct)
     {
         await EnsureRoomAsync(repo, originator, ct);
-        var slug = await repo.UniqueSlugAsync(Slugs.Of(name), ct);
+        var slug = await FreeSlugAsync(repo, statedSlug, ct);
         return (await RowAsync(repo, slug, name, stage, originator, originator?.Uuid), slug);
+    }
+
+    /// <summary>The slug a new map takes: the first free one from a stated slug, else a fresh id no map holds.</summary>
+    public static async Task<string> FreeSlugAsync(MapRepository repo, string? statedSlug, CancellationToken ct)
+    {
+        if (!string.IsNullOrWhiteSpace(statedSlug)) return await repo.UniqueSlugAsync(Slugs.Of(statedSlug), ct);
+        while (true)
+        {
+            var fresh = Slugs.Fresh();
+            if (await repo.GetBySlugAsync(fresh, ct) is null) return fresh;
+        }
     }
 
     /// <summary>A map at exactly <paramref name="slug"/>, replacing whatever is stored there — the foreign

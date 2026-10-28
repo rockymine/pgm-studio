@@ -5,6 +5,8 @@
    thing said twice, so they sit next to each other; the picture they are judged by keeps its own column and
    never scrolls with the knobs that change it.
 
+   The preview is built from the draft, so a caller the studio will not build for is shown no preview column.
+
    A document that nests picks one node at a time and the fields draw that node. A flat one lays every section
    out at once, and the outline scrolls to a section rather than choosing which exists. *@
 
@@ -62,6 +64,8 @@
     </div>
   </fieldset>
 
+  @if (BuildReason is null)
+  {
   <div class="sidebar-handle"></div>
 
   @* Not an Inspector component but its class, because panel-resize.js finds a resizable panel by that class
@@ -75,4 +79,5 @@
        the view is taken over. A row of nine capsules in one corner reads as one long list of neither. *@
     @if (Dock is not null) { <CanvasDock><DockGroup Viewing>@Dock</DockGroup></CanvasDock> }
   </aside>
+  }
 </Workspace>
