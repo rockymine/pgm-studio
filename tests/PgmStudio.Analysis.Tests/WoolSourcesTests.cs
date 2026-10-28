@@ -53,6 +53,21 @@ public sealed class WoolSourcesTests
     }
 
     [Test]
+    public async Task A_chest_of_the_wool_in_the_room_is_a_source_that_refills()
+    {
+        var doc = Serializer.ToDict(MapParser.ParseXmlString(Xml));
+        var wools = (List<object?>)doc["wools"]!;
+        ((Dictionary<string, object?>)wools[0]!)["wool_room_region"] = "red-room";
+
+        var sources = new List<WoolSources.Source> { new("chest", "red", 5, 4, 5, 27) };
+        var avail = WoolSources.CheckAvailability(doc, sources);
+
+        await Assert.That(avail[0].Obtainable).IsTrue();
+        await Assert.That(avail[0].Repeatable).IsTrue();
+        await Assert.That(avail[0].OneTime).IsFalse();
+    }
+
+    [Test]
     public async Task SourcesInRegion_summarises_only_the_wool_inside_the_drawn_rectangle()
     {
         var doc = Serializer.ToDict(MapParser.ParseXmlString(Xml));

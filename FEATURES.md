@@ -465,6 +465,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   scan's occupied columns, so an empty void column, with nothing in it to break, reads `sealed` where the break
   exception made the whole void past the map read `filtered`. A wool is not asked: PGM's wool module decides a
   monument last. `docs/pgm/filter-region-wiring.md` states the sequence PGM decides a block change in.
+- **A wool can be taken from a chest the world already holds (`TC25`).** Configure's wool spawn step finds a chest
+  of the wool's colour in its room off the scan and offers it as the supply, taking it by itself for a wool not
+  yet decided; such a wool's `location` is the chest and no `<spawner>` is written, since PGM refills a wool chest
+  every 30 seconds. The wool-availability check counts a chest as a source that refills. `docs/tools/configure.md`,
+  *Wools*.
 - **Identity shows the gamemodes the map states (`TC24`).** The version, the gamemodes and the objective line are
   read off the stored map rather than written into the screen, each locked with an *Auto:* note; the gamemodes
   are one tag each by full name, so a wool and core map shows both. `docs/tools/configure.md`, *Identity*.

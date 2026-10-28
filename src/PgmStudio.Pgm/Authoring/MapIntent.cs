@@ -598,6 +598,12 @@ public sealed record WoolIntent
     /// blocks.</summary>
     public Pt Spawn { get; init; }
 
+    /// <summary>What the attackers take the wool from: a spawner at <see cref="Spawn"/>, or the chest standing
+    /// there, which a scanned world holds and PGM refills, so no spawner is written for it. Null where nobody has
+    /// stated one yet, which is a spawner.</summary>
+    [WordSet(typeof(WoolSupplies))]
+    public string? Supply { get; init; }
+
     /// <summary>Where it may be placed to score — one per capturing team, which is every team but the
     /// owner.</summary>
     public List<MonumentIntent> Monuments { get; init; } = new();

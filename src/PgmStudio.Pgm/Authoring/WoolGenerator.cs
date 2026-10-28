@@ -21,6 +21,8 @@ using PgmStudio.Geom;
 /// (<c>use="deny(all(&lt;owner&gt;-team, chest-filter))"</c>, the team id being the filter matching its members): the enter rule stops them standing in the room,
 /// which is not the same as stopping them reaching a chest at its edge, and the supply in there is the
 /// attackers'.
+/// <para>A wool whose <see cref="WoolIntent.Supply"/> is a chest gets no spawn point and no spawner: the chest
+/// at its location is the supply, and the owner is still kept out of it by the chest rule.</para>
 /// <para>The wool's <c>location</c> is the int-floored <see cref="WoolIntent.Spawn"/> point. Mirror of
 /// <c>RegionCategorizer</c>: the room reads back as <c>wool/room</c>, the spawn point as <c>wool/spawner</c>.
 /// Idempotent clear-then-build.</para>
@@ -101,16 +103,19 @@ public static class WoolGenerator
 
             // One room rect is the region itself; several union into it (the buildable-area pattern).
             ZoneWriter.Region(doc, roomId, "wool", w.Protection);
-            RegionEditor.CreateRegion(doc, new Dict
+            if (w.Supply != WoolSupplies.Chest)
             {
-                ["type"] = "point", ["id"] = spawnId, ["category"] = "wool",
-                ["coords"] = new Dict { ["x"] = w.Spawn.X, ["y"] = w.Spawn.Y, ["z"] = w.Spawn.Z },
-            });
-            DocAccess.EnsureList(doc, "spawners").Add(new Dict
-            {
-                ["spawn_region"] = spawnId, ["player_region"] = roomId, ["delay"] = SpawnDelay,
-                ["items"] = new List<object?> { new Dict { ["material"] = "wool", ["damage"] = DyeDamage.GetValueOrDefault(colorSlug, 0) } },
-            });
+                RegionEditor.CreateRegion(doc, new Dict
+                {
+                    ["type"] = "point", ["id"] = spawnId, ["category"] = "wool",
+                    ["coords"] = new Dict { ["x"] = w.Spawn.X, ["y"] = w.Spawn.Y, ["z"] = w.Spawn.Z },
+                });
+                DocAccess.EnsureList(doc, "spawners").Add(new Dict
+                {
+                    ["spawn_region"] = spawnId, ["player_region"] = roomId, ["delay"] = SpawnDelay,
+                    ["items"] = new List<object?> { new Dict { ["material"] = "wool", ["damage"] = DyeDamage.GetValueOrDefault(colorSlug, 0) } },
+                });
+            }
 
             if (!roomsByOwner.ContainsKey(ownerSlug)) { roomsByOwner[ownerSlug] = []; ownerOrder.Add(ownerSlug); }
             roomsByOwner[ownerSlug].Add(roomId);

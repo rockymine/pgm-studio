@@ -78,7 +78,7 @@ place in its list, numbered `-2`, `-3`… where two would share one. An id state
 | `scoreBoxes` | The score boxes (`docs/pgm/score-boxes.md` §4): per box the `team` it scores for, the inclusive `box` it covers, the `points` it pays (1) and whether it sends its scorer `home` (true). Owned by a team, so they fan by team; the Score phase states them |
 | `zones` | Zones the author states (`docs/pgm/zones.md` §3): per zone an `id`, the `area` rects, an optional `team`, who may `enter` (`anyone`, `team`, `nobody`), whether a block may be `place`d or broken (`break`), whether a player inside may come to `harm`, and a `kit` given inside. A team's zone fans by team, one with no team by position; no Configure phase states them yet |
 | `build` | `maxHeight`, the buildable `areas` and the no-build `holes` cut out of them, and the `mode` a player builds under: `void` builds anywhere but over the void outside what is left, `never` places and breaks nothing, `only` places and breaks the named `materials` and nothing else. Absent, a board with a wool, destroyable or core is `void` and any other is `never` |
-| `wools` | per wool: an `id`, owner, colour, room rects, the source point, and one monument per capturing team |
+| `wools` | per wool: an `id`, owner, colour, room rects, the source point, its `supply` (`spawner`, or `chest` for a chest of the wool the world already holds there; absent reads as a spawner), and one monument per capturing team |
 | `cores` | per core: an `id`, owner, anchor, the casing's measurements, and `leak` |
 | `destroyables` | per destroyable: an `id`, owner, name, anchor, its shape, what it is built of and its float |
 | `shops` | per shop: an id, a name, its categories, and per icon the stack, every payment it costs and the action buying it triggers. The keeper says what it is called and what mob it is; where it stands is derived, one per shop at every team's spawn, unless it names a block or a region of its own (`docs/pgm/shops.md` §9). **The tool has no step for these** (`TC9`): they are stated through the API, carried here, and projected like any other slice |
@@ -407,6 +407,16 @@ detected source centroid and seated on the floor the pile rests on, with the sid
 by coordinate re-seats it the same way the point tool does, anchored at the wool's own level — a wool
 normally sits in a covered room, whose roof would otherwise be the column's topmost surface. Editing the
 anchor team's wool re-derives its symmetric partners; editing an orbit copy nudges that one alone.
+
+A world the studio scanned can already hold the wool in a chest, which is how about a third of the corpus's wool
+maps supply it: 76 of CommunityMaps' 226 write no `<spawner>`. PGM takes any container holding objective wool when
+it is first opened as a wool chest and puts one wool back per slot every 30 seconds (`WoolMatchModule`), so the
+chest is the whole supply. Where a chest holding the wool's colour stands in its room — or, before the room is
+drawn, within 16 blocks of its spawn point — the step offers **Supply**: *Spawner* or *Chest*. A wool no step has
+stated a supply for takes the chest by itself. A chest-supplied wool's `location` is the chest's block, its point
+cannot be moved, and the generator writes no spawn point and no `<spawner>` for it; the room keeps its wiring,
+including the rule that keeps the defenders out of the chest. The step reads the chest off the scan
+(`POST /map/{slug}/wool-sources`), slot by slot summed to one chest, and says where it is and how much it holds.
 
 **Wool monuments** confirms one wool monument per capturing team. The scan usually pre-fills them from signed wool monuments;
 a gap is filled by drawing a box around a cluster, which routes each hit to its colour's wool with the
