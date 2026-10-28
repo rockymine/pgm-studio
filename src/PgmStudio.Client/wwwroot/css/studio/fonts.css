@@ -1,0 +1,25 @@
+/* fonts.css — the studio's two typefaces, served from wwwroot/fonts/geist/ and named by --font-sans and
+ * --font-mono in tokens.css. Geist carries every label, heading and sentence; Geist Mono what a reader copies
+ * or compares down a column: slugs, coordinates, block ids, counts, map.xml.
+ *
+ * Geist 1.3.1 and Geist Mono 1.3.1, the variable woff2 files of the `geist` npm package, SIL Open Font
+ * License 1.1 (fonts/geist/LICENSE.txt). Regenerate:
+ *   npm pack geist@1.3.1 && tar xzf geist-1.3.1.tgz
+ *   cp package/dist/fonts/geist-sans/Geist-Variable.woff2 package/dist/fonts/geist-mono/GeistMono-Variable.woff2 \
+ *      package/LICENSE.TXT <wwwroot>/fonts/geist/   (LICENSE.TXT as LICENSE.txt) */
+
+@font-face {
+  font-family: "Geist";
+  src: url("../../fonts/geist/Geist-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("../../fonts/geist/GeistMono-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}

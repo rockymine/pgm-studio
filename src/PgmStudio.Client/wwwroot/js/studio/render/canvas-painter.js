@@ -38,19 +38,13 @@
  */
 
 import { ringToPath, polyToPath } from "./svg.js";
+import { fontStack } from "../shared/ui-scale.js";
 
 /** The device pixel ratio to render at. Clamped: past 2 the buffer grows faster than the sharpness. */
 const MAX_DPR = 2;
 
 /** World coordinates are the surface's own unless a canvas fits its world through a transform. */
 const IDENTITY = (x, z) => ({ x, y: z });
-
-/**
- * Canvas text needs a family named outright — an SVG `<text>` inherits one from the page, a context has
- * nothing to inherit from. This is the page's own stack (`css/app.css`), so a painted label matches the
- * one beside it in the svg overlay; `style.font` overrides it where a caller wants figures to line up.
- */
-const FONT_STACK = "'Helvetica Neue', Helvetica, Arial, sans-serif";
 
 export class CanvasPainter {
   #canvas;
@@ -310,7 +304,7 @@ export class CanvasPainter {
     const point = this.#toSurface(x, z);
     const at = { x: point.x + (style.dx ?? 0), y: point.y + (style.dy ?? 0) };
     const ctx = this.#ctx, prev = ctx.globalAlpha;
-    ctx.font = `${style.weight ? `${style.weight} ` : ""}${style.size ?? 12}px ${style.font ?? FONT_STACK}`;
+    ctx.font = `${style.weight ? `${style.weight} ` : ""}${style.size ?? 12}px ${style.font ?? fontStack()}`;
     ctx.textAlign = style.align ?? "center";
     ctx.textBaseline = style.baseline ?? "middle";
     ctx.globalAlpha = this.#alphaOf(style, 1);

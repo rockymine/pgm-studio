@@ -29,6 +29,23 @@
   .map-col-modes { display: none; }
   .map-table { min-width: 0; }
 }
+/* A narrow window reads each map as a short block: name and slug against the date, then the game mode, the author
+   and the Open in links a line each. */
+@media (max-width: 860px) {
+  .map-table, .map-table tbody { display: block; }
+  .map-table thead { display: none; }
+  .map-table-row {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-1) var(--space-3);
+    padding: var(--space-3) 0; border-bottom: 1px solid var(--border);
+  }
+  .map-table td { display: block; padding: 0; border: 0; min-width: 0; }
+  .map-table td:nth-child(1) { grid-area: 1 / 1; }
+  .map-table td:nth-child(5) { grid-area: 1 / 2; text-align: right; }
+  .map-table td:nth-child(3) { display: block; grid-area: 2 / 1 / 3 / 3; }
+  .map-table td:nth-child(4) { grid-area: 3 / 1 / 4 / 3; }
+  .map-table td:nth-child(2) { grid-area: 4 / 1 / 5 / 3; padding-top: var(--space-1); }
+  .map-row-name, .map-row-slug { max-width: none; }
+}
 .map-table-row { cursor: pointer; }
 .map-table-row:hover { background: var(--bg-selected-hover); }
 
@@ -37,14 +54,14 @@
 .map-row-name, .map-row-slug { display: block; max-width: 24rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .map-row-name { font-weight: 600; color: var(--text-bright); text-decoration: none; }
 a.map-row-name:hover { text-decoration: underline; }
-.map-row-slug { color: var(--text-muted); font-size: var(--font-sm); font-family: ui-monospace, monospace; }
+.map-row-slug { color: var(--text-muted); font-size: var(--font-sm); font-family: var(--font-mono); }
 
 .map-stage-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; margin-right: var(--space-1); }
 .map-stage-dot--sketch { background: var(--canvas-add-fill); }
 .map-stage-dot--configure { background: var(--color-warning); }
 .map-stage-dot--edit { background: var(--color-success); }
 
-.map-modes { font-family: ui-monospace, monospace; font-size: var(--font-sm); color: var(--text-secondary); white-space: nowrap; }
+.map-modes { font-size: var(--font-sm); color: var(--text-secondary); white-space: nowrap; }
 .map-changed { white-space: nowrap; color: var(--text-secondary); font-size: var(--font-sm); }
 .map-empty { color: var(--text-muted); font-size: var(--font-sm); }
 

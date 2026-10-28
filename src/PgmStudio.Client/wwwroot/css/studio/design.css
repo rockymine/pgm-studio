@@ -174,7 +174,6 @@
 .ds-rules-table td:first-child { color: var(--text-primary); }
 
 @media (max-width: 900px) {
-  #ds-layout > .workspace-sidebar { display: none; }
   #ds-main { padding: var(--space-6); }
   .ds-section-heading { align-items: start; flex-direction: column; }
   .ds-section-heading > p { text-align: left; }
@@ -197,7 +196,7 @@
 .gen-status { color: var(--text-muted); font-size: var(--font-sm); padding-bottom: 6px; }
 
 /* Terrain-paint theme editor (TP10): a monospace, resizable JSON area — the one thing field-input isn't. */
-.theme-json { min-height: 200px; font-family: ui-monospace, "SF Mono", Menlo, monospace; resize: vertical; line-height: 1.4; }
+.theme-json { min-height: 200px; font-family: var(--font-mono); resize: vertical; line-height: 1.4; }
 /* A palette part's sample picture. */
 .theme-swatch-img { width: 100%; aspect-ratio: 1; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; background: var(--bg-deep); }
 .theme-swatch-img svg { width: 100%; height: 100%; display: block; }

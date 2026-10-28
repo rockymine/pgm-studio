@@ -42,7 +42,7 @@
 .keys-empty { padding: var(--space-4); color: var(--text-muted); font-size: var(--font-sm); text-align: center; }
 
 .keys-chord {
-  font-family: ui-monospace, monospace; font-size: var(--font-xs); color: var(--text-primary);
+  font-family: var(--font-mono); font-size: var(--font-xs); color: var(--text-primary);
   background: var(--bg-base); border: 1px solid var(--border); border-bottom-width: 2px;
   border-radius: var(--radius-sm); padding: 1px 5px; white-space: nowrap;
 }
@@ -88,7 +88,7 @@
   align-items: center;
   margin-top: var(--space-2);
 }
-.invite-link .field-input { flex: 1; font-family: ui-monospace, monospace; font-size: var(--font-xs); }
+.invite-link .field-input { flex: 1; font-family: var(--font-mono); font-size: var(--font-xs); }
 /* The row a player is added from: a name, a role and Add, all at the control height. */
 .player-add-row { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-2); }
 .player-add-row > * { height: var(--control-height); }
@@ -114,39 +114,6 @@
 .user-actions { display: flex; flex: none; align-items: center; gap: var(--space-2); }
 .user-actions .field-input { width: auto; }
 .invite-link .field-input--slim { width: auto; flex: none; }
-
-/* ── The studio's own bar, the same on every page ──────────────────────────────────────────────── */
-
-.app-nav {
-  display: flex;
-  align-items: center;
-  gap: var(--space-5);
-  flex-shrink: 0;
-  height: 44px;
-  padding: 0 var(--space-3) 0 var(--space-4);
-  background: var(--nav-bg);
-  border-bottom: 1px solid var(--nav-border);
-  color: var(--nav-text);
-  font-size: var(--font-md);
-}
-.app-nav-home { display: flex; align-items: baseline; gap: 4px; text-decoration: none; color: var(--nav-text-strong); }
-.app-nav-pgm { font-weight: 700; }
-.app-nav-sub { font-size: var(--font-xs); letter-spacing: 0.12em; color: var(--nav-text-muted); }
-.app-nav-links { display: flex; align-items: center; gap: 2px; min-width: 0; overflow-x: auto; }
-.app-nav-link {
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
-  color: var(--nav-text);
-  text-decoration: none;
-  white-space: nowrap;
-}
-.app-nav-link:hover { color: var(--nav-text-strong); background: var(--nav-hover); }
-.app-nav-link--active { color: var(--nav-text-strong); background: var(--nav-active); }
-.app-nav-right { margin-left: auto; display: flex; align-items: center; gap: var(--space-2); }
-.app-nav .theme-toggle,
-.app-nav .app-nav-icon { color: var(--nav-text); }
-.app-nav .theme-toggle:hover,
-.app-nav .app-nav-icon:hover { color: var(--nav-text-strong); background: var(--nav-hover); }
 
 .account { position: relative; }
 .account-button {

@@ -7,7 +7,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
-  font-family: ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: var(--font-base);
   font-variant-numeric: tabular-nums;
   padding: 3px 6px;

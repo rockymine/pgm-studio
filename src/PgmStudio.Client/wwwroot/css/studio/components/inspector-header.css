@@ -24,7 +24,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.detail-label--mono { font-family: ui-monospace, monospace; }
+.detail-label--mono { font-family: var(--font-mono); }
 
 /* SideDrawer — a reusable right-anchored overlay panel: a dimming backdrop plus a sliding drawer with a
    header (reusing .detail-header / .geo-type-icon / .detail-label), a scrolling body, and an optional

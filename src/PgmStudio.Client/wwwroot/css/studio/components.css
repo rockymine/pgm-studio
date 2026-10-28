@@ -6,6 +6,7 @@
  * specificity of `svg.lucide` and only source order decides between them.
  */
 @import url("components/icons.css");
+@import url("components/studio-mark.css");
 @import url("components/sections.css");
 @import url("components/form-fields.css");
 @import url("components/range-field.css");
@@ -22,6 +23,7 @@
 @import url("components/badge.css");
 @import url("components/meter.css");
 @import url("components/filter-chip.css");
+@import url("components/filter-sidebar.css");
 @import url("components/flow-steps.css");
 @import url("components/editor-bar.css");
 @import url("components/step-row.css");
@@ -36,6 +38,7 @@
 @import url("components/landing.css");
 @import url("components/map-thumb.css");
 @import url("components/keyboard.css");
+@import url("components/app-nav.css");
 @import url("components/canvas-strips.css");
 @import url("components/in-game.css");
 @import url("components/notes.css");

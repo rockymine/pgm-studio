@@ -4,8 +4,7 @@
 
 .filter-group-options { display: flex; flex-wrap: wrap; gap: var(--space-1); }
 
-/* The rail of a page that narrows a list (FilterSidebar), and the label-row action of a FilterGroup. */
-.filter-sidebar { border-right: 1px solid var(--border); }
+/* The label-row action of a FilterGroup. */
 .filter-group-action {
   border: 0; padding: 0; background: none; font: inherit; font-weight: 400;
   color: var(--accent-light); cursor: pointer;
@@ -34,7 +33,7 @@
 .filter-chip:disabled  { opacity: 0.35; cursor: default; }
 /* How many of the scanned boards carried this form — the chip saying what the request produces. */
 .filter-chip-n {
-  margin-left: 5px; font-family: ui-monospace, monospace; font-size: var(--font-xs);
+  margin-left: 5px; font-family: var(--font-mono); font-size: var(--font-xs);
   font-variant-numeric: tabular-nums; color: var(--text-muted);
 }
 /* Never produced by the current request, on a sample big enough to mean it. Dimmed rather than disabled:

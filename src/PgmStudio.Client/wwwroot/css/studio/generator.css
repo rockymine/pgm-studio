@@ -7,6 +7,13 @@
 /* feed */
 .gen-main { flex: 1; min-width: 0; overflow-y: auto; padding: var(--space-3); }
 
+/* A narrow window stacks the folded rail over the feed, and the page scrolls as one (editor.css). */
+@media (max-width: 959px) {
+  .gen-body { flex-direction: column; overflow: visible; }
+  .gen-body > .filter-sidebar { width: auto !important; }
+  .gen-main { overflow: visible; }
+}
+
 
 .gen-toolbar {
   display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-4);

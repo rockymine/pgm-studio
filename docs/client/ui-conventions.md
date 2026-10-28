@@ -19,7 +19,7 @@ Read alongside:
   canvas rather than laid out in the DOM.
 - The `/design` page (`Pages/Design.razor`) is the living style guide, and it renders the **real** components
   rather than hand-written examples, so the showcase cannot drift from production. It is the visual-regression
-  oracle for any change here. It shows the `tokens.css` colours, type scale, spacing, radii, shadows and icon sizes as
+  oracle for any change here. It shows the `tokens.css` colours, type scale, typefaces, spacing, radii, shadows and icon sizes as
   swatches that follow the theme toggle, then the components grouped by role — primitives, forms, data and lists,
   layout and navigation, the filter rail, editor chrome, feedback and problems, and the entry surfaces. Its own
   contents rail is a `FilterSidebar` of `FilterPanel`s. A component that gains a parameter or a variant gains its
@@ -50,6 +50,10 @@ close it where the caller may not, below), `WriteGate` (the same answer for a co
 a person's initial on a neutral tile, with the front of an account's head over it as the studio serves it at
 `/api/minecraft/player/{uuid}/head` — eight pixels drawn large, the face with the hat over it the way the game
 draws it — so a browser asks no third party and a head the studio cannot get leaves the initial showing.
+`StudioMark` is the studio's mark, the favicon's block outlined in the theme's strongest text colour, which the
+studio bar and an editor's bar both lead with. A `Button`'s `primary` variant is drawn in ink (`--primary-bg`, the
+strongest text colour as the fill and the page as the label), so the one action a surface leads with reads first
+without spending the accent that selection and focus use.
 
 **Forms** — `Field` is the atom the whole system is built from: it owns the label, the required mark, the unit,
 the `?` and its help or glossary term, the note under the control and the error line, and the input itself is
@@ -82,14 +86,16 @@ them), `ListRow` (the list row with its swatch, label, tag, go-arrow and a `Trai
 the row carries), `DetailHeader` (an inspector head: icon, label, trailing badges), and `FilterPanel`
 (one titled block of a filter rail, below).
 
-**Layout** — the shells. `StudioShell` is the page skeleton (`editor-page` + the two bars + body + footer);
-`AppNav` is the studio's own bar on every page — home, the links Maps, Generator, Library, Rules and Glossary, and at the right icon buttons for the keyboard shortcuts and the design reference, `TextSizeMenu`, the theme and
-`AccountMenu`, who is signed in, whose menu holds Tokens, Users (admin) and API docs; `Topbar` is a browse or admin page's bar under it — a `Crumbs` slot composed from `Crumb`, a *View
-only* tag on a read-only page, and the page's actions; `EditorBar` is the one bar the three editors draw instead (the crumb
+**Layout** — the shells. `StudioShell` is the page skeleton (`editor-page` + the two bars + body + footer), and
+`Focused` makes it an editor's page: no studio bar and no footer, the studio's menu opened from the `EditorBar`
+instead, with whether that menu is open held by the shell and cascaded to the bar as `StudioMenu`;
+`AppNav` is the studio's own bar on every other page — the `StudioMark` and name (home), the links Maps, Generator, Library, Rules and Glossary, and at the right a search that opens the command palette, icon buttons for the keyboard shortcuts and the design reference, `TextSizeMenu`, the theme and
+`AccountMenu`, who is signed in, whose menu holds Tokens, Users (admin) and API docs. Its links and its four tools sit in one panel, which is the bar's own row on a wide window, a menu sliding in from the left below 960px, and the only form it takes on a focused page, where it carries the search and the account too; `Topbar` is a browse or admin page's bar under it — a `Crumbs` slot composed from `Crumb`, a *View
+only* tag on a read-only page, and the page's actions; `EditorBar` is the one bar the editors draw instead (the `StudioMark` that opens the studio's menu, the crumb
 *Maps › the map's name*, a `StageSwitch` between the map's tools, the phase and its steps, then `State`, `Commands`, a divider and Back/Next;
-`NoMove` drops Back/Next, and `LabelledCommands` spaces text buttons wider than icon-only ones); `AppFooter` closes every page with a brand caption and the repository; `NavRail` and `NavButton` are the
+`NoMove` drops Back/Next, and `LabelledCommands` spaces text buttons wider than icon-only ones); `AppFooter` closes every page but an editor's with a brand caption and the repository; `NavRail` and `NavButton` are the
 left rail, each button its glyph over its name, since a rail of glyphs alone leaves the reader to remember which is which; `Workspace`, `Sidebar`, `Inspector` and `ContentColumn` are the four content shells every tool
-arranges itself from, and `FilterSidebar` is the `Sidebar` of a page that narrows a list or jumps between sections of one page (the `/design` contents rail); `PageHeading` is the one heading a browse or admin page opens on; `LandingHero` is the studio entry's opening block, mounted by `Index` and shown on `/design`, and `MapThumb` the 16:9 picture box of a map (the in-game picture over a placeholder that stays where none can be drawn); `SideDrawer` (a title, optional `HeaderActions` icon buttons beside the close button, a scrolling body and an optional footer; `Wide` for a picture rather than a form)
+arranges itself from, and `FilterSidebar` is the `Sidebar` of a page that narrows a list or jumps between sections of one page (the `/design` contents rail), which on a narrow window folds behind a button naming it (`Title`, *Filters* unless the page says otherwise); `PageHeading` is the one heading a browse or admin page opens on; `LandingHero` is the studio entry's opening block, mounted by `Index` and shown on `/design`, and `MapThumb` the 16:9 picture box of a map (the in-game picture over a placeholder that stays where none can be drawn); `SideDrawer` (a title, optional `HeaderActions` icon buttons beside the close button, a scrolling body and an optional footer; `Wide` for a picture rather than a form)
 finishes the set.
 
 **Canvas** — the floating chrome over a `WorldCanvas`: `CanvasReadout`, `CanvasLayerBar` with `LayerChip`,
@@ -172,7 +178,8 @@ what lets the page say so before an edit rather than after it.
 ## A filter looks like a filter
 
 **Every page that narrows a list builds its rail from three components, and the page keeps only the logic.**
-`FilterSidebar` is the left `Sidebar`, ruled off from the content. Inside it, a `FilterPanel` is one titled
+`FilterSidebar` is the left `Sidebar`, ruled off from the content; below 960px it sits above the content, folded
+behind its button, so the list is what the page opens on. Inside it, a `FilterPanel` is one titled
 block — the heading, and a **Clear** in the heading's right slot that appears while `Active` is true and
 `OnClear` is bound — and inside that, a `FilterGroup` is one facet: a `Field` label over a row of `Chip`s.
 `Maps` (`/maps`), the shape catalog (`/catalog`) and the generator (`/generator`) all stand on them, so what
@@ -195,6 +202,17 @@ as one rail while only the second offers *Clear*. Panels are titled for what the
 filters*, *Layout settings* — and every change applies at once: there is no Apply button to
 forget.
 
+## Typefaces
+
+**Geist carries every word; Geist Mono carries what is read as data.** `tokens.css` names the two stacks,
+`--font-sans` and `--font-mono`, and nothing else names a family: the page body, a label, a heading and a sentence
+take the sans, and a slug, a coordinate, a block id, a count and the `map.xml` preview take the mono, because those
+are copied or compared down a column. Both are the variable woff2 files of Geist 1.3.1, vendored under
+`wwwroot/fonts/geist/` with their SIL Open Font License and declared in `css/studio/fonts.css`, whose header holds the
+command that regenerates them; the sans is preloaded by `index.html`, so a page is not set twice. Text drawn on a
+canvas or written into an svg attribute cannot read a custom property, so it asks `fontStack()` in
+`js/studio/shared/ui-scale.js`, which reads the token from the page.
+
 ## Text size
 
 **Every size in the client is one design size times `--ui-scale`.** Type, icons, the control height, the
@@ -207,6 +225,21 @@ token or a `calc` over the scale. Text drawn on a canvas is outside every styles
 
 The default type scale is 15 / 14 / 13 / 12 / 11px, and a button is at least 28px tall at the default size,
 above the 24 × 24px minimum target size of WCAG 2.2 (2.5.8).
+
+## A narrow window
+
+**The studio is laid out for a desktop and stays usable down to a phone.** Every rule below is in the stylesheet
+of the thing it changes, and `tests/e2e/narrow-windows.mjs` holds the result: at 390 and 768px no page lets an
+element run past the window's edge unless it sits in a box that scrolls sideways.
+
+| Width | What changes |
+|---|---|
+| ≤ 1180px | The studio bar's search folds to its glyph (`app-nav.css`). |
+| ≤ 1100px | An editor's steps fold into a *Step n of m* menu (`editor-bar.css`). |
+| ≤ 959px | The studio bar's links and tools become its menu (`app-nav.css`). The page scrolls as one document rather than in columns: the rail becomes a row across the top, and a workspace wraps — a filter rail first and folded, then the canvas or the list at the full width, then the side panels, two abreast where they fit (`editor.css`, `filter-sidebar.css`). |
+| ≤ 860px | The editor bar wraps onto two rows, and the maps table reads each map as a short block (`editor-bar.css`, `map-table.css`). |
+| ≤ 640px | The studio bar drops the studio's name beside its mark. |
+| a touch screen | A control is 44px tall, the target size of WCAG 2.5.5 (`--control-height`, `pointer: coarse`). |
 
 ## How a row of things lines up
 

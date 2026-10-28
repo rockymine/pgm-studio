@@ -8,7 +8,7 @@
 @* Sketch tool. Blazor renders the editor bar, the dock and the svg shell; the SketchCanvas JS (via
    bridge/sketch-bridge.js) owns drawing, the live group computation and the symmetry preview. *@
 
-<StudioShell>
+<StudioShell Focused="true">
   <Bar>
     @{ var move = BarMove; }
     <EditorBar MapName="@(string.IsNullOrWhiteSpace(mapName) ? Slug.Replace('_', ' ') : mapName)" Slug="@Slug" Stage="@MapStage.Sketch"

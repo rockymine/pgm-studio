@@ -1,0 +1,160 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   APP NAV — the studio's own bar, and the menu its links and tools become.
+   The panel (.app-nav-panel) holds the links and the four tools. It is a menu sliding in from the left by
+   default; at 960px and wider, inside the bar (.app-nav), it dissolves into the bar's own row. An editor's
+   panel (--focused) has no bar to dissolve into and stays a menu at every width.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.app-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+  height: calc(48px * var(--ui-scale));
+  padding: 0 var(--space-3) 0 var(--space-2);
+  background: var(--nav-bg);
+  border-bottom: 1px solid var(--nav-border);
+  color: var(--nav-text);
+  font-size: var(--font-md);
+}
+
+.app-nav-home {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 4px 6px;
+  border-radius: var(--radius-md);
+  color: var(--nav-text-strong);
+  font-size: var(--font-lg);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.app-nav-home:hover { background: var(--nav-hover); }
+.app-nav > .app-nav-home { margin-right: var(--space-3); }
+
+.app-nav-link {
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius-md);
+  color: var(--nav-text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.app-nav-link:hover { color: var(--nav-text-strong); background: var(--nav-hover); }
+.app-nav-link--active { color: var(--nav-text-strong); background: var(--nav-active); font-weight: 500; }
+
+.app-nav-icon,
+.app-nav-tools .theme-toggle,
+.app-nav-tools .text-size .topbar-icon-btn { color: var(--nav-text); }
+.app-nav-icon:hover,
+.app-nav-tools .theme-toggle:hover,
+.app-nav-tools .text-size .topbar-icon-btn:hover { color: var(--nav-text-strong); background: var(--nav-hover); }
+
+/* The search opens the command palette; it reads as a field so a reader finds it where they look for one. */
+.app-nav-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  width: calc(240px * var(--ui-scale));
+  height: var(--control-height);
+  padding: 0 var(--space-2) 0 var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--font-md);
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.app-nav-search:hover { border-color: var(--text-muted); color: var(--text-secondary); }
+.app-nav-search svg { width: var(--icon-sm); height: var(--icon-sm); }
+.app-nav-kbd {
+  margin-left: auto;
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  line-height: 1.6;
+}
+
+/* ── the menu ── */
+.app-nav-panel {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: min(calc(300px * var(--ui-scale)), 86vw);
+  padding: var(--space-3);
+  overflow-y: auto;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  box-shadow: var(--shadow-float);
+  color: var(--nav-text);
+  font-size: var(--font-md);
+  transform: translateX(-100%);
+  visibility: hidden;
+  transition: transform 0.2s ease, visibility 0s linear 0.2s;
+}
+.app-nav-panel--open { transform: none; visibility: visible; transition: transform 0.2s ease; }
+.app-nav-panel:focus { outline: none; }
+.app-nav-panel-head { display: flex; align-items: center; margin-bottom: var(--space-2); }
+.app-nav-close { margin-left: auto; }
+.app-nav-panel .app-nav-search { width: auto; height: 44px; margin-bottom: var(--space-2); }
+.app-nav-panel .app-nav-links { display: flex; flex-direction: column; gap: 2px; }
+.app-nav-panel .app-nav-link { min-height: 44px; padding: 0 var(--space-3); }
+.app-nav-panel .app-nav-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: auto;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+.app-nav-panel .topbar-icon-btn { width: 44px; height: 44px; }
+/* At the foot of the menu a tool's own menu opens upward, from its left edge. */
+.app-nav-panel .account-menu { top: auto; bottom: calc(100% + 6px); left: 0; right: auto; }
+.app-nav-scrim { position: fixed; inset: 0; z-index: 65; background: rgb(0 0 0 / 0.4); }
+
+@media (prefers-reduced-motion: reduce) {
+  .app-nav-panel, .app-nav-panel--open { transition: none; }
+}
+
+/* ── the bar ── */
+@media (min-width: 960px) {
+  .app-nav-menu { display: none; }
+  .app-nav .app-nav-panel { display: contents; visibility: visible; }
+  .app-nav .app-nav-panel-head, .app-nav .app-nav-scrim { display: none; }
+  .app-nav .app-nav-links { flex-direction: row; align-items: center; min-width: 0; }
+  .app-nav .app-nav-link { min-height: 0; padding: 6px 10px; }
+  .app-nav .app-nav-search { order: 1; margin-left: auto; }
+  .app-nav .app-nav-tools { order: 2; flex-wrap: nowrap; margin: 0 0 0 var(--space-2); padding: 0; border: 0; }
+  .app-nav .app-nav-panel .topbar-icon-btn { width: 28px; height: 28px; }
+  .app-nav .app-nav-panel .account-menu { top: calc(100% + 6px); bottom: auto; left: auto; right: 0; }
+  .app-nav > .account { order: 3; margin-left: var(--space-2); }
+}
+@media (max-width: 1180px) {
+  .app-nav > .app-nav-search { width: var(--control-height); padding: 0; justify-content: center; }
+  .app-nav > .app-nav-search :is(.app-nav-search-label, .app-nav-kbd) { display: none; }
+}
+@media (max-width: 959px) {
+  .app-nav > .app-nav-search { margin-left: auto; width: 44px; height: 44px; border: 0; background: none; }
+  .app-nav .app-nav-menu { width: 44px; height: 44px; }
+}
+@media (max-width: 640px) {
+  .app-nav > .app-nav-home > span { display: none; }
+}
+@media (max-width: 480px) {
+  .app-nav .account-role { display: none; }
+}

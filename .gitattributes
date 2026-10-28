@@ -4,6 +4,7 @@
 * text=auto eol=lf
 
 *.png binary
+*.woff2 binary
 
 # Minecraft world data: Anvil region files and gzipped NBT. The eol=lf rule above must never
 # reach these — a normalised byte inside a compressed chunk is silent corruption.

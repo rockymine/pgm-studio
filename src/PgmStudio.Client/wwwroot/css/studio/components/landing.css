@@ -9,7 +9,7 @@
 
 .landing-hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: calc(48px * var(--ui-scale)); }
 .landing-hero-text { display: flex; flex-direction: column; gap: var(--space-5); align-items: flex-start; }
-.landing-eyebrow { font: 500 var(--font-md) ui-monospace, monospace; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent-light); }
+.landing-eyebrow { font-size: var(--font-base); font-weight: 500; color: var(--text-secondary); }
 .landing-title { font-size: clamp(30px, 3.4vw, calc(48px * var(--ui-scale))); font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; color: var(--text-strong); }
 .landing-title code { font-size: 0.82em; }
 .landing-lead { max-width: 52ch; font-size: calc(19px * var(--ui-scale)); line-height: 1.5; color: var(--text-secondary); }

@@ -25,6 +25,18 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   (CTW, DTM, DTC, alone or combined) with *Start a map* and *Open maps (N)*, a themeable board drawing
   (`LandingHero`), the person's five latest maps, and the four levels a map is described at.
   `docs/client/routing-and-ia.md`.
+- **Set in Geist, on a zinc palette (`C112`).** Geist for every word and Geist Mono for what is read as data — slugs,
+  coordinates, block ids, counts — vendored under `wwwroot/fonts/geist/` and named by `--font-sans` and
+  `--font-mono`; both themes on a neutral zinc ramp, and the leading action drawn in ink (`--primary-bg`).
+  `docs/client/ui-conventions.md`, *Typefaces*.
+- **The studio bar folds into a menu, and an editor is a focused page (`C113`).** A search in the bar opens the
+  command palette; below 960px the links and tools slide in from the left behind a menu button, taking focus and
+  closing on Escape. Sketch and Configure draw no studio bar and no footer: the studio's mark in their own bar opens
+  the same menu, with the search and the account in it. `docs/client/routing-and-ia.md`, *Exits*.
+- **Usable on a phone and a tablet (`C114`).** Below 960px a page scrolls as one document: a filter rail folds
+  above its list, a workspace stacks the canvas over its panels, the maps table reads as blocks, and a touch screen
+  gets 44px controls. `tests/e2e/narrow-windows.mjs` holds that nothing runs past the window at 390 and 768px.
+  `docs/client/ui-conventions.md`, *A narrow window*.
 - **The studio bar holds tools and two references (`C105`).** Maps, Generator, Library, Rules and Glossary,
   with no divider; at the right the keyboard-shortcuts and Design icons, text size, theme and the account, whose
   menu holds Tokens, Users (admin) and API docs — in an open studio too. The footer is the brand and GitHub.

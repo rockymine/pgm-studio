@@ -1,0 +1,25 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   FILTER SIDEBAR  (the rail of a page that narrows a list, or jumps between sections of one page)
+   Wide, it is a ruled-off column and its button is not shown. Narrow, it sits above the content and its
+   panels fold behind the button, so the list is what the page opens on.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.filter-sidebar { border-right: 1px solid var(--border); }
+.filter-sidebar-body { display: contents; }
+.filter-sidebar-toggle { display: none; }
+
+@media (max-width: 959px) {
+  .filter-sidebar { border-right: 0; border-bottom: 1px solid var(--border); }
+  .filter-sidebar > .workspace-scroll { padding-block: 0; gap: 0; }
+  .filter-sidebar-toggle {
+    display: flex; align-items: center; gap: var(--space-2); width: 100%; min-height: 48px; padding: 0;
+    border: 0; background: none; color: var(--text-strong); font: inherit; font-size: var(--font-md); font-weight: 600;
+    text-align: left; cursor: pointer;
+  }
+  .filter-sidebar-toggle svg { margin-left: auto; transition: transform var(--transition-fast); }
+  .filter-sidebar-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+  .filter-sidebar-body { display: none; }
+  .filter-sidebar--open .filter-sidebar-body {
+    display: flex; flex-direction: column; gap: var(--space-6); padding-bottom: var(--space-4);
+  }
+}
