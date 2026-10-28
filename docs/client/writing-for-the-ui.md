@@ -159,7 +159,7 @@ divergence found on review becomes a row here and an assertion there in the same
 | a failure | *Couldn't save the palette.* | *this palette*, *that palette* |
 | a load failed | *Couldn't load the maps. Reload the page to try again.* | *Try again.* after a load |
 | the studio is unreachable | *Couldn't reach the studio. Check your connection and try again.* | any other wording |
-| what an empty value means | placeholder *Auto*, note *Auto: the median ground plus 12.* | *Left empty, …*, *Set automatically.*, *works it out* |
+| what an empty or locked value means | placeholder *Auto*, note *Auto: the median ground plus 12.*, *Auto: one for each kind of objective the map carries.* | *Left empty, …*, *Set automatically.*, *works it out* |
 | a placeholder | a name, *Auto*, *Any*, *Choose a …*, *Search …* | a number, an example, an ellipsis |
 | an option | one note for one option label, on every screen | a second note for the same option |
 | drawing a rectangle | *Drag a rectangle …* | *Draw a box …* |

@@ -1,27 +1,42 @@
 @namespace PgmStudio.Client.Features.Configure
+@using PgmStudio.Client.Models
 
 @* Identity phase body: the map's identity slice — name + authors/contributors → intent meta.
-   Version / mode / objective are auto-derived by the generator and shown locked. A username resolves on
+   Version, gamemodes and objective are the generator's, read off the stored map and shown locked: a phase is
+   saved before the next opens, so they are the ones the map's map.xml states. A username resolves on
    blur to its head + canonical name, and an unknown one is flagged and kept out of the intent. Edits patch the wizard's working Intent and mark it dirty. *@
 
 <Workspace>
   <ContentColumn MaxWidth="720">
 
-    <Section Title="Identity" Description="Version, gamemode and objective are set automatically.">
+    <Section Title="Identity">
       <div class="section-body">
         <Field Label="Map name" Required>
           <input class="field-input" type="text" value="@name" @oninput="OnName" />
         </Field>
         <div class="field-row">
-          <Field Label="Version" Class="field--short">
-            <input class="field-input" type="text" value="@Version" disabled />
+          <Field Label="Version" Class="field--short" Note="Auto: 1.0 on every new map.">
+            <input class="field-input" type="text" value="@(stored?.Version ?? "")" disabled />
           </Field>
-          <Field Label="Gamemode">
-            <input class="field-input" type="text" value="@Mode" disabled />
+          <Field Label="Gamemode" Note="Auto: one for each kind of objective the map carries.">
+            <div class="field-tags" role="list" aria-label="Gamemodes">
+              @if (!asked) { }
+              else if (Gamemodes.Count == 0)
+              {
+                <span class="field-tags-none">No gamemodes yet.</span>
+              }
+              else
+              {
+                @foreach (var gamemode in Gamemodes)
+                {
+                  <Badge Kind="neutral" role="listitem">@GamemodeNames.NameOf(gamemode)</Badge>
+                }
+              }
+            </div>
           </Field>
         </div>
-        <Field Label="Objective">
-          <textarea class="field-input field-input--textarea" rows="2" disabled>@Objective</textarea>
+        <Field Label="Objective" Note="Auto: written from the objectives the map carries.">
+          <textarea class="field-input field-input--textarea" rows="2" disabled>@(stored?.Objective ?? "")</textarea>
         </Field>
       </div>
     </Section>

@@ -1,6 +1,8 @@
+using System.Net.Http.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Components;
 using PgmStudio.Client.Components;
+using PgmStudio.Contracts;
 
 using PgmStudio.Vocabulary;
 
@@ -18,12 +20,26 @@ public partial class IdentityPhase
     private readonly List<AuthorRow> authors = new();
     private readonly List<AuthorRow> contributors = new();
 
-    // Auto-derived identity shown locked — the generator (MetaGenerator) sets these, not the author.
-    private const string Version = "1.0";
-    private const string Mode = "Capture the Wool";
-    private const string Objective = "Capture the other teams' wools and bring them to your wool monuments to win.";
+    [Inject] private HttpClient Http { get; set; } = default!;
 
-    protected override void OnInitialized()
+    /// <summary>The stored map, whose version, gamemodes and objective the generator wrote; null on a map with
+    /// no row yet.</summary>
+    private MapDocumentDto? stored;
+    private bool asked;
+
+    /// <summary>The <c>&lt;gamemode&gt;</c> elements the map states, which the generator writes from the objectives
+    /// the intent carries — the same slices the objective line is written from.</summary>
+    private IReadOnlyList<string> Gamemodes => stored?.Gamemode ?? [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        Read();
+        try { stored = await Http.GetFromJsonAsync<MapDocumentDto>($"api/map/{Wizard.Slug}"); }
+        catch (HttpRequestException) { stored = null; }
+        asked = true;
+    }
+
+    private void Read()
     {
         var meta = Wizard.Intent["meta"] as JsonObject;
         name = meta?["name"]?.GetValue<string>() ?? "";
