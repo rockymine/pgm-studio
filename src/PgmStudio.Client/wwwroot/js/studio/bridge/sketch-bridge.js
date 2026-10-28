@@ -935,11 +935,14 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     redo() { return this.move(this.future, this.past); },
     /** Step from `from` to `to`. A step holding the intent writes it back before the drawing is restored; one
      *  the studio refuses stays where it was and says why. One step at a time: a press while one is on its way
-     *  does nothing. */
+     *  does nothing, and a press while a piece write is still open waits for its step, so it steps over that
+     *  write rather than the one before it. */
     async move(from, to) {
-      if (!from.length || this.moving) return false;
+      if (this.moving) return false;
       this.moving = true;
       try {
+        await pieceSettled;
+        if (!from.length) return false;
         const entry = from[from.length - 1];
         const current = { layout: snapshot() };
         if (entry.intent !== undefined) {
@@ -988,21 +991,30 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // A piece write as one step: the intent and the layout as they stood before it, kept where either changed.
   // Writes nest — a house reshaped is written through the house write — so only the outermost opens and closes
   // the step, and a write the studio refused changed nothing and costs none.
+  // `pieceSettled` resolves once the open piece write's step is kept, which an undo waits for.
   let pieceDepth = 0;
   let pieceBefore = null;
+  let pieceSettled = Promise.resolve();
+  let settlePiece = null;
   async function beginPieceStep() {
     if (pieceDepth++ > 0) return;
+    pieceSettled = new Promise(resolve => { settlePiece = resolve; });
     history.held = true;
     pieceBefore = { layout: snapshot(), intent: await intentText() };
   }
   async function endPieceStep() {
     if (--pieceDepth > 0) return;
-    history.held = false;
-    const before = pieceBefore;
-    pieceBefore = null;
-    if (!before || before.intent === null) return;
-    const intent = await intentText();
-    if (intent !== null && (intent !== before.intent || snapshot() !== before.layout)) history.record(before);
+    try {
+      history.held = false;
+      const before = pieceBefore;
+      pieceBefore = null;
+      if (!before || before.intent === null) return;
+      const intent = await intentText();
+      if (intent !== null && (intent !== before.intent || snapshot() !== before.layout)) history.record(before);
+    } finally {
+      settlePiece?.();
+      settlePiece = null;
+    }
   }
   async function pieceStep(write) {
     await beginPieceStep();

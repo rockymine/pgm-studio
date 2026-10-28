@@ -10991,6 +10991,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   under the box what they take; Soft rim shows its default, 0, a hard edge; a paint rule's empty conditions read
   *Any*. A stack row is the operation's icon and the name across the row: the kind tag beside a renamed
   modifier is gone, and the row's buttons take no room until hover or pick.
+- **An undo pressed just after a piece is placed undoes that piece (`TS233`).** A piece's step is kept once its
+  write is answered and the intent read back, and an undo or redo pressed before then waits for it rather than
+  stepping over the piece before it. `docs/tools/sketch.md`, *Undo*.
 - **The 3-D preview zooms and pans (`TS232`).** The wheel zooms at the pointer up to forty times the whole board,
   a drag pans along the ground, a double-click shows the whole board again, and the readout says the zoom; the
   mesh is uploaded once, so none of it asks for a build, and the 2-D board keeps its own zoom. The library's 3-D
