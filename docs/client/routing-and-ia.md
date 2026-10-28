@@ -174,7 +174,8 @@ the keyboard shortcuts (the sheet `?` also opens) and the design reference (`/de
 and the account. The account menu carries Tokens, and for an admin Users and **API docs** (`/api-docs`, which
 opens in a new tab, being the API's own page rather than the client's); the page and its schema stay reachable to
 anyone who has the address, and only the link is an admin's. In an open studio the `local admin` button opens the
-menu with Users and API docs. A visitor is shown *Sign in with Discord* alone, with no menu beside it. The page's
+menu with Users and API docs. A visitor is shown *Sign in with Discord* alone, with no menu beside it (`SignInButton`); it is the only
+sign-in they are offered, and an editor draws the same button in its own bar, where the studio bar is not drawn. The page's
 bar under it is the trail to where the page is and the page's own state and actions: a `Topbar`, drawn where the
 page has a trail of more than its own name, actions, or a *View only* tag to show someone signed in. A page whose bar would hold only its own name —
 Maps, the generator, the rules, the glossary — draws none, since its heading names it and the lit link above says

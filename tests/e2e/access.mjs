@@ -28,7 +28,7 @@ async function visit(base, path) {
 const readState = () => page.evaluate(() => ({
   banner: document.querySelector(".editor-bar .readonly-tag, .topbar .readonly-tag")?.getAttribute("title") ?? null,
   signIn: !!document.querySelector('a.account-signin[href*="api/auth/discord"]'),
-  signInTag: !!document.querySelector('.editor-bar a.readonly-signin[href*="api/auth/discord"]'),
+  signIns: document.querySelectorAll('a[href*="api/auth/discord"]').length,
   menu: !!document.querySelector(".account-button, .account-local"),
   greyed: document.querySelectorAll("fieldset.readonly-fieldset[disabled]").length,
   select: !!document.querySelector('.canvas-dock button[aria-label="Select"]'),
@@ -151,13 +151,14 @@ try {
                                       ["configure", `/maps/${seed.mapSlug}/configure`, false]]) {
     checks.section(`a signed-out visitor sees the ${name} tool read-only`);
     await visit(invited, path);
-    await page.waitForSelector(".editor-bar .readonly-tag, .topbar .readonly-tag", { timeout: 20000 }).catch(() => {});
+    await page.waitForSelector(".editor-bar .account-signin", { timeout: 20000 }).catch(() => {});
     if (canvas) await page.waitForSelector(".canvas-dock", { timeout: 20000 }).catch(() => {});
     await page.waitForSelector("fieldset.readonly-fieldset", { timeout: 10000 }).catch(() => {});
     state = await readState();
-    checks.add("the editor bar offers the sign-in where View only would be, and says why",
-      state.signInTag && /Sign in to/.test(state.banner ?? ""), state.banner ?? "no tag");
-    checks.add("the studio bar offers the sign-in", state.signIn);
+    checks.add("the editor bar draws the studio bar's sign-in", state.signIn
+      && (await page.locator(".editor-bar a.account-signin").count()) === 1);
+    checks.add("and nothing else asks to sign in", state.signIns === 1 && state.banner === null,
+      `${state.signIns} sign-in link(s), tag ${state.banner ?? "none"}`);
     checks.add("and no menu beside it", !state.menu);
     checks.add("the panels are greyed", state.greyed > 0,
       `${state.greyed} disabled fieldset(s) over ${state.inspector} panel(s)`);
@@ -172,9 +173,13 @@ try {
   await page.setViewportSize({ width: 360, height: 780 });
   for (const path of [`/maps/${seed.sketchSlug}/sketch`, `/maps/${seed.mapSlug}/configure`]) {
     await visit(invited, path);
-    await page.waitForSelector(".editor-bar .readonly-tag", { timeout: 20000 }).catch(() => {});
-    const over = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
-    checks.add(`${path.split("/").pop()} with its View only tag fits 360px`, over <= 0, `${over}px over`);
+    await page.waitForSelector(".editor-bar .account-signin", { timeout: 20000 }).catch(() => {});
+    const fit = await page.evaluate(() => {
+      const signIn = document.querySelector(".editor-bar .account-signin");
+      return { over: document.documentElement.scrollWidth - innerWidth,
+               clipped: !signIn || signIn.getBoundingClientRect().right > innerWidth || signIn.scrollWidth > signIn.clientWidth };
+    });
+    checks.add(`${path.split("/").pop()} with the whole sign-in fits 360px`, fit.over <= 0 && !fit.clipped, JSON.stringify(fit));
   }
   await page.setViewportSize({ width: 1600, height: 900 });
 
@@ -184,8 +189,8 @@ try {
   const newSketch = await page.evaluate(() =>
     [...document.querySelectorAll("button")].find(b => /New map/.test(b.textContent))?.disabled ?? null);
   checks.add("New map is greyed", newSketch === true, String(newSketch));
-  checks.add("the page's bar does not say View only a second time",
-    (await page.locator(".topbar .readonly-tag").count()) === 0);
+  checks.add("the studio bar's sign-in is the only one on the page",
+    (await page.locator('a[href*="api/auth/discord"]').count()) === 1 && (await page.locator(".topbar .readonly-tag").count()) === 0);
 
   checks.section("a signed-out visitor's library entry draws no preview");
   const [roof] = await fetch(`${invited}/api/roof-styles`).then(r => r.json());

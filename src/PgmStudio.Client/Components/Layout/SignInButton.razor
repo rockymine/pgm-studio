@@ -1,0 +1,9 @@
+@namespace PgmStudio.Client.Components
+@inject NavigationManager Nav
+
+@* The one sign-in a visitor is offered: Discord's mark and "Sign in with Discord", returning to the page it was
+   pressed on. The studio bar's account draws it; an editor, which draws no studio bar, draws it in its own bar. *@
+
+<a class="account-signin" href="@StudioAccess.SignInHref(Nav.ToBaseRelativePath(Nav.Uri))">
+    <DiscordMark /><span>Sign in with Discord</span>
+</a>
