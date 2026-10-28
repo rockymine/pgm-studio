@@ -902,6 +902,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // `{ layout, intent }`, the intent's text as it stood beside the layout, and stepping over it writes the
   // intent back; a step of the drawing alone is `{ layout }`. While a piece write is open the layout's own steps
   // are held, so the ground a room placement draws is part of the placement's step rather than one of its own.
+  // Piece writes take turns (`intentTurns`), so two placed close together are two steps.
   const HISTORY_DEPTH = 60;
   const history = {
     past: [], future: [], pending: null, held: false, moving: false,
@@ -935,11 +936,16 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     redo() { return this.move(this.future, this.past); },
     /** Step from `from` to `to`. A step holding the intent writes it back before the drawing is restored; one
      *  the studio refuses stays where it was and says why. One step at a time: a press while one is on its way
-     *  does nothing. */
+     *  does nothing, and a press while a piece write is in flight waits for its step, so it steps over that
+     *  write rather than the one before it. */
     async move(from, to) {
-      if (!from.length || this.moving) return false;
+      if (this.moving) return false;
       this.moving = true;
+      // A step over the intent, or any step while the intent is being written, waits its turn behind the piece
+      // write in flight; a step of the drawing alone with nothing in flight is taken at once.
+      const release = intentTurns.busy || from.at(-1)?.intent !== undefined ? await intentTurns.take() : null;
       try {
+        if (!from.length) return false;
         const entry = from[from.length - 1];
         const current = { layout: snapshot() };
         if (entry.intent !== undefined) {
@@ -954,6 +960,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         return true;
       } finally {
         this.moving = false;
+        release?.();
       }
     },
     get canUndo() { return this.past.length > 0; },
@@ -985,24 +992,45 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     return true;
   }
 
-  // A piece write as one step: the intent and the layout as they stood before it, kept where either changed.
-  // Writes nest — a house reshaped is written through the house write — so only the outermost opens and closes
-  // the step, and a write the studio refused changed nothing and costs none.
-  let pieceDepth = 0;
+  // Whatever writes the intent takes a turn: a piece write and an undo or redo over one each wait for the one
+  // before to finish, so two writes made close together are two steps, and a step back after a write steps
+  // over that write. `take()` answers once it is this caller's turn, with the function that ends it.
+  const intentTurns = {
+    tail: Promise.resolve(), busy: 0,
+    take() {
+      this.busy++;
+      let end;
+      const ended = new Promise(resolve => { end = resolve; });
+      const turn = this.tail.then(() => () => { this.busy--; end(); });
+      this.tail = this.tail.then(() => ended);
+      return turn;
+    },
+  };
+
+  // A piece write as one step: the intent and the layout as they stood before it, kept where either changed,
+  // and a write the studio refused changed nothing and costs none.
   let pieceBefore = null;
+  let pieceTurn = null;
   async function beginPieceStep() {
-    if (pieceDepth++ > 0) return;
+    const turn = await intentTurns.take();
+    pieceTurn = turn;
     history.held = true;
     pieceBefore = { layout: snapshot(), intent: await intentText() };
   }
   async function endPieceStep() {
-    if (--pieceDepth > 0) return;
-    history.held = false;
-    const before = pieceBefore;
-    pieceBefore = null;
-    if (!before || before.intent === null) return;
-    const intent = await intentText();
-    if (intent !== null && (intent !== before.intent || snapshot() !== before.layout)) history.record(before);
+    const turn = pieceTurn;
+    if (!turn) return;
+    pieceTurn = null;
+    try {
+      history.held = false;
+      const before = pieceBefore;
+      pieceBefore = null;
+      if (!before || before.intent === null) return;
+      const intent = await intentText();
+      if (intent !== null && (intent !== before.intent || snapshot() !== before.layout)) history.record(before);
+    } finally {
+      turn();
+    }
   }
   async function pieceStep(write) {
     await beginPieceStep();
@@ -1843,8 +1871,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         })),
       };
     },
-    undo() { history.undo(); },
-    redo() { history.redo(); },
+    undo() { return history.undo(); },
+    redo() { return history.redo(); },
     fitToBbox() { canvas.fitToBbox(); },
     dispose() {
       paintFeed.cancel();

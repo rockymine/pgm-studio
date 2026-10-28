@@ -78,14 +78,18 @@ try {
     JSON.stringify(intent.teams?.map(team => team.id)));
 
   checks.section("a placed piece is a step of the board's undo");
-  const settle = async () => { await page.waitForLoadState("networkidle"); await page.waitForTimeout(400); };
+  // A step over a piece writes the intent and reads the board back; a press while one is on its way is dropped,
+  // so each is waited out by the control it opens: Redo once the undo is done, Undo once the redo is.
+  const offered = (title) => page.locator(`.editor-bar-history button[title="${title}"]:not([disabled])`)
+    .waitFor({ timeout: 20000 }).catch(() => {});
   await page.keyboard.press("Control+z");
-  await settle();
+  await offered("Redo");
   const undone = await byKind("woolRoom");
   checks.add("undo takes the wool room back out", undone.length === 0, JSON.stringify(undone.map(p => p.id)));
   checks.add("and leaves the spawn placed before it", (await byKind("spawn")).length === 2);
   await page.keyboard.press("Control+Shift+z");
-  await settle();
+  await offered("Undo");
+  for (let tries = 0; tries < 40 && (await byKind("woolRoom")).length < 2; tries++) await page.waitForTimeout(250);
   const redone = await byKind("woolRoom");
   checks.add("redo puts it back", redone.length === 2, JSON.stringify(redone.map(p => p.id)));
 
