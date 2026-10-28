@@ -7,7 +7,8 @@ using Ctx = AuthoringContext;
 using PgmStudio.Geom;
 
 // The wool slice (intent.wools) the four Wools steps (Objectives / Spawn / Monuments / Room) share: each
-// parses it on init, mutates its part, writes it back and marks dirty. The teams / symmetry / islands every
+// parses it on init, mutates its part, writes it back and marks dirty. A wool's supply is a spawner unless the
+// spawn step finds a chest of its colour in its room and the author keeps it. The teams / symmetry / islands every
 // step reads first live in AuthoringContext, which the core steps read too. Positions follow the confirmed
 // symmetry (orbit), exactly like spawns/protection; the wool COLOUR is author-assigned/confirmed, never
 // defaulted to the team colour.
@@ -20,6 +21,9 @@ public static class WoolAuthoring
         public string Owner = "";
         public string Color = "";
         public double SpawnX, SpawnY, SpawnZ;
+        // What the attackers take it from (a WoolSupplies word); null where no step has stated it yet, which the
+        // studio reads as a spawner.
+        public string? Supply;
         // The room footprint as a union of rectangles (empty = no room yet). For an authored wool these are
         // the drawn pieces; for an orbit copy they're derived from its authored partner.
         public List<Rect> Rooms = new();
@@ -41,6 +45,7 @@ public static class WoolAuthoring
                 Owner = Ctx.S(w, "owner"),
                 Color = Ctx.S(w, "color"),
                 SpawnX = Ctx.D(sp, "x"), SpawnY = Ctx.D(sp, "y"), SpawnZ = Ctx.D(sp, "z"),
+                Supply = w["supply"]?.GetValue<string>(),
             };
             wool.Rooms.AddRange(ParseRects(w["protection"]));
             if (w["monuments"] is JsonArray ms)
@@ -72,6 +77,7 @@ public static class WoolAuthoring
             o["owner"] = w.Owner;
             o["color"] = w.Color;
             o["spawn"] = new JsonObject { ["x"] = w.SpawnX, ["y"] = w.SpawnY, ["z"] = w.SpawnZ };
+            if (w.Supply is { } supply) o["supply"] = supply;
             o["monuments"] = new JsonArray(w.Monuments.Select(m => (JsonNode)new JsonObject
             {
                 ["team"] = m.Team,

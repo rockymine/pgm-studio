@@ -163,6 +163,16 @@ them one rather than with the contract work that shipped them.
 The depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection highlight);
 what is gathered here is the parked and dormant slices of the same surface.
 
+### Placing play pieces
+
+- [ ] **TS233 — An undo pressed just after a piece is placed can take back the piece before it.**
+  `tests/e2e/sketch-pieces.mjs` places a spawn room and then a wool room, presses Ctrl+Z, and expects only the wool
+  room to go. Run on its own it fails about one time in three, on `main` before this work as well: the spawn goes
+  too, or the redo after it brings back nothing (`redo puts it back — []`). The likeliest cause is the undo
+  stack taking the wool room's step only once its write is answered, so an undo pressed before that pops the spawn.
+  Where it lands: the sketch canvas's undo stack and the piece write in the Layout step, which should record the
+  step when the piece is placed rather than when the studio answers.
+
 ### Painting terrain
 
 - [ ] **TS51 — Scoping the paint repaint, and the preview it would pay for.** A full board paint is ~2.0s and

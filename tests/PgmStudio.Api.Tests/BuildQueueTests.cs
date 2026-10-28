@@ -13,6 +13,7 @@ namespace PgmStudio.Api.Tests;
 /// finds the queue full is refused <c>RQ18</c>, and one that waits too long <c>RQ11</c>, at 429 rather than
 /// piling up.
 /// </summary>
+[NotInParallel("api-db")]
 public sealed class BuildQueueTests
 {
     private static BuildQueue Queue(int slots = 2, int perCaller = 1, int waiting = 8, int waitingPerCaller = 4,

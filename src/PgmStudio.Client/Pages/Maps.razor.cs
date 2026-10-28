@@ -102,17 +102,9 @@ public partial class Maps
     private IReadOnlyList<string> GamemodesPresent =>
         maps is null ? [] : [.. maps.SelectMany(map => map.Gamemodes).Distinct().Order(StringComparer.Ordinal)];
 
-    /// <summary>A gamemode by its full name; a mode the list has no name for shows its own word.</summary>
-    private static string GamemodeLabel(string gamemode) => gamemode switch
-    {
-        NoGamemode => "No gamemode",
-        "ctw" => "Capture the Wool",
-        "dtm" => "Destroy monuments",
-        "dtc" => "Destroy cores",
-        "koth" => "King of the Hill",
-        "ctf" => "Capture the Flag",
-        _ => gamemode,
-    };
+    /// <summary>A gamemode by its full name, and the filter's entry for a map with none.</summary>
+    private static string GamemodeLabel(string gamemode) =>
+        gamemode == NoGamemode ? "No gamemode" : GamemodeNames.NameOf(gamemode);
 
     /// <summary>Whether a map passes every filter, or — for a count — every filter but <paramref name="skip"/>,
     /// with the one value given in its place.</summary>

@@ -179,9 +179,11 @@ public static class WoolSources
         return geom.CoversCell(s.X, s.Z);                                // physical point
     }
 
+    /// <summary>Whether a source gives the wool again once taken. A chest does: PGM takes a container holding
+    /// objective wool when it is first opened as a wool chest and puts one back per slot every 30 seconds.</summary>
     private static bool IsRenewable(Source s, List<Geometry> renewableGeoms)
     {
-        if (s.Type is "spawner" or "pgm_spawner") return true;
+        if (s.Type is "spawner" or "pgm_spawner" or "chest") return true;
         if (s.Type == "block") return renewableGeoms.Any(g => InRegion(s, g));
         return false;
     }

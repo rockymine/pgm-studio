@@ -1,5 +1,6 @@
 using PgmStudio.Domain;
 using PgmStudio.Pgm.Authoring;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Tests;
 
@@ -83,6 +84,36 @@ public sealed class WoolGeneratorTests
         var roomFilter = (Dict)Filters(doc)["reds-woolrooms-filter"]!;
         await Assert.That(roomFilter["type"]).IsEqualTo("all");
         await Assert.That(((List<object?>)roomFilter["children"]!).Cast<string>()).IsEquivalentTo(new[] { "not-red", "woolrooms-filter" });
+    }
+
+    [Test]
+    public async Task A_wool_supplied_by_a_chest_writes_no_spawner_and_keeps_its_location_and_room()
+    {
+        var doc = Map();
+        var intent = Intent();
+        WoolGenerator.Apply(doc, intent with { Wools = [intent.Wools![0] with { Supply = WoolSupplies.Chest }] });
+
+        await Assert.That(Spawners(doc).Count).IsEqualTo(0);
+        await Assert.That(Regions(doc).ContainsKey("red-wool-spawn")).IsFalse();
+        await Assert.That(Regions(doc).ContainsKey("red-wool")).IsTrue();
+        var wool = Wools(doc).OfType<Dict>().Single();
+        var loc = (Dict)wool["location"]!;
+        await Assert.That((loc["x"], loc["y"], loc["z"])).IsEqualTo(((object?)5, (object?)10, (object?)5));
+        await Assert.That(Rules(doc).OfType<Dict>().Any(r => r.GetValueOrDefault("use") as string == "deny(all(red-team,chest-filter))")).IsTrue();
+    }
+
+    [Test]
+    public async Task A_wool_switched_from_a_chest_back_to_a_spawner_gets_its_spawner_again()
+    {
+        var doc = Map();
+        var intent = Intent();
+        WoolGenerator.Apply(doc, intent with { Wools = [intent.Wools![0] with { Supply = WoolSupplies.Chest }] });
+        WoolGenerator.Apply(doc, intent);
+        await Assert.That(Spawners(doc).Count).IsEqualTo(1);
+
+        WoolGenerator.Apply(doc, intent with { Wools = [intent.Wools![0] with { Supply = WoolSupplies.Chest }] });
+        await Assert.That(Spawners(doc).Count).IsEqualTo(0);
+        await Assert.That(Regions(doc).ContainsKey("red-wool-spawn")).IsFalse();
     }
 
     [Test]
