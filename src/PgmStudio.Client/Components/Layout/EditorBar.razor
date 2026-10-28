@@ -1,32 +1,32 @@
 @namespace PgmStudio.Client.Components
 @inject IJSRuntime JS
 
-@* The one bar the editors draw, in place of the studio's own on a focused page. Left: the studio's mark, which opens
-   the studio's menu (StudioShell's "StudioMenu"), then where the page is — Maps, the map's name and the stage
-   switcher. Middle: the phase's name and its steps. Right: for a visitor the SignInButton the studio bar would
-   carry, else the read-only tag where the page is, the state (State), Undo and Redo
-   (History), the tool's other commands (Commands), a divider, and Back/Next. A page with no phase to show leaves
-   PhaseTitle empty, and one with nothing to move between sets NoMove.
+@* The one bar the editors draw, in place of the studio's own on a focused page. Left: the studio's mark, named
+   beside it on a wide window, which opens the studio's menu (StudioShell's "StudioMenu"), then the path — Maps,
+   the map's name and the tool (StageSwitch), separated by slashes. Right: for a visitor the SignInButton the
+   studio bar would carry, else the read-only tag where the page is, the state (State), Undo and Redo (History),
+   the tool's other commands (Commands), a divider, and Back/Next. Where the work is — the phase and its step —
+   is the rail's to say (NavRail), so the bar does not say it again; one with nothing to move between sets NoMove.
 
-   The foot (.editor-bar-foot) holds the move: Back, History, the phase with its steps, and Next. On a wide window
-   it and the end dissolve into the bar's row, ordered so the phase and its steps follow the crumb; below 960px the
-   foot is pinned to the window's foot, where a thumb reaches it, and the bar above keeps
-   only where the page is and what state the work is in. Below 600px the rail is not drawn, so the foot's middle
-   is a button naming the phase and step, and it opens a sheet listing the rail's phases (StudioShell's
-   "StudioRail") with the open phase's steps under it. A read-only page draws no History. *@
+   The foot (.editor-bar-foot) holds the move: Back, History and Next. On a wide window it and the end dissolve
+   into the bar's row; below 960px the foot is pinned to the window's foot, where a thumb reaches it. Below 600px
+   the rail is not drawn, so the foot's middle is a button naming the phase and step (PhaseTitle, Steps,
+   CurrentStep), and it opens a sheet drawing the rail itself (StudioShell's "StudioRail"). A read-only page draws
+   no History. *@
 
 <div class="editor-bar">
   @if (Menu is not null)
   {
     <button type="button" class="topbar-icon-btn editor-studio-btn" aria-label="Open the studio menu" title="Open the studio menu"
             aria-controls="app-nav-panel" aria-expanded="@(Menu.Open ? "true" : "false")" @onclick="Menu.OpenIt">
-      <StudioMark /><svg class="editor-studio-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6.5l4 4 4-4" /></svg>
+      <StudioMark /><span class="editor-studio-name">PGM Studio</span>
     </button>
   }
   <nav class="editor-crumb" aria-label="Breadcrumb">
     <a class="editor-crumb-link" href="maps">Maps</a>
-    <span class="editor-crumb-sep" aria-hidden="true">›</span>
-    <span class="editor-crumb-name" title="@MapName" aria-current="page">@MapName</span>
+    <span class="editor-crumb-sep" aria-hidden="true">/</span>
+    <span class="editor-crumb-name" title="@MapName">@MapName</span>
+    <span class="editor-crumb-sep" aria-hidden="true">/</span>
     <StageSwitch Slug="@Slug" Stage="@Stage" Label="@StageLabel" />
   </nav>
   <span class="editor-bar-spacer" aria-hidden="true"></span>
@@ -73,28 +73,6 @@
             <svg class="editor-stage-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 9.5l4-4 4 4" /></svg>
           </button>
         }
-        @if (PhaseTitle.Length > 0)
-        {
-          <div class="editor-bar-steps">
-            <span class="editor-bar-phase">@PhaseTitle</span>
-            @if (Steps.Count > 0)
-            {
-              <div class="flow-steps">
-                @for (var j = 0; j < Steps.Count; j++)
-                {
-                  var idx = j;
-                  var cls = idx < CurrentStep ? "flow-step flow-step--done"
-                          : idx == CurrentStep ? "flow-step flow-step--active"
-                          : "flow-step";
-                  @* Keyed by name, so a step inserted before it leaves this button this step's: a click landing as
-                     the strip re-renders goes where it was aimed. *@
-                  <button @key="Steps[idx]" class="@cls" disabled="@(idx > MaxStep)" aria-current="@(idx == CurrentStep ? "step" : null)"
-                          @onclick="() => OnStep.InvokeAsync(idx)">@Steps[idx]</button>
-                }
-              </div>
-            }
-          </div>
-        }
         @if (!NoMove)
         {
           <Button Class="editor-bar-next" Variant="primary" Disabled="@(!NextEnabled)" Busy="@NextBusy" BusyLabel="@NextBusyLabel"
@@ -108,22 +86,8 @@
 @if (sheetOpen && Rail is not null)
 {
   <div class="editor-sheet-scrim" @onclick="CloseSheet"></div>
-  <div class="editor-sheet" role="dialog" aria-label="Phases and steps" tabindex="-1" @ref="sheet" @onkeydown="OnSheetKey">
-    <div class="editor-sheet-phases" @onclick="CloseSheet">@Rail</div>
-    @if (Steps.Count > 0)
-    {
-      <div class="editor-sheet-steps" role="list" aria-label="@($"{PhaseTitle} steps")">
-        @for (var j = 0; j < Steps.Count; j++)
-        {
-          var idx = j;
-          <button @key="Steps[idx]" type="button" class="editor-sheet-step" role="listitem" disabled="@(idx > MaxStep)"
-                  aria-current="@(idx == CurrentStep ? "step" : null)" @onclick="() => PickStep(idx)">
-            <span class="editor-sheet-step-n">@(idx + 1)</span>@Steps[idx]
-          </button>
-        }
-      </div>
-    }
-  </div>
+  <div class="editor-sheet" role="dialog" aria-label="Phases and steps" tabindex="-1" @ref="sheet" @onkeydown="OnSheetKey"
+       @onclick="CloseSheet"><CascadingValue Name="NavRailInSheet" Value="true">@Rail</CascadingValue></div>
 }
 
 @code {
@@ -136,12 +100,10 @@
     /// <summary>A word to show for the tool in place of its stage's name.</summary>
     [Parameter] public string? StageLabel { get; set; }
 
+    /// <summary>The open phase and its steps, which the phone's picker names in the rail's place.</summary>
     [Parameter] public string PhaseTitle { get; set; } = "";
     [Parameter] public IReadOnlyList<string> Steps { get; set; } = Array.Empty<string>();
     [Parameter] public int CurrentStep { get; set; }
-    /// <summary>Highest step the user may jump to via the bar — later steps are locked/dimmed.
-    /// Default unlimited (every step is freely navigable).</summary>
-    [Parameter] public int MaxStep { get; set; } = int.MaxValue;
 
     /// <summary>What the page has to say about itself at the right: where a save stands, a note.</summary>
     [Parameter] public RenderFragment? State { get; set; }
@@ -167,7 +129,6 @@
     /// <summary>Next has the server build something on request, as Configure's Export does.</summary>
     [Parameter] public bool NextBuilds { get; set; }
 
-    [Parameter] public EventCallback<int> OnStep { get; set; }
     [Parameter] public EventCallback OnBack { get; set; }
     [Parameter] public EventCallback OnNext { get; set; }
 
@@ -177,7 +138,7 @@
     [CascadingParameter(Name = "StudioSignedIn")] public bool SignedIn { get; set; }
     /// <summary>The studio's menu, on a focused page; elsewhere the studio bar carries it and this is null.</summary>
     [CascadingParameter(Name = "StudioMenu")] public StudioMenu? Menu { get; set; }
-    /// <summary>The page's rail, which the phone's sheet lists in its place.</summary>
+    /// <summary>The page's rail, which the phone's sheet draws in its place.</summary>
     [CascadingParameter(Name = "StudioRail")] public RenderFragment? Rail { get; set; }
 
     private bool sheetOpen;
@@ -190,12 +151,10 @@
 
     private bool HasFoot => !NoMove || DrawsHistory || Rail is not null;
 
-    private string PickerCaption => PhaseTitle.Length == 0 ? "Phase"
-        : Steps.Count > 0 ? $"{PhaseTitle} · {CurrentStep + 1} of {Steps.Count}"
-        : "Phase";
+    private string PickerCaption => PhaseTitle.Length > 0 && Steps.Count > 1 ? PhaseTitle : "Phase";
 
     private string PickerName => PhaseTitle.Length == 0 ? "Choose a phase"
-        : Steps.Count > 0 ? Steps[Math.Clamp(CurrentStep, 0, Steps.Count - 1)]
+        : Steps.Count > 1 ? Steps[Math.Clamp(CurrentStep, 0, Steps.Count - 1)]
         : PhaseTitle;
 
     private void OpenSheet() => sheetOpen = true;
@@ -205,12 +164,6 @@
     private void OnSheetKey(KeyboardEventArgs e)
     {
         if (e.Key == "Escape") sheetOpen = false;
-    }
-
-    private async Task PickStep(int step)
-    {
-        sheetOpen = false;
-        await OnStep.InvokeAsync(step);
     }
 
     /// <summary>The sheet takes focus when it opens and hands it back to its button when it closes.</summary>

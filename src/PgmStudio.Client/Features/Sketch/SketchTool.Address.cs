@@ -12,7 +12,7 @@ public partial class SketchTool
     /// <summary>The word the address names each phase by, which is the rail's word for it.</summary>
     private static readonly Dictionary<string, string> PhaseWords = new()
     {
-        ["info"] = "info", ["draw"] = "draw", ["relief"] = "terraform", ["theme"] = "palette",
+        ["info"] = "identity", ["draw"] = "draw", ["relief"] = "terraform", ["theme"] = "palette",
         ["dressing"] = "decoration", ["review"] = "review", ["history"] = "history",
     };
 

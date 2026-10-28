@@ -19,10 +19,11 @@ public partial class ConfigureLayout
     /// <summary>The furthest phase a click may open, at or past <see cref="Furthest"/>; below it, Furthest.</summary>
     [Parameter] public int Reach { get; set; } = -1;
 
+    /// <summary>The open phase's name and steps, which the rail lists under it.</summary>
     [Parameter] public string PhaseTitle { get; set; } = "";
     [Parameter] public IReadOnlyList<string> Steps { get; set; } = Array.Empty<string>();
     [Parameter] public int CurrentStep { get; set; }
-    /// <summary>Highest step the user may jump to via the flow bar — later steps are locked/dimmed.
+    /// <summary>Highest step the author may jump to from the rail — later steps are drawn but closed.
     /// Default unlimited (every step is freely navigable).</summary>
     [Parameter] public int MaxStep { get; set; } = int.MaxValue;
 

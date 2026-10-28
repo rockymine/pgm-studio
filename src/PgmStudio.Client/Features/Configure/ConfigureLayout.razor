@@ -1,19 +1,18 @@
 @namespace PgmStudio.Client.Features.Configure
 @using PgmStudio.Client.Layout
 
-@* Shared layout for the new-map Configure wizard + its /maps/new landing: the editor bar (crumb · phase
-   identity · steps · save status · Back/Next) · activity rail (the six phases) · a body slot for the
-   three-panel workspace. A parameterized frame (not a Blazor layout directive); the page owns the
-   state machine. See new-map-authoring.md §12. *@
+@* Shared layout for the new-map Configure wizard + its /maps/new import: the editor bar (the path, the save
+   status, Back/Next) · the chapter rail (the phases, the open one's steps under it, and on the import its own
+   chapter first) · a body slot for the three-panel workspace. A parameterized frame (not a Blazor layout
+   directive); the page owns the state machine. See new-map-authoring.md §12. *@
 
 <StudioShell Focused="true">
   <Bar>
     <EditorBar MapName="@(string.IsNullOrEmpty(MapName) ? "New map" : MapName)" Slug="@Slug" Stage="@MapStage.Configure" StageLabel="@StageLabel"
-               PhaseTitle="@PhaseTitle"
-               Steps="@Steps" CurrentStep="@CurrentStep" MaxStep="@MaxStep"
+               PhaseTitle="@PhaseTitle" Steps="@Steps" CurrentStep="@CurrentStep"
                BackEnabled="@BackEnabled" NextEnabled="@NextEnabled" NextLabel="@NextLabel"
                NextBusy="@NextBusy" NextBusyLabel="@NextBusyLabel" NextWrites="@NextWrites" NextBuilds="@NextBuilds"
-               OnStep="OnStep" OnBack="OnBack" OnNext="OnNext">
+               OnBack="OnBack" OnNext="OnNext">
       <State>
         @if (!string.IsNullOrEmpty(SaveStatus))
         {
@@ -23,7 +22,11 @@
     </EditorBar>
   </Bar>
   <Rail>
-    <NavRail>
+    <NavRail FoldKey="configure" Label="Configure chapters">
+      @if (ActivePhaseId == ConfigurePhases.ImportId)
+      {
+        <NavButton Icon="import" Title="@PhaseTitle" Active Steps="@Steps" CurrentStep="@CurrentStep" MaxStep="@MaxStep" OnStep="OnStep" />
+      }
       @for (var i = 0; i < Phases.Count; i++)
       {
         var p = Phases[i];
@@ -32,6 +35,7 @@
         var locked = i > Math.Max(Furthest, Reach) && p.Id != ActivePhaseId;
         <NavButton Icon="@p.Icon" Title="@p.Title" Active="p.Id == ActivePhaseId"
                    Status="@(i < Furthest ? "green" : "")" Disabled="locked"
+                   Steps="@Steps" CurrentStep="@CurrentStep" MaxStep="@MaxStep" OnStep="OnStep"
                    OnClick="() => OnJumpPhase.InvokeAsync(p.Id)" />
       }
     </NavRail>

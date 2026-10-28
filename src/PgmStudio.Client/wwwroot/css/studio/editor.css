@@ -167,6 +167,7 @@ span.topbar-crumb { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 }
 /* ── NAV RAIL ── */
 .nav-rail {
+  position: relative;
   width: 68px;
   flex-shrink: 0;
   display: flex;
@@ -177,6 +178,7 @@ span.topbar-crumb { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   background: var(--bg-panel);
   border-right: 1px solid var(--border);
 }
+.nav-rail-list, .nav-rail-foot { display: contents; }
 
 .nav-btn {
   position: relative;
@@ -188,13 +190,14 @@ span.topbar-crumb { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   width: 64px;
   min-height: 50px;
   border: none;
-  border-radius: 0;
+  border-radius: var(--radius-md);
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
   padding: 0;
+  font: inherit;
   text-decoration: none;
-  transition: color var(--transition-fast);
+  transition: color var(--transition-fast), background var(--transition-fast);
 }
 .nav-rail .nav-btn svg { width: var(--icon-lg); height: var(--icon-lg); flex: 0 0 auto; }
 /* The button's name under its glyph: small, centred, and allowed a second line rather than a cut. */
@@ -202,16 +205,9 @@ span.topbar-crumb { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   max-width: 62px; font-size: 9.5px; line-height: 1.15; letter-spacing: 0; text-align: center;
   overflow-wrap: anywhere; text-decoration: none;
 }
-.nav-btn:not(:disabled):hover { color: var(--text-strong); }
-.nav-btn.active { color: var(--text-strong); }
-.nav-btn.active::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 8px; bottom: 8px;
-  width: 2px;
-  background: var(--text-strong);
-  border-radius: 0 2px 2px 0;
-}
+.nav-btn:not(:disabled):hover { color: var(--text-strong); background: var(--bg-selected-hover); }
+/* The open item takes the accent, on the faint tint a hovered row has, so it reads as chosen without a block of fill. */
+.nav-btn.active, .nav-btn.active:not(:disabled):hover { background: var(--bg-selected-hover); color: var(--accent-lighter); font-weight: 500; }
 .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
 /* Nav status dots */
@@ -230,6 +226,85 @@ span.topbar-crumb { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .nav-btn[data-status="green"]::after  { display: block; background: var(--color-success); }
 .nav-btn[data-status="yellow"]::after { display: block; background: var(--color-warning); }
 .nav-btn[data-status="red"]::after    { display: block; background: var(--color-error); }
+
+/* An editor's chapter list. Open, each phase is a row naming itself, and the open phase's steps hang under its
+   glyph on a thread, a dot on the thread for each; the open phase and step take the accent alone. Folded, it is a
+   column of glyphs, and the open phase's steps are the thread's dots without their names, which a hover shows. */
+.nav-rail--outline {
+  --rail-thread: calc(var(--space-2) + var(--icon-md) / 2);
+  width: calc(184px * var(--ui-scale)); align-items: stretch;
+  /* The right edge leaves the fold's half its room, so the control never sits on a row's end. */
+  padding: var(--space-2) calc(var(--space-2) + 6px) var(--space-2) var(--space-2);
+}
+.nav-rail--outline .nav-rail-list { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.nav-rail--outline .nav-rail-foot {
+  display: flex; flex-direction: column; gap: 2px;
+  margin-top: var(--space-2); padding-top: var(--space-2); border-top: 1px solid var(--border);
+}
+.nav-rail--outline .nav-btn {
+  flex-direction: row; justify-content: flex-start; gap: var(--space-3);
+  width: auto; min-height: calc(32px * var(--ui-scale)); padding: 0 var(--space-2);
+  color: var(--text-secondary); font-size: var(--font-md);
+}
+.nav-rail--outline .nav-btn svg { width: var(--icon-md); height: var(--icon-md); }
+.nav-rail--outline .nav-btn-caption { max-width: none; font-size: inherit; line-height: 1.3; text-align: left; }
+.nav-rail--outline .nav-btn.active, .nav-rail--outline .nav-btn.active:not(:disabled):hover { background: none; color: var(--accent-lighter); }
+.nav-rail--outline .nav-btn::after { top: 50%; bottom: auto; right: var(--space-2); transform: translateY(-50%); }
+
+/* The thread runs down from the open phase's glyph, and each step's dot is centred on it. */
+.nav-steps {
+  --step-height: calc(28px * var(--ui-scale));
+  position: relative; display: flex; flex-direction: column; margin: 0 0 var(--space-2);
+}
+.nav-steps::before {
+  content: ""; position: absolute; left: calc(var(--rail-thread) - 0.5px);
+  top: calc(var(--step-height) / 2); bottom: calc(var(--step-height) / 2);
+  width: 1px; background: var(--border);
+}
+.nav-step {
+  position: relative; display: flex; align-items: center;
+  min-height: var(--step-height); padding: 0 var(--space-2) 0 calc(var(--rail-thread) + var(--space-3) + 4px);
+  border: 0; border-radius: var(--radius-sm); background: none;
+  color: var(--text-secondary); font: inherit; font-size: var(--font-base); line-height: 1.3; text-align: left; cursor: pointer;
+}
+.nav-step::before {
+  content: ""; position: absolute; left: calc(var(--rail-thread) - 3.5px); top: 50%; transform: translateY(-50%);
+  width: 7px; height: 7px; border-radius: 50%; background: var(--bg-panel); border: 1px solid var(--text-muted);
+}
+.nav-step:not(:disabled):hover { background: var(--bg-selected-hover); color: var(--text-strong); }
+.nav-step[aria-current] { color: var(--accent-lighter); font-weight: 500; }
+.nav-step[aria-current]::before { background: var(--accent); border-color: var(--accent); }
+.nav-step:disabled { opacity: 0.35; cursor: default; }
+
+/* Folded: the glyphs alone, their names kept for a reader and shown on hover, and the open phase's dots. */
+.nav-rail--outline.nav-rail--folded {
+  --rail-thread: 50%;
+  width: calc(var(--icon-md) + 2 * var(--space-3) + 2 * var(--space-2)); padding: var(--space-2);
+}
+.nav-rail--folded .nav-btn { justify-content: center; gap: 0; padding: 0; }
+.nav-rail--folded .nav-btn-caption, .nav-rail--folded .nav-step-name {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+.nav-rail--outline.nav-rail--folded .nav-btn.active { background: var(--bg-selected-hover); }
+.nav-rail--folded .nav-steps { --step-height: calc(18px * var(--ui-scale)); }
+.nav-rail--folded .nav-btn::after { top: 4px; right: 4px; transform: none; }
+.nav-rail--folded .nav-step { padding: 0; }
+
+/* The fold: a round control on the rail's edge, level with the line under a sidebar's first heading, half over the
+   page beside it, its chevron pointing the way the rail will go. */
+.nav-rail-fold {
+  position: absolute; top: calc(var(--space-2) + 32px * var(--ui-scale) - 11px); right: -12px; z-index: 5;
+  display: grid; place-items: center; width: 24px; height: 24px; padding: 0;
+  border: 1px solid var(--border); border-radius: 50%; background: var(--bg-panel);
+  color: var(--text-secondary); box-shadow: var(--shadow-raised); cursor: pointer;
+}
+.nav-rail-fold svg {
+  width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8;
+  stroke-linecap: round; stroke-linejoin: round; transition: transform var(--transition-fast);
+}
+.nav-rail--folded .nav-rail-fold svg { transform: rotate(180deg); }
+.nav-rail-fold:hover { color: var(--text-strong); border-color: var(--text-muted); }
+.nav-rail-fold:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ══════════════════════════════════════════════════════════════════════════
    WORKSPACE STRUCTURE  (shared shell — all activities use these classes)
@@ -347,6 +422,7 @@ span.topbar-crumb { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
     position: sticky; top: calc(var(--control-height) + var(--space-3) + 1px); align-self: flex-start; z-index: 20;
     height: calc(100dvh - 2 * (var(--control-height) + var(--space-3) + 1px) - env(safe-area-inset-bottom, 0px)); overflow-y: auto;
   }
+  .editor-page--focused .app-body > .nav-rail--outline { overflow: visible; }
 }
 @media (max-width: 599px) {
   .app-body { flex-direction: column; }

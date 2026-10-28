@@ -18,12 +18,12 @@ const page = await newPage(browser);
 
 checks.section("Draw opens on Ground, and Places comes before it");
 await page.goto(`${BASE}/maps/${seed.sketchSlug}/sketch`, { waitUntil: "networkidle" });
-await page.locator(".flow-step--active", { hasText: "Ground" }).waitFor({ timeout: 60000 });
-await page.locator(".flow-steps .flow-step", { hasText: "Places" }).waitFor({ timeout: 30000 }).catch(() => {});
-const steps = await page.$$eval(".flow-steps .flow-step", els => els.map(e => e.textContent.trim()));
+await page.locator(".nav-rail .nav-step[aria-current]", { hasText: "Ground" }).waitFor({ timeout: 60000 });
+await page.locator(".nav-rail .nav-step", { hasText: "Places" }).waitFor({ timeout: 30000 }).catch(() => {});
+const steps = await page.$$eval(".nav-rail .nav-step", els => els.map(e => e.textContent.trim()));
 checks.add("Draw's steps are Places, Ground and Layout", steps.join(",") === "Places,Ground,Layout", steps.join(","));
-await page.click(".flow-step >> text=Places");
-await page.locator(".flow-step--active", { hasText: "Places" }).waitFor({ timeout: 30000 });
+await page.click(".nav-rail .nav-step >> text=Places");
+await page.locator(".nav-rail .nav-step[aria-current]", { hasText: "Places" }).waitFor({ timeout: 30000 });
 
 checks.section("a box drawn in Places is a place, stored and listed");
 await page.click('.canvas-dock button[aria-label="Box"]');
@@ -93,25 +93,25 @@ await late.route("**/api/map/*/places", async route => {
 });
 const asked = late.waitForRequest(request => request.url().endsWith(`/map/${lateSlug}/places`), { timeout: 60000 });
 await late.goto(`${BASE}/maps/${lateSlug}/sketch`, { waitUntil: "domcontentloaded" });
-await late.locator(".flow-step--active", { hasText: "Ground" }).waitFor({ timeout: 60000 });
+await late.locator(".nav-rail .nav-step[aria-current]", { hasText: "Ground" }).waitFor({ timeout: 60000 });
 await asked;
-const drawn = await late.$$eval(".flow-steps .flow-step", els => els.map(e => e.textContent.trim()));
-await late.click(".flow-step >> text=Layout");
-const landed = await late.locator(".flow-step--active", { hasText: "Layout" }).waitFor({ timeout: 20000 })
+const drawn = await late.$$eval(".nav-rail .nav-step", els => els.map(e => e.textContent.trim()));
+await late.click(".nav-rail .nav-step >> text=Layout");
+const landed = await late.locator(".nav-rail .nav-step[aria-current]", { hasText: "Layout" }).waitFor({ timeout: 20000 })
   .then(() => true, () => false);
-const now = await late.$$eval(".flow-step--active", els => els.map(e => e.textContent.trim()));
+const now = await late.$$eval(".nav-rail .nav-step[aria-current]", els => els.map(e => e.textContent.trim()));
 checks.add("Layout is the step it lands on", landed, `bar ${drawn.join(",")} → active ${now.join(",")}`);
 checks.add("and the late step raised nothing", late.faults.length === 0, late.faults.slice(0, 3).join(" | "));
 await api(`/map/${lateSlug}`, { method: "DELETE" });
 
 checks.section("the address says where the author is");
-await page.click(".flow-step >> text=Layout");
-await page.locator(".flow-step--active", { hasText: "Layout" }).waitFor({ timeout: 30000 });
+await page.click(".nav-rail .nav-step >> text=Layout");
+await page.locator(".nav-rail .nav-step[aria-current]", { hasText: "Layout" }).waitFor({ timeout: 30000 });
 await page.waitForFunction(() => location.search.includes("step=layout"), null, { timeout: 10000 }).catch(() => {});
 checks.add("Layout writes phase and step", new URL(page.url()).search === "?phase=draw&step=layout", new URL(page.url()).search);
 await page.reload({ waitUntil: "networkidle" });
-await page.locator(".flow-step--active", { hasText: "Layout" }).waitFor({ timeout: 60000 }).catch(() => {});
-const reopened = await page.$$eval(".flow-step--active", els => els.map(e => e.textContent.trim()));
+await page.locator(".nav-rail .nav-step[aria-current]", { hasText: "Layout" }).waitFor({ timeout: 60000 }).catch(() => {});
+const reopened = await page.$$eval(".nav-rail .nav-step[aria-current]", els => els.map(e => e.textContent.trim()));
 checks.add("a reload opens on Layout", reopened.join() === "Layout", reopened.join());
 await page.click(".editor-bar-next");
 await page.waitForFunction(() => location.search.includes("terraform"), null, { timeout: 10000 }).catch(() => {});

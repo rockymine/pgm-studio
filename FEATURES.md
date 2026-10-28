@@ -38,13 +38,19 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   gets 44px controls. `tests/e2e/narrow-windows.mjs` holds that nothing runs past the window at 390 and 768px.
   `docs/client/ui-conventions.md`, *A narrow window*.
 - **An editor on a narrow window keeps its move in reach (`C115`).** Below 960px the editor bar is one row pinned
-  to the window's top and Back, Undo, Redo, the steps and Next are a foot pinned to its bottom, with the rail a
-  column beside the page and the canvas filling the window between the two; below 600px the foot's middle names the
-  phase and step and opens a sheet of the phases with the open phase's steps under it. The steps stay written out
-  down to 960px, and the mark is a 44px target on a touch screen. `docs/client/routing-and-ia.md`, *Exits*.
+  to the window's top and Back, Undo, Redo and Next are a foot pinned to its bottom, with the rail a column beside
+  the page and the canvas filling the window between the two; below 600px the foot's middle names the phase and
+  step and opens a sheet drawing the rail. The mark is a 44px target on a touch screen. `docs/client/routing-and-ia.md`, *Exits*.
 - **Chrome that carries nothing is not drawn (`C116`).** A page whose bar would only repeat its own name draws
   none; a read-only editor draws no Undo or Redo, and no Download for someone who may not build; the studio menu
   names each tool beside its glyph and offers a touch screen no keyboard shortcuts. `docs/client/ui-conventions.md`.
+- **An editor's rail is its chapter list (`C119`).** Each phase is a row with its glyph and name, the open one in
+  the accent, and under it its steps on a thread of dots, picked there and walked by Back and Next; a round control
+  on the rail's edge folds it to the glyphs and the open phase's dots, each name on hover, remembered per tool.
+  The editor bar names no phase: it is the studio's mark and name, the path *Maps / the map / the tool* with the
+  stage's dot, the state and the move, and slashes separate every page's path. Sketch's first phase is
+  *Identity* (Details, Symmetry), History stands at the rail's foot outside Back and Next, and the import is
+  Configure's first chapter on `/maps/new`. The phone's sheet draws the rail. `docs/client/routing-and-ia.md`.
 - **A visitor is asked to sign in once (`C117`).** The account is *Sign in with Discord*, with Discord's mark and
   no menu, and it is the one sign-in the studio draws (`SignInButton`): an editor, which has no studio bar, draws
   the same button in its own bar, and no tag, menu or page repeats it. Only an admin's menu links the API docs. `docs/client/routing-and-ia.md`, *Exits*.
@@ -476,6 +482,9 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   scan's occupied columns, so an empty void column, with nothing in it to break, reads `sealed` where the break
   exception made the whole void past the map read `filtered`. A wool is not asked: PGM's wool module decides a
   monument last. `docs/pgm/filter-region-wiring.md` states the sequence PGM decides a block change in.
+- **A sketched map's symmetry is not asked again (`TC26`).** Configure's World phase drops its Symmetry step for a
+  map made in Sketch and takes the mode and centre the sketch's setup states into the intent, so the steps that
+  turn a spawn or a wool about the centre read it unasked. `docs/tools/configure.md`, *World*.
 - **A wool can be taken from a chest the world already holds (`TC25`).** Configure's wool spawn step finds a chest
   of the wool's colour in its room off the scan and offers it as the supply, taking it by itself for a wool not
   yet decided; such a wool's `location` is the chest and no `<spawner>` is written, since PGM refills a wool chest

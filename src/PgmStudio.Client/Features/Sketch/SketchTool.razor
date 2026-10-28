@@ -8,13 +8,13 @@
 @* Sketch tool. Blazor renders the editor bar, the dock and the svg shell; the SketchCanvas JS (via
    bridge/sketch-bridge.js) owns drawing, the live group computation and the symmetry preview. *@
 
+@{ var move = BarMove; }
 <StudioShell Focused="true">
   <Bar>
-    @{ var move = BarMove; }
     <EditorBar MapName="@(string.IsNullOrWhiteSpace(mapName) ? Slug.Replace('_', ' ') : mapName)" Slug="@Slug" Stage="@MapStage.Sketch"
-               PhaseTitle="@move.Title" Steps="@move.Steps" CurrentStep="@move.Step"
-               BackEnabled="true" NextLabel="@move.NextLabel" NextEnabled="true"
-               OnStep="move.OnStep" OnBack="move.OnBack" OnNext="move.OnNext">
+               PhaseTitle="@move.Title" Steps="@move.Steps" CurrentStep="@move.Step" NoMove="@(!move.Moves)"
+               BackEnabled="true" NextLabel="@move.NextLabel" NextEnabled="@move.NextOpen"
+               OnBack="move.OnBack" OnNext="move.OnNext">
       <State>
         @if (SaveState is { } saveState) { <span role="status">@saveState</span> }
         @if (ProblemsShown)
@@ -56,14 +56,23 @@
     </EditorBar>
   </Bar>
   <Rail>
-    <NavRail>
-      <NavButton Icon="book-open-text" Title="Info" Active="@InfoActive" OnClick="GoInfo" />
-      <NavButton Icon="pencil-ruler" Title="Draw" Active="@DrawActive" OnClick="GoDraw" />
-      <NavButton Icon="mountain" Title="Terraform" Active="@ReliefActive" OnClick="GoRelief" />
-      <NavButton Icon="palette" Title="Palette" Active="@ThemeActive" OnClick="GoTheme" />
-      <NavButton Icon="trees" Title="Decoration" Active="@DressingActive" OnClick="GoDressing" />
-      <NavButton Icon="eye" Title="Review" Active="@ReviewActive" OnClick="GoReview" />
-      <NavButton Icon="history" Title="History" Active="@HistoryActive" OnClick="GoHistory" />
+    @* Only the active phase lists its steps, so every phase is handed the open one's. History is not a phase of the
+       work, so it stands at the rail's foot, outside Back and Next. *@
+    <NavRail FoldKey="sketch" Label="Sketch chapters">
+      <ChildContent>
+        <NavButton Icon="book-open-text" Title="Identity" Active="@InfoActive" OnClick="GoInfo"
+                   Steps="@move.Steps" CurrentStep="@move.Step" OnStep="move.OnStep" />
+        <NavButton Icon="pencil-ruler" Title="Draw" Active="@DrawActive" OnClick="GoDraw"
+                   Steps="@move.Steps" CurrentStep="@move.Step" OnStep="move.OnStep" />
+        <NavButton Icon="mountain" Title="Terraform" Active="@ReliefActive" OnClick="GoRelief" />
+        <NavButton Icon="palette" Title="Palette" Active="@ThemeActive" OnClick="GoTheme" />
+        <NavButton Icon="trees" Title="Decoration" Active="@DressingActive" OnClick="GoDressing" />
+        <NavButton Icon="eye" Title="Review" Active="@ReviewActive" OnClick="GoReview"
+                   Steps="@move.Steps" CurrentStep="@move.Step" OnStep="move.OnStep" />
+      </ChildContent>
+      <Foot>
+        <NavButton Icon="history" Title="History" Active="@HistoryActive" OnClick="GoHistory" />
+      </Foot>
     </NavRail>
   </Rail>
   <ChildContent>

@@ -95,7 +95,7 @@ left out of the filter and the column. The Author column shows the first credite
 rest.
 
 A search box over the table narrows it by name, slug or author and stays out of the address. The header
-carries **New map**, which makes a sketch and opens it on its Info phase, and **Import a world** whatever the
+carries **New map**, which makes a sketch and opens it on its Identity phase, and **Import a world** whatever the
 filters are.
 
 **A row opens the tool at its map's stage.** A map at `edit` has no tool at its stage, so its row opens the
@@ -121,7 +121,7 @@ only the studio's own bar above the page. The page is one centred column, 1240px
 
 **The hero names what the studio makes and offers two ways in.** Two equal columns: an eyebrow naming the game
 modes, a title and lead describing the pipeline from layout to `map.xml`, and two 44px buttons (`Button` with
-`Size="lg"`) — **New map** (`NewMapButton`, the same button the map list's header carries) makes a sketch and opens it on its Info phase, and **Browse maps** opens the maps page unfiltered. Beside the
+`Size="lg"`) — **New map** (`NewMapButton`, the same button the map list's header carries) makes a sketch and opens it on its Identity phase, and **Browse maps** opens the maps page unfiltered. Beside the
 text sits a 16:9 `MapThumb` of the newest built map — a sketch layout and its world — drawn in game; with no such map it is
 the studio mark on a token-coloured panel.
 
@@ -189,26 +189,32 @@ focus goes back to the button. In the panel each tool is a row with its name bes
 screen the keyboard shortcuts and the search's *Ctrl K* are not offered. The breakpoints a narrow window passes through are `ui-conventions.md`'s *A narrow
 window*.
 
-**An editor draws one bar, not three.** Sketch and Configure are focused pages (`StudioShell Focused`): they draw
-neither the studio bar nor the footer, and their `EditorBar` stands in place of a `Topbar` and a step strip, so the
-trail, the phase and the work's commands are one row and the canvas has the window's full height. Left to right the
-bar holds the studio's mark, which opens the same studio menu — carrying the search and the account as well, since
-there is no studio bar to hold them, and marked by a chevron as a menu — then the crumb and the stage switcher, the
-phase's name with its steps, and at the right the state, Undo and Redo, the tool's other commands, a divider and
-Back/Next. The bar is present in every phase, Info included, so the crumb never moves. The phase's glyph is the
-rail's, so the bar names the phase in words alone.
+**An editor draws one bar and one chapter list.** Sketch and Configure are focused pages (`StudioShell Focused`):
+they draw neither the studio bar nor the footer, and their `EditorBar` stands in place of a `Topbar`, so the trail
+and the work's commands are one row and the canvas has the window's full height. Left to right the bar holds the
+studio's mark, with the studio's name beside it from 1280 px, which opens the same studio menu — carrying the
+search and the account as well, since there is no studio bar to hold them — then the path ending in the tool, and
+at the right the state, Undo and Redo, the tool's other commands, a divider and Back/Next. The bar is present in
+every phase, Identity included, so the path never moves. **Where the work is, is the rail's alone**: the bar
+names no phase and lists no step. The rail (`NavRail` with a `FoldKey`) is the tool's chapters — each phase a row
+with its glyph and name, the open one in the accent, and under it, where it has more than one, its steps on a
+thread with a dot each, the current one filled. A step is opened there; Back and Next walk them. The round control
+on the rail's edge, level with a sidebar's first heading, folds it to its glyphs and the open phase's dots, each
+name on hover, and it is remembered per tool in the browser (`studioRailFold`); the rail opens unfolded.
 
 **A map tool leaves through the unfiltered maps list.** The crumb's first segment is *Maps*, a link to `/maps`
 with no stage filter: the segment names its parent, so the link goes to the parent, and which stage a person was
 looking at is a view of that list rather than a place. The map's name follows as plain text, because the map is
-already open and a link to it would go nowhere. The phase is not in the crumb; the phase and its steps are the
-bar's middle, and the rail names them again. The surfaces that hold no map — the generator, the catalog, the
+already open and a link to it would go nowhere. The phase is not in the crumb; it and its steps are the rail's.
+The segments are separated by slashes, here and in every `Topbar`, so the tool's down chevron is the only chevron
+in the bar. The surfaces that hold no map — the generator, the catalog, the
 library, the design showcase and the maps page itself — draw no home link, because the studio's bar above them
 is already the way home; on an editor the way home is the crumb's *Maps*, or the menu its mark
 opens.
 
-**The tool is a switcher, not a crumb.** After the map's name `StageSwitch` shows the tool the page is —
-*Sketch* or *Configure* — as a button whose menu lists the two. A tool is a link where the map holds that layer
+**The tool is the path's last word, and a switcher.** After the map's name `StageSwitch` shows the tool the page
+is — *Sketch* or *Configure* — after its stage's dot, in the colour the map list gives that stage, as a button
+whose menu lists the two. A tool is a link where the map holds that layer
 and a dashed, disabled entry where it does not, the same distinction the Maps table draws in its *Open in*
 column and read from the same place: `GET /api/maps` and `MapLayers.Holds`, fetched when the menu opens, because
 saving a sketch is what makes the layer. The page's own tool is always offered, marked as current.
@@ -218,12 +224,12 @@ the crumb's baseline; its hover and focus are a shadow that paints around the te
 (`tests/e2e/editor-bar.mjs` measures the baseline to half a pixel).
 
 **Below 960 px the move is a foot of its own.** The bar keeps one row pinned to the window's top — where the page
-is, and the state of the work — and Back, Undo, Redo, the phase's steps and Next move to a foot pinned to its
-bottom, where a thumb reaches them, so scrolling to a panel under the canvas never takes the move or the save state
-off the screen. Beside the page the rail is a column. Below 600 px the rail is not drawn: the foot's middle is a
-button naming the phase and the step (*Draw · 2 of 3*, *Ground*), and it opens a sheet listing the rail's phases
-with the open phase's steps under it, so the phase and its steps are one list in one place. The sheet takes focus;
-Escape, the dimmed page and a pick close it. Nothing scrolls sideways at any width.
+is, and the state of the work — and Back, Undo, Redo and Next move to a foot pinned to its bottom, where a thumb
+reaches them, so scrolling to a panel under the canvas never takes the move or the save state off the screen.
+Beside the page the rail is a column held in view, open or folded as on a wide window. Below 600 px the rail is not
+drawn: the foot's middle is a button naming the phase and the step (*Draw*, *Ground*), and it opens a sheet drawing
+the rail itself, unfolded, so the phase and its steps are one list in one place. The sheet takes focus; Escape, the
+dimmed page and a pick close it. Nothing scrolls sideways at any width.
 
 A finished sketch does not leave its tool to be handed over: **Download** — an icon in the editor bar's command
 group, beside Undo and Redo — builds the world and saves the export where the author is (`docs/tools/sketch.md`).

@@ -71,9 +71,9 @@ try {
   checks.section("the start page's New map starts a map");
   await page.goto(`${BASE}/`, { waitUntil: "networkidle", timeout: 30000 });
   await page.locator(".landing-hero button", { hasText: "New map" }).click();
-  await page.waitForURL(/\/maps\/[a-z0-9]{16}\/sketch\?phase=info$/, { timeout: 15000 }).catch(() => {});
-  const started = /\/maps\/([a-z0-9]{16})\/sketch\?phase=info$/.exec(page.url())?.[1];
-  checks.add("it opens a new sketch on its Info phase, under a fresh 16-character id", !!started, page.url());
+  await page.waitForURL(/\/maps\/[a-z0-9]{16}\/sketch\?phase=identity$/, { timeout: 15000 }).catch(() => {});
+  const started = /\/maps\/([a-z0-9]{16})\/sketch\?phase=identity$/.exec(page.url())?.[1];
+  checks.add("it opens a new sketch on its Identity phase, under a fresh 16-character id", !!started, page.url());
   if (started) await apiRaw(`/map/${started}`, { method: "DELETE" });
 
   checks.add("the page raised no faults", page.faults.length === 0, page.faults.slice(0, 3).join(" | "));

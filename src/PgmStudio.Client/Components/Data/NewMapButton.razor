@@ -2,7 +2,7 @@
 @inject HttpClient Http
 @inject NavigationManager Nav
 
-@* The one way a map is started from the studio's pages: a new sketch is made and opened on its Info phase. It
+@* The one way a map is started from the studio's pages: a new sketch is made and opened on its Identity phase. It
    writes, so it is closed where the caller may not, and it is disabled while the sketch is being made. *@
 
 <Button Variant="primary" Size="@Size" Icon="plus" Class="@Class" Writes Disabled="@creating" OnClick="CreateAsync">New map</Button>
@@ -24,7 +24,7 @@
             if (resp.IsSuccessStatusCode
                 && await resp.Content.ReadFromJsonAsync<OriginatedDto>() is { Slug: { Length: > 0 } slug })
             {
-                Nav.NavigateTo($"maps/{slug}/sketch?phase=info");
+                Nav.NavigateTo($"maps/{slug}/sketch?phase=identity");
                 return;
             }
         }

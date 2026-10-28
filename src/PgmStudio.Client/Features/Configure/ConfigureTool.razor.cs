@@ -7,6 +7,7 @@ using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using PgmStudio.Client.Components;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Client.Features.Configure;
 
@@ -48,8 +49,11 @@ public partial class ConfigureTool : IDisposable
     private enum SaveState { Saved, Saving, Unsaved }
 
     // The wizard phases for this map. Sketch-origin maps drop the Wools · Wool monuments step (wool monuments are
-    // derived at export, not authored) — see LoadOriginAsync.
+    // derived at export, not authored) and the World · Symmetry step (the sketch states it) — see LoadOriginAsync.
     private ConfigurePhase[] phases = ConfigurePhases.All;
+    private bool fromSketch;
+    /// <summary>The symmetry a sketch-origin map was drawn to, as the intent states one; null for none.</summary>
+    private JsonObject? sketchSymmetry;
 
     private ConfigurePhase Phase => phases[phaseIndex];
     private int LastStep => Math.Max(0, Phase.Steps.Length - 1);
@@ -117,7 +121,7 @@ public partial class ConfigureTool : IDisposable
     private bool PhaseDone(ConfigurePhase phase) => phase.Id switch
     {
         "info" => MetaValid(),
-        "world" => Obj("symmetry") is not null,
+        "world" => fromSketch || Obj("symmetry") is not null,
         "teams" => NonEmptyArray("teams"),
         "build" => Obj("build") is not null,
         _ when ConfigurePhases.IsObjective(phase.Id) => HasObjective(),
@@ -156,6 +160,7 @@ public partial class ConfigureTool : IDisposable
         loaded = true;
         await Task.WhenAll(LoadNameAsync(), LoadIntentAsync(), LoadOriginAsync());
         SeedMetaNameFromMap();   // a sketched/imported map's name lives on the row, not (yet) in the intent
+        SeedSymmetryFromSketch();
         furthest = Math.Max(furthest, SliceFurthest());
         ready = true;            // only now may the phase bodies mount and read the loaded intent
     }
@@ -171,8 +176,9 @@ public partial class ConfigureTool : IDisposable
         if (string.IsNullOrWhiteSpace(Str(meta, "name"))) meta["name"] = mapName;
     }
 
-    // Sketch-origin maps auto-wire their monuments at export, so the manual Wools · Wool monuments step is
-    // dropped from the flow (best-effort: a non-sketch / unreachable map keeps the full set).
+    // Sketch-origin maps auto-wire their monuments at export, and their sketch states the symmetry they were drawn
+    // to, so the manual Wools · Wool monuments and World · Symmetry steps are dropped from the flow (best-effort: a
+    // non-sketch / unreachable map keeps the full set).
     private async Task LoadOriginAsync()
     {
         try
@@ -182,12 +188,44 @@ public partial class ConfigureTool : IDisposable
             {
                 var origin = await resp.Content.ReadFromJsonAsync<MapOriginDto>();
                 if (origin?.Sketch == true)
-                    phases = [.. ConfigurePhases.All.Select(p => p.Id == "wools"
-                        ? p with { Steps = [.. p.Steps.Where(label => label != "Wool monuments")] }
-                        : p)];
+                {
+                    fromSketch = true;
+                    phases = [.. ConfigurePhases.All.Select(p => p.Id switch
+                    {
+                        "wools" => p with { Steps = [.. p.Steps.Where(label => label != "Wool monuments")] },
+                        "world" => p with { Steps = [.. p.Steps.Where(label => label != "Symmetry")] },
+                        _ => p,
+                    })];
+                    sketchSymmetry = await LoadSketchSymmetryAsync();
+                }
             }
         }
         catch { /* keep the default phases */ }
+    }
+
+    /// <summary>The symmetry the sketch's setup states, in the intent's shape; null where it states none.</summary>
+    private async Task<JsonObject?> LoadSketchSymmetryAsync()
+    {
+        using var read = await Http.GetAsync($"api/map/{Slug}/sketch");
+        if (!read.IsSuccessStatusCode) return null;
+        var setup = (JsonNode.Parse(await read.Content.ReadAsStringAsync()) as JsonObject)?["setup"] as JsonObject;
+        var mode = setup?["mirror_mode"]?.GetValue<string>();
+        if (Symmetry.Order(mode) <= 1) return null;
+        var center = setup!["center"] as JsonObject;
+        return new JsonObject
+        {
+            ["mode"] = mode,
+            ["centerX"] = center?["cx"]?.GetValue<double>() ?? 0,
+            ["centerZ"] = center?["cz"]?.GetValue<double>() ?? 0,
+        };
+    }
+
+    // A sketch-origin map takes the symmetry its sketch was drawn to, so the steps that turn a spawn or a wool about
+    // the centre read it without asking. Not marked dirty: like the name, it is stored with the next save.
+    private void SeedSymmetryFromSketch()
+    {
+        if (sketchSymmetry is null || intent is null || intent["symmetry"] is not null) return;
+        intent["symmetry"] = sketchSymmetry;
     }
 
     private async Task LoadNameAsync()

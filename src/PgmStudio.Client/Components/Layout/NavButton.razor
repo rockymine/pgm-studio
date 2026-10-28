@@ -1,17 +1,33 @@
 @namespace PgmStudio.Client.Components
 
-@* One nav-rail button — a Lucide glyph over its name, Active when it is the current activity. The name is always
+@* One nav-rail button — a Lucide glyph and its name, Active when it is the current activity. The name is always
    on show rather than left to a hover, because a rail of glyphs alone asks the author to remember which
    is which. Renders an <a> when Href is set (navigation), else a <button> (state switch) that can be Disabled and
-   carry a status dot (Status = green | yellow | red → data-status). *@
+   carry a status dot (Status = green | yellow | red → data-status). An editor's phase is a chapter: while it is
+   the active one, its Steps are listed under it, and a phase of one step lists none. In a folded rail
+   ("NavRailFolded") the names are drawn for a reader only, so each control carries its name as its title. *@
 
 @if (Href is not null)
 {
-    <a class="@Cls" href="@Href" data-status="@Status"><i data-lucide="@Icon"></i><span class="nav-btn-caption">@Title</span></a>
+    <a class="@Cls" href="@Href" data-status="@Status" title="@Hover(Title)"><i data-lucide="@Icon"></i><span class="nav-btn-caption">@Title</span></a>
 }
 else
 {
-    <button class="@Cls" disabled="@Disabled" data-status="@Status" @onclick="OnClick"><i data-lucide="@Icon"></i><span class="nav-btn-caption">@Title</span></button>
+    <button class="@Cls" disabled="@Disabled" data-status="@Status" title="@Hover(Title)" @onclick="OnClick"><i data-lucide="@Icon"></i><span class="nav-btn-caption">@Title</span></button>
+}
+@if (ShowsSteps)
+{
+    <div class="nav-steps" role="list" aria-label="@($"{Title} steps")">
+        @for (var j = 0; j < Steps!.Count; j++)
+        {
+            var idx = j;
+            @* Keyed by name, so a step inserted before it leaves this button this step's: a click landing as the
+               list re-renders goes where it was aimed. *@
+            <button @key="Steps[idx]" type="button" class="nav-step" role="listitem" disabled="@(idx > MaxStep)"
+                    aria-current="@(idx == CurrentStep ? "step" : null)" title="@Hover(Steps[idx])"
+                    @onclick="() => OnStep.InvokeAsync(idx)"><span class="nav-step-name">@Steps[idx]</span></button>
+        }
+    </div>
 }
 
 @code {
@@ -22,6 +38,20 @@ else
     [Parameter] public bool Disabled { get; set; }
     [Parameter] public string? Status { get; set; }   // green | yellow | red → data-status
     [Parameter] public EventCallback OnClick { get; set; }
+
+    /// <summary>The phase's steps, listed under it while it is the active one.</summary>
+    [Parameter] public IReadOnlyList<string>? Steps { get; set; }
+    [Parameter] public int CurrentStep { get; set; }
+    /// <summary>The furthest step the author may jump to; later ones are drawn but closed.</summary>
+    [Parameter] public int MaxStep { get; set; } = int.MaxValue;
+    [Parameter] public EventCallback<int> OnStep { get; set; }
+
+    /// <summary>Whether the rail this sits in is folded to its glyphs.</summary>
+    [CascadingParameter(Name = "NavRailFolded")] public bool Folded { get; set; }
+
+    private bool ShowsSteps => Active && Steps is { Count: > 1 };
+
+    private string? Hover(string? name) => Folded ? name : null;
 
     private string Cls => Active ? "nav-btn active" : "nav-btn";
 }

@@ -26,14 +26,14 @@ const page = await newPage(browser);
 await page.goto(`${BASE}/maps/${draft.slug}/sketch?phase=review`, { waitUntil: "networkidle" });
 const views = await api(`/map/${draft.slug}/views`);
 const toNotes = async () => {
-  await page.click(".flow-step >> text=Notes");
+  await page.click(".nav-rail .nav-step >> text=Notes");
   await page.waitForSelector(".ingame", { timeout: 60000 });
 };
 
 checks.section("Review opens on Cameras, where the map's picture is chosen");
 // Review's own steps, not the Draw steps a page shows before a linked phase is entered.
-await page.waitForSelector(".flow-step >> text=Notes", { timeout: 60000 });
-checks.add("the first step is Cameras", (await page.locator(".flow-step--active").textContent())?.trim() === "Cameras");
+await page.waitForSelector(".nav-rail .nav-step >> text=Notes", { timeout: 60000 });
+checks.add("the first step is Cameras", (await page.locator(".nav-rail .nav-step[aria-current]").textContent())?.trim() === "Cameras");
 const own = views.views.find((view) => view.own);
 const row = page.locator(".list-row-pair", { hasText: own.name });
 await row.locator('[title="Use for the map picture"]').click();

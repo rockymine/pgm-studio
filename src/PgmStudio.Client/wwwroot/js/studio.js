@@ -249,6 +249,24 @@ window.studioTheme = {
   toggle() { this.set(this.get() === "light" ? "dark" : "light"); },
 };
 
+// ── Rail fold ───────────────────────────────────────────────────────────────
+// Which editors' chapter lists are folded to their glyphs, by tool, in this browser. The NavRail reads it before
+// its first render, so a folded rail is never drawn open first.
+window.studioRailFold = {
+  KEY: "pgm-rail-folded",
+  read() {
+    try { return (localStorage.getItem(this.KEY) || "").split(" ").filter(Boolean); } catch (e) { return []; }
+  },
+  isFolded(tool) { return this.read().includes(tool); },
+  set(tool, folded) {
+    const tools = this.read().filter(t => t !== tool);
+    if (folded) tools.push(tool);
+    try { localStorage.setItem(this.KEY, tools.join(" ")); } catch (e) { /* private mode: this page only */ }
+    window.dispatchEvent(new Event("resize"));
+    return folded;
+  },
+};
+
 // ── Text size ───────────────────────────────────────────────────────────────
 // `data-text-size` on <html> picks the --ui-scale every size token multiplies (tokens.css). The inline
 // script in index.html applies the stored value before any CSS loads. A canvas sizes itself on resize, so a

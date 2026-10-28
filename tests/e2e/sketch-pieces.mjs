@@ -41,9 +41,9 @@ page.on("response", res => {
 let drove = false;
 try {
   await page.goto(`${BASE}/maps/${slug}/sketch`, { waitUntil: "networkidle", timeout: 30000 });
-  await page.locator(".flow-step--active", { hasText: "Ground" }).waitFor({ timeout: 60000 });
-  await page.click(".flow-step >> text=Layout");
-  await page.locator(".flow-step--active", { hasText: "Layout" }).waitFor({ timeout: 30000 });
+  await page.locator(".nav-rail .nav-step[aria-current]", { hasText: "Ground" }).waitFor({ timeout: 60000 });
+  await page.click(".nav-rail .nav-step >> text=Layout");
+  await page.locator(".nav-rail .nav-step[aria-current]", { hasText: "Layout" }).waitFor({ timeout: 30000 });
   await page.waitForTimeout(800);
   const at = await worldAimer(page, page.locator(".svg-area"));
   if (!at) throw new Error("the canvas readout gave no world position to aim with");
@@ -293,8 +293,8 @@ try {
   await page.waitForTimeout(300);
   checks.add("and choosing it leaves the pick where it was", /spawn room/i.test(await pickedTitle()), await pickedTitle());
   await page.keyboard.press("Escape");
-  await page.click(".flow-step >> text=Ground");
-  await page.locator(".flow-step--active", { hasText: "Ground" }).waitFor({ timeout: 30000 });
+  await page.click(".nav-rail .nav-step >> text=Ground");
+  await page.locator(".nav-rail .nav-step[aria-current]", { hasText: "Ground" }).waitFor({ timeout: 30000 });
   await page.mouse.click(centre.x, centre.y);
   await page.waitForTimeout(300);
   checks.add("in Ground a press on a room reaches the ground under it", !/spawn/i.test(await pickedTitle()),
