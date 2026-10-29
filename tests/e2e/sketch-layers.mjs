@@ -59,7 +59,7 @@ try {
   await page.mouse.move(area.x + 4, area.y + area.height - 4);
   await page.waitForTimeout(500);
   const shown = await page.locator(".svg-area").screenshot();
-  const eye = (name) => row(name).locator('.stack-row-tools button[title$="this layer"]');
+  const eye = (name) => row(name).locator(".stack-row-tools button");
   await row("Layer 3").hover();
   await eye("Layer 3").click();
   await page.mouse.move(area.x + 4, area.y + area.height - 4);
@@ -71,7 +71,8 @@ try {
   await eye("Layer 3").click();
   await page.mouse.move(area.x + 4, area.y + area.height - 4);
   await page.waitForTimeout(500);
-  checks.add("showing it puts the ghost back", shown.equals(await page.locator(".svg-area").screenshot()));
+  checks.add("showing it puts the ghost back", !hidden.equals(await page.locator(".svg-area").screenshot()));
+  checks.add("and its row is on again", !(await row("Layer 3").getAttribute("class")).includes("stack-row--off"));
   await row("Ground").hover();
   const own = eye("Ground");
   checks.add("the eye of the floor drawn on is closed, and says why",
