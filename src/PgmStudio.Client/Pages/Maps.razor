@@ -27,8 +27,7 @@
             </FilterGroup>
 
             <Field Label="Author">
-              <input class="field-input" type="search" placeholder="Find an author" aria-label="Find an author"
-                     @bind="authorSearch" @bind:event="oninput" />
+              <SearchField Placeholder="Search authors" @bind-Value="authorSearch" />
             </Field>
             @foreach (var (title, agents) in AuthorGroups)
             {
@@ -66,15 +65,13 @@
         <ContentColumn MaxWidth="1180">
           <PageHeading Title="Maps">
             <Actions>
-              <Badge Kind="dim">@CountLabel</Badge>
               <NewMapButton Class="action-btn--push-end" />
-              <Button Href="maps/new" Icon="import" Writes>Import a world</Button>
+              <Button Href="maps/new" Icon="upload" Writes>Import map</Button>
             </Actions>
           </PageHeading>
 
             <div class="map-search-row">
-              <input class="field-input map-search" type="search" placeholder="Search maps"
-                     aria-label="Search maps" @bind="search" @bind:event="oninput" />
+              <SearchField Class="map-search" Placeholder="Search maps" @bind-Value="search" />
               <Select Id="map-sort" Options="SortOptions" Value="@SortKey" ValueChanged="SetSort" Title="Sort by" />
             </div>
 
@@ -141,7 +138,7 @@
                         </td>
                         <td class="map-modes map-col-modes">
                           @if (m.Gamemodes.Count > 0) { @(string.Join(", ", m.Gamemodes.Select(GamemodeLabel))) }
-                          else { <span class="map-empty" title="No gamemode yet">—</span> }
+                          else { <span class="map-empty">No gamemode</span> }
                         </td>
                         <td>
                           @if (credits.Count == 0) { <span class="map-empty" title="Nobody credited">—</span> }

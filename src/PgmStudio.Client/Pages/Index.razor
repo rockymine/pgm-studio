@@ -16,13 +16,10 @@
           <LandingHero HeroSlug="@hero?.Slug" HeroName="@hero?.Name" />
 
           <section class="landing-section">
-            <div class="landing-section-head">
-              <h2 class="landing-section-title">@(mine ? "Your recent maps" : "Latest maps")</h2>
-              <a class="landing-section-link" href="maps">All maps</a>
-            </div>
+            <h2 class="landing-section-title">@(mine ? "Your recent maps" : "Latest maps")</h2>
             @if (recent.Count == 0)
             {
-              <EmptyState>No maps yet. Create one with New map.</EmptyState>
+              <EmptyState>No maps yet. Create one above.</EmptyState>
             }
             else
             {

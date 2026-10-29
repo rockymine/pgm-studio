@@ -107,6 +107,10 @@
   transition: transform 0.2s ease, visibility 0s linear 0.2s;
 }
 .app-nav-panel--open { transform: none; visibility: visible; transition: transform 0.2s ease; }
+/* The page behind an open menu holds still, as it does behind any drawer: the menu's own scroll stops at its ends,
+   and a drag over the scrim moves nothing. */
+.app-nav-panel { overscroll-behavior: contain; }
+html:has(.app-nav-panel--open) { overflow: hidden; }
 .app-nav-panel:focus { outline: none; }
 .app-nav-panel-head { display: flex; align-items: center; margin-bottom: var(--space-2); }
 .app-nav-close { margin-left: auto; }
@@ -126,7 +130,6 @@
 /* In the menu each tool is a full-width row naming itself, the way the links above it are. */
 .app-nav-tool-label { display: none; }
 .app-nav-panel .app-nav-tools { flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 2px; }
-.app-nav-panel .app-nav-tools .text-size { display: flex; }
 .app-nav-panel .app-nav-tools .topbar-icon-btn {
   width: 100%; height: auto; min-height: 44px; justify-content: flex-start; gap: var(--space-3);
   padding: 0 var(--space-3); font: inherit; text-decoration: none;
@@ -140,7 +143,7 @@
 }
 /* At the foot of the menu a tool's own menu opens upward, from its left edge. */
 .app-nav-panel .account-menu { top: auto; bottom: calc(100% + 6px); left: 0; right: auto; }
-.app-nav-scrim { position: fixed; inset: 0; z-index: 65; background: rgb(0 0 0 / 0.4); }
+.app-nav-scrim { position: fixed; inset: 0; z-index: 65; background: rgb(0 0 0 / 0.4); touch-action: none; overscroll-behavior: contain; }
 
 @media (prefers-reduced-motion: reduce) {
   .app-nav-panel, .app-nav-panel--open { transition: none; }

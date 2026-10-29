@@ -82,7 +82,7 @@ await openPhase("Identity");
 await page.waitForSelector(".field-tags .badge, .field-tags-none", { timeout: 20000 });
 const gamemodes = await page.$$eval(".field-tags .badge", els => els.map(e => e.textContent.trim()));
 checks.add("Identity lists every gamemode the objectives make, one tag each",
-           gamemodes.join(",") === "Capture the Wool,Destroy cores", gamemodes.join(" · "));
+           gamemodes.join(",") === "Capture the Wool,Destroy the Core", gamemodes.join(" · "));
 const objective = (await page.inputValue(".section-body textarea")).trim();
 checks.add("and the objective names both", /wool/i.test(objective) && /core/i.test(objective), objective);
 

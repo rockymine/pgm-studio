@@ -225,7 +225,7 @@ One form: the map's display name and its authors and contributors. Beside them i
 writes and the author does not: the version, the gamemodes and the objective line, read off the stored map
 (`GET /map/{slug}`) and locked, each with a note saying where it comes from. The gamemodes are the map's
 `<gamemode>` elements, one tag per gamemode by its full name, because a map is often more than one (a wool and
-core map is *Capture the Wool* and *Destroy cores*); a map whose objectives are not set yet reads *No gamemodes
+core map is *Capture the Wool* and *Destroy the Core*); a map whose objectives are not set yet reads *No gamemodes
 yet.* A phase is saved before the next opens, so the three are the ones the map's `map.xml` states. PGM takes a person as an **account** — a
 `uuid` it resolves to a player — **or** a **pseudonym**, the element's own text, and either alone is a whole
 author; `PUT /map/{slug}/intent` and `PATCH /map/{slug}/metadata` both accept either, and so does the editor.

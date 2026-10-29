@@ -1,4 +1,6 @@
-/* The text-size menu in the studio bar: the account menu's surface, narrower, with the current size ticked. */
+/* The text-size menu in the studio bar: the account menu's surface, narrower, with the current size ticked. The
+   button and the menu it opens stand in their own box, one button tall. */
+.text-size { position: relative; display: flex; }
 .text-size-menu { width: calc(150px * var(--ui-scale)); }
 .text-size-menu .account-menu-item { justify-content: space-between; }
 .text-size-item--on { color: var(--text-strong); font-weight: 600; }

@@ -676,6 +676,24 @@ the client source.
   Add a delete action on a row for its owner and admins, behind a confirm naming the map, greyed with the reason
   for anyone else (the `WriteGate` pattern). `docs/client/routing-and-ia.md`.
 
+- [ ] **C122 — The start page's picture is chosen, not the newest map.** The hero draws the newest map anywhere with
+  a sketch and a world (`Index.razor.cs`), which on a shared studio is whatever an agent made last, and a card gets a
+  picture only under the same test, so imported maps (a world, no sketch) and drafts show a letter: five of eight
+  recent maps of one member did. *Parked (author): a fixed header picture, or a picked map; and whether an imported
+  map's world can be pictured.* `docs/client/routing-and-ia.md`.
+- [ ] **C123 — The maps list tells an imported map from a drawn one.** An import shows an empty Sketch slot beside
+  its Configure pill (`Maps.razor`), and `MapSummary` states no origin. Add the origin to the row and a word for it
+  in the table. *Parked (author): the word, and whether it is a filter.* `docs/client/routing-and-ia.md`.
+- [ ] **C124 — A stage pill does not read as a presence status.** The green and orange dots on *Sketch* and
+  *Configure* (`map-stage-dot--<stage>`) read as online and do-not-disturb. *Parked (author): another mark, or
+  none.* `docs/client/ui-conventions.md`.
+- [ ] **C125 — The studio bar's Search finds maps, terms and rules.** *Search* opens the command palette
+  (`keys-overlay.js`), which lists keyboard commands only, so a term typed there finds nothing. Either search maps,
+  the glossary and rules from it, or name it for what it does. *Parked (author): which.* `docs/client/routing-and-ia.md`.
+- [ ] **C126 — A library entry's button says Create too.** The map's button is *Create map*; the library's still
+  say *New palette*, *New house* (`LibraryBrowser.razor`), so making a document has two words.
+  *Parked (author): align them or keep both.* `docs/client/writing-for-the-ui.md`.
+
 - [ ] **RP105 — An admin can issue a token that acts as another member.** `POST /api/users/{uuid}/tokens`
   exists and `Tokens.razor` only issues the caller's own (`/users/me/tokens`). Add the member picker to the
   admin's Tokens page. `docs/access.md`.

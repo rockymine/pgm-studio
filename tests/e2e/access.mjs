@@ -34,7 +34,7 @@ const readState = () => page.evaluate(() => ({
   select: !!document.querySelector('.canvas-dock button[aria-label="Select"]'),
   rectangle: !!document.querySelector('.canvas-dock button[aria-label="Rectangle"]'),
   inspector: document.querySelectorAll(".workspace-inspector, .workspace-scroll").length,
-  account: document.querySelector(".account:not(.text-size)")?.textContent?.replace(/\s+/g, " ").trim() ?? "",
+  account: document.querySelector(".account")?.textContent?.replace(/\s+/g, " ").trim() ?? "",
   users: !!document.querySelector('.account-menu a[href="admin/users"]'),
 }));
 
@@ -187,8 +187,8 @@ try {
   await visit(invited, "/maps?stage=sketch");
   await page.waitForSelector("button.action-btn--primary", { timeout: 20000 }).catch(() => {});
   const newSketch = await page.evaluate(() =>
-    [...document.querySelectorAll("button")].find(b => /New map/.test(b.textContent))?.disabled ?? null);
-  checks.add("New map is greyed", newSketch === true, String(newSketch));
+    [...document.querySelectorAll("button")].find(b => /Create map/.test(b.textContent))?.disabled ?? null);
+  checks.add("Create map is greyed", newSketch === true, String(newSketch));
   checks.add("the studio bar's sign-in is the only one on the page",
     (await page.locator('a[href*="api/auth/discord"]').count()) === 1 && (await page.locator(".topbar .readonly-tag").count()) === 0);
 
@@ -199,8 +199,8 @@ try {
   checks.add("the entry's fields are there", (await page.locator(".lib-fields").count()) === 1);
   checks.add("and no preview column, which is a build", (await page.locator(".lib-preview").count()) === 0);
   await visit(invited, "/maps?stage=configure");
-  const importWorld = await settle(/^Import a world$/, true);
-  checks.add("Import a world goes nowhere, and says why", importWorld?.closed === true
+  const importWorld = await settle(/^Import map$/, true);
+  checks.add("Import map goes nowhere, and says why", importWorld?.closed === true
     && /Sign in/.test(importWorld.title), JSON.stringify(importWorld));
 
   checks.section("a signed-out visitor cannot download a map or build its 3-D preview");

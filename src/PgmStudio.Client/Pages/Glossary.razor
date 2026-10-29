@@ -26,8 +26,7 @@
         {
           <div class="glossary-tools">
             <div class="glossary-search">
-              <input class="field-input" type="search" placeholder="Search the glossary" aria-label="Search the glossary"
-                     value="@Query" @oninput="args => Go(args.Value?.ToString())" />
+              <SearchField Placeholder="Search the glossary" Value="@Query" ValueChanged="Go" />
               <span class="rules-count" role="status">@CountText</span>
             </div>
             @if (!Searching)

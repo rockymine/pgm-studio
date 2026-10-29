@@ -175,6 +175,20 @@ for (const route of ["/", "/library/styles", "/maps", "/catalog"]) {
   await measureGlyphs(route);
 }
 
+// ── the studio bar's tools stand on one line ─────────────────────────────────────────────────────
+// A tool that wraps its button in a box of its own (the text size, with its menu) must still centre where the
+// bare buttons beside it do.
+checks.section("the studio bar's tools share one centre");
+clearFaults(page);
+await page.goto(`${BASE}/maps`, { waitUntil: "networkidle", timeout: 30000 });
+await page.waitForSelector(".app-nav-tools svg", { timeout: 20000 });
+const centres = await page.evaluate(() => [...document.querySelectorAll(".app-nav-tools .topbar-icon-btn")]
+  .filter(button => button.getBoundingClientRect().width > 0)
+  .map(button => { const box = button.getBoundingClientRect(); return { name: button.getAttribute("aria-label"), mid: box.top + box.height / 2 }; }));
+const spread = Math.max(...centres.map(c => c.mid)) - Math.min(...centres.map(c => c.mid));
+checks.add("every tool button centres on one line", centres.length >= 4 && spread < 0.5,
+  centres.map(c => `${c.name} ${c.mid.toFixed(1)}`).join(" · "));
+
 // The style editor, for the same reason — and it carries the material editor's own glyphs.
 clearFaults(page);
 await page.goto(`${BASE}/library/styles`, { waitUntil: "networkidle", timeout: 30000 });

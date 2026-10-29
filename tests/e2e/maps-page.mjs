@@ -4,7 +4,7 @@
  * Two claims. Every row says who made the map: the list endpoint carries each map's credited authors, and a
  * credit with no account behind it, which is how an agent is credited, is drawn as a robot. And the filters are
  * the address: a stage chip, a ticked author and Select all each land in the query, narrow the table to what
- * they name, and come back off it with one click. The start page's New map starts a map there and then, under a
+ * they name, and come back off it with one click. The start page's Create map starts a map there and then, under a
  * fresh id, and opens it.
  */
 
@@ -68,9 +68,9 @@ try {
   checks.add("it lists the maps credited by name alone",
     JSON.stringify((await slugs()).sort()) === JSON.stringify(byAgents), (await slugs()).join(", "));
 
-  checks.section("the start page's New map starts a map");
+  checks.section("the start page's Create map starts a map");
   await page.goto(`${BASE}/`, { waitUntil: "networkidle", timeout: 30000 });
-  await page.locator(".landing-hero button", { hasText: "New map" }).click();
+  await page.locator(".landing-hero button", { hasText: "Create map" }).click();
   await page.waitForURL(/\/maps\/[a-z0-9]{16}\/sketch\?phase=identity$/, { timeout: 15000 }).catch(() => {});
   const started = /\/maps\/([a-z0-9]{16})\/sketch\?phase=identity$/.exec(page.url())?.[1];
   checks.add("it opens a new sketch on its Identity phase, under a fresh 16-character id", !!started, page.url());

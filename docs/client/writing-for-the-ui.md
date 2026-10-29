@@ -153,7 +153,7 @@ divergence found on review becomes a row here and an assertion there in the same
 |---|---|---|
 | a list is empty | *No shapes yet.*, the noun in the plural, then the action | *No shape yet.* |
 | nothing is selected | *No modifier selected. Pick one …* | *picked*, *chosen*, *Click one* |
-| making a document | *Create one …* in prose, *New map* on its button | *Make*, *Build*, *Start*, *Issue one* |
+| making a document | *Create one …* in prose, *Create map* on a map's button, *New palette* on a library entry's | *Make*, *Build*, *Start*, *Issue one* |
 | adding an entry to a list | *Add a storey* | *New storey*, a bare *Add* |
 | deleting from an icon | *Delete this rule* | *Delete*, *Remove*, *Delete from …* |
 | a failure | *Couldn't save the palette.* | *this palette*, *that palette* |

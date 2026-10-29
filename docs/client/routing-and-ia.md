@@ -76,7 +76,7 @@ the **Clear** beside the sidebar's *Filters* heading drops them all. The sidebar
 |---|---|---|
 | **Stage** | `?stage=sketch\|configure` | the maps standing at that stage |
 | **Author** | `?author=` (repeated) | maps credited to any one of the ticked authors |
-| **Gamemode** | `?gamemode=ctw\|dtm\|dtc\|none` (repeated) | maps played for any one of the ticked gamemodes, each shown by its full name, `none` for a map with none |
+| **Gamemode** | `?gamemode=ctw\|dtm\|dtc\|none` (repeated) | maps played for any one of the ticked gamemodes, each shown by PGM's own full name for it (`Gamemode.java`: *Destroy the Monument*, *Control the Point*), `none` — *No gamemode* — for a map with none |
 | **Sort** | `?sort=name\|author\|stage` | the order; absent is last changed |
 
 **A map's gamemodes are read off its objectives, never off its `<gamemode>` label.** Its wools, shown
@@ -88,15 +88,17 @@ DTC board is listed as one from the moment it states its goals.
 was read in by the corpus import, which reads a world that already has a `map.xml`; no authoring tool sets it,
 and the page lists such a map under Configure, which is the tool its row opens.
 
-**The Author filter lists every credited author in two groups, Agents and People,** each with **Select all**,
+**The Author filter lists every credited author in two groups, Agents and Users,** each with **Select all**,
 and a search box narrows both. A credit with an account is a person and shows the player's head; a credit by
 name alone, with no account behind it, is how an agent is credited, and shows the agent mark. Contributors are
 left out of the filter and the column. The Author column shows the first credited author, with a count of the
 rest.
 
-A search box over the table narrows it by name, slug or author and stays out of the address. The header
-carries **New map**, which makes a sketch and opens it on its Identity phase, and **Import a world** whatever the
-filters are.
+A search box over the table narrows it by name, slug or author and stays out of the address. Every search box in
+the studio is a `SearchField`, the search glyph inside the field. A row whose map has no gamemode says *No
+gamemode* in that column. The header carries **Create map**, which makes a sketch and opens it on its Identity
+phase, and **Import map** whatever the filters are; it carries no count, since the filter chips already say how
+many maps each would show.
 
 **A row opens the tool at its map's stage.** A map at `edit` has no tool at its stage, so its row opens the
 last layer it holds — Configure, where it has a world — and one holding no layer opens nothing. The **Open in**
@@ -119,9 +121,9 @@ it.
 **The landing is not a tool, so its shell has no tool bar.** `Index` gives `StudioShell` no `Bar`, which leaves
 only the studio's own bar above the page. The page is one centred column, 1240px wide, with sections 56px apart.
 
-**The hero names what the studio makes and offers two ways in.** Two equal columns: an eyebrow naming the game
-modes, a title and lead describing the pipeline from layout to `map.xml`, and two 44px buttons (`Button` with
-`Size="lg"`) — **New map** (`NewMapButton`, the same button the map list's header carries) makes a sketch and opens it on its Identity phase, and **Browse maps** opens the maps page unfiltered. Beside the
+**The hero names what the studio makes and offers two ways in.** Two equal columns: an eyebrow naming the
+studio, a title and lead describing the pipeline from layout to `map.xml`, naming no gamemode, and two 44px buttons
+(`Button` with `Size="lg"`) — **Create map** (`NewMapButton`, the same button the map list's header carries) makes a sketch and opens it on its Identity phase, and **Browse maps** opens the maps page unfiltered. Beside the
 text sits a 16:9 `MapThumb` of the newest built map — a sketch layout and its world — drawn in game; with no such map it is
 the studio mark on a token-coloured panel.
 
@@ -132,7 +134,8 @@ placeholder, and a 429 from the build queue is asked again after a wait that dou
 longer than its `Retry-After`, up to four times, so a broken-image icon never shows. The hero asks for 960 × 540 and
 a recent map's card for 480 × 270, the size it is shown at.
 
-**Your recent maps lists up to three maps.** They are the ones the reader changed themselves, newest first
+**Your recent maps lists up to three maps,** under a heading with no link of its own: the hero's **Browse maps**
+is the one way from the landing to the maps page. They are the ones the reader changed themselves, newest first
 (`youWroteAt` from `GET /api/maps`), each card linking into the tool its row on the maps page opens, with the
 stage pill of its furthest layer and a line of first credited author and when it was edited. A reader who has
 changed none, or is signed out, sees the three most recently updated maps under *Latest maps*.
@@ -185,7 +188,8 @@ the page's.
 
 **Below 960px the studio bar folds into a menu.** The bar keeps the mark, the search and the account, and a menu
 button at its left opens the links and the four tools as a panel sliding in from the left, over a dimmed page.
-The panel takes focus when it opens; its ✕, the dimmed page, Escape and a move to another page close it, and
+The page behind holds still while the panel is open: the document does not scroll, a drag over the dimmed page
+moves nothing, and the panel's own scroll stops at its ends rather than passing on. The panel takes focus when it opens; its ✕, the dimmed page, Escape and a move to another page close it, and
 focus goes back to the button. In the panel each tool is a row with its name beside its glyph, and on a touch
 screen the keyboard shortcuts and the search's *Ctrl K* are not offered. The breakpoints a narrow window passes through are `ui-conventions.md`'s *A narrow
 window*.

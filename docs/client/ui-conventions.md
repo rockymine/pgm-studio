@@ -73,9 +73,11 @@ colour and a dropdown of their names makes the author read what they can already
 is an initial over a hue hashed from the row's own uuid or name, so a page carrying authors fetches nothing
 from outside the studio to draw them.
 
-**No raw `<input type="number">`, `<input type="range">` or `<select>` stands outside `Components/`.** A
-number, a slider and a dropdown go through `NumberField`, `RangeField` and `Select`, so restyling every one of
-them is an edit to those components and their stylesheets (`form-fields.css`, `range-field.css`, and
+**No raw `<input type="number">`, `<input type="range">`, `<input type="search">` or `<select>` stands outside
+`Components/`.** A number, a slider, a search box and a dropdown go through `NumberField`, `RangeField`,
+`SearchField` (the search glyph inside the field, its placeholder naming what is searched) and `Select`, so
+restyling every one of them is an edit to those components and their stylesheets (`form-fields.css`,
+`search-field.css`, `range-field.css`, and
 `canvas-chrome.css` for the canvas dropdown) rather than a hunt through the tools. A site that needs something
 a component does not offer — an event, an id, a class — gets a parameter on the component, not raw markup
 beside it.
