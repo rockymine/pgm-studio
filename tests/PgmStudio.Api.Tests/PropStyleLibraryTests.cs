@@ -71,8 +71,10 @@ public sealed class PropStyleLibraryTests
 
         foreach (var part in new string?[] { null, RoomParts.Roof, RoomParts.Wall })
         {
-            await Assert.That(RoomStylePreview.CardOnce(style, Textured(), part)).StartsWith("<img class=\"block-render\"");
-            await Assert.That(RoomStylePreview.CardOnce(style, PictureSprites.Flat, part)).StartsWith("<svg");
+            await Assert.That(LibraryCards.ContentTypeOf(RoomStylePreview.CardOf(style, Textured(), part).Draw()))
+                .IsEqualTo("image/png");
+            await Assert.That(System.Text.Encoding.UTF8.GetString(RoomStylePreview.CardOf(style, PictureSprites.Flat, part).Draw()!))
+                .StartsWith("<svg");
         }
     }
 

@@ -37,13 +37,13 @@ internal static class BiomeBody
 internal static class BiomeLibraryMapping
 {
     public static BiomePatternSummary ToDto(BiomePatternRow row, PictureSprites sprites) =>
-        new(row.Id, row.Name, row.Kind, row.Params, Picture(row.Params, sprites), row.SeedKey is not null);
+        new(row.Id, row.Name, row.Kind, row.Params, LibraryCards.Offer(CardOf(row.Params, sprites)), row.SeedKey is not null);
 
-    /// <summary>The picture, or an empty string for a row whose stored field will not read — a library that
-    /// cannot draw one row still lists the rest.</summary>
-    public static string Picture(string paramsJson, PictureSprites sprites) =>
-        Drawings.Svg($"biome-card/{sprites.Identity}", paramsJson,
-            () => BiomeBody.Stated(paramsJson) is { } field ? StylePreview.BiomeCard(field, sprites.Set) : "");
+    /// <summary>The card, named by the stored field. A row whose field will not read lists without a picture,
+    /// so a library that cannot draw one row still lists the rest.</summary>
+    public static LibraryCard CardOf(string paramsJson, PictureSprites sprites) =>
+        new(Drawings.Name($"card/biome/{sprites.Identity}", paramsJson), LibraryCard.Sprites,
+            () => BiomeBody.Stated(paramsJson) is { } field ? StylePreview.BiomeCardImage(field, sprites.Set) : null);
 }
 
 /// <summary>GET /api/biome-patterns[?kind=solid|cell|noise] — the biome library, newest first, each with the
@@ -117,7 +117,7 @@ public sealed class BiomePatternUpdateEndpoint(ThemeStore store, BlockTextureSto
         if (await store.UpdateBiomeAsync(id, req.Name, req.Kind, req.Params, ct) == 0)
         { await Refusals.NotFoundAsync(HttpContext, "biome pattern", ct); return; }
         await Send.OkAsync(new BiomePatternSummary(id, req.Name, req.Kind, req.Params,
-            BiomeLibraryMapping.Picture(req.Params, await textures.ForPicturesAsync(ct))), ct);
+            LibraryCards.Offer(BiomeLibraryMapping.CardOf(req.Params, await textures.ForPicturesAsync(ct)))), ct);
     }
 }
 

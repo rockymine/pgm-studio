@@ -59,6 +59,10 @@ public static class StylePreview
     public static string BiomeCard(BiomeField field, BlockTextureSet? textures)
         => Markup(BiomeGrid(field), top: true, BiomeCell, AreaSpriteCell, textures);
 
+    /// <summary>The same picture as a library card keeps it (<see cref="Image"/>).</summary>
+    public static byte[]? BiomeCardImage(BiomeField field, BlockTextureSet? textures)
+        => Image(BiomeGrid(field), top: true, BiomeCell, AreaSpriteCell, textures);
+
     /// <summary>The same patch before an encoding is chosen, so the card's SVG and an agent's PNG are one
     /// derivation.</summary>
     public static CellRaster BiomeRaster(BiomeField field, int columns = BiomeColumns, int cell = BiomeCell)
@@ -170,10 +174,10 @@ public static class StylePreview
     /// what a wall material is seen as</b>, and a wall run
     /// drawn in plan is a striped border round a flat middle: true, and useless for choosing between two of
     /// them. Everything else varies across the ground and gets the plan view.</summary>
-    public static string Card(string kind, TerrainMaterial material, BlockTextureSet? textures)
+    public static byte[]? Card(string kind, TerrainMaterial material, BlockTextureSet? textures)
     {
         var (grid, top, area) = CardGrid(kind, material);
-        return Markup(grid, top, area ? 2 : 5, area ? AreaSpriteCell : SpriteCell, textures);
+        return Image(grid, top, area ? 2 : 5, area ? AreaSpriteCell : SpriteCell, textures);
     }
 
     /// <summary>The pixels a block takes in a sprite card: about one image pixel to one screen pixel on a
@@ -194,6 +198,12 @@ public static class StylePreview
             ? grid.Colours(flatCell).Svg()
             : $"<img class=\"block-picture\" alt=\"\" width=\"{grid.Columns * spriteCell}\" height=\"{grid.Rows * spriteCell}\" "
               + $"src=\"data:image/png;base64,{Convert.ToBase64String(grid.SpritePng(textures, top, spriteCell))}\">";
+
+    /// <summary>A grid of blocks as the picture a library card keeps: a PNG of its sprites at
+    /// <paramref name="spriteCell"/>, or SVG text of palette colours at <paramref name="flatCell"/> where there are
+    /// no <paramref name="textures"/>.</summary>
+    public static byte[]? Image(BlockGrid grid, bool top, int flatCell, int spriteCell, BlockTextureSet? textures)
+        => textures is null ? LibraryCards.Svg(grid.Colours(flatCell).Svg()) : grid.SpritePng(textures, top, spriteCell);
 
     /// <summary>The blocks a style's card shows: the grid, whether it is seen from above, and whether it is an
     /// area pattern's wide patch.</summary>
@@ -231,6 +241,10 @@ public static class StylePreview
     /// bedrock floor moves the picture exactly as it moves the world.</summary>
     public static string ThemeCard(TerrainTheme theme, BlockTextureSet? textures)
         => Markup(ThemeGrid(theme), top: false, 8, SpriteCell, textures);
+
+    /// <summary>The same picture as a library card keeps it (<see cref="Image"/>).</summary>
+    public static byte[]? ThemeCardImage(TerrainTheme theme, BlockTextureSet? textures)
+        => Image(ThemeGrid(theme), top: false, 8, SpriteCell, textures);
 
     /// <summary>The theme's cut plateau as its raster, the <see cref="PlanRaster"/> sibling.</summary>
     public static CellRaster ThemeSectionRaster(TerrainTheme theme, int cell = 8)

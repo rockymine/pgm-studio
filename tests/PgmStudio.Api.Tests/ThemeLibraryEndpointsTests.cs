@@ -105,8 +105,9 @@ public sealed class ThemeLibraryEndpointsTests
 
         var styles = await client.GetFromJsonAsync<List<StyleDto>>("/api/styles");
         // A stack is browsed by its section view, which is where its layers are — both blocks have to be in it.
-        await Assert.That(styles![0].Preview).Contains(BlockPalette.Hex(Blocks.Grass, 0));
-        await Assert.That(styles[0].Preview).Contains(BlockPalette.Hex(Blocks.Dirt, 0));
+        var card = await CardPictures.SvgAsync(client, styles![0].Preview);
+        await Assert.That(card).Contains(BlockPalette.Hex(Blocks.Grass, 0));
+        await Assert.That(card).Contains(BlockPalette.Hex(Blocks.Dirt, 0));
     }
 
     [Test]

@@ -119,10 +119,11 @@ public sealed class HousePartLibraryEndpointsTests
         // material the author named for it, and none of the ground the building stands on.
         var listed = await client.GetFromJsonAsync<List<RoofStyleSummary>>("/api/roof-styles");
         await Assert.That(listed!.Count).IsEqualTo(1);
-        await Assert.That(AnyShadeOf(Fills(listed[0].Preview), Blocks.Planks)).IsTrue();
+        var card = await CardPictures.SvgAsync(client, listed[0].Preview);
+        await Assert.That(AnyShadeOf(Fills(card), Blocks.Planks)).IsTrue();
         // The ground the sample stands on is stone laid to the front plane of the box, so it is the one thing
         // in the picture drawn unshaded. Cut to the roof, it is out of frame.
-        await Assert.That(Fills(listed[0].Preview)).DoesNotContain(BlockPalette.Hex(Blocks.Stone, 0));
+        await Assert.That(Fills(card)).DoesNotContain(BlockPalette.Hex(Blocks.Stone, 0));
     }
 
     /// <summary>A roof part carries its own half-course slab, which is what lets the slab/pitch pairing run
@@ -443,7 +444,7 @@ public sealed class HousePartLibraryEndpointsTests
         var listed = await client.GetFromJsonAsync<List<RoofStyleSummary>>("/api/roof-styles");
 
         // The card is the section of the same building the draft drew.
-        await Assert.That(listed!.Single(entry => entry.Id == saved!.Id).Preview)
+        await Assert.That(await CardPictures.SvgAsync(client, listed!.Single(entry => entry.Id == saved!.Id).Preview))
             .IsEqualTo(previewed!.Section);
     }
 }

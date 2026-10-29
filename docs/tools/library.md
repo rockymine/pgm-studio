@@ -17,7 +17,8 @@ recipe by what it builds, and a biome by the ground it colours. A house's row is
 
 Three routes, and the rail carries the nine kinds and nothing else. `/library` is the chooser, reached by the studio bar's *Library* and the crumb — one card per kind, grouped as
 *Ground* (styles, themes, biomes), *Buildings* (houses, roofs, storeys, porches) and *Nature* (trees,
-boulders), each over the pictures of the newest three entries it holds and its count. `/library/{kind}` browses that kind: a strip carrying a name search,
+boulders), each over the pictures of the newest three entries it holds and its count, which `GET /api/library` answers
+in one request without any kind's rows. `/library/{kind}` browses that kind: a strip carrying a name search,
 whatever else the kind filters by, and **New**, over a grid of cards. `/library/{kind}/{id}`, or
 `/library/{kind}/new`, opens one entry on a page of its own.
 
@@ -119,16 +120,30 @@ and neither holds a board's name, a role a room plays on a map, an occupation or
 style was first used rather than what it is. The name is checked when a room style is saved, so the seeded
 names, the presets' included, are held to the rule a person saving a row is.
 
-A style's card picture travels with the row rather than costing a request per card, because a library is
-browsed by what its entries look like. Every kind's list draws its cards through the one store the render routes
-keep their pictures in (`docs/world-scan/read-backs.md`), named by the row's own stored document — a style's
-`params`, a theme, a composed house or part, a tree's or boulder's prop, a biome field — so a card is drawn once
-per distinct row and answered from disk after that, and an edited row is a different name.
+**A card is its own picture, named before it is drawn.** A library is browsed by what its entries look like, so
+every row a list answers carries its card, as an `<img loading="lazy">` of `GET /api/cards/{name}` rather than as
+the picture. The name is the picture's in the one store the render routes keep theirs in
+(`docs/world-scan/read-backs.md`): the SHA-256 of the drawer, the build of the studio, the sprites and the row's own
+stored document — a style's `params`, a theme, a composed house or part, a tree's or boulder's prop, a biome field.
+Naming a card costs a hash, so a list draws nothing and a browser asks only for the cards it scrolls to.
+
+**A card never changes under its name, so it is answered with a year's cache** (`public, max-age=31536000,
+immutable`). An edited row is a different name, and a deploy that changes a drawer renames every card, so a stale
+picture is never served. A card no file holds yet is drawn when it is first asked for, on at most half the cores at
+once, so a page of cold cards leaves the rest to the requests beside it. A row whose document will not draw lists
+without a picture once it has been tried. A name no list has offered is a 404, after a fresh listing of every
+library at most once every 30 seconds, which is what finds a card a browser named before the studio restarted.
+
+**Every card is drawn before it is asked for, where the studio has the time.** Ten seconds after start the studio
+lists every library and draws each card no file holds, one at a time, and a card a list offers later — a row just
+saved or edited — is drawn when it arrives. The seeded library is about 420 cards, eight seconds of one core, so a
+deploy's cards are kept before most of them are asked for.
 
 **A pattern is drawn with the game's own block sprites.** A style's, a theme's and a biome's card, and the
 material, theme and biome editors' views, show each block as its 1.8.9 sprite face — the top seen from above in a
 plan, the side in a section, grass and leaves tinted for the biome — as a PNG at 12 pixels a block on a card (5
-for an area pattern's wider patch, 10 and 4 in an editor), embedded in the markup as an `<img>`. The sprites are
+for an area pattern's wider patch, 10 and 4 in an editor), served at the card's own route and embedded in an
+editor's markup as an `<img>`. The sprites are
 the ones `render/eye` draws with (`BlockSprites`), so a card and an in-game picture show one block one way. A
 studio without the sprites draws the same blocks as an SVG of palette colours, and the kept picture's name says
 which it is. Measured over 53 seeded styles, sprite cards came to 446 KB against 2.1 MB as SVG.
@@ -140,10 +155,10 @@ patch, drawn by `EyeScene` — the renderer `render/eye` uses — from an eye `S
 volume's size (30° round from south, 28° down, the bounding sphere fitted to the frame). Both stand on one
 course of grass over dirt (`DressingPreview.GrassGround`, and the house sample's own ground), so the picture
 shows the structure and not a theme's ground cover. It is a 160 × 120 PNG
-on a browse row and 320 × 240 on a tree or boulder editor's stage, embedded as `<img class="block-render">`, and
-it is kept under `Drawings:Folder` by the row's document and the sprites' identity, exactly as a pattern's card
-is. A studio without the sprites answers the flat side-view SVG, so the same
-request answers a picture or an SVG according to the studio's `Textures` configuration. A house editor's own
+on a browse row, shown as `<img class="block-render">` so it is smoothed rather than drawn cell for cell, and
+320 × 240 embedded in a tree or boulder editor's stage; both are kept under `Drawings:Folder` by the row's
+document and the sprites' identity, exactly as a pattern's card is. A studio without the sprites answers the
+flat side-view SVG, so the same card is a picture or an SVG according to the studio's `Textures` configuration. A house editor's own
 stage is unchanged: it already turns the building in the WebGL scene.
 
 The editor previews two views of one material: a **plan**, one course
@@ -880,6 +895,8 @@ and *Save* for anyone off the whitelist, and *Delete* for anyone but an admin.
 
 | Endpoint | Does |
 |---|---|
+| `GET /library` | the chooser in one request: `[{list, count, newest}]`, one per library, where `list` is the route its rows answer at (`roof-styles`), `count` how many it holds and `newest` the cards of its newest three as its list carries them |
+| `GET /cards/{name}` | one library card, the `{name}` a list row's card names — `image/png`, or `image/svg+xml` on a studio without sprites, with `Cache-Control: public, max-age=31536000, immutable`. 404 for a name no list has offered |
 | `GET /styles[?kind=]` · `GET /styles/{id}` | the style library, newest first, each with its card picture |
 | `POST /styles` · `PUT /styles/{id}` | save a pattern — body `{name, kind, params}`, where `params` is the material as a **string**. 400 `LB1` for one laying a single block, 409 `LB3` naming the row already holding the same material |
 | `DELETE /styles/{id}` | 409 `{error, message, findings}` when something still binds it — the finding's `subjects` name the themes, houses, roofs and storeys |

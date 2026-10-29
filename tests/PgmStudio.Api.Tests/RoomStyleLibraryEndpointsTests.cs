@@ -248,7 +248,7 @@ public sealed class RoomStyleLibraryEndpointsTests
         // And it lists with the shell it stamps.
         var listed = await client.GetFromJsonAsync<List<RoomStyleSummary>>("/api/room-styles");
         await Assert.That(listed!.Count).IsEqualTo(1);
-        await Assert.That(listed[0].Preview).Contains("<rect");
+        await Assert.That(await CardPictures.SvgAsync(client, listed[0].Preview)).Contains("<rect");
     }
 
     [Test]

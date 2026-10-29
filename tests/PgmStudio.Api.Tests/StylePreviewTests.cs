@@ -25,6 +25,10 @@ public sealed class StylePreviewTests
     private static HashSet<string> Fills(string svg)
         => Regex.Matches(svg, "fill='(#[0-9a-f]{6})'").Select(m => m.Groups[1].Value).ToHashSet();
 
+    /// <summary>A style's card on a studio without sprites, which is SVG text.</summary>
+    private static string Card(string kind, TerrainMaterial material)
+        => System.Text.Encoding.UTF8.GetString(StylePreview.Card(kind, material, null)!);
+
     [Test]
     public async Task A_layer_stack_reads_as_one_colour_from_above_and_as_its_layers_in_section()
     {
@@ -59,12 +63,11 @@ public sealed class StylePreviewTests
     public async Task The_card_view_is_the_one_that_shows_the_kind_something()
     {
         // A stack gets the section (its layers show); everything else gets the plan view.
-        await Assert.That(StylePreview.Card(MaterialKind.Layered, GrassOverDirt, null))
-            .IsNotEqualTo(StylePreview.Card(MaterialKind.Solid, GrassOverDirt, null));
+        await Assert.That(Card(MaterialKind.Layered, GrassOverDirt)).IsNotEqualTo(Card(MaterialKind.Solid, GrassOverDirt));
 
         // A solid is one colour either way — the choice of view cannot invent detail that is not there.
         var solid = new SolidMaterial(Blocks.Stone);
-        await Assert.That(Fills(StylePreview.Card(MaterialKind.Solid, solid, null)).Count).IsEqualTo(1);
+        await Assert.That(Fills(Card(MaterialKind.Solid, solid)).Count).IsEqualTo(1);
     }
 
     [Test]

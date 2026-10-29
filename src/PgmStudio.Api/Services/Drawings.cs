@@ -82,6 +82,11 @@ public static class Drawings
         }
     }
 
+    /// <summary>The size of the picture kept under <paramref name="name"/>, without reading it: 0 for one kept
+    /// with nothing to draw, null where none is kept.</summary>
+    public static long? SizeOf(string name) =>
+        new FileInfo(PathOf(name)) is { Exists: true } kept ? kept.Length : null;
+
     /// <summary>Keep <paramref name="picture"/> under <paramref name="name"/>; null keeps "nothing to draw".</summary>
     public static void Keep(string name, byte[]? picture)
     {

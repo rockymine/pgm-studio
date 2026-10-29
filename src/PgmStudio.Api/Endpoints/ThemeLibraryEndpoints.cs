@@ -11,13 +11,12 @@ using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Endpoints;
 
-/// <summary>Row ↔ wire-DTO mapping for the theme/style library. A style and a theme each carry their card
-/// picture on the wire, rendered here through <see cref="StylePreview"/> — see <see cref="StyleDto.Preview"/>
-/// for why the picture travels with the row.</summary>
+/// <summary>Row ↔ wire-DTO mapping for the theme/style library. A style and a theme each carry their card,
+/// drawn through <see cref="StylePreview"/> and served by <see cref="LibraryCards"/>.</summary>
 internal static class ThemeLibraryMapping
 {
     public static StyleDto ToDto(StyleRow row, PictureSprites sprites)
-        => new(row.Id, row.Name, row.Kind, row.Params, PreviewOf(row, sprites), row.SeedKey is not null);
+        => new(row.Id, row.Name, row.Kind, row.Params, LibraryCards.Offer(CardOf(row, sprites)), row.SeedKey is not null);
 
     public static ThemeDetail ToDetail(ThemeRow row, IReadOnlyList<ThemeBucketRow> buckets) =>
         new(row.Id, row.Name, row.BedrockRelative, row.BedrockValue, RimEdgeModes.Canonical(row.RimEdges),
@@ -27,17 +26,16 @@ internal static class ThemeLibraryMapping
                 ThemeLibrary.SoilDtos(b.Soil)))
             .ToList(), row.SeedKey is not null);
 
-    /// <summary>A style's card picture, or an empty string for params that do not form a material this build can
-    /// draw. Deliberately catches everything: <c>params_json</c> is a hand-editable leaf, so it can be malformed
-    /// in more ways than a parse error — a kind this build does not know, or a pattern missing the palette its
-    /// resolver reads. None of those are worth failing a browse over, and a row that shows as pictureless is
-    /// visibly the one to go and fix.</summary>
-    private static string PreviewOf(StyleRow row, PictureSprites sprites)
-    {
-        try { return Drawings.Svg($"style-card/{row.Kind}/{sprites.Identity}", row.Params,
-                () => StylePreview.Card(row.Kind, TerrainThemeJson.DeserializeMaterial(row.Params), sprites.Set)); }
-        catch { return ""; }
-    }
+    /// <summary>A style's card, named by its kind and params. Params that do not form a material this build can
+    /// draw list the row without a picture (<see cref="LibraryCards"/>), which is visibly the one to go and fix.</summary>
+    public static LibraryCard CardOf(StyleRow row, PictureSprites sprites)
+        => new(Drawings.Name($"card/style/{row.Kind}/{sprites.Identity}", row.Params), LibraryCard.Sprites,
+            () => StylePreview.Card(row.Kind, TerrainThemeJson.DeserializeMaterial(row.Params), sprites.Set));
+
+    /// <summary>A theme's card: the sample plateau it finishes, named by the composed theme.</summary>
+    public static LibraryCard CardOf(TerrainTheme theme, PictureSprites sprites)
+        => new(Drawings.Name($"card/theme/{sprites.Identity}", TerrainThemeJson.Serialize(theme)), LibraryCard.Sprites,
+            () => StylePreview.ThemeCardImage(theme, sprites.Set));
 }
 
 // ── styles ────────────────────────────────────────────────────────────────────
@@ -174,8 +172,7 @@ public sealed class ThemeListEndpoint(ThemeLibrary library, BlockTextureStore te
         var sprites = await textures.ForPicturesAsync(ct);
         await Send.OkAsync((await library.ComposeAllAsync(ct))
             .Select(entry => new ThemeSummary(entry.Row.Id, entry.Row.Name,
-                Drawings.Svg($"theme-card/{sprites.Identity}", TerrainThemeJson.Serialize(entry.Theme),
-                    () => StylePreview.ThemeCard(entry.Theme, sprites.Set))))
+                LibraryCards.Offer(ThemeLibraryMapping.CardOf(entry.Theme, sprites))))
             .ToList(), ct);
     }
 }

@@ -88,6 +88,11 @@ public sealed class TerrainLibraryClient(HttpClient http)
         => await GetOrDefault<List<TSummary>>(
             string.IsNullOrEmpty(query) ? $"api/{kind.Route}" : $"api/{kind.Route}?{query}") ?? [];
 
+    /// <summary>Every library's count and its newest cards, by the route its list answers at. Empty when the
+    /// call fails.</summary>
+    public async Task<IReadOnlyDictionary<string, LibraryCount>> CountsAsync()
+        => (await GetOrDefault<List<LibraryCount>>("api/library") ?? []).ToDictionary(count => count.List);
+
     /// <summary>One row in full — its parts, courses and bindings.</summary>
     public Task<TDetail?> GetAsync<TDetail>(LibraryKind kind, long id)
         => GetOrDefault<TDetail>($"api/{kind.Route}/{id}");
