@@ -35,7 +35,7 @@
     }
     @if (Deletable)
     {
-      <InspectorDelete Label="Delete this layer" Title="@($"Delete {Layer.Name} and the shapes on it")" OnClick="() => OnDelete.InvokeAsync(Layer.Id)" />
+      <InspectorDelete Label="Delete this layer" Title="@($"Delete {Layer.Name} and its shapes")" OnClick="() => OnDelete.InvokeAsync(Layer.Id)" />
     }
   </Section>
 </Inspector>
