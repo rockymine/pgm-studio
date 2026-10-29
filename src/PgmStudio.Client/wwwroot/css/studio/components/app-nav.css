@@ -130,7 +130,6 @@ html:has(.app-nav-panel--open) { overflow: hidden; }
 /* In the menu each tool is a full-width row naming itself, the way the links above it are. */
 .app-nav-tool-label { display: none; }
 .app-nav-panel .app-nav-tools { flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 2px; }
-.app-nav-panel .app-nav-tools .text-size { display: flex; }
 .app-nav-panel .app-nav-tools .topbar-icon-btn {
   width: 100%; height: auto; min-height: 44px; justify-content: flex-start; gap: var(--space-3);
   padding: 0 var(--space-3); font: inherit; text-decoration: none;

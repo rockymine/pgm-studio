@@ -34,7 +34,7 @@ const readState = () => page.evaluate(() => ({
   select: !!document.querySelector('.canvas-dock button[aria-label="Select"]'),
   rectangle: !!document.querySelector('.canvas-dock button[aria-label="Rectangle"]'),
   inspector: document.querySelectorAll(".workspace-inspector, .workspace-scroll").length,
-  account: document.querySelector(".account:not(.text-size)")?.textContent?.replace(/\s+/g, " ").trim() ?? "",
+  account: document.querySelector(".account")?.textContent?.replace(/\s+/g, " ").trim() ?? "",
   users: !!document.querySelector('.account-menu a[href="admin/users"]'),
 }));
 
