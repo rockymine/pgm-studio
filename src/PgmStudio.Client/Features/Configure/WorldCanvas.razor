@@ -16,16 +16,16 @@
 
   @* No projection toggle: this canvas is top-down only, so fit ends the row where the 2D/3D toggle ends
      Sketch's and Plan's. *@
-  <CanvasLayerBar>
+  <CanvasOverlayBar>
     @* Blocks overlay is a mode-independent visual aid (renders below the regions/markers); offered on every
        canvas so a marker can be lined up against the real ground. No-op when the map has no scan data. *@
-    <LayerChip Icon="box" Active="blocksOn" Title="Show the surface blocks"
-               OnClick="ToggleBlocks">Blocks</LayerChip>
+    <OverlayChip Icon="box" Active="blocksOn" Title="Show the surface blocks"
+               OnClick="ToggleBlocks">Blocks</OverlayChip>
     @if (ShowEditZones)
     {
-      <LayerChip Icon="hammer" Active="editZonesOn"
+      <OverlayChip Icon="hammer" Active="editZonesOn"
                  Title="Show where players can build"
-                 OnClick="ToggleEditZones">Buildable</LayerChip>
+                 OnClick="ToggleEditZones">Buildable</OverlayChip>
     }
     @if (islandIds.Count > 0)
     {
@@ -33,7 +33,7 @@
               Value="@islandSel" ValueChanged="OnFitIslandSelect" />
     }
     <CanvasRoundButton Icon="scan" Title="Zoom to fit" OnClick="OnResetClick" />
-  </CanvasLayerBar>
+  </CanvasOverlayBar>
 
   <CanvasDock>
     <DockGroup Viewing>

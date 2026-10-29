@@ -1,0 +1,63 @@
+@namespace PgmStudio.Client.Features.Sketch
+
+@* The board's layers, at the head of every canvas phase's sidebar: the floors it stands on, highest first, each
+   row its name and its base y, an eye that shows or hides it in 2-D and in the preview alike, and, in Draw, the
+   one place a layer is added. The stack is ordered by height, which is what orders it in the world, so a layer
+   moves in the list by its base y rather than by a drag. Picking a row makes it the layer drawn on; in Ground it
+   also opens the layer in the inspector, where it is renamed, raised and deleted. *@
+
+@if (Layers.Count > 1 || AllowAdd)
+{
+  <Section Title="Layers">
+    <Actions>
+      @if (AllowAdd)
+      {
+        <Button Variant="icon" Icon="plus" Writes Title="Add a layer above" OnClick="OnAdd" />
+      }
+    </Actions>
+    <ChildContent>
+      <div class="panel-list" role="listbox" aria-label="Layers">
+        @foreach (var layer in Stacked)
+        {
+          var hidden = Hidden.Contains(layer.Id);
+          var cls = string.Join(' ', new[] { "geo-row", "stack-row", "layer-row",
+              layer.Id == ActiveId ? "layer-row--active" : null,
+              layer.Id == PickedId ? "geo-row--selected" : null,
+              hidden ? "stack-row--off" : null }.Where(c => c is not null));
+          <div class="@cls" @key="layer.Id" role="option" aria-selected="@(layer.Id == ActiveId ? "true" : "false")"
+               @onclick="() => OnPick.InvokeAsync(layer.Id)">
+            <span class="geo-type-icon"><i data-lucide="layers"></i></span>
+            <span class="geo-label" title="@layer.Name">@layer.Name</span>
+            <span class="layer-row-y" title="Base, in world y">y @layer.BaseY</span>
+            <StackRowTools Movable="false" Writes="false" Off="hidden" OnLabel="Show this layer" OffLabel="Hide this layer"
+                           EyeClosed="@(layer.Id == ActiveId ? ActiveEyeClosed : null)"
+                           OnToggle="shown => OnShow.InvokeAsync((layer.Id, shown))" />
+          </div>
+        }
+      </div>
+    </ChildContent>
+  </Section>
+}
+
+@code {
+    [Parameter] public IReadOnlyList<SketchLayerRow> Layers { get; set; } = [];
+    /// <summary>The layer being drawn on.</summary>
+    [Parameter] public string? ActiveId { get; set; }
+    /// <summary>The layer open in the inspector, if one is.</summary>
+    [Parameter] public string? PickedId { get; set; }
+    /// <summary>The layers switched off, in both views.</summary>
+    [Parameter] public IReadOnlySet<string> Hidden { get; set; } = new HashSet<string>();
+    /// <summary>Why the layer being drawn on cannot be hidden here, or null where it can.</summary>
+    [Parameter] public string? ActiveEyeClosed { get; set; }
+    /// <summary>Whether a layer can be added from here. Adding one is drawing work, so only Draw offers it.</summary>
+    [Parameter] public bool AllowAdd { get; set; }
+    [Parameter] public EventCallback<string> OnPick { get; set; }
+    [Parameter] public EventCallback OnAdd { get; set; }
+    /// <summary>Called with a layer and whether it is now shown.</summary>
+    [Parameter] public EventCallback<(string Id, bool Shown)> OnShow { get; set; }
+
+    /// <summary>Highest first; of two at one height, the later one, which a new layer is.</summary>
+    private IEnumerable<SketchLayerRow> Stacked =>
+        Layers.Select((layer, at) => (layer, at)).OrderByDescending(row => row.layer.BaseY).ThenByDescending(row => row.at)
+              .Select(row => row.layer);
+}

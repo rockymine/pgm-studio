@@ -100,7 +100,7 @@ left rail, each button its glyph over its name, since a rail of glyphs alone lea
 arranges itself from, and `FilterSidebar` is the `Sidebar` of a page that narrows a list or jumps between sections of one page (the `/design` contents rail), which on a narrow window folds behind a button naming it (`Title`, *Filters* unless the page says otherwise); `PageHeading` is the one heading a browse or admin page opens on; `LandingHero` is the studio entry's opening block, mounted by `Index` and shown on `/design`, and `MapThumb` the 16:9 picture box of a map (the in-game picture over a placeholder that stays where none can be drawn); `SideDrawer` (a title, optional `HeaderActions` icon buttons beside the close button, a scrolling body and an optional footer; `Wide` for a picture rather than a form)
 finishes the set.
 
-**Canvas** — the floating chrome over a `WorldCanvas`: `CanvasReadout`, `CanvasLayerBar` with `LayerChip`,
+**Canvas** — the floating chrome over a `WorldCanvas`: `CanvasReadout`, `CanvasOverlayBar` with `OverlayChip`,
 `CanvasDock` with `DockGroup`, `DockButton`, `DockModeButton`, `DockChoice` (one option of a set the dock
 picks between, where `DockModeButton` flips a two-state mode) and `DockFlyoutGroup`, plus `CanvasRoundButton`
 and `ViewModeToggle`. `IsoView` holds a host's 3-D preview state and `IsoToggle` renders the 2D/3D switch with
@@ -152,7 +152,7 @@ starts something on a page that does. Until the shell has asked, every such acti
 
 **Deleting a shared row is an admin's, and `Deletes` says so.** A library entry is shared by everyone, so a
 `DELETE` of one is refused to anyone but an admin; a `Button` marked `Deletes` reads `StudioDeleteReason` and
-closes the same way. A control that is not a `Button` (the layer strip's add and remove) reads the same two answers through `WriteGate`, and an `EditorBar` whose Next
+closes the same way. A control that is not a `Button` (the theme strip's add) reads the same two answers through `WriteGate`, and an `EditorBar` whose Next
 writes takes `NextWrites`. Reading is never marked, so it stays open to a visitor.
 
 **A sidebar is greyed a control at a time, because it holds what is picked as well as what is changed.** A
@@ -271,7 +271,9 @@ never an icon in the header beside the close, so Delete is found where it was la
 is its glyph and name first, then the tools that act on it in place — earlier, later, the eye that switches it —
 on the right, shown on hover or when picked and taking no room while hidden, so a name has the whole row; a row
 switched off keeps its eye in view. The glyph is the thing's kind, named in its tooltip, so a row never spends
-width on a tag repeating it. The modifier list and the paint-rule list are one row.
+width on a tag repeating it. The tools are one component, `StackRowTools` in a `.stack-row`: the modifier list
+and the paint-rule list draw earlier, later and the eye; Sketch's layer list draws the eye alone, since a layer's
+place in the stack is its base y, and its eye changes only what is drawn, so it is open to a visitor.
 
 **A `?` means there is an explanation the label and its unit do not give.** It sits after the label, a gap from
 it on the label's centre line, and only there. Which texts earn one, and every other channel a text can go in,

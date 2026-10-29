@@ -7,7 +7,7 @@
    its contents are placed by what they are:
 
      top-left     what the canvas IS       — cursor position, live size, zoom. Read-only, pointer-transparent.
-     top-right    what the canvas SHOWS    — layer chips, then fit/rotate, then the 2-D/3-D toggle in the corner.
+     top-right    what the canvas SHOWS    — overlay chips, then fit/rotate, then the 2-D/3-D toggle in the corner.
      bottom-centre what the pointer DOES   — the dock: grouped tools, near the hand that uses them.
 
    Every surface here shares one look (.canvas-float): panel-coloured glass, a hairline border and a lift
@@ -59,8 +59,8 @@
    answers a question the author is actively asking. */
 .canvas-readout-item--size { color: var(--accent-light); font-weight: 600; }
 
-/* ── top-right: the layer bar ── */
-.canvas-layer-bar {
+/* ── top-right: the overlay bar ── */
+.canvas-overlay-bar {
   position: absolute;
   top: 10px;
   right: 10px;
@@ -96,7 +96,7 @@
 }
 .canvas-chip:disabled { opacity: 0.4; cursor: default; }
 
-/* A choice among many in the layer bar — which island to fit. A chip states one thing and toggles it; a
+/* A choice among many in the overlay bar — which island to fit. A chip states one thing and toggles it; a
    list of twenty islands is not a row of chips, so it stays a native <select> and only takes the floating
    surface. Sized to sit at chip height rather than at .field-input's panel height. */
 .canvas-select {
@@ -116,7 +116,7 @@
 /* The options drop into the browser's own menu, which has no glass behind it — give them the panel. */
 .canvas-select option { background: var(--bg-panel); color: var(--text-primary); }
 
-/* A plain word in the layer bar — why a control beside it can't do its job ("no WebGL"). Not a chip: there
+/* A plain word in the overlay bar — why a control beside it can't do its job ("no WebGL"). Not a chip: there
    is nothing to press. */
 .canvas-note {
   flex: none;

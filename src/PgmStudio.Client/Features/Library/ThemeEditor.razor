@@ -30,7 +30,7 @@
             {
               @* A part switches off whether or not it is bound: a palette needs neither a rim nor a wall, and
                  asking for a material first would be asking which colour the thing you do not want should be. *@
-              <Button Variant="icon" Icon="eye" Class="@(binding.Enabled ? null : "modifier-eye--off")"
+              <Button Variant="icon" Icon="eye" Class="@(binding.Enabled ? null : "stack-row-eye--off")"
                       Title="@(binding.Enabled ? "Switch off" : "Switch on")" OnClick="() => ToggleBucket(bucket.Id)" />
             }
           </Actions>

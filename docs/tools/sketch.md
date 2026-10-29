@@ -20,7 +20,7 @@ board is and is its own body; Review is the board as a player sees it, with the 
 steps: Cameras, on the canvas, and Notes, a body of its own. The
 other phases share the one live canvas, which stays mounted while Identity or Notes is up so the
 drawing state and the zoom survive the trip. Draw has three steps, Places, Ground and Layout, on that one canvas, and Places is an admin's only. Terraform,
-Palette, Decoration and History have no steps: each swaps what the columns hold and which overlays the layer bar offers, and the canvas is reused as it stands.
+Palette, Decoration and History have no steps: each swaps what the columns hold and which overlays the overlay bar offers, and the canvas is reused as it stands.
 
 **The address says where the author is.** It carries the phase by the rail's word — `identity`, `draw`, `terraform`,
 `palette`, `decoration`, `review`, `history` — and its step by the rail's (`?phase=draw&step=layout`), and is
@@ -67,7 +67,7 @@ of rules beside it, or *Left out* and *Warnings* where nothing stops it — whic
 rules (`ProblemList`, `docs/client/ui-conventions.md`): the download's refusal, the save's refusal or the
 warnings a landed save carried, and the declines the 3-D build raised. A refused download opens it. Where the
 export refused, each of its rules carries **Open Configure**, which is where a hand-drawn board's teams, spawns
-and objectives are stated. In the 3-D preview the declines are a *N left out* button in the layer bar, opening
+and objectives are stated. In the 3-D preview the declines are a *N left out* button in the overlay bar, opening
 the same list on that kind. Building the export costs the server a world, so **Download** needs an account on
 the whitelist and is greyed for anyone else (`docs/access.md`). The phases run in order, Draw's *Next* going on
 to Terraform. A draft that was never drawn on is discarded on the way out. A caller who may not change the map
@@ -835,15 +835,22 @@ its own first vertex, and a polyline ends on `Enter`, open where its last point 
 members instead** — faintly where the group is merely selected, plainly where it is entered, so a member
 becomes reachable without hunting for the toggle first.
 
-**Which layer is drawn on is canvas chrome, not any one phase's own state.** The layer strip floats at the
-foot of the canvas beside the dock and is present in every phase that draws the canvas. It is where the set
-of layers is *changed* as well as switched: only Draw offers the `+` that adds one and the `×` that removes
-one, because both are drawing work, and the last layer has no `×` at all — a board always stands on one.
-Whatever is placed lands on the active layer — a placement takes it unless it already names one — so an
-author is never asked twice which layer something belongs to. The Palette phase's swatch strip is chrome for
-the same reason and floats above the dock beside it.
+**Which layer is drawn on is the board's, not any one phase's own state, so the layer list heads every sidebar
+the canvas has** (`SketchLayerList`). It lists the floors highest first, each row its name and its base y, in the
+order the world stacks them: a layer moves in the list by its base, not by a drag, since that is the only order
+the build reads. The layer drawn on is lit in the accent, and picking a row makes it the one. Each row's eye shows
+or hides the layer in the 2-D drawing — its ghost outline and the props resting on it — and in the 3-D preview
+alike, from one set, so taking the deck off to look under it is the same act in either; in 2-D the eye of the
+layer being drawn on is closed, since that layer's shapes are what is being edited. Only Draw offers the `+` that
+adds a layer above the highest, because that is drawing work. **In Ground a picked row opens the layer in the
+inspector** (`SketchLayerInspector`): what it holds, its name, its base y, its underside, and **Delete this
+layer** at the foot, where every inspector deletes, absent on the last layer since a board always stands on one;
+picking a shape or a group, on the canvas or in the Shapes list under the layers, takes the inspector back.
+Whatever is placed lands on the active layer — a placement takes it unless it already names one — so an author is
+never asked twice which layer something belongs to. The Palette phase's swatch strip is canvas chrome for the
+board's themes and floats above the dock.
 
-**A phase offers the overlays it can use, and switches on the ones it works with.** The layer bar is not a
+**A phase offers the overlays it can use, and switches on the ones it works with.** The overlay bar is not a
 fixed six: a phase shows the layer it works on and the layer it works against, and an overlay that would draw
 a fact another shown layer already carries is not offered at all. Draw and Terraform keep the shapes, the mirror,
 the chunk grid, the blocks and the contours; Draw offers the contours off, for the heights a shape builds while
@@ -1106,7 +1113,7 @@ the rung that draws vertex handles draws no corners.
 **A point is taken out with the key that takes a shape out.** Clicking a vertex handle picks it, and while a
 point is picked `Delete` or `Backspace` removes that point and joins its two neighbours, where with none picked
 the same keys delete the shape. A picked point belongs to the points rung: stepping up a rung, or picking
-another shape, lets it go. The removal is refused, with a sentence in the layer bar for a few seconds, where it
+another shape, lets it go. The removal is refused, with a sentence in the overlay bar for a few seconds, where it
 would leave a ring under three points or a path under two, or would fold a ring across itself — the refusals
 `DELETE …/vertices/{index}` gives for an outline, with the same test for the fold. A removal renumbers the Bézier
 `controls` and `anchor_heights` above the removed index, drops the removed point's handles and those of the two
@@ -1154,17 +1161,17 @@ point the camera looks at, along the ground and kept over the board, so a quarte
 middle of the picture. Each of these redraws the mesh in hand — it is handed to the GPU once, when it arrives —
 so none asks for a build, and the 2-D board under the preview keeps the zoom and pan it had.
 
-**In the preview the overlay chips become the board's own layers**, one per sketch layer, because what an
-author wants of a picture of a stack is to take the deck off and look under it. Every run in the payload says
+**In the preview a layer is taken off by its eye in the sidebar's layer list**, the same eye that hides it in
+2-D, because what an author wants of a picture of a stack is to take the deck off and look under it; the
+preview's overlay bar holds only the turn. Every run in the payload says
 which layer drew it, so hiding one is a filter over what the browser already holds rather than a second build
 — and the faces are re-meshed against the board actually shown, so a gallery under a hidden deck gets its top
 face rather than reading as roofed by something no longer there. **A run belongs to a layer by where it
 starts**: the painter writes several runs inside one span, a stone core and the bands over it, and every one
 of them begins inside the span that made the ground. A run beginning outside every span is a structure
 standing on the terrain rather than being it — a house, a tree — and belongs to no layer, so hiding the
-ground a house stands on does not take the house with it. A board of one layer shows no chips: there is
-nothing to take off. A hidden layer **stays hidden across an edit**, and one the author deletes comes back
-neither listed nor hidden.
+ground a house stands on does not take the house with it. A hidden layer **stays hidden across an edit**, and
+one the author deletes is gone from the list and from the hidden set.
 
 **Height is why it works this way.** A column's top is settled by the rasterized ground, by what an
 erected shape says about levelling, raising or sinking, and by the modifier stack run over both — and only
@@ -1444,7 +1451,7 @@ One step: the map's paint, picked and placed. A theme is not authored here — t
 `library.md` is where a bucket, a material and the fourteen material kinds are written out. This phase takes
 one of the board's themes in hand and puts it on the ground.
 
-**The board's themes are a strip at the foot of the canvas**, above the dock and beside the layer strip,
+**The board's themes are a strip at the foot of the canvas**, above the dock,
 because a theme belongs to the board rather than to the phase and every click in the phase is addressed to
 whichever one is in hand. Clicking a swatch takes it in hand; clicking it again puts it down; `[` and `]` step
 through the registry with the empty hand as one of the stops, so one pair of keys reaches every theme however
@@ -1920,9 +1927,9 @@ on the top, because the top is exactly the storey the author was saying they did
 carries the pass itself.
 
 **In the Decoration phase a prop takes the layer being drawn on, and the inspector moves it.** A placement
-records the canvas layer strip's active layer (`DressingDoc.add`); a prop that already names one keeps it.
-With a prop selected on a board of more than one layer, the inspector's **Layer** field offers the strip's
-own layers and writes the pick as `layer` through the same `updateProp` patch every other knob takes. Unlike
+records the active layer, the one lit in the sidebar's layer list (`DressingDoc.add`); a prop that already
+names one keeps it. With a prop selected on a board of more than one layer, the inspector's **Layer** field offers
+the list's own layers and writes the pick as `layer` through the same `updateProp` patch every other knob takes. Unlike
 the other knobs it is not carried into the next placement's starting values, because the next prop takes the
 active layer. The field offers every layer and filters none: one with no ground under the prop is declined
 `DR-LAYER` by the pass, which is what `POST …/sketch/dressing` and the export's warnings report.

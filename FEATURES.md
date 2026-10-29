@@ -11011,6 +11011,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   under the box what they take; Soft rim shows its default, 0, a hard edge; a paint rule's empty conditions read
   *Any*. A stack row is the operation's icon and the name across the row: the kind tag beside a renamed
   modifier is gone, and the row's buttons take no room until hover or pick.
+- **A board's layers are a list in the sidebar (`TS235`).** Every canvas phase's sidebar opens on the floors,
+  highest first, each its name, its base y and an eye that hides it in the 2-D drawing and the 3-D preview alike;
+  Draw adds one above. In Ground a picked row opens the layer in the inspector — what it holds, its name, base and
+  underside, and its Delete — and a shape picked after it takes the inspector back. The canvas strip and the
+  preview's layer chips go, and the canvas's overlays are the overlay bar. `docs/tools/sketch.md`.
 - **New map starts a map, under a fresh id (`TS234`).** *New map* on the start page and the map list makes a sketch
   and opens it on Info; a map made without a stated slug (`POST /sketch`, a compose) takes 16 random characters
   rather than a name with a counter, and a stated slug is kept. `docs/tools/sketch.md`.

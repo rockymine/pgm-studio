@@ -23,16 +23,12 @@
           var id = SketchPaintRuleSet.IdOf(rule);
           var off = SketchPaintRuleSet.IsOff(rule);
           var at = index;
-          <div class="geo-row modifier-row @(id == SelectedId ? "geo-row--selected" : null) @(off ? "modifier-row--off" : null)"
+          <div class="geo-row stack-row @(id == SelectedId ? "geo-row--selected" : null) @(off ? "stack-row--off" : null)"
                @key="id" role="option" aria-selected="@(id == SelectedId)" @onclick="() => OnSelect.InvokeAsync(id)">
             <span class="geo-type-icon"><i data-lucide="paintbrush"></i></span>
             <span class="geo-label">@SketchPaintRuleSet.NameOf(rule)</span>
-            <span class="modifier-row-tools" @onclick:stopPropagation>
-              <Button Variant="icon" Icon="chevron-up" Writes Title="Move up" Disabled="@(at == 0)" OnClick="() => Move(id, -1)" />
-              <Button Variant="icon" Icon="chevron-down" Writes Title="Move down" Disabled="@(at == Rules.Count - 1)" OnClick="() => Move(id, 1)" />
-              <Button Variant="icon" Icon="eye" Writes Class="@(off ? "modifier-eye--off" : null)"
-                      Title="@(off ? "Switch on" : "Switch off")" OnClick="() => Toggle(id, !off)" />
-            </span>
+            <StackRowTools Index="at" Count="Rules.Count" OnMove="step => Move(id, step)"
+                           Off="off" OnToggle="on => Toggle(id, !on)" />
           </div>
         }
       </div>

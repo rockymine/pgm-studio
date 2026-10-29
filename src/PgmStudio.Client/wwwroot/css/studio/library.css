@@ -193,10 +193,10 @@ a.lib-card-fig { text-decoration: none; }
   /* A column the window's width has no room beside the picture for its chrome, so the chips and the
      sample dock join the flow above and below it instead of hanging over it. */
   .lib-workspace > .lib-preview { flex-direction: column; gap: var(--space-3); }
-  .lib-preview .canvas-layer-bar,
+  .lib-preview .canvas-overlay-bar,
   .lib-preview .canvas-dock,
   .lib-preview .canvas-note { position: static; transform: none; }
-  .lib-preview .canvas-layer-bar { justify-content: center; flex-wrap: wrap; }
+  .lib-preview .canvas-overlay-bar { justify-content: center; flex-wrap: wrap; }
 }
 .lib-foot-note { margin: 0; }
 
@@ -250,7 +250,7 @@ img.block-render { image-rendering: auto; }
 .lib-stage-figure .house-views__cuts:only-child { height: 52vh; }
 
 /* The chrome inside the companion is narrower than a canvas's, so it hugs the edges it hangs from. */
-.lib-preview .canvas-layer-bar { top: 8px; right: 8px; left: 8px; justify-content: flex-end; }
+.lib-preview .canvas-overlay-bar { top: 8px; right: 8px; left: 8px; justify-content: flex-end; }
 .lib-preview .canvas-dock { bottom: 10px; }
 .lib-preview .canvas-note { position: absolute; left: 0; right: 0; bottom: 52px; text-align: center; }
 

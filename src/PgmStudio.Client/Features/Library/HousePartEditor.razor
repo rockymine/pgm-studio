@@ -13,8 +13,8 @@
   <Views>
     @foreach (var (id, label, icon, note) in HouseViews.Offered)
     {
-      <LayerChip Icon="@icon" Active="@(id == view)" @key="id" Title="@note"
-                 OnClick="() => SetView(id)">@label</LayerChip>
+      <OverlayChip Icon="@icon" Active="@(id == view)" @key="id" Title="@note"
+                 OnClick="() => SetView(id)">@label</OverlayChip>
     }
   </Views>
   <Dock>

@@ -466,14 +466,24 @@ span.topbar-crumb { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 /* A heading row over the rows of one kind: what it holds and how many. */
 .geo-row--group .geo-label { font-weight: 600; color: var(--text-strong); }
 
-/* A stack row — a modifier, a paint rule: its order and switch sit at its end, shown on hover or when picked, and
-   take no room while hidden, so the name has the whole row. A row switched off keeps its eye in view. */
-.modifier-row-tools { display: none; gap: 2px; margin: -4px 0 -4px 6px; }
-.modifier-row:hover .modifier-row-tools, .modifier-row:focus-within .modifier-row-tools,
-.modifier-row.geo-row--selected .modifier-row-tools, .modifier-row--off .modifier-row-tools { display: flex; }
-.modifier-row--off:not(:hover, :focus-within, .geo-row--selected) .modifier-row-tools > :not(.modifier-eye--off) { display: none; }
-.modifier-row--off .geo-label { text-decoration: line-through; color: var(--text-muted); }
-.modifier-row--off .geo-type-icon, .modifier-eye--off { opacity: .45; }
+/* A stack row — a modifier, a paint rule, a layer: its order and switch sit at its end (StackRowTools), shown on
+   hover or when picked, and take no room while hidden, so the name has the whole row. A row switched off keeps
+   its eye in view. */
+.stack-row-tools { display: none; gap: 2px; margin: -4px 0 -4px 6px; }
+.stack-row:hover .stack-row-tools, .stack-row:focus-within .stack-row-tools,
+.stack-row.geo-row--selected .stack-row-tools, .stack-row--off .stack-row-tools { display: flex; }
+.stack-row--off:not(:hover, :focus-within, .geo-row--selected) .stack-row-tools > :not(.stack-row-eye--off) { display: none; }
+.stack-row--off .geo-label { text-decoration: line-through; color: var(--text-muted); }
+.stack-row--off .geo-type-icon, .stack-row-eye--off { opacity: .45; }
+/* A layer's row: its base y quiet at the end, and the layer being drawn on in the accent, as the rail draws the
+   open phase; the fill is the row open in the inspector. */
+.layer-row-y {
+  margin-left: auto; padding-left: var(--space-2); flex: none;
+  font-family: var(--font-mono); font-size: var(--font-xs); color: var(--text-muted); font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.layer-row--active .geo-label, .layer-row--active .geo-type-icon, .layer-row--active .layer-row-y { color: var(--accent-lighter); }
+.layer-row--active .geo-label { font-weight: 500; }
 /* The Shapes list above the stack: a shape's size reads quietly and its relation to the modifiers is the control at the row's end. */
 .shape-relation-row { cursor: default; gap: 6px; }
 .shape-relation-row .list-tag { margin-left: auto; }

@@ -1,0 +1,39 @@
+@namespace PgmStudio.Client.Components
+
+@* The tools at the end of a stack row — a modifier, a paint rule, a layer: Move up and Move down where the order is
+   the author's, and the eye that switches the row off and on. Drawn inside a .stack-row, which shows them on hover
+   or when picked and keeps a switched-off row's eye in view. A press here is the row's tool, never a pick of it. *@
+
+<span class="stack-row-tools" @onclick:stopPropagation>
+  @if (Movable)
+  {
+    <Button Variant="icon" Icon="chevron-up" Writes="@Writes" Title="Move up" Disabled="@(Index == 0)" OnClick="() => OnMove.InvokeAsync(-1)" />
+    <Button Variant="icon" Icon="chevron-down" Writes="@Writes" Title="Move down" Disabled="@(Index == Count - 1)" OnClick="() => OnMove.InvokeAsync(1)" />
+  }
+  <Button Variant="icon" Icon="eye" Writes="@Writes" Class="@(Off ? "stack-row-eye--off" : null)"
+          Disabled="@(EyeClosed is not null)" Title="@(EyeClosed ?? (Off ? OnLabel : OffLabel))"
+          OnClick="() => OnToggle.InvokeAsync(Off)" />
+</span>
+
+@code {
+    /// <summary>The row's place in its stack, and the stack's length, which close Move up at the top and Move
+    /// down at the foot.</summary>
+    [Parameter] public int Index { get; set; }
+    [Parameter] public int Count { get; set; }
+    /// <summary>Whether the author orders the stack; a stack ordered by something else draws no moves.</summary>
+    [Parameter] public bool Movable { get; set; } = true;
+    [Parameter] public EventCallback<int> OnMove { get; set; }
+
+    /// <summary>The row is switched off.</summary>
+    [Parameter] public bool Off { get; set; }
+    /// <summary>Called with true to switch the row on and false to switch it off.</summary>
+    [Parameter] public EventCallback<bool> OnToggle { get; set; }
+    [Parameter] public string OnLabel { get; set; } = "Switch on";
+    [Parameter] public string OffLabel { get; set; } = "Switch off";
+    /// <summary>Why the eye is closed on this row, or null where it is open.</summary>
+    [Parameter] public string? EyeClosed { get; set; }
+
+    /// <summary>The tools change the document, so they are closed where the caller may not write. A view's
+    /// switch, which changes only what is drawn, sets this false.</summary>
+    [Parameter] public bool Writes { get; set; } = true;
+}

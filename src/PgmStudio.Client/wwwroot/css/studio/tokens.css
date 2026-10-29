@@ -133,7 +133,7 @@
   /* Canvas SVG area background */
   --canvas-bg: var(--bg-canvas);   /* alias — the viewport background (follows the theme) */
 
-  /* Floating canvas chrome — the readout, layer bar and dock that sit ON the viewport rather than in a
+  /* Floating canvas chrome — the readout, overlay bar and dock that sit ON the viewport rather than in a
      bar above it. They are panel-coloured but never opaque: a control that hides the map it is about is
      worse than one that is slightly harder to read, so the surface is blurred glass and the elevation
      comes from the shadow. */

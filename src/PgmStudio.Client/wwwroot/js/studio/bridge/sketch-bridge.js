@@ -64,6 +64,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // ACTIVE layer's shapes; other layers keep cached shapes+groups for ghosting (2-D) and stacking (iso).
   let layers = [{ id: genId(), name: "Ground", baseY: 0, shapes: [], structural: [], groups: [], savedMetas: [], baseline: new Map() }];
   let active = 0;
+  // The layers switched off, by id: the 2-D ghosts and props leave them out, and the preview is told the same.
+  const hiddenLayers = new Set();
   let groups = [];            // alias of layers[active].groups — kept current by recompute()
   let mirrorVisible = true;
   let selectedStructuralId = null; // the picked plan piece, whose rail states the height it carries
@@ -125,7 +127,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   const fire = (name, ...args) => fireTo(dotnetRef, name, ...args);
   const markDirty = () => { if (!readOnly) fire("OnDirty", uniqueGroups(groups).length); };
 
-  // Why the last point-level edit was not made, shown beside the layer bar for a few seconds and then taken
+  // Why the last point-level edit was not made, shown beside the overlay bar for a few seconds and then taken
   // down; null clears it at once.
   const EDIT_NOTE_MS = 6000;
   let editNoteTimer = null;
@@ -141,7 +143,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   const computeLayerGroups = (layer) => settleGroups(layer.shapes, layer.savedMetas, layer.baseline, []);
 
   // The other layers' group outlines (for the 2-D ghost render).
-  const ghostPolys = () => layers.flatMap((L, i) => i === active ? [] : L.groups.map(o => ({ exterior: o.exterior, holes: o.holes })));
+  const ghostPolys = () => layers.flatMap((L, i) => i === active || hiddenLayers.has(L.id) ? []
+    : L.groups.map(o => ({ exterior: o.exterior, holes: o.holes })));
 
   // The canvas's own callbacks are the other way an edit arrives — a draw, a drag, a key. Every one that
   // changes the document is a step; `history.step` is re-entrant, so the ones that arrive inside a pointer
@@ -831,6 +834,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     if (i < 0) return;
     syncActive();
     layers.splice(i, 1);
+    hiddenLayers.delete(id);
+    canvas.setHiddenLayers([...hiddenLayers]);
     if (active > i) active--;
     if (active >= layers.length) active = layers.length - 1;
     loadActiveToCanvas();
@@ -1419,9 +1424,12 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       if (v === "iso") iso.show(); else iso.hide();
     },
     rotateIso()        { iso.rotate(); },
-    // Show or hide one layer of the preview. The board is not rebuilt — the runs already say which layer
-    // drew them, so this re-meshes what is in hand.
-    setIsoLayerShown(id, shown) {
+    // Show or hide one layer, in both views. The 2-D canvas drops its ghost outline and its props; the preview
+    // is not rebuilt — the runs already say which layer drew them, so it re-meshes what is in hand.
+    setLayerShown(id, shown) {
+      if (shown) hiddenLayers.delete(id); else hiddenLayers.add(id);
+      canvas.setHiddenLayers([...hiddenLayers]);
+      canvas.setGhostGroups(ghostPolys());
       iso.setLayerShown(id, shown);
     },
     setHeight(id, base, floor) {
