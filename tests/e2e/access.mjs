@@ -218,16 +218,20 @@ try {
     JSON.stringify(iso));
 
   checks.section("a signed-out visitor's sidebar and canvas change nothing");
-  await visit(invited, `/maps/${seed.sketchSlug}/sketch`);
+  await visit(invited, `/maps/${seed.sketchSlug}/sketch?phase=draw`);
   await page.waitForSelector(".canvas-dock", { timeout: 20000 }).catch(() => {});
-  await page.waitForFunction(() => !!document.querySelector(".workspace-sidebar input.field-input"), null,
-    { timeout: 15000 }).catch(() => {});
-  const layerName = await page.evaluate(() => {
-    const input = document.querySelector(".workspace-sidebar input.field-input");
-    return input ? { disabled: input.matches(":disabled"), title: input.closest("fieldset")?.getAttribute("title") ?? "" } : null;
+  await page.waitForSelector(".workspace-sidebar .layer-row", { timeout: 15000 }).catch(() => {});
+  const addLayer = await page.evaluate(() => {
+    const button = document.querySelector('.workspace-sidebar button[aria-label="Add a layer above"]');
+    return button ? { disabled: button.disabled, title: button.getAttribute("title") ?? "" } : null;
   });
-  checks.add("the layer's name is greyed in the sidebar, and says why", layerName?.disabled === true
-    && /Sign in to/.test(layerName.title), JSON.stringify(layerName));
+  checks.add("a layer cannot be added from the sidebar, and says why", addLayer?.disabled === true
+    && /Sign in to/.test(addLayer.title), JSON.stringify(addLayer));
+  await page.click(".workspace-sidebar .layer-row .geo-label").catch(() => {});
+  await page.waitForSelector(".workspace-inspector .detail-label:text-is('Layer')", { timeout: 10000 }).catch(() => {});
+  const layerName = await page.evaluate(() =>
+    document.querySelector(".workspace-inspector input.field-input")?.matches(":disabled") ?? null);
+  checks.add("the layer opens in the inspector with its name greyed", layerName === true, String(layerName));
 
   // Pick a group from the sidebar, then drag it on the canvas with the select tool, from a point inside it. The
   // canvas and its chrome are compared with the pointer resting where the drag ends both times, so a hover
@@ -249,7 +253,7 @@ try {
     const chrome = () => page.evaluate(() =>
       [...document.querySelectorAll('.svg-area svg [stroke-dasharray="5 3"]')]
         .map(el => JSON.stringify(el.getBoundingClientRect())).join("|"));
-    await page.click(".workspace-sidebar .geo-row").catch(() => {});
+    await page.click(".workspace-sidebar .geo-row:not(.layer-row)").catch(() => {});
     await page.waitForTimeout(600);
     await page.mouse.move(to.x, to.y);
     await page.waitForTimeout(400);
