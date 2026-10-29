@@ -176,6 +176,16 @@ test("settleGroups gives a shape drawn on open ground a group of its own, and ke
   assert.equal(again.find(group => group.shapeIds.includes("new")).id, fresh.id);
 });
 
+test("settleGroups names a second island apart from the first", () => {
+  const first = [rect("west", 0, 0, 20, 20)];
+  const stated = uniqueGroups(settleGroups(first, [], new Map()));
+  assert.equal(stated[0].name, "Group 1");
+
+  const both = [...first, rect("east", 100, 0, 120, 20)];
+  const names = uniqueGroups(settleGroups(both, stated, loaded(first))).map(group => group.name);
+  assert.deepEqual(names.sort(), ["Group 1", "Group 2"]);
+});
+
 test("settleGroups regroups a group whose member was deleted, under its own id", () => {
   const shapes = handGrouped().filter(shape => shape.id !== "stone");
   const baseline = loaded(handGrouped());

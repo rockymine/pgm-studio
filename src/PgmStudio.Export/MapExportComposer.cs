@@ -171,12 +171,18 @@ public static class MapExportComposer
         // the slices emit, so it cannot be asked before them.
         if (RefuseUntraversable(doc, BuiltWalk.Ground(built, doc)) is { } cutOff) return cutOff;
 
-        // EX2/EX3 — last, because it reads the document the slices have just written and compares it against
-        // the intent they were written from. Every gate above it quantifies over a collection and so passes a
-        // board with nothing on it.
+        // EX2/EX3 — after the ground's gates, because it reads the document the slices have just written and
+        // compares it against the intent they were written from. Every gate above it quantifies over a
+        // collection and so passes a board with nothing on it.
         var playable = Playable(goals, doc);
         if (playable.Refuses)
             return Refuse("not a playable map", [.. playable.Refusals]);
+
+        // The board's play rules — its pieces, the walks a match needs over the ground and the build cells, and
+        // where the pieces meet that ground — asked by the call GET /findings answers, so a refusal the sketch
+        // shows is the refusal that stops its export.
+        if (SketchPlayCheck.Check(layoutJson, intent) is { Refuses: true } unplayable)
+            return Refuse("the board is not playable as drawn", [.. unplayable.Refusals]);
 
         TreeBuilderCredits.Apply(doc, built.Dressing.TreeBuilders, accounts);
         var renewCubes = WorldBuilder.RenewableCubeFootprints(goals, built.Shells);

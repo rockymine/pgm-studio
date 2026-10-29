@@ -137,19 +137,20 @@ public partial class ReviewPreflightStep
             }
 
         if (Wizard.Intent["wools"] is JsonArray wools)
+        {
+            var teams = AuthoringContext.LoadTeams(Wizard.Intent);
             foreach (var w in wools.OfType<JsonObject>())
             {
-                var color = w["color"]?.GetValue<string>();
-                var dye = !string.IsNullOrEmpty(color)
-                    ? GameColors.DyeHex(color)
-                    : GameColors.ChatHex(teamColors.GetValueOrDefault(w["owner"]?.GetValue<string>() ?? "", ""));
-                var label = string.IsNullOrEmpty(color) ? "Wool" : WoolAuthoring.Name(color);
+                var color = WoolAuthoring.ColorOf(w, teams);
+                var dye = GameColors.DyeHex(color);
+                var label = color.Length == 0 ? "Wool" : WoolAuthoring.Name(color);
                 foreach (var rr in RectsOf(w["protection"])) rooms.Add(new Zone(rr.X, rr.Z, rr.W, rr.H, dye, $"{label} wool room"));
                 if (w["monuments"] is JsonArray ms)
                     foreach (var mo in ms.OfType<JsonObject>())
                         if (mo["location"] is JsonObject loc)
                             monuments.Add(new Marker(Num(loc, "x"), Num(loc, "z"), dye, $"{label} wool monument"));
             }
+        }
 
         return (protections, rooms, monuments);
     }

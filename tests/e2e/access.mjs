@@ -218,6 +218,10 @@ try {
     JSON.stringify(iso));
 
   checks.section("a signed-out visitor's sidebar and canvas change nothing");
+  // The board's rules are read a moment after it opens and their answer re-renders the tool, so the canvas is
+  // compared only once they have answered.
+  const rulesRead = page.waitForResponse(response => response.url().includes("/findings"), { timeout: 20000 })
+    .catch(() => {});
   await visit(invited, `/maps/${seed.sketchSlug}/sketch?phase=draw`);
   await page.waitForSelector(".canvas-dock", { timeout: 20000 }).catch(() => {});
   await page.waitForSelector(".workspace-sidebar .layer-row", { timeout: 15000 }).catch(() => {});
@@ -236,6 +240,7 @@ try {
   // Pick a group from the sidebar, then drag it on the canvas with the select tool, from a point inside it. The
   // canvas and its chrome are compared with the pointer resting where the drag ends both times, so a hover
   // cannot be read as a move.
+  await rulesRead;
   await page.click('.canvas-dock button[aria-label="Select"]').catch(() => {});
   const stored = await fetch(`${invited}/api/map/${seed.sketchSlug}/sketch`).then(r => r.json());
   const shapes = (stored?.layers?.[0]?.layout?.shapes ?? stored?.layout?.shapes ?? [])

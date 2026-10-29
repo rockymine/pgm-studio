@@ -395,7 +395,9 @@ excluded by default with the reason shown. The author confirms, fixes an owner, 
 hand. **This is the step that makes an imported map configurable at all** — everything after it refines what
 the scan proposed. On a later visit it shows each wool as it was saved — its defender, its spawn, its monuments
 and its rooms — and detection only proposes the colours nobody has saved; it never writes a detected owner or an
-empty room list over a saved wool.
+empty room list over a saved wool. **A wool is known across the four steps by its colour**, and a saved wool
+stating none is its owner team's colour there, as it is in the export — so the two first wools a sketch places,
+which state no colour, are the red wool and the blue wool, and the step writes each back under that colour.
 
 **The defending team is the one decision; who captures follows from it.** A wool's `owner` defends it, and every
 other team captures it at a monument of its own — one capturer on a two-team map, three on a four-team one. The
@@ -816,7 +818,7 @@ design.
 |---|---|---|
 | `GET /map/{slug}/preflight` | `{intentMap, exportReady, checks[], log[], traversability}` | 404 |
 | `GET /map/{slug}/regions/tree` | the generated region tree, grouped | 404 |
-| `GET /map/{slug}/xml` | the `map.xml`, with `Pgm-Warnings` carrying the count and rule ids of everything the build complained about — a prop the dressing pass dropped (`OB19`), a goal it could not raise as authored, a capture point whose display regions show no colour (`OB29`), a team tint over land two teams share (`PT5`), and what the playability gate remarks on without refusing: a destroy map with no way to end (`OB26`), a capture point that ends the match the moment it is held (`OB27`), one that pays into no score (`OB28`) | every refusal is `{error, message, findings[]}` (`docs/refusals.md`), the gate in `error`: **409** `unknown gamemode` OB20 (every map, checked first) · **409** `not traversable` EX1 · **409** `objective placement` OB17 · **409** `not a playable map` EX2/EX3/EX4/SH1 · **422** `dressing document invalid` DR-DOC · 404 |
+| `GET /map/{slug}/xml` | the `map.xml`, with `Pgm-Warnings` carrying the count and rule ids of everything the build complained about — a prop the dressing pass dropped (`OB19`), a goal it could not raise as authored, a capture point whose display regions show no colour (`OB29`), a team tint over land two teams share (`PT5`), and what the playability gate remarks on without refusing: a destroy map with no way to end (`OB26`), a capture point that ends the match the moment it is held (`OB27`), one that pays into no score (`OB28`) | every refusal is `{error, message, findings[]}` (`docs/refusals.md`), the gate in `error`: **409** `unknown gamemode` OB20 (every map, checked first) · **409** `not traversable` EX1 · **409** `objective placement` OB17 · **409** `not a playable map` EX2/EX3/EX4/SH1 · **409** `the board is not playable as drawn`, a sketch map's play rules (`docs/tools/sketch.md`) · **422** `dressing document invalid` DR-DOC · 404 |
 | `GET /map/{slug}/export` | the world ZIP, with `Pgm-Warnings` as above and `region/dressing-report.json` inside it carrying the rule, the cell and the prop for each; `map.png` beside `map.xml` is the picture a server lists the map by, and a studio without the block sprites leaves it out with an `RQ10` complaint | 401 signed out · 403 not on the whitelist (`docs/access.md`) · 404 unknown map · the same 409 and 422 as `/xml` (OB17/DR-DOC/EX3/EX4 sketch-origin maps only; EX1/EX2/SH1 every intent-authored map; OB20 regardless of origin), plus non-2xx with a message on a zip/IO failure |
 
 ## Driving it without the UI

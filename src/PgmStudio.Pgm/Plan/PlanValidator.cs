@@ -68,8 +68,8 @@ public static class PlanRules
     public const string MonumentSeats = "PL8";
 
     /// <summary>A wool has no route from a capturing team's spawn.</summary>
-    /// <remarks>Either add a piece to <c>pieces</c> that has a shared edge with each of the pieces it joins, or add
-    /// a build region to <c>zones</c> that touches both.</remarks>
+    /// <remarks>Either add a shape to <c>shapes</c> or a piece to <c>pieces</c> with a shared edge with the ground on
+    /// each side, or add a build region to <c>build.areas</c> or <c>zones</c> that touches both.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Plan, RuleConcern.Objective, RuleConcern.Spawn)]
     public const string WoolUnreachable = "PL9";
 

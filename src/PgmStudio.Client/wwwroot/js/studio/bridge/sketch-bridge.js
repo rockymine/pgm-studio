@@ -397,8 +397,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     selectStructural(id);
   }
 
-  /** A drawn rectangle becomes a shape of the active layer. */
-  const addShape = edit((partial) => {
+  /** A drawn rectangle becomes a shape of the active layer. The drag's two end blocks are a line tool's and
+   *  are not part of a shape. */
+  const addShape = edit(({ from: _from, to: _to, ...partial }) => {
     const shape = { ...partial, id: genId(), override: partial.override ?? false, base_height: clampHeight(partial.base_height ?? NEW_SHAPE_HEIGHT), floor: clampFloor(partial.floor) };
     canvas.addShape(shape);
     recompute();

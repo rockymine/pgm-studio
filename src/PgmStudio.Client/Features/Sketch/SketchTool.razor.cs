@@ -838,6 +838,7 @@ public partial class SketchTool
     public void OnPieces(string json)
     {
         pieceRows = JsonSerializer.Deserialize<List<SketchStructuralRow>>(json) ?? [];
+        ReadFindingsSoon();
         StateHasChanged();
     }
 
@@ -1080,7 +1081,7 @@ public partial class SketchTool
             needed: () => edits != savedEdits, token);
         switch (outcome.Status)
         {
-            case SaveStatus.Landed: savedEdits = carrying; saveError = null; saveFindings = outcome.Raised; break;
+            case SaveStatus.Landed: savedEdits = carrying; saveError = null; saveFindings = outcome.Raised; ReadFindingsSoon(); break;
             case SaveStatus.Refused: saveError = outcome.Message; saveFindings = outcome.Raised; break;
         }
         if ((saveError, saveFindings, savedEdits) == was) return;
@@ -1151,18 +1152,23 @@ public partial class SketchTool
     /// <summary>The one kind the list shows, when the canvas's "left out" button opened it.</summary>
     private ProblemKind? popOnly;
 
-    private void Recheck() =>
-        problems = Problem.Of([.. downloadRefusal?.Findings ?? [], .. saveFindings, .. isoNotBuilt]);
+    private void Recheck()
+    {
+        IReadOnlyList<Finding> answered = [.. downloadRefusal?.Findings ?? [], .. saveFindings];
+        var said = answered.Select(finding => (finding.Rule, finding.Message)).ToHashSet();
+        problems = Problem.Of([.. answered, .. boardFindings.Where(finding => !said.Contains((finding.Rule, finding.Message))), .. isoNotBuilt]);
+    }
 
-    /// <summary>Whether something stops the map: a save or a download refused.</summary>
-    private bool Stopped => saveError is not null || downloadRefusal is not null;
+    /// <summary>Whether something stops the map: a save or a download refused, or a play rule the export refuses
+    /// on.</summary>
+    private bool Stopped => saveError is not null || downloadRefusal is not null || boardFindings.Any(finding => finding.Refuses);
 
     private bool ProblemsShown => Stopped || problems.Count > 0;
 
     /// <summary>The rules the list has rows for, which is the count the button carries.</summary>
     private int ProblemRules => problems.Select(p => (p.Kind, p.Finding.Rule)).Distinct().Count();
 
-    private string? StoppedWord => downloadRefusal is not null ? "Download blocked" : saveError is not null ? "Save blocked" : null;
+    private string? StoppedWord => saveError is not null && downloadRefusal is null ? "Save blocked" : Stopped ? "Download blocked" : null;
 
     private string ProblemsLabel => StoppedWord
         ?? (problems.Any(p => p.Kind == ProblemKind.LeftOut) ? "Left out" : "Warnings");
@@ -1178,11 +1184,44 @@ public partial class SketchTool
         }
     }
 
-    /// <summary>Open Configure on each rule the export refused with, Configure being where those are answered.</summary>
+    /// <summary>Open Configure on each rule the export refused with, Configure being where those are answered —
+    /// all but the board's play rules, which are answered on the drawing.</summary>
     private IReadOnlyDictionary<string, RenderFragment>? ConfigureActions =>
         exportRefused && downloadRefusal is { Findings.Count: > 0 } refusal
-            ? refusal.Findings.Select(finding => finding.Rule).Distinct().ToDictionary(rule => rule, _ => OpenConfigure)
+            ? refusal.Findings.Select(finding => finding.Rule).Distinct()
+                .Where(rule => boardFindings.All(finding => finding.Rule != rule))
+                .ToDictionary(rule => rule, _ => OpenConfigure)
             : null;
+
+    // ── The board's play rules: GET /findings, the reading the export refuses on ──
+
+    /// <summary>What the studio's rules say of the stored board and its pieces.</summary>
+    private IReadOnlyList<Finding> boardFindings = [];
+    private CancellationTokenSource? findingsCts;
+
+    /// <summary>Ask the rules again once the drawing or its pieces have settled; a later change cancels the ask
+    /// before it is sent, so a run of edits reads the board once.</summary>
+    private void ReadFindingsSoon()
+    {
+        findingsCts?.Cancel();
+        findingsCts = new CancellationTokenSource();
+        _ = ReadFindingsAsync(findingsCts.Token);
+    }
+
+    private async Task ReadFindingsAsync(CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(1500, token);
+            var read = await Http.GetFromJsonAsync<MapFindingsDto>($"api/map/{Slug}/findings", token);
+            if (read is null || token.IsCancellationRequested) return;
+            boardFindings = read.Findings;
+        }
+        catch (OperationCanceledException) { return; }
+        catch (Exception fault) when (fault is HttpRequestException or JsonException) { return; }
+        Recheck();
+        await InvokeAsync(StateHasChanged);
+    }
 
     private RenderFragment OpenConfigure => builder =>
     {
@@ -1211,6 +1250,7 @@ public partial class SketchTool
         try { await JS.InvokeVoidAsync("studio.unwatchTabShown", KeyOwner); } catch { }
         // Best-effort final flush of the last (<800 ms) change before tearing the handle down.
         await SaveAsync(CancellationToken.None);
+        findingsCts?.Cancel();
         // A draft left with nothing drawn is discarded so an abandoned "New sketch" click doesn't linger on
         // the dashboard. The client gates on empty geometry to skip the call for real work; the server
         // re-checks the full pristine condition (default name, no authors, no shapes) before deleting.

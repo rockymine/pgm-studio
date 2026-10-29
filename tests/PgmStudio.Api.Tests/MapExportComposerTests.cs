@@ -64,8 +64,16 @@ public sealed class MapExportComposerTests
     {
         var intent = new PgmStudio.Pgm.Authoring.MapIntent
         {
-            Teams = [new PgmStudio.Pgm.Authoring.TeamDef { Id = "red-team", Name = "Red", Color = "dark red" }],
-            Spawns = [new PgmStudio.Pgm.Authoring.SpawnIntent { Team = "red-team", Point = new PgmStudio.Pgm.Authoring.Pt(10, 0, 10) }],
+            Teams =
+            [
+                new PgmStudio.Pgm.Authoring.TeamDef { Id = "red-team", Name = "Red", Color = "dark red" },
+                new PgmStudio.Pgm.Authoring.TeamDef { Id = "blue-team", Name = "Blue", Color = "blue" },
+            ],
+            Spawns =
+            [
+                new PgmStudio.Pgm.Authoring.SpawnIntent { Team = "red-team", Point = new PgmStudio.Pgm.Authoring.Pt(10, 0, 10) },
+                new PgmStudio.Pgm.Authoring.SpawnIntent { Team = "blue-team", Point = new PgmStudio.Pgm.Authoring.Pt(30, 0, 30) },
+            ],
             Destroyables =
             [
                 new PgmStudio.Pgm.Authoring.DestroyableIntent
@@ -273,8 +281,12 @@ public sealed class MapExportComposerTests
         // Well clear of the tree/goal cluster at (10,10) — this map is testing OB19 alone.
         var intent = new
         {
-            teams = new[] { new { id = "red", name = "Red", color = "red" } },
-            spawns = new[] { new { team = "red", point = new { x = 5, y = 0, z = 35 }, yaw = 0 } },
+            teams = new[] { new { id = "red", name = "Red", color = "red" }, new { id = "blue", name = "Blue", color = "blue" } },
+            spawns = new[]
+            {
+                new { team = "red", point = new { x = 5, y = 0, z = 35 }, yaw = 0 },
+                new { team = "blue", point = new { x = 35, y = 0, z = 35 }, yaw = 0 },
+            },
             destroyables = new[]
             {
                 new
@@ -317,8 +329,12 @@ public sealed class MapExportComposerTests
 
         var intent = new
         {
-            teams = new[] { new { id = "red", name = "Red", color = "red" } },
-            spawns = new[] { new { team = "red", point = new { x = 5, y = 0, z = 35 }, yaw = 0 } },
+            teams = new[] { new { id = "red", name = "Red", color = "red" }, new { id = "blue", name = "Blue", color = "blue" } },
+            spawns = new[]
+            {
+                new { team = "red", point = new { x = 5, y = 0, z = 35 }, yaw = 0 },
+                new { team = "blue", point = new { x = 35, y = 0, z = 35 }, yaw = 0 },
+            },
             destroyables = new[]
             {
                 new

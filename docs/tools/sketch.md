@@ -65,9 +65,13 @@ carries the plan's game settings, so its export needs nothing from Configure. Wh
 build left out of it, sits behind **one button** in the bar — *Download blocked* or *Save blocked* with the number
 of rules beside it, or *Left out* and *Warnings* where nothing stops it — which opens the findings as a list of
 rules (`ProblemList`, `docs/client/ui-conventions.md`): the download's refusal, the save's refusal or the
-warnings a landed save carried, and the declines the 3-D build raised. A refused download opens it. Where the
-export refused, each of its rules carries **Open Configure**, which is where a hand-drawn board's teams, spawns
-and objectives are stated. In the 3-D preview the declines are a *N left out* button in the overlay bar, opening
+warnings a landed save carried, the board's play rules, and the declines the 3-D build raised. **The play rules
+are `GET /map/{slug}/findings`**, read on opening and again a moment after a save lands or a piece is placed,
+moved or deleted, so a board whose sides no walk joins says so while it is being drawn. The export refuses on the
+same reading (*Refusals and complaints* below), so a refusal among them already reads *Download blocked* before
+Download is pressed. A refused download opens the list. Where the export refused, each of its rules but the
+play rules carries **Open Configure**, which is where a hand-drawn board's teams, spawns and objectives are
+stated; a play rule is answered on the drawing. In the 3-D preview the declines are a *N left out* button in the overlay bar, opening
 the same list on that kind. Building the export costs the server a world, so **Download** needs an account on
 the whitelist and is greyed for anyone else (`docs/access.md`). The phases run in order, Draw's *Next* going on
 to Terraform. A draft that was never drawn on is discarded on the way out. A caller who may not change the map
@@ -991,7 +995,9 @@ destroyable and a core are offered at two teams only; a control point belongs to
 Each writes through `POST /map/{slug}/intent/pieces`, which places the piece and every image the symmetry draws
 of it (`PlayPieceAdd`): a spawn goes to the first team that has none and faces the middle of the board, a team's
 first wool takes its colour and every later one the next dye no wool on the board has, and a goal takes the
-default structure and a control point a 7-block square pad. A map stating no teams takes the ones its symmetry gives — red and blue at two — with the first
+default structure and a control point a 7-block square pad. A room's marker stands at the middle of the rectangle,
+moved half a block where the room is odd across one axis only, since a pad squares only on a marker whose two axes
+share a parity (`WX3`). A map stating no teams takes the ones its symmetry gives — red and blue at two — with the first
 piece placed, so every piece names a team the map has. **Only an orbit's authored image is picked**: the images
 the symmetry draws of it are drawn dashed and fainter, a click on one picks nothing, and each moves, turns and goes
 with its authored image. **A spawn or wool room placed where no ground lies also draws a rectangle of ground the size
@@ -2688,6 +2694,14 @@ band, and a term with no band yet says nothing. Nothing is summed or ranked: a m
 play and the author weighs it. Compiled from a seed plan, the sketch measures what the plan measures — 984 of
 989 values over the 49 seeds — and the rest are where a centre island straddles both images of a rot_180 board,
 whose team is the deriver's tie to break. A plan a map still holds as history is asked nothing.
+
+**The pieces, the board's structure and its seams are what the export refuses on** (`SketchPlayCheck`).
+`GET /findings` and `GET /map/{slug}/export` ask them by one call, so a refusal the sketch lists is the refusal
+that stops the download: `409 the board is not playable as drawn`, carrying every refusal among them, asked after
+the export's own gates. The walks they ask are over the sketch's ground and its build cells, so two sides joined
+by neither are cut apart however narrow the void between them — a wool the other team's spawn cannot walk to is
+`PL9` — where the built world's walk (`EX1`) takes a running jump across four blocks. The measures stay
+complaints, and a rule an admin sets to `hint` stops nothing here, as anywhere.
 
 ## The API
 

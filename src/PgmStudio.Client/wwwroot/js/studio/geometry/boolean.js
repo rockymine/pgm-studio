@@ -190,14 +190,23 @@ export function settleGroups(shapes, stated = [], baseline = new Map(), previous
   // A piece whose carried id another group already answers to takes a fresh one: an id is what a group's name
   // and mirroring are keyed by, and two groups answering to it would hand one of them the other's.
   const used = new Set([...keptIds, ...[...matched].map(piece => piece.id)]);
+  // A name answers to one group: a piece no stated group named takes the first `Group N` no other group has.
+  const named = new Map([...kept, ...matched].map(group => [group.name, group.id]));
+  const freeName = () => {
+    let number = 1;
+    while (named.has(`Group ${number}`)) number++;
+    return `Group ${number}`;
+  };
   let fresh = 0;
-  pieces.forEach((piece, index) => {
+  pieces.forEach((piece) => {
     if (matched.has(piece)) return;
-    if (!used.has(piece.id)) { used.add(piece.id); return; }
-    do { piece.id = `isl_${Date.now()}_${fresh++}`; } while (used.has(piece.id));
-    piece.name = `Group ${index + 1}`;
-    piece.mirrors = true;
+    if (used.has(piece.id)) {
+      do { piece.id = `isl_${Date.now()}_${fresh++}`; } while (used.has(piece.id));
+      piece.name = freeName();
+      piece.mirrors = true;
+    } else if (named.has(piece.name) && named.get(piece.name) !== piece.id) piece.name = freeName();
     used.add(piece.id);
+    named.set(piece.name, piece.id);
   });
 
   // The kept groups' parts, each island of its own shapes one part.
