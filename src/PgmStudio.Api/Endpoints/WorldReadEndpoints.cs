@@ -142,8 +142,9 @@ internal static class WorldReads
 }
 
 /// <summary>One world read that answers a picture: the world is loaded once, the view is drawn, and a view
-/// that draws nothing is a 422 rather than an empty image.</summary>
-[Queued]
+/// that draws nothing is a 422 rather than an empty image. A picture already kept, and the 304 that says the
+/// browser holds it, are answered without a turn in the build queue; only a world that has to be built waits.</summary>
+[Queued(OnMiss = true)]
 internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
     : EndpointWithoutRequest
 {
@@ -224,6 +225,14 @@ internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader
             }
         }
 
+        var queued = await HttpContext.RequestServices.GetRequiredService<BuildQueue>().TurnOfAsync(HttpContext);
+        using var place = queued.Turn;
+        if (place is null)
+        {
+            HttpContext.Response.Headers.Remove("ETag");
+            await BuildQueue.RefuseBusyAsync(HttpContext, queued);
+            return;
+        }
         using var turn = await TurnAsync(ct);
         var read = WorldReads.Build(map, documents);
 

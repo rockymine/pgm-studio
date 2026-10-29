@@ -494,8 +494,8 @@ by default — and is held under `Drawings:Budget` bytes, 512 MB unless set, by 
 recently asked for. The text twins are not kept there; they are answered from the built world.
 
 **Eye pictures are drawn one at a time.** A picture holds every core while it is drawn and a gallery asks for a dozen at
-once, so a request that finds no kept picture takes a turn before the world is built and the picture drawn, and a
-request that finds one takes no turn. The eye's scenes, and the last twenty-four pictures asked of a world for
+once, so a request that finds no kept picture takes a turn in the build queue and then the drawing's own before
+the world is built and the picture drawn, and a request that finds one, or the 304 for it, takes neither. The eye's scenes, and the last twenty-four pictures asked of a world for
 the report and the text twin, are kept in memory for as long as the world is.
 
 **A pixel is cast four times only where it differs from a neighbour.** Every pixel's first ray is cast, and

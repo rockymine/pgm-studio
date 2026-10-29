@@ -11,7 +11,12 @@ namespace PgmStudio.Api.Services;
 /// starting at once. Inherited, so a base class of render endpoints marks every render.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, Inherited = true)]
-public sealed class QueuedAttribute : Attribute;
+public sealed class QueuedAttribute : Attribute
+{
+    /// <summary>The route answers some requests without building — a picture already kept — and takes its turn
+    /// itself (<see cref="BuildQueue.TurnOfAsync"/>) only where it builds, so a kept answer never waits.</summary>
+    public bool OnMiss { get; set; }
+}
 
 /// <summary>What the build queue allows, read from <c>Builds</c> in the configuration.</summary>
 /// <param name="Slots">How many queued requests run at once on the whole studio.</param>
@@ -131,7 +136,7 @@ public sealed class BuildQueue(BuildQueueOptions options)
     /// access rules refuse never takes one.</summary>
     public static async Task QueueAsync(HttpContext http, RequestDelegate next)
     {
-        if (http.GetEndpoint()?.Metadata.GetMetadata<QueuedAttribute>() is null)
+        if (http.GetEndpoint()?.Metadata.GetMetadata<QueuedAttribute>() is not { OnMiss: false })
         {
             await next(http);
             return;
@@ -177,9 +182,10 @@ public sealed class BuildQueue(BuildQueueOptions options)
     /// answer. Applied to every endpoint beside <see cref="AccessRules"/>.</summary>
     public static void Apply(FastEndpoints.EndpointDefinition endpoint)
     {
-        if (!endpoint.EndpointType.IsDefined(typeof(QueuedAttribute), inherit: true)) return;
+        if (endpoint.EndpointType.GetCustomAttributes(typeof(QueuedAttribute), inherit: true)
+                is not [QueuedAttribute queued, ..]) return;
         endpoint.Description(b => b
-            .WithMetadata(new QueuedAttribute())
+            .WithMetadata(queued)
             .Produces<Contracts.RefusalDto>(429, "application/json"));
     }
 }

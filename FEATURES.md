@@ -69,6 +69,10 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   maps*) beside the newest map drawn in game; *Continue working* as picture cards; tool tiles for Generator,
   Shape catalog, Library and Rules; a banner to the glossary. `MapThumb` keeps a placeholder where a map cannot
   be drawn, over `GET /api/map/{slug}/render/picture`. `docs/client/routing-and-ia.md`.
+- **A kept map picture never waits (`C120`).** A render answers a picture already drawn, or its 304, without a
+  turn in the build queue (`[Queued(OnMiss = true)]`), so a landing page's thumbnails no longer queue behind
+  builds; a recent map's card asks for 480 × 270 rather than the hero's 960 × 540, and a 429 is asked again
+  after a wait doubling from one second. `docs/access.md`, `docs/client/routing-and-ia.md`.
 - **The editors draw one bar (`C103`).** Plan, Sketch and Configure replace their topbar and flow bar with
   `EditorBar`: the crumb *Maps › the map's name* with `StageSwitch` beside it — a menu to the map's other tools
   where it holds them, set on the crumb's baseline — then the phase and its steps (a *Step n of m* menu below

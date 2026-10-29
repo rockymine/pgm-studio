@@ -128,8 +128,9 @@ the studio mark on a token-coloured panel.
 **A map picture is `GET /api/map/{slug}/render/picture`, over a placeholder.** `MapThumb` holds a fixed 16:9 box
 with the map's initial in it, loads the picture lazily on top and fades it in. A map that is not built (a sketch
 layout and the world compiled from it) asks for no picture, since only a built one is sure to have ground to frame; a refused one (422 no ground, 503 `RQ10` without textures, a failed request) leaves the
-placeholder, and a 429 from the build queue is asked again after its `Retry-After`, so a broken-image icon never
-shows.
+placeholder, and a 429 from the build queue is asked again after a wait that doubles from one second, never
+longer than its `Retry-After`, up to four times, so a broken-image icon never shows. The hero asks for 960 × 540 and
+a recent map's card for 480 × 270, the size it is shown at.
 
 **Your recent maps lists up to three maps.** They are the ones the reader changed themselves, newest first
 (`youWroteAt` from `GET /api/maps`), each card linking into the tool its row on the maps page opens, with the
