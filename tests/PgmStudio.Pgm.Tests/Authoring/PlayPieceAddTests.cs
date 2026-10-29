@@ -33,6 +33,23 @@ public sealed class PlayPieceAddTests
     }
 
     [Test]
+    public async Task A_room_placed_odd_across_one_axis_only_has_a_marker_a_pad_can_square_on()
+    {
+        var placed = new Rect(-36, 3, -18, 16);   // 18 across x, 13 across z: the centre is (-27, 9.5)
+        var rot180 = new SymmetryIntent { Mode = "rot_180", CenterX = 0, CenterZ = 0 };
+
+        var (spawned, _, _) = PlayPieceAdd.Apply(Board(), PlayPieceKinds.Spawn, placed, board: rot180);
+        foreach (var spawn in spawned!.Spawns)
+            await Assert.That(SpawnPad.MixedParity(spawn.Point.X, spawn.Point.Z)).IsFalse()
+                .Because($"spawn {spawn.Id} at ({spawn.Point.X}, {spawn.Point.Z}) would refuse WX3");
+
+        var (wooled, _, _) = PlayPieceAdd.Apply(Board(), PlayPieceKinds.WoolRoom, placed, board: rot180);
+        foreach (var wool in wooled!.Wools!)
+            await Assert.That(SpawnPad.MixedParity(wool.Spawn.X, wool.Spawn.Z)).IsFalse()
+                .Because($"wool {wool.Id} at ({wool.Spawn.X}, {wool.Spawn.Z}) would refuse WX3");
+    }
+
+    [Test]
     public async Task A_spawn_goes_to_a_team_with_none_and_is_refused_once_every_team_has_one()
     {
         var oneSided = Board() with { Spawns = [new SpawnIntent { Id = "spawn-red", Team = "red", Protection = [new Rect(-40, -6, -30, 6)] }] };

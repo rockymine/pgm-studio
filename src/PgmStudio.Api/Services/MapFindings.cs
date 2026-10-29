@@ -46,16 +46,19 @@ public static class MapFindings
         if (intent is not null)
         {
             var layoutJson = layoutBytes is { Length: > 0 } ? Encoding.UTF8.GetString(layoutBytes) : null;
-            var layout = layoutJson is null ? null : SketchLayout.Parse(layoutJson);
-            // A wool stating no door is asked with the one its build gives it.
-            if (layoutJson is not null) intent = WoolDoors.Settled(intent, layoutJson);
-            findings.AddRange(IntentCheck.Check(intent, layout?.Setup?.Board));
-            findings.AddRange(RoomCheck.Check(intent, RoomStyleScope.StylesOf(layout)));
-            if (layoutJson is not null)
+            if (layoutJson is null)
             {
-                findings.AddRange(SketchBoardCheck.Check(layoutJson, intent, layout?.Setup?.Board));
-                findings.AddRange(SketchSeamCheck.Check(layoutJson, intent, layout?.Setup?.Board));
-                findings.AddRange(SketchMeasures.Check(layoutJson, intent, layout?.Setup?.Board));
+                findings.AddRange(IntentCheck.Check(intent));
+                findings.AddRange(RoomCheck.Check(intent, RoomStyleScope.StylesOf((SketchLayout?)null)));
+            }
+            else
+            {
+                var layout = SketchLayout.Parse(layoutJson);
+                // The board's play rules are the ones the export refuses on, asked here by the same call.
+                findings.AddRange(SketchPlayCheck.Check(layoutJson, intent));
+                var settled = WoolDoors.Settled(intent, layoutJson);
+                findings.AddRange(RoomCheck.Check(settled, RoomStyleScope.StylesOf(layout)));
+                findings.AddRange(SketchMeasures.Check(layoutJson, settled, layout?.Setup?.Board));
             }
         }
 

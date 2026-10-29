@@ -43,6 +43,8 @@ public static class PlayPieceAdd
             return Refuse(RequestRules.Unreadable, "placed", "the placed rectangle has no area");
 
         var (cx, cz) = ((placed.MinX + placed.MaxX) / 2, (placed.MinZ + placed.MaxZ) / 2);
+        // A room's marker shares its parity across both axes, which is the only marker a pad can be squared on.
+        var (markerX, markerZ) = SpawnPad.SameParity(cx, cz);
         MapIntent added;
         StampId stamp;
         switch (kind)
@@ -61,7 +63,7 @@ public static class PlayPieceAdd
                 var door = Facing(cx, cz, symmetry);
                 var authored = new SpawnIntent
                 {
-                    Team = owner, Stamp = stamp, Point = new Pt(cx, 0, cz), Protection = [placed],
+                    Team = owner, Stamp = stamp, Point = new Pt(markerX, 0, markerZ), Protection = [placed],
                     Yaw = YawOf(door), Doors = [StatedDoor.Centred(RoomEdges.Nearest(door, RoomEdges.All)!.Value)],
                 };
                 added = intent with { Spawns = [.. intent.Spawns, .. Orbit(new MapIntent { Spawns = [authored] }).Spawns] };
@@ -70,7 +72,7 @@ public static class PlayPieceAdd
             case PlayPieceKinds.WoolRoom:
             {
                 stamp = new StampId("wool", Unit((intent.Wools ?? []).Select(wool => wool.Stamp), "wool"), 0);
-                var authored = new WoolIntent { Owner = owner, Stamp = stamp, Spawn = new Pt(cx, 0, cz), Protection = [placed] };
+                var authored = new WoolIntent { Owner = owner, Stamp = stamp, Spawn = new Pt(markerX, 0, markerZ), Protection = [placed] };
                 var images = Orbit(new MapIntent { Wools = [authored] }).Wools ?? [];
                 added = intent with { Wools = [.. intent.Wools ?? [], .. Coloured(intent.Wools ?? [], images, teams)] };
                 break;

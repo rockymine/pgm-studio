@@ -163,6 +163,13 @@ them one rather than with the contract work that shipped them.
 The depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection highlight);
 what is gathered here is the parked and dormant slices of the same surface.
 
+- [ ] **TS237 — A hand-drawn board has a way into Configure.** The *Sketch ▾* menu enables Configure only once the
+  map has a world (`MapLayers.Holds` → `HasSurface`, `Models/MapLayers.cs:17`), and the world is built only by
+  Download (`BuildWorldIfMissingAsync`), so a first-time author reaches Review › Notes with *Next* greyed and no
+  word of either. Give Review's last step the finish — *Build & continue in Configure*, `POST …/sketch/finish`
+  then the route — and title the disabled menu entry with what makes it. Evidence: a fresh-eyes review run found
+  Configure only after downloading. `docs/tools/sketch.md`.
+
 ### Painting terrain
 
 - [ ] **TS51 — Scoping the paint repaint, and the preview it would pay for.** A full board paint is ~2.0s and
@@ -498,6 +505,12 @@ the skerry layout as the board that shows the over-warning is gone.
 - [ ] **G286 — A step a player cannot walk is 3 blocks.** `EL1`, `SP8`, `WL11` and `WX11` fire at 2. A 2-block step is fine where a block can be placed; 3 or more is the fault, on plan seams and above all
   out of a spawn. Lower is always better, so a soft term prefers it. Read the thresholds from
   `Walk.FreeRise`/`Walk.ScrambleStep` rather than literals. `docs/generator/`.
+- [ ] **G301 — `CT12` measures a strait no build region spans.** `PieceInterfaces.IslandGaps`
+  (`PieceInterfaces.cs:104`) pairs two landmasses only where one build region touches both, so two team sides
+  whose build regions each stop short of the gap are no pair and the strait goes unmeasured — a 2-block gap
+  on a rot_180 board raised no `CT12` (`PL9` refused it). Pair the two team sides of a two-team wool board
+  whatever the build regions do, and keep the region test for `direct` alone. Lands with `G285`'s one measure if
+  that comes first. `docs/generator/rules.md`.
 - [ ] **G287 — A corridor is its size band's width.** `G2` is three numbers today: the size band's text, 10
   blocks in the plan check (`ContactGraph.CorridorMin`) and 2 cells in producibility. It is the composer's band
   width, a multiple of 4: 8, 12, 16, 20, for generated wool layouts. What `G2` asks of a build region is open

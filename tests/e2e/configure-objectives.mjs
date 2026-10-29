@@ -113,6 +113,20 @@ checks.add("the dig depth is spelled out", /digging 4 blocks/.test(casing));
 
 checks.add("the Cores phase raised nothing", featureFaults().length === 0, featureFaults().join(" | "));
 
+// ── a wool stating no colour is its owner's ─────────────────────────────────────────────────────────
+checks.section("the wools a sketch places, stating no colour, open as their owners' colours");
+
+// A sketch places each team's first wool with no colour of its own, so two teams' wools both state "".
+const firstOfEach = [...new Map((intent.wools ?? []).map((wool) => [wool.owner, wool])).values()];
+await arrange({ wools: firstOfEach.map((wool) => ({ ...wool, color: "" })) });
+await openPhase("Wools", { canvas: true });
+await page.waitForSelector(".panel-list", { timeout: 60000 });
+const woolRows = await page.locator(".panel-list .list-label").allInnerTexts();
+const teamNames = (intent.teams ?? []).map((team) => team.color.replace(/_/g, " ").toLowerCase());
+checks.add("each wool is listed under its team's colour",
+  teamNames.every((name) => woolRows.some((row) => row.toLowerCase() === name)), woolRows.join(" · "));
+checks.add("the Wools phase raised nothing", featureFaults().length === 0, featureFaults().join(" | "));
+
 // ── one gate across the objective phases ───────────────────────────────────────────────────────────
 checks.section("a core-only map is not held behind an empty wool slice");
 

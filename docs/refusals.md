@@ -641,8 +641,8 @@ to read next.
 ```json
 {
   "rule": "PL9", "family": "PL", "owner": "PgmStudio.Pgm.Plan.PlanRules.WoolUnreachable",
-  "means": "A wool cannot be reached from a capturing team's spawn at all.",
-  "fix": "Nothing walkable connects the capturing team's spawn to this wool: add a piece bridging the gap, or widen a border narrower than a corridor. Distance here is the walk over the surface, not the straight line.",
+  "means": "A wool has no route from a capturing team's spawn.",
+  "fix": "Either add a shape to `shapes` or a piece to `pieces` with a shared edge with the ground on each side, or add a build region to `build.areas` or `zones` that touches both.",
   "category": "unplayable", "concerns": ["plan", "objective", "spawn"]
 }
 ```

@@ -20,7 +20,8 @@
         @if (ProblemsShown)
         {
           <span class="problems-pop-host">
-            <button type="button" class="problems-btn@(Stopped ? null : " problems-btn--warn")" aria-expanded="@(popOpen ? "true" : "false")"
+            @* Keyed on its state: the glyph changes with it, and lucide has already swapped the old one for an svg. *@
+            <button type="button" @key="Stopped" class="problems-btn@(Stopped ? null : " problems-btn--warn")" aria-expanded="@(popOpen ? "true" : "false")"
                     @onclick="() => TogglePop(null)">
               <Icon Name="@(Stopped ? "circle-x" : "triangle-alert")" />@ProblemsLabel<span class="problems-btn-n">@ProblemRules</span>
             </button>

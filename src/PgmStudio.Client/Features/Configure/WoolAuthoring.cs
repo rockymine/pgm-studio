@@ -10,8 +10,8 @@ using PgmStudio.Geom;
 // parses it on init, mutates its part, writes it back and marks dirty. A wool's supply is a spawner unless the
 // spawn step finds a chest of its colour in its room and the author keeps it. The teams / symmetry / islands every
 // step reads first live in AuthoringContext, which the core steps read too. Positions follow the confirmed
-// symmetry (orbit), exactly like spawns/protection; the wool COLOUR is author-assigned/confirmed, never
-// defaulted to the team colour.
+// symmetry (orbit), exactly like spawns/protection. A wool stating no colour is its owner's colour, which is
+// what the export writes, so the steps read and match it as that colour.
 public static class WoolAuthoring
 {
     public sealed class Monument { public string Team = ""; public double X, Y, Z; }
@@ -37,13 +37,14 @@ public static class WoolAuthoring
     {
         var wools = new List<Wool>();
         if (intent["wools"] is not JsonArray arr) return wools;
+        var teams = Ctx.LoadTeams(intent);
         foreach (var w in arr.OfType<JsonObject>())
         {
             var sp = w["spawn"] as JsonObject;
             var wool = new Wool
             {
                 Owner = Ctx.S(w, "owner"),
-                Color = Ctx.S(w, "color"),
+                Color = ColorOf(w, teams),
                 SpawnX = Ctx.D(sp, "x"), SpawnY = Ctx.D(sp, "y"), SpawnZ = Ctx.D(sp, "z"),
                 Supply = w["supply"]?.GetValue<string>(),
             };
@@ -69,7 +70,8 @@ public static class WoolAuthoring
         // The four steps between them model owner / colour / spawn / monuments / room and nothing else; the
         // plan compiler's `piece` and `entries` (which size the stamped cage and cut its doors) ride through
         // on the entry being replaced rather than being dropped by a from-scratch rebuild (IntentSlice).
-        var carry = IntentSlice.Carrier(intent, "wools", w => w["color"]?.GetValue<string>());
+        var teams = Ctx.LoadTeams(intent);
+        var carry = IntentSlice.Carrier(intent, "wools", w => ColorOf(w, teams));
 
         intent["wools"] = new JsonArray(wools.Select(w =>
         {
@@ -100,6 +102,15 @@ public static class WoolAuthoring
     private static JsonNode RectNode(Rect r) => new JsonObject { ["minX"] = r.MinX, ["minZ"] = r.MinZ, ["maxX"] = r.MaxX, ["maxZ"] = r.MaxZ };
 
     // ── colour helpers ────────────────────────────────────────────────────────────────
+    /// <summary>The colour a stated wool is: its own, else its owner team's.</summary>
+    public static string ColorOf(JsonObject wool, IEnumerable<Ctx.Team> teams)
+    {
+        var stated = NormColor(Ctx.S(wool, "color"));
+        if (stated.Length > 0) return stated;
+        var owner = Ctx.S(wool, "owner");
+        return NormColor(teams.FirstOrDefault(team => team.Id == owner)?.Color);
+    }
+
     public static string Hex(string color) => GameColors.DyeHex(color);
 
     /// <summary>A dye colour as a person reads it, in sentence case: <c>light_blue</c> is "Light blue".</summary>

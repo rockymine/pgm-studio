@@ -11020,6 +11020,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   under the box what they take; Soft rim shows its default, 0, a hard edge; a paint rule's empty conditions read
   *Any*. A stack row is the operation's icon and the name across the row: the kind tag beside a renamed
   modifier is gone, and the row's buttons take no room until hover or pick.
+- **The sketch hears its board's play rules, and the export refuses on them (`TS236`).** The Problems button
+  lists `GET /map/{slug}/findings`, read on opening and a moment after a save lands or a piece changes, so a board
+  whose sides no walk joins reads *Download blocked* with `PL9` before Download is pressed; the export refuses the
+  same reading (`SketchPlayCheck`), 409 `the board is not playable as drawn`. A sketch-placed spawn or wool room
+  takes a marker a pad squares on (`WX3`), a dragged rectangle no longer stores its drag ends (`M0090` carries
+  every stored one), a new group takes the first free *Group N*, and Configure's wool steps read a wool stating
+  no colour as its owner's. `docs/tools/sketch.md`, `docs/tools/configure.md`.
 - **A board's layers are a list in the sidebar (`TS235`).** Every canvas phase's sidebar opens on the floors,
   highest first, each its name, its base y and an eye that hides it in the 2-D drawing and the 3-D preview alike;
   Draw adds one above. In Ground a picked row opens the layer in the inspector — what it holds, its name, base and

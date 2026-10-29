@@ -117,6 +117,23 @@ checks.add("the stored shape is a polyline", !!line, shapes.map((shape) => shape
 checks.add("holding the three points it was clicked through", line?.vertices?.length === 3, `${line?.vertices?.length}`);
 checks.add("with the band the tool gives it", line?.radius === 3 && line?.stroke_edge === "solid",
   `${line?.radius} · ${line?.stroke_edge}`);
+
+// ── a dragged rectangle is stored as a shape, without the drag that drew it ───────────────────────────────
+checks.section("a dragged rectangle is stored without the two blocks the drag ran between");
+await linePage.locator('.canvas-dock button[aria-label="Rectangle"]').click();
+await linePage.mouse.move(box.x + box.width * 0.30, box.y + box.height * 0.30);
+await linePage.mouse.down();
+await linePage.mouse.move(box.x + box.width * 0.45, box.y + box.height * 0.42, { steps: 6 });
+await linePage.mouse.up();
+let drawn;
+for (let attempt = 0; attempt < 20 && !drawn; attempt++) {
+  await linePage.waitForTimeout(500);
+  shapes = (await api(`/map/${draft.slug}/sketch`)).layers?.flatMap((layer) => layer.layout?.shapes ?? []) ?? [];
+  drawn = shapes.find((shape) => shape.type === "rectangle" && shape.id !== "land");
+}
+checks.add("the rectangle is stored", !!drawn, shapes.map((shape) => shape.type).join(", "));
+checks.add("stating its corners and no drag ends", drawn && !("from" in drawn) && !("to" in drawn),
+  JSON.stringify(drawn ?? {}));
 checks.add("the polyline page raised no fault", (linePage.faults ?? []).length === 0, (linePage.faults ?? []).join(" | "));
 
 await browser.close();

@@ -1,6 +1,8 @@
 using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Authoring;
+using PgmStudio.Pgm.Plan;
+using PgmStudio.Pgm.Sketch;
 using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Export.Tests;
@@ -87,6 +89,46 @@ public sealed class BuildAndComposeGateChainTests
         await Assert.That(result.Refusal).IsNull()
             .Because($"it answered {result.Refusal?.Message}");
         await Assert.That(result.Xml).IsNotNull();
+    }
+
+    /// <summary>Two plates two blocks apart, nothing drawn or buildable between them: a sprint jump clears the
+    /// gap, so the built world's walk joins them, but no walk a match is played over does.</summary>
+    private const string TwoPlatesAJumpApart =
+        """
+        {"layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[
+          {"id":"a","type":"rectangle","operation":"add","min_x":-40,"min_z":-20,"max_x":-1,"max_z":20,"base_height":1},
+          {"id":"b","type":"rectangle","operation":"add","min_x":1,"min_z":-20,"max_x":40,"max_z":20,"base_height":1}],
+         "groups":[]} }]}
+        """;
+
+    /// <summary>A team on each plate, each defending a wool on its own plate, every piece in its room.</summary>
+    private static MapIntent Sides() => new()
+    {
+        Teams = [new TeamDef { Id = "red", Color = "red" }, new TeamDef { Id = "blue", Color = "blue" }],
+        Spawns =
+        [
+            new SpawnIntent { Id = "spawn-red", Team = "red", Point = new Pt(-30.5, 2, 0.5), Yaw = 270, Protection = [new Rect(-36, -5, -25, 6)] },
+            new SpawnIntent { Id = "spawn-blue", Team = "blue", Point = new Pt(30.5, 2, 0.5), Yaw = 90, Protection = [new Rect(25, -5, 36, 6)] },
+        ],
+        Wools =
+        [
+            new WoolIntent { Id = "wool-red", Owner = "red", Color = "red", Spawn = new Pt(-15.5, 2, 0.5), Protection = [new Rect(-20, -4, -11, 5)] },
+            new WoolIntent { Id = "wool-blue", Owner = "blue", Color = "blue", Spawn = new Pt(15.5, 2, 0.5), Protection = [new Rect(11, -4, 20, 5)] },
+        ],
+    };
+
+    /// <summary>The sides of a board are joined by ground or a build area, never by a jump: a wool the other
+    /// team cannot walk to refuses the export under the rule <c>GET /findings</c> names it by.</summary>
+    [Test]
+    public async Task Sides_a_jump_apart_refuse_under_the_rule_the_findings_name()
+    {
+        var result = MapExportComposer.BuildAndCompose(Doc(), TwoPlatesAJumpApart, Sides());
+
+        await Assert.That(result.Refusal).IsNotNull();
+        await Assert.That(result.Refusal!.Error).IsEqualTo("the board is not playable as drawn");
+        await Assert.That(result.Refusal!.Findings.Select(finding => finding.Rule)).Contains(PlanRules.WoolUnreachable);
+        await Assert.That(result.Refusal!.Findings.Select(finding => finding.Rule).Distinct())
+            .IsEquivalentTo(SketchPlayCheck.Check(TwoPlatesAJumpApart, Sides()).Refusals.Select(finding => finding.Rule).Distinct());
     }
 
     /// <summary>A King of the Flag board: a spawn on the left plate and a flag post on the right one.</summary>
