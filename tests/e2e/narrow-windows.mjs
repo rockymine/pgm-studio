@@ -86,6 +86,16 @@ try {
   await page.waitForURL(/\/generator/, { timeout: 10000 });
   await page.waitForTimeout(300);
   checks.add("a link closes it", !(await visible(".app-nav-panel .app-nav-link")));
+  await open("/");
+  await page.click(".app-nav-menu");
+  await page.waitForTimeout(300);
+  const tall = await page.evaluate(() => document.scrollingElement.scrollHeight > window.innerHeight);
+  await page.mouse.move(370, 600);
+  await page.mouse.wheel(0, 800);
+  await page.waitForTimeout(400);
+  const held = await page.evaluate(() => document.scrollingElement.scrollTop);
+  checks.add("the page behind an open menu holds still", tall && held === 0, `taller than the window ${tall}, scrolled ${held}`);
+  await page.keyboard.press("Escape");
 
   checks.section("a page bar is drawn only where it carries something");
   for (const path of ["/maps", "/rules", "/glossary"]) {

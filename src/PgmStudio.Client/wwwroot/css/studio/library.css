@@ -67,17 +67,7 @@
 .lib-strip-gap { flex: 1 1 auto; }
 .lib-strip .lib-count { margin: 0; }
 
-.lib-search {
-  display: flex; align-items: center; gap: var(--space-2); flex: 0 1 260px; min-width: 180px;
-  height: var(--control-height); padding: 0 var(--space-2);
-  background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--radius-sm);
-}
-.lib-search:focus-within { border-color: var(--accent); }
-.lib-search svg { width: var(--icon-xs); height: var(--icon-xs); color: var(--text-muted); flex: 0 0 auto; }
-.lib-search-input {
-  flex: 1; min-width: 0; height: 100%; border: 0; background: transparent;
-  color: var(--text-primary); font: inherit; font-size: var(--font-sm); outline: none;
-}
+.lib-search { flex: 0 1 260px; min-width: 180px; }
 
 .lib-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: var(--space-3); }
 

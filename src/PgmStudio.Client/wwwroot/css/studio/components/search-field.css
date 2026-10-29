@@ -1,0 +1,12 @@
+/* A search box: the glyph inside the field's border, the input filling the rest. */
+.search-field {
+  display: flex; align-items: center; gap: var(--space-2); min-width: 0;
+  height: var(--control-height); padding: 0 var(--space-2);
+  background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--radius-sm);
+}
+.search-field:focus-within { border-color: var(--accent); }
+.search-field svg { width: var(--icon-xs); height: var(--icon-xs); color: var(--text-muted); flex: 0 0 auto; }
+.search-field-input {
+  flex: 1; min-width: 0; height: 100%; border: 0; background: transparent;
+  color: var(--text-primary); font: inherit; font-size: var(--font-sm); outline: none;
+}

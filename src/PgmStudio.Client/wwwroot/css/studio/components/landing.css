@@ -17,9 +17,7 @@
 .landing-hero-picture { border-radius: calc(var(--radius-md) * 2); }
 
 .landing-section { display: flex; flex-direction: column; gap: var(--space-5); min-width: 0; }
-.landing-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4); }
 .landing-section-title { font-size: calc(22px * var(--ui-scale)); font-weight: 700; color: var(--text-bright); }
-.landing-section-link { font-size: var(--font-lg); color: var(--accent-light); }
 .landing-empty { color: var(--text-secondary); }
 
 .landing-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-5); }

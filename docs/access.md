@@ -220,8 +220,8 @@ library entry's preview is a build from the draft, so where the caller may not b
 column and its fields take the width.
 
 **An action the caller may not take is greyed wherever it sits, with the reason on hover.** That holds on a
-page that writes nothing as much as on one that writes: the map list's *New map* and *Import a
-world*, the library's *New* and an entry's *Save*, the generator's *Make a map*, the canvas's 2D/3D switch (the 3-D preview is a build), and every save,
+page that writes nothing as much as on one that writes: the map list's *Create map* and *Import
+map*, the library's *New* and an entry's *Save*, the generator's *Make a map*, the canvas's 2D/3D switch (the 3-D preview is a build), and every save,
 build and remove in the map tools. Deleting a
 library entry is greyed for anyone but an admin, since a `DELETE` outside a map is an
 admin's (below). Reading and downloading are never greyed. `docs/client/ui-conventions.md` says how the shell

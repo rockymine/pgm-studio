@@ -5,11 +5,7 @@
 
 <div class="lib-page">
   <div class="lib-strip">
-    <label class="lib-search">
-      <i data-lucide="search" @key="@("lib-search")"></i>
-      <input class="lib-search-input" type="search" placeholder="@($"Search {Kind.Title.ToLowerInvariant()}")"
-             value="@search" @oninput="OnSearch" />
-    </label>
+    <SearchField Class="lib-search" Placeholder="@($"Search {Kind.Title.ToLowerInvariant()}")" @bind-Value="search" />
     @Filters
     <span class="lib-strip-gap"></span>
     <span class="lib-count">@Shown.Count of @Rows.Count</span>

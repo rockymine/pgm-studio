@@ -36,8 +36,6 @@ public partial class LibraryBrowser
         ? Rows
         : [.. Rows.Where(row => row.Name.Contains(search.Trim(), StringComparison.OrdinalIgnoreCase))];
 
-    private void OnSearch(ChangeEventArgs e) => search = e.Value as string ?? "";
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
         => await JS.InvokeVoidAsync("studio.icons");
 }

@@ -32,7 +32,7 @@ public partial class Maps
         (MapStage.Sketch, "Sketch"), (MapStage.Configure, "Configure"),
     ];
 
-    private static readonly (string Title, bool Agents)[] AuthorGroups = [("Agents", true), ("People", false)];
+    private static readonly (string Title, bool Agents)[] AuthorGroups = [("Agents", true), ("Users", false)];
 
     private static readonly IReadOnlyList<SelectOption> SortOptions =
     [
@@ -127,9 +127,6 @@ public partial class Maps
             };
         }
     }
-
-    private string CountLabel =>
-        maps is null ? "…" : Shown.Count == maps.Count ? $"{maps.Count}" : $"{Shown.Count} of {maps.Count}";
 
     /// <summary>Change one filter in the address, which the page reads every filter from.</summary>
     private void Go(string key, string? value) =>

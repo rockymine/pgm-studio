@@ -22,8 +22,7 @@
       {
         <FilterSidebar Class="rules-rail" Title="@($"Filters · {CountText}")" aria-label="Filter rules">
           <div class="rules-rail-group">
-            <input class="field-input" type="search" placeholder="Search rules" aria-label="Search rules"
-                   @bind="query" @bind:event="oninput" @bind:after="Reveal" />
+            <SearchField Placeholder="Search rules" @bind-Value="query" @bind-Value:after="Reveal" />
             <span class="rules-count" role="status">@CountText</span>
           </div>
           <div class="rules-rail-group">

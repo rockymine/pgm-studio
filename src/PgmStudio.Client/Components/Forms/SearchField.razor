@@ -1,0 +1,17 @@
+@namespace PgmStudio.Client.Components
+
+@* A search box: the search glyph inside the field, and each keystroke handed on as the text so far. The
+   placeholder names what is searched and is the box's accessible name. *@
+
+<label class="search-field @Class">
+  <i data-lucide="search" @key="@("search")"></i>
+  <input class="search-field-input" type="search" placeholder="@Placeholder" aria-label="@Placeholder"
+         value="@Value" @oninput="args => ValueChanged.InvokeAsync(args.Value?.ToString() ?? string.Empty)" />
+</label>
+
+@code {
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public string? Class { get; set; }
+}

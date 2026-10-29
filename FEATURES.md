@@ -69,6 +69,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   maps*) beside the newest map drawn in game; *Continue working* as picture cards; tool tiles for Generator,
   Shape catalog, Library and Rules; a banner to the glossary. `MapThumb` keeps a placeholder where a map cannot
   be drawn, over `GET /api/map/{slug}/render/picture`. `docs/client/routing-and-ia.md`.
+- **The start page and the maps list say what is there, in PGM's words (`C121`).** Gamemodes read by PGM's own
+  full names (*Destroy the Monument*, *Control the Point*) in the table and the filter, and a map with none says
+  *No gamemode*; the start page names no gamemode and has one way to the maps page; *Create map* and *Import map*
+  (an upload glyph), no count badge, *Agents* and *Users*; every search box is a `SearchField` with the search
+  glyph; the page behind an open studio menu holds still. `docs/client/routing-and-ia.md`,
+  `docs/client/ui-conventions.md`, `docs/client/writing-for-the-ui.md`.
 - **A kept map picture never waits (`C120`).** A render answers a picture already drawn, or its 304, without a
   turn in the build queue (`[Queued(OnMiss = true)]`), so a landing page's thumbnails no longer queue behind
   builds; a recent map's card asks for 480 × 270 rather than the hero's 960 × 540, and a 429 is asked again
