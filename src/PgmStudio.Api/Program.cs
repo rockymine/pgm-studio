@@ -150,7 +150,7 @@ builder.Services.SwaggerDocument(o =>
         tags["Shapes"] = "The shape vocabulary a composed board is built from.";
         tags["Terrain"] = "Materials, themes, patterns, and the previews over them.";
         tags["Themes"] = "The terrain-theme library, shared across every map.";
-        tags["Room-Styles"] = "The room-style library — what a wool cage or a spawn hall is built out of.";
+        tags["Room-Styles"] = "The room-style library — what a wool room or a spawn room is built out of.";
         tags["Rules"] = "Every rule the studio can cite, with what it means and what to do about it: the "
                       + "answer to an id carried by any finding.";
         tags["Configure"] = "The Configure wizard's own state.";

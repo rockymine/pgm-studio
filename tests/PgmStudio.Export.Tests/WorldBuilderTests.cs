@@ -61,6 +61,24 @@ public sealed class WorldBuilderTests
         await Assert.That(built.World.GetBlock(-10, 1, 10)).IsEqualTo((Blocks.Wool, 14));   // red = 14
     }
 
+    // ── the room cap ───────────────────────────────────────────────────────────────────────────
+    [Test]
+    public async Task A_room_of_either_kind_past_the_cap_is_told_so()
+    {
+        var field = new Rect(-35, -35, -5, -5);   // 30 by 30 blocks, the protection a room is framed on
+        var intent = SampleIntent();
+        intent = intent with
+        {
+            Spawns = [intent.Spawns[0] with { Protection = [field] }, intent.Spawns[1]],
+            Wools = [intent.Wools![0] with { Spawn = new Pt(-20, 1, -20), Protection = [field] }, intent.Wools[1]],
+        };
+
+        var capped = WorldBuilder.Build(Layout, intent).Declines.Where(finding => finding.Rule == RoomFrameRules.RoomIsAField);
+
+        await Assert.That(capped.Select(finding => finding.Message.Split(' ')[1])).IsEquivalentTo(new[] { "spawn", "wool" })
+            .Because("a wool room is a room, and the cap is asked of every room the world builds");
+    }
+
     // ── the bedrock box ────────────────────────────────────────────────────────────────────────
     private static string WithRoomStyles(string wool, string spawn) =>
         Layout.TrimEnd()[..^1] + $",\"roomStyles\":{{\"wool\":{wool},\"spawn\":{spawn}}}}}";

@@ -12,7 +12,7 @@ namespace PgmStudio.Domain;
 /// averaging rather than maximising is what stops one peak deciding the sky over
 /// the whole board, which is the generous cap <c>G6</c> warns is the sky-layer smell.</para>
 ///
-/// <para><b>Nothing standing on the ground is in it.</b> Not a tree, not a house, not a spawn hall or a wool
+/// <para><b>Nothing standing on the ground is in it.</b> Not a tree, not a house, not a spawn room or a wool
 /// cage, not a made thing an author hung in the air, and not an objective — a goal floats over the ground by
 /// design, so a ceiling derived from one could never be beneath it and the over-ceiling complaint could
 /// never fire. The surface is the terrain's own, before anything is placed on it.</para>

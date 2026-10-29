@@ -12,7 +12,7 @@
     <svg @ref="svgRef" class="map-canvas-svg" xmlns="http://www.w3.org/2000/svg"></svg>
   </div>
 
-  <CanvasReadout @ref="readout" />
+  <CanvasReadout @ref="readout" OnZoomClick="OnResetClick" />
 
   @* No projection toggle: this canvas is top-down only, so fit ends the row where the 2D/3D toggle ends
      Sketch's and Plan's. *@

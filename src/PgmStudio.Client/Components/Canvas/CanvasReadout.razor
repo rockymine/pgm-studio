@@ -8,7 +8,8 @@
    updates them per mousemove, which is far too often to round-trip through a Blazor render). A host whose
    zoom is C# state passes ZoomText instead; one whose JS writes the zoom leaves it at its placeholder,
    which Blazor then never diffs away. An item with nothing in it collapses (see .canvas-readout-item:empty),
-   so the cluster is only as wide as it has something to say. *@
+   so the cluster is only as wide as it has something to say. A host that passes OnZoomClick makes the zoom the
+   one item a pointer can press, fitting the board. *@
 
 <div class="canvas-readout">
   @if (ShowCursor)
@@ -19,7 +20,15 @@
   {
     <span @ref="sizeRef" class="canvas-readout-item canvas-readout-item--size"></span>
   }
-  <span @ref="zoomRef" class="canvas-readout-item">@ZoomText</span>
+  @if (OnZoomClick.HasDelegate)
+  {
+    <button type="button" @ref="zoomRef" class="canvas-readout-item canvas-readout-zoom" title="Zoom to fit"
+            @onclick="OnZoomClick">@ZoomText</button>
+  }
+  else
+  {
+    <span @ref="zoomRef" class="canvas-readout-item">@ZoomText</span>
+  }
   @ChildContent
 </div>
 
@@ -32,6 +41,9 @@
     /// <summary>Zoom text for a host that holds it in C#. Left at the placeholder when the canvas JS
     /// writes the element directly.</summary>
     [Parameter] public string? ZoomText { get; set; } = "—";
+    /// <summary>What a press on the zoom does — the host's fit — making the zoom a button; absent, it is
+    /// read-only like the rest.</summary>
+    [Parameter] public EventCallback OnZoomClick { get; set; }
     /// <summary>Extra readout items (e.g. a "no WebGL" note) appended after the zoom.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 

@@ -17,7 +17,7 @@ public sealed record EditApplied(Refusal? Refusal, object? Result = null, long? 
 /// <summary>
 /// One edit to a map's document: load it, apply the change, write it back.
 ///
-/// <para><b>Every edit route is this operation.</b> Thirty-six of them differ only in the editor they hand
+/// <para><b>Every edit route is this operation.</b> They differ only in the editor they hand
 /// over to, so what a route contributes is the lambda and the id it reads out of its path — and the loading,
 /// the revision guard, the persistence and the four ways an edit can be refused are asked once, here.</para>
 ///

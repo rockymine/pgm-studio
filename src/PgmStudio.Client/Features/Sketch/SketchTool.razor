@@ -150,7 +150,7 @@
             <svg @ref="svgRef" class="map-canvas-svg" xmlns="http://www.w3.org/2000/svg"></svg>
           </div>
 
-          <CanvasReadout @ref="readout" ShowSize />
+          <CanvasReadout @ref="readout" ShowSize OnZoomClick="OnFit" />
 
           @* The chips are overlays over the drawing, and 2-D's alone: in 3-D a layer is taken off by its eye in the
              sidebar's list, and the rotate replaces fit. *@
@@ -236,7 +236,8 @@
               <DockGroup>
                 @foreach (var placer in DressingTools.All)
                 {
-                  <DockButton Icon="@placer.Icon" Title="@placer.Name" @key="placer.Tool"
+                  var named = PropKindNames.Of(placer.Kind);
+                  <DockButton Icon="@named.Icon" Title="@named.One" @key="placer.Tool"
                               Active="@(tool == placer.Tool)" OnClick="() => SetTool(placer.Tool)" />
                 }
               </DockGroup>

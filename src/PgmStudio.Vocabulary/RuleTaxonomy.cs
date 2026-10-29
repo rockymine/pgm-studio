@@ -88,7 +88,7 @@ public enum RuleConcern
     /// <see cref="Plan"/>.</summary>
     Terrain,
 
-    /// <summary>What is built as a building: a house, a wool cage, a spawn hall.</summary>
+    /// <summary>What is built as a building: a house, a wool room, a spawn room.</summary>
     Structure,
 
     /// <summary>What is scattered on the ground: boulders, trees, paths, rivers.</summary>

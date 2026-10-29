@@ -48,17 +48,17 @@ public partial class SketchTool
     /// capture point belongs to nobody and is offered at any.</summary>
     private DockItem[] MarkerItems =>
     [
-        new(PlayPieceKinds.IronCube, "Iron cube", Icon: "pickaxe"),
+        new(PlayPieceKinds.IronCube, "Iron cube", Icon: SketchStructuralRow.IconFor(PlayPieceKinds.IronCube)),
         .. Symmetry.Order(mode) == 2
             ? new DockItem[]
             {
-                new(PlayPieceKinds.Destroyable, "Monument", Icon: "gem"),
-                new(PlayPieceKinds.Core, "Core", Icon: "flame"),
+                new(PlayPieceKinds.Destroyable, "Monument", Icon: SketchStructuralRow.IconFor(PlayPieceKinds.Destroyable)),
+                new(PlayPieceKinds.Core, "Core", Icon: SketchStructuralRow.IconFor(PlayPieceKinds.Core)),
             }
             : [],
-        new(PlayPieceKinds.ControlPoint, "Capture point", Icon: "flag"),
-        new(PlayPieceKinds.Wall, "Wall", Icon: "brick-wall"),
-        new(PlayPieceKinds.Chest, "Defence chest", Icon: "box"),
+        new(PlayPieceKinds.ControlPoint, "Capture point", Icon: SketchStructuralRow.IconFor(PlayPieceKinds.ControlPoint)),
+        new(PlayPieceKinds.Wall, "Wall", Icon: SketchStructuralRow.IconFor(PlayPieceKinds.Wall)),
+        new(PlayPieceKinds.Chest, "Defence chest", Icon: SketchStructuralRow.IconFor(PlayPieceKinds.Chest)),
     ];
 
     private async Task StepDraw(int step)

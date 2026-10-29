@@ -46,10 +46,10 @@ public static class RoomFrameRules
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Structure)]
     public const string FootprintOffPiece = "WX12";
 
-    /// <summary>A spawn room the world builds is more than 20 blocks across.</summary>
-    /// <remarks>Either set the <c>footprint</c> of the spawn to at most 20 by 20 blocks, or shrink the <c>rect</c>
-    /// of each entry in its <c>protection</c> until the room is at most 20 blocks across.</remarks>
-    [Rule(RuleCategory.Unplayable, RuleConcern.Structure, RuleConcern.Spawn)]
+    /// <summary>A spawn room or wool room the world builds is more than 20 blocks across.</summary>
+    /// <remarks>Either set the <c>footprint</c> of the spawn or wool to at most 20 by 20 blocks, or shrink the
+    /// <c>rect</c> of each entry in its <c>protection</c> until the room is at most 20 blocks across.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Structure, RuleConcern.Spawn, RuleConcern.Objective)]
     public const string RoomIsAField = "WX13";
 
     /// <summary>A spawn room or wool room has no house of its own.</summary>
@@ -470,7 +470,7 @@ public static class RoomFrames
             : new IronResolution(ironX, ironZ, 0, 0, 0, Placeable: false);
     }
 
-    /// <summary>The interior corner cells (chest stacks in a wool cage), door-wall corners first.</summary>
+    /// <summary>The interior corner cells (chest stacks in a wool room), door-wall corners first.</summary>
     public static IReadOnlyList<(int X, int Z)> InteriorCorners(RoomFrame frame) =>
     [
         (frame.InteriorMinX, frame.InteriorMinZ), (frame.InteriorMaxX - 1, frame.InteriorMinZ),

@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using PgmStudio.Client.Components;
 using PgmStudio.Geom;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Client.Features.Configure;
 
@@ -339,7 +340,7 @@ public partial class ConfigureTool : IDisposable
         {
             if (edits == carried) dirty = false;
             save = dirty ? SaveState.Unsaved : SaveState.Saved;
-            saveMessage = null;
+            saveMessage = Remarked(outcome.Raised);
         }
         else if (outcome.Status == PgmStudio.Client.Components.SaveStatus.Refused)
         {
@@ -350,6 +351,16 @@ public partial class ConfigureTool : IDisposable
         furthest = Math.Max(furthest, SliceFurthest());
         StateHasChanged();
     }
+
+    /// <summary>What a landed save was told besides that it landed — a field the studio kept nowhere among it —
+    /// in the studio's own sentences, or null where it was told nothing.</summary>
+    private static string? Remarked(IReadOnlyList<Finding> raised) => raised.Count switch
+    {
+        0 => null,
+        1 => $"Saved, with a warning: {raised[0].Message}",
+        _ => $"Saved, with {raised.Count} warnings: {string.Join(" · ", raised.Take(2).Select(finding => finding.Message))}"
+             + (raised.Count > 2 ? $" · and {raised.Count - 2} more" : ""),
+    };
 
     /// <summary>The furthest phase the rail opens. The objective phases are a group rather than a sequence, so
     /// reaching one reaches every one of them: a flag-only map is not walked through three empty objective phases

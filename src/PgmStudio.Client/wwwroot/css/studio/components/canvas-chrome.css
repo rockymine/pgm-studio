@@ -58,6 +58,9 @@
 /* The live size — what is being drawn or measured right now. Accented, because it is the one readout that
    answers a question the author is actively asking. */
 .canvas-readout-item--size { color: var(--accent-light); font-weight: 600; }
+/* The zoom, where its host fits on a press: the one item of the cluster a pointer reaches. */
+.canvas-readout-zoom { pointer-events: auto; cursor: pointer; font: inherit; font-size: var(--font-sm); }
+.canvas-readout-zoom:hover { color: var(--text-strong); }
 
 /* ── top-right: the overlay bar ── */
 .canvas-overlay-bar {
