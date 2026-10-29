@@ -351,7 +351,7 @@ public partial class SketchTool
         history.Changed += StateHasChanged;
         views.Changed += StateHasChanged;
         notes.Changed += StateHasChanged;
-        if (Phase == "info") active = "info";
+        if (Phase == PhaseWords["info"]) active = "info";
     }
 
     /// <summary>Call a bridge verb, or nothing before the canvas is mounted.</summary>

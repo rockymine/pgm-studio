@@ -70,17 +70,18 @@ try {
     const name = (await page.locator(".editor-crumb-name").textContent())?.trim() ?? "";
     checks.add("the map's name follows, as text", name.length > 0 && await page.locator(".editor-crumb-name a").count() === 0, name);
     const phase = (await page.locator(".nav-rail .nav-btn.active .nav-btn-caption").first().textContent())?.trim() ?? "?";
-    checks.add("the bar names no phase; the rail does", !(await page.locator(".editor-bar").textContent())?.includes(phase), phase);
+    checks.add("the bar names no phase; the rail does", !(await page.locator(".editor-bar").innerText()).includes(phase), phase);
     checks.add("the path is separated by slashes", (await page.locator(".editor-crumb-sep").allTextContents())
       .every(sep => sep.trim() === "/"));
 
     const word = { sketch: "Sketch", configure: "Configure" }[tool];
-    checks.add("the switcher names the tool", (await page.locator(".editor-stage--button span").first().textContent())?.trim() === word);
+    checks.add("the switcher names the tool", (await page.locator(".editor-stage--button > span:not(.map-stage-dot)").textContent())?.trim() === word);
+    checks.add("after its stage's dot", await page.locator(`.editor-stage--button > .map-stage-dot--${tool}`).count() === 1);
 
     // Alignment: the three crumb texts and the switcher's label share one baseline and one font.
     const maps = await measure(".editor-crumb-link");
     const title = await measure(".editor-crumb-name");
-    const label = await measure(".editor-crumb .editor-stage--button > span");
+    const label = await measure(".editor-crumb .editor-stage--button > span:not(.map-stage-dot)");
     for (const [what, other] of [["the map's name", title], ["Maps", maps]]) {
       checks.add(`the switcher's label shares ${what}'s baseline`, near(label.baseline, other.baseline),
         `${label.baseline} vs ${other.baseline}`);
