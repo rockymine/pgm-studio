@@ -130,7 +130,7 @@
   background: color-mix(in oklch, var(--canvas-result-fill) 45%, transparent);
 }
 /* The canvas-chrome specimen: a scrap of map for the floating controls to sit on, tall enough that the
-   readout, the layer bar and the dock are not stacked on top of each other. */
+   readout, the overlay bar and the dock are not stacked on top of each other. */
 .ds-canvas-bar-example {
   position: relative;
   height: 260px;

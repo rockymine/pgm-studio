@@ -521,19 +521,19 @@
       <p class="ds-theming-note">Three positions, each answering one question. <strong>Top-left</strong> is what the canvas
          <em>is</em> — cursor position, the live size of what is drawn, zoom (<code>CanvasReadout</code>); it is
          read-only and pointer-transparent. <strong>Top-right</strong> is what it <em>shows</em>
-         (<code>CanvasLayerBar</code>): layer chips, then camera-only actions (<code>CanvasRoundButton</code>), then
+         (<code>CanvasOverlayBar</code>): overlay chips, then camera-only actions (<code>CanvasRoundButton</code>), then
          <code>ViewModeToggle</code> in the corner. <strong>Bottom-centre</strong> is what the pointer <em>does</em>
          (<code>CanvasDock</code>), where the pointer already is.</p>
       <div class="ds-canvas-bar-example ds-canvas-sample">
         <span class="ds-axis ds-axis-x"></span>
         <span class="ds-axis ds-axis-z"></span>
         <CanvasReadout ZoomText="100%"><span class="canvas-readout-item">X 128 Z -64</span><span class="canvas-readout-item canvas-readout-item--size">48 × 32</span></CanvasReadout>
-        <CanvasLayerBar>
-          <LayerChip Icon="grid" Active>Chunks</LayerChip>
-          <LayerChip Icon="box">Blocks</LayerChip>
+        <CanvasOverlayBar>
+          <OverlayChip Icon="grid" Active>Chunks</OverlayChip>
+          <OverlayChip Icon="box">Blocks</OverlayChip>
           <CanvasRoundButton Icon="scan" Title="Fit the working bounds" />
           <ViewModeToggle Title="Isometric height preview" />
-        </CanvasLayerBar>
+        </CanvasOverlayBar>
         <CanvasDock>
           <DockGroup>
             <DockButton Icon="mouse-pointer-2" Title="Select" Active />

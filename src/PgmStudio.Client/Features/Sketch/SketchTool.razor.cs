@@ -415,7 +415,7 @@ public partial class SketchTool
     private const string ChipBlocks = "blocks";
     private const string ChipRelief = "relief";
 
-    /// <summary>What a phase puts in the layer bar, and which of those it switches on as it is entered.</summary>
+    /// <summary>What a phase puts in the overlay bar, and which of those it switches on as it is entered.</summary>
     private sealed record PhaseOverlay(string[] Offered, string[] On);
 
     private static readonly Dictionary<string, PhaseOverlay> Overlays = new()
@@ -439,7 +439,7 @@ public partial class SketchTool
 
     private static PhaseOverlay OverlaysOf(string phase) => Overlays.GetValueOrDefault(phase, Overlays["draw"]);
 
-    /// <summary>Whether this phase puts a chip in the layer bar at all.</summary>
+    /// <summary>Whether this phase puts a chip in the overlay bar at all.</summary>
     private bool ChipOffered(string chip) => OverlaysOf(active).Offered.Contains(chip);
 
     /// <summary>Switch on what the phase being entered works on. What it does not name is left as the author
@@ -474,7 +474,7 @@ public partial class SketchTool
     // Why the last drag on a plan piece was not made. The intent owns where a room is, so a move is asked
     // rather than told, and a refusal is the answer rather than a fault.
     private string? structuralNote;
-    // Why the last point removal was not made — shown in the layer bar until the bridge clears it.
+    // Why the last point removal was not made — shown in the overlay bar until the bridge clears it.
     private string? editNote;
 
     private SketchShapeRow? SelectedShape => shapes.FirstOrDefault(s => s.Id == selectedShapeId);
@@ -730,16 +730,14 @@ public partial class SketchTool
         if (handle is not null) await handle.InvokeVoidAsync("fitToBbox");
     }
 
-    /// <summary>The layers the built board is made of, as the preview payload spells them, and which of them
-    /// are switched off. Only the 3-D view has them — a 2-D drawing is one plan whatever it stacks.</summary>
-    private IReadOnlyList<string> isoLayers = [];
-    private readonly HashSet<string> isoHidden = [];
+    /// <summary>The layers switched off, by id: one set for the 2-D drawing and the 3-D preview, so taking a
+    /// floor off to look under it is the same act in either.</summary>
+    private readonly HashSet<string> hiddenLayers = [];
 
-    private async Task ToggleIsoLayer(string id)
+    private async Task ShowLayer((string Id, bool Shown) change)
     {
-        if (!isoHidden.Remove(id)) isoHidden.Add(id);
-        if (handle is not null)
-            await handle.InvokeVoidAsync("setIsoLayerShown", id, !isoHidden.Contains(id));
+        if (change.Shown) hiddenLayers.Remove(change.Id); else hiddenLayers.Add(change.Id);
+        if (handle is not null) await handle.InvokeVoidAsync("setLayerShown", change.Id, change.Shown);
         StateHasChanged();
     }
 
@@ -782,9 +780,30 @@ public partial class SketchTool
     private Task PromoteShape(string id) => handle?.InvokeVoidAsync("promoteShape", id).AsTask() ?? Task.CompletedTask;
 
     // ── Layer panel actions (S7b) ──────────────────────────────────────────────
-    private Task SelectLayer(string id) => handle?.InvokeVoidAsync("switchLayer", id).AsTask() ?? Task.CompletedTask;
+    /// <summary>The layer open in the inspector, by id; it shows only in Ground and only while it is the layer drawn
+    /// on, and a shape or a group picked after it takes the inspector back.</summary>
+    private string? pickedLayerId;
+
+    private bool GroundActive => DrawActive && !PlacesActive && !LayoutActive;
+
+    private SketchLayerRow? PickedLayer => GroundActive && pickedLayerId is { } id && id == activeLayerId
+        ? layerRows.FirstOrDefault(layer => layer.Id == id) : null;
+
+    /// <summary>A row of the list: the layer becomes the one drawn on, and in Ground it opens in the inspector.</summary>
+    private async Task PickLayer(string id)
+    {
+        if (id != activeLayerId && handle is not null) await handle.InvokeVoidAsync("switchLayer", id);
+        pickedLayerId = GroundActive ? id : null;
+    }
+
     private Task AddLayer() => handle?.InvokeVoidAsync("addLayer").AsTask() ?? Task.CompletedTask;
-    private Task DeleteLayer(string id) => handle?.InvokeVoidAsync("deleteLayer", id).AsTask() ?? Task.CompletedTask;
+
+    private async Task DeleteLayer(string id)
+    {
+        pickedLayerId = null;
+        hiddenLayers.Remove(id);
+        if (handle is not null) await handle.InvokeVoidAsync("deleteLayer", id);
+    }
     private Task RenameLayer((string Id, string Name) e) => handle?.InvokeVoidAsync("renameLayer", e.Id, e.Name).AsTask() ?? Task.CompletedTask;
     private Task SetLayerBaseY((string Id, double BaseY) e) => handle?.InvokeVoidAsync("setLayerBaseY", e.Id, e.BaseY).AsTask() ?? Task.CompletedTask;
     private Task SetLayerUnderside((string Id, UndersideSpec? Underside) e) =>
@@ -798,7 +817,7 @@ public partial class SketchTool
 
     /// <summary>A shape was selected on the canvas/panel (null = deselected).</summary>
     [JSInvokable]
-    public void OnShapeSelected(string? id) { selectedShapeId = id; if (id is not null) paintRuleId = null; selectedVertexIdx = -1; slopeControls = []; StateHasChanged(); }
+    public void OnShapeSelected(string? id) { selectedShapeId = id; if (id is not null) { paintRuleId = null; pickedLayerId = null; } selectedVertexIdx = -1; slopeControls = []; StateHasChanged(); }
 
     /// <summary>One of the plan's own pieces was picked on the canvas (null = let go). It arrives whole
     /// rather than as an id: the bridge holds the structural pieces apart from the drawn shapes, so there is
@@ -866,7 +885,7 @@ public partial class SketchTool
 
     /// <summary>A group was selected in the panel (null = deselected).</summary>
     [JSInvokable]
-    public void OnGroupSelected(string? id) { selectedGroupId = id; if (id is not null) paintRuleId = null; StateHasChanged(); }
+    public void OnGroupSelected(string? id) { selectedGroupId = id; if (id is not null) { paintRuleId = null; pickedLayerId = null; } StateHasChanged(); }
 
     /// <summary>The paint rule open in the Palette phase's inspector, by id; picking a group or a shape closes
     /// it, since the inspector shows one thing.</summary>
@@ -914,9 +933,8 @@ public partial class SketchTool
     public void OnIsoLayers(string json)
     {
         var read = JsonSerializer.Deserialize<IsoLayersMessage>(json);
-        isoLayers = read?.Layers ?? [];
-        isoHidden.Clear();
-        foreach (var id in read?.Hidden ?? []) isoHidden.Add(id);
+        hiddenLayers.Clear();
+        foreach (var id in read?.Hidden ?? []) hiddenLayers.Add(id);
         StateHasChanged();
     }
 

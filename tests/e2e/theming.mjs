@@ -231,7 +231,7 @@ checks.section("paint rules: the sidebar lists them, the inspector edits one");
 clearFaults(page);
 let ruled = false;
 try {
-  const rows = () => page.locator(".workspace-sidebar .modifier-row");
+  const rows = () => page.locator(".workspace-sidebar .stack-row");
   const before = await rows().count();
   await page.click('.workspace-sidebar button[title="Add a rule"]');
   await page.waitForTimeout(1500);

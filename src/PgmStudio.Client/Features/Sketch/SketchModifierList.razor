@@ -53,17 +53,13 @@
         var id = SketchModifierState.Id(modifier);
         var off = SketchModifierState.Off(modifier);
         var at = index;
-        <div class="geo-row modifier-row @(id == State.SelectedId ? "geo-row--selected" : null) @(off ? "modifier-row--off" : null)"
+        <div class="geo-row stack-row @(id == State.SelectedId ? "geo-row--selected" : null) @(off ? "stack-row--off" : null)"
              @key="id" role="option" aria-selected="@(id == State.SelectedId)" @onclick="() => Pick(id)">
           @* The icon is the operation, so a renamed row still says what it is; the name takes the rest of the row. *@
           <span class="geo-type-icon" title="@ModifierOps.Label(SketchModifierState.Op(modifier))"><i data-lucide="@SketchModifierState.Icon(SketchModifierState.Op(modifier))"></i></span>
           <span class="geo-label" title="@SketchModifierState.Name(modifier)">@SketchModifierState.Name(modifier)</span>
-          <span class="modifier-row-tools" @onclick:stopPropagation>
-            <Button Variant="icon" Icon="chevron-up" Writes Title="Move up" Disabled="@(at == 0)" OnClick="() => Move(id, -1)" />
-            <Button Variant="icon" Icon="chevron-down" Writes Title="Move down" Disabled="@(at == State.Modifiers.Count - 1)" OnClick="() => Move(id, 1)" />
-            <Button Variant="icon" Icon="eye" Writes Class="@(off ? "modifier-eye--off" : null)"
-                    Title="@(off ? "Switch on" : "Switch off")" OnClick="() => Toggle(id, !off)" />
-          </span>
+          <StackRowTools Index="at" Count="State.Modifiers.Count" OnMove="step => Move(id, step)"
+                         Off="off" OnToggle="on => Toggle(id, !on)" />
         </div>
       }
     </div>

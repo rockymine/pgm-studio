@@ -1,8 +1,8 @@
 @namespace PgmStudio.Client.Components
 
-@* Which projection the canvas is in, in the very corner of the layer bar. A word, not a glyph: it names the
+@* Which projection the canvas is in, in the very corner of the overlay bar. A word, not a glyph: it names the
    state it is in ("2-D" / "3-D") the way the operation pill in the dock does, and it is the one control on the
-   canvas whose click changes what every other control means — in 3-D the layer chips have nothing to toggle
+   canvas whose click changes what every other control means — in 3-D the overlay chips have nothing to toggle
    and the fit button becomes a rotate. Colour follows the mode so the state survives a glance. *@
 
 <button class="@Cls" type="button" title="@Title" disabled="@Disabled" aria-pressed="@ThreeD" @onclick="OnClick">

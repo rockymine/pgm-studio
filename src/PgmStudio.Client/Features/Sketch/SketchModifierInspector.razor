@@ -8,7 +8,7 @@
   <DetailHeader Icon="@SketchModifierState.Icon(Op)" Label="@ModifierOps.Label(Op)">
     <span class="detail-header-badges">
       @* On and off is the list row's eye, and the same eye here: one switch, wherever the modifier is seen. *@
-      <Button Variant="icon" Icon="eye" Writes Class="@(SketchModifierState.Off(Modifier) ? "modifier-eye--off" : null)"
+      <Button Variant="icon" Icon="eye" Writes Class="@(SketchModifierState.Off(Modifier) ? "stack-row-eye--off" : null)"
               Title="@(SketchModifierState.Off(Modifier) ? "Switch on" : "Switch off")"
               OnClick="() => SetBool(Off, !SketchModifierState.Off(Modifier))" />
       <Button Variant="icon" Icon="x" Title="Close" OnClick="Close" />

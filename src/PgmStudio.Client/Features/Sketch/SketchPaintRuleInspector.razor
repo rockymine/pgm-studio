@@ -13,7 +13,7 @@
     <DetailHeader Icon="paintbrush" Label="Paint rule">
       <span class="detail-header-badges">
         @* On and off is the list row's eye, and the same eye here. *@
-        <Button Variant="icon" Icon="eye" Writes Class="@(IsOff(rule) ? "modifier-eye--off" : null)"
+        <Button Variant="icon" Icon="eye" Writes Class="@(IsOff(rule) ? "stack-row-eye--off" : null)"
                 Title="@(IsOff(rule) ? "Switch on" : "Switch off")"
                 OnClick="() => Edit(edited => SetOrRemove(edited, Off, IsOff(rule) ? null : true))" />
         <Button Variant="icon" Icon="x" Title="Close" OnClick="() => OnClose.InvokeAsync()" />

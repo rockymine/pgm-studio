@@ -96,6 +96,10 @@
       <div class="phase-body" hidden="@(!(DrawActive || ThemeActive || DressingActive || ReliefActive || CamerasActive || HistoryActive))">
       <Workspace>
         <Sidebar>
+          @* A layer is the board's rather than a phase's, so its list heads every sidebar the canvas has. *@
+          <SketchLayerList Layers="layerRows" ActiveId="@activeLayerId" PickedId="@PickedLayer?.Id" Hidden="hiddenLayers"
+                           ActiveEyeClosed="@(iso.ThreeD ? null : "The layer being drawn on is always shown")"
+                           AllowAdd="@DrawActive" OnPick="PickLayer" OnAdd="AddLayer" OnShow="ShowLayer" />
           @if (ThemeActive)
           {
             @* What exists, and nothing more: the theme in hand is on the strip and what it lands on is in the
@@ -135,8 +139,6 @@
           }
           else
           {
-            <SketchLayers Layers="layerRows" ActiveId="@activeLayerId"
-                          OnRename="RenameLayer" OnSetBaseY="SetLayerBaseY" OnSetUnderside="SetLayerUnderside" />
             <SketchPanel Groups="groups" Shapes="shapes" SelectedShapeId="@selectedShapeId" SelectedGroupId="@selectedGroupId"
                          OnSelectShape="SelectShape" OnSelectGroup="SelectGroup" />
           }
@@ -149,48 +151,40 @@
 
           <CanvasReadout @ref="readout" ShowSize />
 
-          @* The chips mean different things either side of the toggle. In 2-D they are overlays over the
-             drawing; in 3-D they are the board's own layers, one chip each, because the thing
-             an author wants in a preview of a stack is to take the deck off and look under it. A board of
-             one layer shows none — there is nothing to take off — and the rotate replaces fit either way. *@
-          <CanvasLayerBar>
+          @* The chips are overlays over the drawing, and 2-D's alone: in 3-D a layer is taken off by its eye in the
+             sidebar's list, and the rotate replaces fit. *@
+          <CanvasOverlayBar>
             @if (!iso.ThreeD)
             {
               @if (ChipOffered(ChipShapes))
               {
-                <LayerChip Icon="shapes" Active="shapesOn" Title="@ChipShapesTitle"
-                           OnClick="ToggleShapes">Shapes</LayerChip>
+                <OverlayChip Icon="shapes" Active="shapesOn" Title="@ChipShapesTitle"
+                           OnClick="ToggleShapes">Shapes</OverlayChip>
               }
               @if (ChipOffered(ChipMirror))
               {
-                <LayerChip Icon="flip-horizontal-2" Active="mirrorOn" Title="@ChipMirrorTitle"
-                           OnClick="ToggleMirror">Mirror</LayerChip>
+                <OverlayChip Icon="flip-horizontal-2" Active="mirrorOn" Title="@ChipMirrorTitle"
+                           OnClick="ToggleMirror">Mirror</OverlayChip>
               }
               @if (ChipOffered(ChipChunks))
               {
-                <LayerChip Icon="grid" Active="chunksOn" Title="@ChipChunksTitle"
-                           OnClick="ToggleChunks">Chunks</LayerChip>
+                <OverlayChip Icon="grid" Active="chunksOn" Title="@ChipChunksTitle"
+                           OnClick="ToggleChunks">Chunks</OverlayChip>
               }
               @if (ChipOffered(ChipBlocks))
               {
-                <LayerChip Icon="box" Active="blocksOn" Title="@ChipBlocksTitle"
-                           OnClick="ToggleBlocks">Blocks</LayerChip>
+                <OverlayChip Icon="box" Active="blocksOn" Title="@ChipBlocksTitle"
+                           OnClick="ToggleBlocks">Blocks</OverlayChip>
               }
               @if (ChipOffered(ChipRelief))
               {
-                <LayerChip Icon="mountain" Active="reliefOn" Title="@ChipContoursTitle"
-                           OnClick="ToggleRelief">Contours</LayerChip>
+                <OverlayChip Icon="mountain" Active="reliefOn" Title="@ChipContoursTitle"
+                           OnClick="ToggleRelief">Contours</OverlayChip>
               }
               <CanvasRoundButton Icon="scan" Title="Zoom to fit (F)" OnClick="OnFit" />
             }
             else
             {
-              @foreach (var id in isoLayers)
-              {
-                <LayerChip Icon="layers" Active="@(!isoHidden.Contains(id))"
-                           Title="@($"Show layer '{id}'")"
-                           OnClick="@(() => ToggleIsoLayer(id))">@id</LayerChip>
-              }
               <CanvasRoundButton Icon="rotate-cw" Title="Turn clockwise" OnClick="iso.RotateAsync" />
             }
             @* The picture is the world the export builds, so where the drawing and the build disagree the
@@ -209,15 +203,7 @@
             }
             @* Placing a view is 2-D only: the eye is stood on a map of the canvas. *@
             <IsoToggle View="iso" OfferToggle="@(!CamerasActive)" />
-          </CanvasLayerBar>
-
-          @* A layer is the board's rather than a phase's, so the switch is chrome and every phase that
-             draws the canvas has it. Adding and removing one is drawing work, so only Draw offers those. *@
-          @if (!iso.ThreeD)
-          {
-            <SketchLayerStrip Layers="layerRows" ActiveId="@activeLayerId" OnSelect="SelectLayer"
-                              OnAdd="AddLayer" OnDelete="DeleteLayer" AllowEdit="@DrawActive" />
-          }
+          </CanvasOverlayBar>
 
           @* What is in hand, where a thing in hand belongs. The Theme phase's every click is addressed to it. *@
           @if (ThemeActive && !iso.ThreeD)
@@ -421,6 +407,13 @@
               @if (!string.IsNullOrEmpty(placeNote)) { <p class="field-error">@placeNote</p> }
             </Inspector>
           }
+        }
+        else if (PickedLayer is { } pickedLayer)
+        {
+          <div class="sidebar-handle"></div>
+          <SketchLayerInspector Layer="pickedLayer" ShapeCount="shapes.Count" GroupCount="groups.Count"
+                                Deletable="@(layerRows.Count > 1)" OnRename="RenameLayer" OnSetBaseY="SetLayerBaseY"
+                                OnSetUnderside="SetLayerUnderside" OnDelete="DeleteLayer" />
         }
         else if (selectedStructural is not null)
         {

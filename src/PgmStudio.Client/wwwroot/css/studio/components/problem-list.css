@@ -80,5 +80,5 @@
   padding: var(--space-4) var(--space-4) var(--space-5); background: var(--bg-panel); border: 1px solid var(--border);
   border-radius: var(--radius-md); box-shadow: var(--shadow-float); text-align: left; white-space: normal;
 }
-/* In the canvas's layer bar: what the 3-D build left out, opening the list on that kind. */
+/* In the canvas's overlay bar: what the 3-D build left out, opening the list on that kind. */
 .canvas-problems { flex: none; min-height: calc(24px * var(--ui-scale)); padding: 0 var(--space-2); font-size: var(--font-sm); }

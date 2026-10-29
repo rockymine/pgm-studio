@@ -1,0 +1,62 @@
+@namespace PgmStudio.Client.Features.Sketch
+@using PgmStudio.Geom.Relief
+
+@* A layer picked in the list: what it holds, its name and the y it is based at, the underside it hangs, and its
+   Delete at the foot, where every inspector deletes. The last layer has none, since a board always stands on one. *@
+
+<Inspector>
+  <DetailHeader Icon="layers" Label="Layer" />
+  <Section>
+    <Field Label="Name">
+      <input class="field-input" value="@Layer.Name" @onchange="Renamed" />
+    </Field>
+    <Field Label="Base" Unit="world y">
+      <NumberField Value="Layer.BaseY" ValueChanged="v => OnSetBaseY.InvokeAsync((Layer.Id, v))" />
+    </Field>
+    <Readout>@Holds</Readout>
+    <Field Note="Stone hangs under the ground, narrowing inward from its edge.">
+      <label class="check-row">
+        <input type="checkbox" checked="@(Layer.Underside is not null)" @onchange="e => SetUnderside(e.Value is true ? new UndersideSpec() : null)" />
+        Underside
+      </label>
+    </Field>
+    @if (Layer.Underside is { } underside)
+    {
+      <Field Label="Edge depth" Unit="blocks">
+        <NumberField Value="underside.Edge" Min="0" Max="64" ValueChanged="v => SetUnderside(underside with { Edge = v })" />
+      </Field>
+      <Field Label="Inward deepening" Help="How much deeper it hangs for each block in from the edge.">
+        <NumberField Value="underside.Taper" Min="0" Max="8" Step="0.1" ValueChanged="v => SetUnderside(underside with { Taper = v })" />
+      </Field>
+      <Field Label="Unevenness" Unit="blocks">
+        <NumberField Value="underside.Rough" Min="0" Max="16" Step="0.5" ValueChanged="v => SetUnderside(underside with { Rough = v })" />
+      </Field>
+      <SeedField Value="underside.Seed" ValueChanged="seed => SetUnderside(underside with { Seed = seed })" />
+    }
+    @if (Deletable)
+    {
+      <InspectorDelete Label="Delete this layer" Title="@($"Delete {Layer.Name} and the shapes on it")" OnClick="() => OnDelete.InvokeAsync(Layer.Id)" />
+    }
+  </Section>
+</Inspector>
+
+@code {
+    [Parameter, EditorRequired] public SketchLayerRow Layer { get; set; } = default!;
+    /// <summary>How many shapes and groups the layer holds.</summary>
+    [Parameter] public int ShapeCount { get; set; }
+    [Parameter] public int GroupCount { get; set; }
+    /// <summary>Whether the layer may go: not where it is the board's last.</summary>
+    [Parameter] public bool Deletable { get; set; }
+    [Parameter] public EventCallback<(string Id, string Name)> OnRename { get; set; }
+    [Parameter] public EventCallback<(string Id, double BaseY)> OnSetBaseY { get; set; }
+    [Parameter] public EventCallback<(string Id, UndersideSpec? Underside)> OnSetUnderside { get; set; }
+    [Parameter] public EventCallback<string> OnDelete { get; set; }
+
+    private string? Holds => ShapeCount == 0 ? null
+        : $"Holds {ShapeCount} {(ShapeCount == 1 ? "shape" : "shapes")} in {GroupCount} {(GroupCount == 1 ? "group" : "groups")}.";
+
+    private Task Renamed(ChangeEventArgs e)
+        => e.Value?.ToString()?.Trim() is { Length: > 0 } name ? OnRename.InvokeAsync((Layer.Id, name)) : Task.CompletedTask;
+
+    private Task SetUnderside(UndersideSpec? underside) => OnSetUnderside.InvokeAsync((Layer.Id, underside));
+}

@@ -33,7 +33,7 @@ public partial class SketchDressingInspector
     /// <summary>The dressing state pushed by the bridge (<c>OnDressing</c>) — props, the selection, and the
     /// selected prop itself.</summary>
     [Parameter] public string? StateJson { get; set; }
-    /// <summary>The board's layers, as the canvas layer strip lists them — the storeys a selected prop may be
+    /// <summary>The board's layers, as the sidebar's layer list lists them — the storeys a selected prop may be
     /// moved to.</summary>
     [Parameter] public IReadOnlyList<SketchLayerRow> Layers { get; set; } = [];
 

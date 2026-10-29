@@ -72,7 +72,7 @@
      and this column owns its own inner structure: the chrome inside it is absolutely positioned, so the
      column is the frame it hangs from. *@
   <aside class="workspace-inspector lib-preview">
-    @if (Views is not null) { <CanvasLayerBar>@Views</CanvasLayerBar> }
+    @if (Views is not null) { <CanvasOverlayBar>@Views</CanvasOverlayBar> }
     <div class="lib-stage-figure">@Preview</div>
     @if (Footnote is not null) { <span class="canvas-note">@Footnote</span> }
     @* Two questions, and they are not the same one: the bar above says which view, the dock below says what

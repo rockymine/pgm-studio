@@ -119,6 +119,7 @@ export class SketchCanvas extends CanvasBase {
   // Placed dressing (decoration.md). The document lives here rather than in the bridge because the canvas is
   // where a prop is put, moved and picked; the bridge asks for it when it saves.
   #dressingDoc = new DressingDoc();
+  #hiddenLayers = new Set();
   #dressing    = null;
   #dressingOn  = false;      // only the Dressing phase draws and edits props
 
@@ -395,6 +396,8 @@ export class SketchCanvas extends CanvasBase {
 
   setGroups(groups)        { this.#groups = groups ?? []; this.#rebuildRaster(); this.#paintWorld(); this.#renderTransformChrome(); }
   setGhostGroups(polys)     { this.#ghostPolys = polys ?? []; this.#paintWorld(); }
+  /** The layers switched off: a prop resting on one is not drawn. */
+  setHiddenLayers(ids)      { this.#hiddenLayers = new Set(ids ?? []); this.#paintWorld(); }
   setMirrorPolygons(polys)   { this.#mirrorPolys = polys ?? []; this.#renderSetup(); }
   /** Layout's canvas: on, a click picks play pieces and nothing else, and a picked room's house is shaped and a
    *  picked wall's ends dragged; off, the pieces are context a click passes over. Turning it either way lets go
@@ -1137,7 +1140,9 @@ export class SketchCanvas extends CanvasBase {
   #paintDressing(painter) {
     if (!this.#dressingOn) return;
     const axes = orbitAxes(this.#mode);
-    paintDressing(painter, this.#dressingDoc.props, {
+    const shown = this.#hiddenLayers.size === 0 ? this.#dressingDoc.props
+      : this.#dressingDoc.props.filter(prop => !this.#hiddenLayers.has(prop.layer));
+    paintDressing(painter, shown, {
       selectedId: this.#dressing?.selectedId ?? null,
       selectedWing: this.#dressing?.selectedWing ?? 0,
       styles: this.#dressingDoc.styles,
