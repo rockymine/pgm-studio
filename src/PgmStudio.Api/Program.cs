@@ -202,6 +202,8 @@ builder.Services.AddScoped<PgmStudio.Data.Theme.PropStyleStore>();
 builder.Services.AddScoped<PgmStudio.Data.Theme.SeedKeyStore>();
 builder.Services.AddScoped<PgmStudio.Api.Services.LibrarySeed>();
 builder.Services.AddScoped<PgmStudio.Api.Services.PropStyleLibrary>();
+builder.Services.AddScoped<PgmStudio.Api.Services.LibraryCardSource>();
+builder.Services.AddHostedService<PgmStudio.Api.Services.LibraryCardDrawing>();
 builder.Services.AddScoped<PgmStudio.Api.Services.LibraryNames>();
 builder.Services.AddScoped<MapReader>();
 builder.Services.AddScoped<MapWriter>();

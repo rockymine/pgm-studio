@@ -66,11 +66,11 @@ public static class RoomStylePreview
             Stamped(style, sample), CutTo(style, Outer(style, sample), part), cell);
     }
 
-    /// <summary>The card a library row lists with, drawn once per distinct style and part
-    /// (<see cref="Drawings"/>): the building seen from outside with the game's sprites where the studio has
-    /// them (<see cref="StructureCard"/>), else <see cref="Card"/>'s flat section.</summary>
-    public static string CardOnce(HouseStyle style, PictureSprites sprites, string? part = null) =>
-        StructureCard.Once("house-card/" + part, HouseStyleJson.Serialize(style), sprites,
+    /// <summary>The card a library row lists with, named by the style and part (<see cref="LibraryCards"/>):
+    /// the building seen from outside with the game's sprites where the studio has them
+    /// (<see cref="StructureCard"/>), else <see cref="Card"/>'s flat section.</summary>
+    public static LibraryCard CardOf(HouseStyle style, PictureSprites sprites, string? part = null) =>
+        StructureCard.Card("house-card/" + part, HouseStyleJson.Serialize(style), sprites,
             flat: () => Card(style, part: part),
             volume: () =>
             {

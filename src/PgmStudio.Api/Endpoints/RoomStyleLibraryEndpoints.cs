@@ -111,7 +111,7 @@ public sealed class RoomStyleListEndpoint(RoomStyleLibrary library, BlockTexture
         var sprites = await textures.ForPicturesAsync(ct);
         await Send.OkAsync((await library.ComposeAllAsync(ct))
             .Select(entry => new RoomStyleSummary(
-                entry.Row.Id, entry.Row.Name, RoomStylePreview.CardOnce(entry.Style, sprites),
+                entry.Row.Id, entry.Row.Name, LibraryCards.Offer(RoomStylePreview.CardOf(entry.Style, sprites)),
                 HouseStyleJson.Serialize(entry.Style)))
             .ToList(), ct);
     }

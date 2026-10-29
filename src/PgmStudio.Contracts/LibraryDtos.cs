@@ -4,9 +4,9 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Contracts;
 
 /// <summary>One reusable terrain-paint style (GET /api/styles) — a named material recipe, as the save
-/// request plus the row's id, which a theme binds it by, and its card picture. The preview is rendered
-/// through the real painter: a library is browsed by what its entries look like, so the picture travels with
-/// the row rather than costing one request per card.</summary>
+/// request plus the row's id, which a theme binds it by, and its card picture. The preview is drawn through the
+/// real painter, since a library is browsed by what its entries look like, and travels as an <c>&lt;img&gt;</c> of
+/// <c>GET /api/cards/{name}</c>: a list draws nothing, and a browser asks only for the cards it shows.</summary>
 /// <remarks><c>Seeded</c> says whether the seed folder states this row. A seeded row is rewritten on every start and
 /// refuses an edit or a delete (<c>LB6</c>); it is changed by saving a copy.</remarks>
 public sealed record StyleDto(long Id, string Name, string Kind, string Params, string Preview, bool Seeded = false)
@@ -30,8 +30,8 @@ public record StyleSaveRequest(string Name, [property: WordSet(typeof(MaterialKi
 /// <param name="Name">What the library lists it under.</param>
 /// <param name="Kind">Which field this is, from <see cref="BiomeKinds"/>.</param>
 /// <param name="Params">The serialized <c>BiomeField</c>, as JSON text.</param>
-/// <param name="Preview">A top-down patch of grass under the field, as an SVG. Named as every other library
-/// row names its picture, because the browse grid reads one field across every kind.</param>
+/// <param name="Preview">A top-down patch of grass under the field, as the card every library row carries. Named
+/// as every other library row names its picture, because the browse grid reads one field across every kind.</param>
 /// <param name="Seeded">Whether the seed folder states this row. A seeded row is rewritten on every start and refuses an
 /// edit or a delete (<c>LB6</c>); it is changed by saving a copy.</param>
 public sealed record BiomePatternSummary(long Id, string Name, string Kind,
@@ -602,6 +602,13 @@ public sealed record StyleJsonDto(string StyleJson);
 /// to cut four ways, so what it answers is the section a browse row carries.</summary>
 /// <param name="Card">The SVG a browse row and the editor's stage both draw.</param>
 public sealed record StyleCardDto(string Card);
+
+/// <summary>One library on its front page (<c>GET /api/library</c>): what it holds and what it looks like, without
+/// its rows.</summary>
+/// <param name="List">The route its list answers at, <c>roof-styles</c> for <c>GET /api/roof-styles</c>.</param>
+/// <param name="Count">How many rows it holds.</param>
+/// <param name="Newest">The cards of its newest rows, up to three, as its list carries them.</param>
+public sealed record LibraryCount(string List, int Count, IReadOnlyList<string> Newest);
 
 /// <summary>A terrain theme as the painter's own JSON.</summary>
 /// <param name="ThemeJson">The painter's own JSON for the theme, as text — the form a sketch snapshots and

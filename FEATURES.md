@@ -265,6 +265,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   fields at the window's width, the preview's chips above and below its picture rather than over it; the rail is
   the nine kinds and scrolls across at phone width; a caller the studio will not build for is drawn no preview.
   `docs/tools/library.md`, *The editor page*.
+- **A library card is its own picture (`TL48`).** A list row carries an `<img loading="lazy">` of
+  `GET /api/cards/{name}`, named by what draws it and cached for a year, so a list draws nothing and a browser
+  asks only for the cards it shows; every card no file holds is drawn in the background after start and when a
+  list offers it, at most half the cores at once; `GET /api/library` answers the chooser's counts and newest
+  three cards in one request. `docs/tools/library.md`.
 - **Library structures stand on grass (`TL46`).** Textured tree and boulder cards grow on one course of grass
   over dirt (`DressingPreview.GrassGround`), and the house sample stands on grass over dirt rather than stone.
   `docs/tools/library.md`.

@@ -1,15 +1,15 @@
 using Microsoft.JSInterop;
 using PgmStudio.Client.Components;
+using PgmStudio.Contracts;
 
 namespace PgmStudio.Client.Features.Library;
 
 /// <summary>
-/// The library's front page. It reads every kind's list rather than a count endpoint, because the card shows
-/// what the library holds as well as how much of it — the newest row's own picture is the sample.
+/// The library's front page: each kind's count, and its newest rows' own pictures as the sample of what it holds.
 /// </summary>
 public partial class LibraryChooser
 {
-    private readonly Dictionary<string, IReadOnlyList<LibraryRow>> held = [];
+    private IReadOnlyDictionary<string, LibraryCount> held = new Dictionary<string, LibraryCount>();
     private bool loading = true;
 
     /// <summary>What the library is, in the glossary's own words.</summary>
@@ -18,8 +18,7 @@ public partial class LibraryChooser
 
     protected override async Task OnInitializedAsync()
     {
-        var lists = LibraryKinds.All.Select(async kind => (kind.Slug, Rows: await Library.ListAsync<LibraryRow>(kind)));
-        foreach (var (slug, rows) in await Task.WhenAll(lists)) held[slug] = rows;
+        held = await Library.CountsAsync();
         loading = false;
     }
 
@@ -32,15 +31,13 @@ public partial class LibraryChooser
     ];
 
     /// <summary>The newest rows' card pictures, up to three, which is what the kind currently looks like.</summary>
-    private List<string> Samples(LibraryKind kind) =>
-        held.TryGetValue(kind.Slug, out var rows)
-            ? [.. rows.Select(row => row.Preview).Where(preview => !string.IsNullOrEmpty(preview)).Take(3)]
-            : [];
+    private IReadOnlyList<string> Samples(LibraryKind kind) =>
+        held.TryGetValue(kind.Route, out var count) ? count.Newest : [];
 
     private string CountLabel(LibraryKind kind)
     {
         if (loading) return string.Empty;
-        return held.TryGetValue(kind.Slug, out var rows) ? rows.Count.ToString() : "0";
+        return held.TryGetValue(kind.Route, out var count) ? count.Count.ToString() : "0";
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

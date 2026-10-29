@@ -19,7 +19,7 @@ public sealed class TreeStyleListEndpoint(PropStyleLibrary library, BlockTexture
 
     public override async Task HandleAsync(CancellationToken ct)
         => await Send.OkAsync((await library.ListTreesAsync(await textures.ForPicturesAsync(ct), ct))
-            .Select(entry => Summary(entry.Row, entry.Card)).ToList(), ct);
+            .Select(entry => Summary(entry.Row, LibraryCards.Offer(entry.Card))).ToList(), ct);
 
     private static TreeStyleSummary Summary(TreeStyleRow row, string card)
     {
@@ -130,7 +130,7 @@ public sealed class BoulderStyleListEndpoint(PropStyleLibrary library, BlockText
 
     public override async Task HandleAsync(CancellationToken ct)
         => await Send.OkAsync((await library.ListBouldersAsync(await textures.ForPicturesAsync(ct), ct))
-            .Select(entry => new BoulderStyleSummary(entry.Row.Id, entry.Row.Name, entry.Card)).ToList(), ct);
+            .Select(entry => new BoulderStyleSummary(entry.Row.Id, entry.Row.Name, LibraryCards.Offer(entry.Card))).ToList(), ct);
 }
 
 public sealed class BoulderStyleGetEndpoint(PropStyleStore store) : EndpointWithoutRequest<BoulderStyleDetail>

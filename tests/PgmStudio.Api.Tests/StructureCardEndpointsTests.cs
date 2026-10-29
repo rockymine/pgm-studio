@@ -58,7 +58,12 @@ public sealed class StructureCardEndpointsTests
         {
             var rows = await client.GetFromJsonAsync<JsonElement>(route);
             foreach (var row in rows.EnumerateArray().Take(2))
-                await Assert.That(row.GetProperty("preview").GetString()!).StartsWith("<img class=\"block-render\"");
+            {
+                var card = row.GetProperty("preview").GetString()!;
+                await Assert.That(card).StartsWith("<img class=\"block-render\"");
+                var picture = await client.GetAsync(CardPictures.RouteOf(card));
+                await Assert.That(picture.Content.Headers.ContentType?.MediaType).IsEqualTo("image/png");
+            }
         }
     }
 }

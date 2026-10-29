@@ -65,7 +65,7 @@ public sealed class RoofStyleListEndpoint(HousePartLibrary library, BlockTexture
         var sprites = await textures.ForPicturesAsync(ct);
         await Send.OkAsync((await library.ComposeRoofsAsync(ct))
             .Select(entry => new RoofStyleSummary(
-                entry.Row.Id, entry.Row.Name, RoomStylePreview.CardOnce(entry.Style, sprites, RoomParts.Roof)))
+                entry.Row.Id, entry.Row.Name, LibraryCards.Offer(RoomStylePreview.CardOf(entry.Style, sprites, RoomParts.Roof))))
             .ToList(), ct);
     }
 }
@@ -181,7 +181,7 @@ public sealed class StoreyStyleListEndpoint(HousePartLibrary library, BlockTextu
         await Send.OkAsync((await library.ComposeStoreysAsync(ct))
             .Select(entry => new StoreyStyleSummary(
                 entry.Row.Id, entry.Row.Name, entry.Row.Clear,
-                RoomStylePreview.CardOnce(entry.Style, sprites, RoomParts.Wall)))
+                LibraryCards.Offer(RoomStylePreview.CardOf(entry.Style, sprites, RoomParts.Wall))))
             .ToList(), ct);
     }
 }
@@ -288,7 +288,7 @@ public sealed class PorchStyleListEndpoint(HousePartLibrary library, BlockTextur
     {
         var sprites = await textures.ForPicturesAsync(ct);
         await Send.OkAsync((await library.ComposePorchesAsync(ct))
-            .Select(entry => new PorchStyleSummary(entry.Row.Id, entry.Row.Name, RoomStylePreview.CardOnce(entry.Style, sprites)))
+            .Select(entry => new PorchStyleSummary(entry.Row.Id, entry.Row.Name, LibraryCards.Offer(RoomStylePreview.CardOf(entry.Style, sprites))))
             .ToList(), ct);
     }
 }

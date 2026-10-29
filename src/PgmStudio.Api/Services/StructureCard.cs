@@ -19,18 +19,33 @@ public static class StructureCard
     /// <summary>The pixels a library card's picture takes, and the multiple an editor's stage takes.</summary>
     public const int CardWide = 160, CardHigh = 120, StageScale = 2;
 
-    /// <summary>One card: <paramref name="volume"/> drawn with <paramref name="sprites"/>, or
-    /// <paramref name="flat"/> where there are none. Both are called only when the card is not already kept.</summary>
-    public static string Once(string drawer, string input, PictureSprites sprites,
-        Func<string> flat, Func<(VoxelWorld World, BlockBox Box)> volume, bool stage = false)
+    /// <summary>An editor's stage, as markup: <paramref name="volume"/> drawn with <paramref name="sprites"/> at
+    /// <see cref="StageScale"/>, or <paramref name="flat"/> where there are none. Both are called only when the
+    /// picture is not already kept.</summary>
+    public static string Stage(string drawer, string input, PictureSprites sprites,
+        Func<string> flat, Func<(VoxelWorld World, BlockBox Box)> volume)
     {
         if (sprites.Set is not { } textures) return Drawings.Svg(drawer, input, flat);
 
-        var scale = stage ? StageScale : 1;
-        return Drawings.Svg($"{drawer}/render/{scale}/{sprites.Identity}", input, () =>
+        return Drawings.Svg($"{drawer}/render/{StageScale}/{sprites.Identity}", input, () =>
         {
             var (world, box) = volume();
-            return Markup(StructurePicture.Png(world, box, textures, CardWide * scale, CardHigh * scale), scale);
+            return Markup(StructurePicture.Png(world, box, textures, CardWide * StageScale, CardHigh * StageScale),
+                StageScale);
+        });
+    }
+
+    /// <summary>A library row's card: <paramref name="volume"/> drawn with <paramref name="sprites"/> as a PNG, or
+    /// <paramref name="flat"/>'s SVG where there are none, named before either is drawn.</summary>
+    public static LibraryCard Card(string drawer, string input, PictureSprites sprites,
+        Func<string> flat, Func<(VoxelWorld World, BlockBox Box)> volume)
+    {
+        if (sprites.Set is not { } textures)
+            return new(Drawings.Name($"card/{drawer}/flat", input), LibraryCard.Rendered, () => LibraryCards.Svg(flat()));
+        return new(Drawings.Name($"card/{drawer}/render/{sprites.Identity}", input), LibraryCard.Rendered, () =>
+        {
+            var (world, box) = volume();
+            return StructurePicture.Png(world, box, textures, CardWide, CardHigh);
         });
     }
 
