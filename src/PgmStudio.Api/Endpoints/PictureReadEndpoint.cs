@@ -11,7 +11,6 @@ namespace PgmStudio.Api.Endpoints;
 /// the kept view marked as the picture, else the whole board from above its long side, drawn at
 /// <c>width</c> by <c>height</c>. 422 where the board has no ground to frame; 503 (<c>RQ10</c>) without block
 /// textures. Kept with the world like every eye picture.</summary>
-[Queued]
 internal sealed class PictureReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts,
                                           BlockTextureStore textures)
     : WorldRenderEndpoint(repo, reader, artifacts)

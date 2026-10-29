@@ -585,7 +585,7 @@ Routine answered. A hand-off with no note open, or none written since the last o
 **`RQ11` and `RQ18` — the studio is building as much as it builds at once.** A route that builds a world waits
 its turn in the build queue: one that waits past its limit is `RQ11`, and one that finds the queue full, for
 the studio or for its caller, is `RQ18`. Both are **429** with a `Retry-After`, refused before the handler
-runs. Nothing is wrong with the request and asking again later answers it; the queue and its bounds are in
+runs — or, on a render, once it has found no kept picture to answer with. Nothing is wrong with the request and asking again later answers it; the queue and its bounds are in
 `docs/access.md`, and no route's own table repeats the code.
 
 **`RQ20` and `RQ21` — joining the studio.** A person waiting for approval who already owns as many maps as

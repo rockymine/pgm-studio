@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -72,13 +73,21 @@ public sealed class BuildQueueTests
 
     /// <summary>Over HTTP a request the full queue refuses answers the refusal envelope under <c>RQ18</c> with a
     /// <c>Retry-After</c>, before its handler runs; a route that builds nothing is not queued at all.</summary>
+    /// <summary>A stored sketch, whose world a render has to build.</summary>
+    private static async Task<string> SketchAsync(HttpClient client)
+    {
+        using var created = await client.PostAsJsonAsync("/api/sketch", new { name = "Queued" });
+        return (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
+    }
+
     [Test]
     public async Task A_route_the_full_queue_cannot_take_is_refused_RQ18_and_a_cheap_route_is_not_queued()
     {
         using var factory = new ClosedQueueFactory();
         using var client = factory.CreateClient();
+        var slug = await SketchAsync(client);
 
-        using var render = await client.GetAsync("/api/map/nowhere/render/topdown");
+        using var render = await client.GetAsync($"/api/map/{slug}/render/topdown?subject=ground&scale=3");
         await Assert.That(render.StatusCode).IsEqualTo(HttpStatusCode.TooManyRequests);
         await Assert.That(render.Headers.RetryAfter?.Delta).IsEqualTo(TimeSpan.FromSeconds(BuildQueue.RetryAfterSeconds));
         var finding = JsonDocument.Parse(await render.Content.ReadAsStringAsync()).RootElement.GetProperty("findings")[0];
@@ -86,6 +95,22 @@ public sealed class BuildQueueTests
 
         using var health = await client.GetAsync("/api/health");
         await Assert.That(health.StatusCode).IsEqualTo(HttpStatusCode.OK);
+    }
+
+    [Test]
+    public async Task A_picture_already_kept_is_answered_without_a_turn()
+    {
+        using var open = ApiTestFactory.Shared.CreateClient();
+        var slug = await SketchAsync(open);
+        var route = $"/api/map/{slug}/render/topdown?subject=ground&scale=2";
+        using var drawn = await open.GetAsync(route);
+
+        using var factory = new ClosedQueueFactory();
+        using var closed = factory.CreateClient();
+        using var kept = await closed.GetAsync(route);
+
+        await Assert.That(kept.StatusCode).IsNotEqualTo(HttpStatusCode.TooManyRequests);
+        await Assert.That(kept.StatusCode).IsEqualTo(drawn.StatusCode);
     }
 
     /// <summary>The studio with a queue that keeps nobody waiting, so every queued request is refused.</summary>

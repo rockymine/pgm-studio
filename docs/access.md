@@ -304,7 +304,9 @@ measured off the built world — `reach`, `incline`, `slopes`, `column`, `walk`,
 machine every caller shares: a cold export takes 3–12 s on a two-core server. `BuildQueue` holds such a request until the studio has
 a turn free and the caller has one of their own, and gives both back when the response is written. A note's
 reply takes a turn only where it draws an after picture (`docs/tools/sketch.md`, *Answering the notes an author
-left*), since most replies build nothing. Every other route never waits.
+left*), since most replies build nothing. A render is the same: a picture already kept, and the 304 that says the
+browser holds it, are answered without a turn, and only a render that has to build its world waits
+(`[Queued(OnMiss = true)]`). Every other route never waits.
 
 **A caller runs one build at a time, and waits behind their own.** The studio runs three queued requests at
 once and one caller one of them, so a caller who sends eight exports gets them one after another while another
@@ -417,6 +419,6 @@ The handler builds Discord's `redirect_uri` from the request it sees, so a studi
 honour `X-Forwarded-Proto`; the deployed one does, and `docs/deployment.md` says how.
 
 
-- **A world already built still waits its turn.** The queue does not know that a request would be answered
-  from the studio's store of built worlds in milliseconds, so a caller's second read of the same board waits
-  behind their first.
+- **A world already built still waits its turn.** Outside a kept picture, the queue does not know that a request
+  would be answered from the studio's store of built worlds in milliseconds, so a caller's second read of the same
+  board waits behind their first.
