@@ -239,7 +239,7 @@ refuse the same two things, and what differs is what each document
 says about *itself*, which stays with the document that has it. `MapOrigin` is the row every one of the six
 ways into the studio writes. `IntentWrite` was already an operation and was simply misfiled. `DraftDiscard`,
 `MapMetadata`, `SymmetryConfirm` and `WorldFolderImport` are the four that were only ever one route's, and
-are now reachable without one. `MapEdit` is the thirty-six edit routes' one path, moved off `Endpoints` and
+are now reachable without one. `MapEdit` is every edit route's one path, moved off `Endpoints` and
 made HTTP-free with it.
 
 `Api/Services` is **32 files and 3,620 lines** against `Api/Endpoints`' 46 and 6,185.

@@ -5,7 +5,7 @@ namespace PgmStudio.Minecraft.Anvil;
 /// <summary>
 /// Which build pass claimed a column, last. <see cref="Ground"/> is the rasterizer's own terrain — whatever
 /// the painter later finishes it with, a plaza included. <see cref="Structure"/> is anything raised over it
-/// as a built thing: a wool cage, a spawn cube, a wall, an objective, a dressing-placed building.
+/// as a built thing: a wool room, a spawn room, a wall, an objective, a dressing-placed building.
 /// <see cref="Made"/> is a made thing's own layer — a ship, a balloon, a crane, a car — which is drawn
 /// rather than built and stands wherever it was drawn, over water or thirty blocks up.
 /// <see cref="Prop"/> is everything else the dressing pass put down — a tree, a boulder, flora, a path, a
@@ -32,7 +32,7 @@ public enum ProvenancePass { Ground, Structure, Made, Prop }
 /// provenance byte of its own (<c>docs/world-export/decoration.md</c>).
 ///
 /// <para><b>Composited in placement order.</b> The rasterizer claims every column it lays as <see
-/// cref="ProvenancePass.Ground"/> first; every stamp that follows — a wool cage, a spawn cube,
+/// cref="ProvenancePass.Ground"/> first; every stamp that follows — a wool room, a spawn room,
 /// a wall, an iron cube, a redstone line, a destroyable, a core, a dressing-placed building — claims its own
 /// footprint as <see cref="ProvenancePass.Structure"/> over it. A later claim always overwrites an earlier
 /// one, so the final answer at a column is whichever pass claimed it last, exactly the reading
@@ -45,7 +45,7 @@ public enum ProvenancePass { Ground, Structure, Made, Prop }
 /// <para><b>The owner is the claim's identity, not its material.</b> Two houses that genuinely touch — a
 /// terrace, a shared wall — are two different claims even where their columns are neighbours, because the
 /// pass that stamps each one already knows which thing it is stamping: a dressing prop carries its own
-/// <c>Id</c>, a wool cage belongs to a room, a spawn to a team, a destroyable to its marker. Recording that
+/// <c>Id</c>, a wool room belongs to a room, a spawn to a team, a destroyable to its marker. Recording that
 /// alongside the pass is what lets a reader (<see cref="Render.StructureFinder"/>) tell two abutting
 /// buildings apart by grouping on the owner rather than by flooding across every contiguous claimed column,
 /// which cannot distinguish them at all. A null owner is every <see cref="ProvenancePass.Ground"/> claim —

@@ -124,7 +124,10 @@ public sealed record SketchStructuralRow(
     public string Who => Color ?? "";
 
     /// <summary>The icon a piece of its kind is shown under, in the inspector and the Layout list.</summary>
-    public string Icon => Role switch
+    public string Icon => IconFor(Role);
+
+    /// <summary>The icon a piece of <paramref name="role"/> is shown under, wherever it is offered or listed.</summary>
+    public static string IconFor(string role) => role switch
     {
         PlayPieceKinds.Destroyable => "gem",
         PlayPieceKinds.Core => "flame",

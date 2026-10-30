@@ -67,8 +67,8 @@ public sealed record BuiltWorld(
 
 /// <summary>
 /// Assembles a playable Anvil world for a sketch-originated map from its sketch layout + authoring intent
-/// (docs/world-export/sketch-world-export.md): terrain from the rasterised columns, a wool cage at each wool,
-/// a spawn cube + auto-wired monuments at each team spawn, and the observer platform. Pure — no DB, no IO —
+/// (docs/world-export/sketch-world-export.md): terrain from the rasterised columns, a wool room at each wool,
+/// a spawn room + auto-wired monuments at each team spawn, and the observer platform. Pure — no DB, no IO —
 /// so it unit-tests directly.
 /// </summary>
 public static class WorldBuilder
@@ -185,6 +185,7 @@ public static class WorldBuilder
             var slug = ColorSlug(w, teams);
             var shell = RoomStyleScope.StyleOf(w.House, woolStyle, HouseStyle.Wool);
             var frame = WoolFrame(w, woolStyle);
+            if (OversizedRoom("wool", w.Owner, frame) is { } oversized) built.Add(oversized);
             // The storey this room was stated for, or the top one where it named none.
             var woolGround = terrain.SurfaceFor(w.Layer);
             var fy = FrameFloor(frame, woolGround, shell);
@@ -217,7 +218,7 @@ public static class WorldBuilder
             provenance.Claim((frame.MinX + frame.MaxX) / 2, (frame.MinZ + frame.MaxZ) / 2, ProvenancePass.Structure, w.Stamp);
             woolFrame[i] = frame;
             woolFloor[i] = fy;
-            resolvedWools.Add(w);   // monuments filled in below, once spawn cubes place them
+            resolvedWools.Add(w);   // monuments filled in below, once spawn rooms place them
         }
 
 
@@ -292,12 +293,12 @@ public static class WorldBuilder
             var frame = woolFrame[i];
             resolvedWools[i] = w with
             {
-                // Encase the auto-placed wool cage (unless the author drew their own region).
+                // Encase the auto-placed wool room (unless the author drew their own region).
                 Protection = w.Protection.Count > 0
                     ? w.Protection : [new Rect(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ)],
                 // The wool dispenses from the pad — the exported point follows it (WX5).
                 Spawn = new Pt(frame.Pad.CenterX, woolFloor[i], frame.Pad.CenterZ),
-                // Only teams that actually got a spawn cube have a placement cell; a capturer without a
+                // Only teams that actually got a spawn room have a placement cell; a capturer without a
                 // spawn has no world location, so skip it rather than emit a phantom monument at (0,0,0).
                 Monuments = [.. Capturers(w, teams)
                     .Where(team => monLoc.ContainsKey((i, team)))
@@ -1188,7 +1189,7 @@ public static class WorldBuilder
         : null;
 
     // The legacy default: the room a 10×10 piece centred on the integer-snapped marker resolves to — the
-    // original 8×8 shell, with the single yaw door for a spawn and for a wool cage one facing the board's
+    // original 8×8 shell, with the single yaw door for a spawn and for a wool room one facing the board's
     // centre. Also the fallback when an authored piece refuses to frame (the validator gates plan exports, so
     // reaching that fallback means a hand-edited intent — stamping the default beats failing the export).
     private static RoomFrame DefaultFrame(

@@ -681,17 +681,17 @@ public static class DressingTools
     public const string Boulder = "dress:boulder";
     public const string Chest = "dress:chest";
 
-    /// <summary>Tool id, the prop kind it places, its glyph, and what it is called. The name names the tool
-    /// and does not explain it — a dock tooltip is a label, not a manual.</summary>
-    public static readonly (string Tool, string Kind, string Icon, string Name)[] All =
+    /// <summary>Tool id and the prop kind it places, in dock order. Its glyph and name are the kind's own
+    /// (<see cref="PropKindNames"/>), so the dock and the Placed list cannot name one kind two ways.</summary>
+    public static readonly (string Tool, string Kind)[] All =
     [
-        (Stroke, PropKinds.Stroke, "spline", "Stroke"),
-        (Fluid, PropKinds.Fluid, "waves", "Fluid"),
-        (Flora, PropKinds.Flora, "flower", "Ground cover"),
-        (House, PropKinds.House, "home", "Building"),
-        (Tree, PropKinds.Tree, "trees", "Tree"),
-        (Boulder, PropKinds.Boulder, "mountain", "Boulder"),
-        (Chest, PropKinds.Chest, "box", "Chest"),
+        (Stroke, PropKinds.Stroke),
+        (Fluid, PropKinds.Fluid),
+        (Flora, PropKinds.Flora),
+        (House, PropKinds.House),
+        (Tree, PropKinds.Tree),
+        (Boulder, PropKinds.Boulder),
+        (Chest, PropKinds.Chest),
     ];
 
     /// <summary>The kind of prop a tool places, or null when the tool places none.</summary>

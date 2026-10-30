@@ -17,9 +17,9 @@ the 240 glossary terms, 82 are drawn by some icon.
 
 **Icons are named in tables, not at the call site.** `SketchModifierState.Icon`, `PropKindNames`,
 `SketchStructuralRow.Icon`, `RegionNode.Icon`, `LibraryKinds`, `ConfigurePhases`, `ImportPhase` and a dozen
-smaller ones map a concept to a name, and every one is a literal the vendor scan can see. Two pairs of tables
-state the same icons twice and agree only because nobody has changed one: the props in `DressingTools.All` and
-`PropKindNames.All`, and the pieces in the Layout dock's marker list and `SketchStructuralRow.Icon`.
+smaller ones map a concept to a name, and every one is a literal the vendor scan can see. A concept is named in
+one table and read from it everywhere: the Decoration dock's tools take their glyph and name from `PropKindNames`,
+and the Layout dock's markers theirs from `SketchStructuralRow.IconFor`.
 
 ## Where one picture means two things
 

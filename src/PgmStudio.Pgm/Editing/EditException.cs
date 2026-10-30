@@ -12,8 +12,8 @@ namespace PgmStudio.Pgm.Editing;
 /// editor raised it.</para>
 ///
 /// <para><see cref="Error"/> is the gate's short label, for a client with something to show before it has
-/// read a finding. It names the fault family rather than the endpoint, because one editor stands behind all
-/// thirty-six write routes and naming the route says nothing a caller does not already know.</para>
+/// read a finding. It names the fault family rather than the endpoint, because one editor stands behind
+/// every write route and naming the route says nothing a caller does not already know.</para>
 /// </summary>
 public sealed class EditException(int status, string error, Finding finding) : Exception(finding.Message)
 {

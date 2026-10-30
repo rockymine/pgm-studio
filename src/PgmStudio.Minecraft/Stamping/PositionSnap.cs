@@ -44,7 +44,7 @@ public static class PositionSnap
         return top == int.MinValue ? fallback : top;
     }
 
-    /// <summary>The wall a spawn-cube door faces, from a Minecraft yaw (0 = +Z / south, 90 = −X / west,
+    /// <summary>The wall a spawn-room door faces, from a Minecraft yaw (0 = +Z / south, 90 = −X / west,
     /// 180 = −Z / north, 270 = +X / east). The door faces the direction the player looks out.</summary>
     public static Facing FacingFromYaw(double yaw)
     {

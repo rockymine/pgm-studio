@@ -10,18 +10,18 @@ namespace PgmStudio.Pgm.Plan;
 /// more board — a land seam with a neighbour, or a build-zone frontage — so a door always opens onto ground
 /// somebody can stand on, and a wall with nothing behind it stays shut.
 ///
-/// <para>Both roles read the same abutment; what differs is how much of it becomes a door. A <b>wool cage</b>
+/// <para>Both roles read the same abutment; what differs is how much of it becomes a door. A <b>wool room</b>
 /// takes one per entry segment, because every side an attacker can reach it from is a side they may come
 /// through. A <b>spawn</b> takes at most <see cref="SpawnMax"/> — a hall with a door on every wall is a
 /// crossroads rather than a room, and the two widest are where the team actually leaves.</para>
 /// </summary>
 public static class PieceDoors
 {
-    /// <summary>The most doors a spawn hall is cut with: one where the piece meets the board on a single
+    /// <summary>The most doors a spawn room is cut with: one where the piece meets the board on a single
     /// side, two where it meets it on more. A corner spawn earns both; nothing earns three.</summary>
     public const int SpawnMax = 2;
 
-    /// <summary>The walls a spawn hall on this piece opens through, in the order they are cut. The piece's
+    /// <summary>The walls a spawn room on this piece opens through, in the order they are cut. The piece's
     /// open sides, widest opening first, at most <see cref="SpawnMax"/> of them; where two open equally wide
     /// the one the player looks more nearly at is cut first, so the door they walk out of is
     /// <c>Doors[0]</c>. A piece that meets nothing — an island with no interface at all — opens on the wall
@@ -45,7 +45,7 @@ public static class PieceDoors
             RoomEdges.Nearest(direction, RoomEdges.All) is { } edge ? [edge] : [];
     }
 
-    /// <summary>Which sides of a wool cage its entries stand on, one door per segment: the land seams and
+    /// <summary>Which sides of a wool room its entries stand on, one door per segment: the land seams and
     /// frontline edges the room abuts, each a degenerate rect on one of its four boundary lines, so the side
     /// is which line it lies on.</summary>
     public static List<RoomEdge> ForWoolRoom(ContactGraph d, string pieceId, BlockRect room)

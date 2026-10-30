@@ -3,7 +3,7 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Domain;
 
 /// <summary>The outward direction a room wall faces: the wall on the low-Z side faces <see cref="NegZ"/>.
-/// Also the direction a spawn cube's door opens toward.</summary>
+/// Also the direction a spawn room's door opens toward.</summary>
 public enum RoomEdge { NegZ, PosZ, NegX, PosX }
 
 /// <summary>

@@ -102,7 +102,7 @@ left rail, each button its glyph over its name, since a rail of glyphs alone lea
 arranges itself from, and `FilterSidebar` is the `Sidebar` of a page that narrows a list or jumps between sections of one page (the `/design` contents rail), which on a narrow window folds behind a button naming it (`Title`, *Filters* unless the page says otherwise); `PageHeading` is the one heading a browse or admin page opens on; `LandingHero` is the studio entry's opening block, mounted by `Index` and shown on `/design`, and `MapThumb` the 16:9 picture box of a map (the in-game picture over a placeholder that stays where none can be drawn); `SideDrawer` (a title, optional `HeaderActions` icon buttons beside the close button, a scrolling body and an optional footer; `Wide` for a picture rather than a form)
 finishes the set.
 
-**Canvas** — the floating chrome over a `WorldCanvas`: `CanvasReadout`, `CanvasOverlayBar` with `OverlayChip`,
+**Canvas** — the floating chrome over a `WorldCanvas`: `CanvasReadout` (read-only but for its zoom, which fits the board on a press where the host passes its fit), `CanvasOverlayBar` with `OverlayChip`,
 `CanvasDock` with `DockGroup`, `DockButton`, `DockModeButton`, `DockChoice` (one option of a set the dock
 picks between, where `DockModeButton` flips a two-state mode) and `DockFlyoutGroup`, plus `CanvasRoundButton`
 and `ViewModeToggle`. `IsoView` holds a host's 3-D preview state and `IsoToggle` renders the 2D/3D switch with

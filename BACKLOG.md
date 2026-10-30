@@ -77,12 +77,6 @@ about which section the entry sits in — the retired prefixes still on entries 
   (`Refinement.Outlined`). Both reach those, each refused where an edit folds the ring.
   `docs/tools/flow.md`.
 
-- [ ] **C104 — Where a sketch's layers live.** *Parked (author): deciding the direction themselves.* The
-  floating `SketchLayerStrip` is taller than the dock, scrolls sideways and clips its add button on canvases
-  under about 820px, and the overlay chips (Shapes, Mirror, Chunks, Blocks, Contours) crowd the canvas beside it.
-  Three directions and a View menu for the overlays are mocked at https://claude.ai/artifact/4gDNRBfyhMfjkAMMFdDSaz;
-  none is chosen. `docs/tools/sketch.md` § Draw.
-
 - [ ] **TS126 — A note's checkable claim, kept as a check.** *Parked (author): not yet.* Some notes state
   what a board must keep being — a path reaches the bridge (note 58), a bedrock wall has void on both sides
   (note 48), a wall does not float (note 54). A reply could carry the claim as a measured check over the note's
@@ -95,12 +89,6 @@ The guided wizard at `/maps/{id}/configure` (UI label **Configure**) that builds
 intent (`docs/pgm/new-map-authoring.md`; backend + every page-order step are landed —
 `FEATURES.md`).
 
-- [ ] **RP121 — A wool room the world builds is held to the room cap too.** `WX13` asks only a spawn room
-  (`WorldBuilder.OversizedRoom`, one call at `WorldBuilder.cs:232`), so a wool room whose protection Configure
-  redrew past 20 by 20 blocks builds with no finding, while `ST9` asks only of a building the intent states
-  (`IntentCheck`). The wool room loop calls the same check, and `WX13`'s text names wool rooms beside spawn
-  rooms. `docs/refusals.md`.
-
 **A monument sits inside its capturing team's spawn, and that settles which map each entry is about**
 (author; `docs/design-decisions.md`). The studio's own maps derive it — `WorldBuilder` fills the location
 from the air cell the spawn structure stamped, `OB25` says so, and `ConfigureTool.LoadOriginAsync` drops the
@@ -112,25 +100,16 @@ never gets to choose on either kind.
 answerable over the API; what neither has is a step, so `TC7` and `TC9` sit with the surface that owes
 them one rather than with the contract work that shipped them.
 
-- [ ] **TC7 — The configure tool cannot place a hill.** The API is the way in — an agent adds
-  `controlPoints` to the intent it already posts (`docs/pgm/control-points.md` §9) — and the wizard has no
-  step for it. What the step states is a count and the anchors; the tuning is one shared block and already
-  has its answer (`capture-time="5s"`, `points="1"`, `<score><limit>750</limit></score>`), so the step fills
-  it rather than asking. The anchors are derived when a plan is compiled (`FEATURES.md`), so the step asks for
-  a count on a board whose intent states none and shows the anchors the compile already worked out on one that
-  does.
+- [ ] **TC7 — Configure states capture points on a map not drawn in the Sketch.** The Sketch's Layout step places,
+  moves, resizes and tunes control points (`PlayPieceAdd`, `PlayPieceSettings`); a map that arrives by import has no
+  such step. Add a Configure step stating a count and anchors and filling the tuning the Sketch's rail already
+  shares. *Open (author): does an imported map need it?* `docs/pgm/control-points.md`.
 
 - [ ] **TC9 — The configure tool cannot place a shop.** The API is the way in — an agent adds `shops` to the
   intent it already posts (`docs/pgm/shops.md` §9) — and the wizard has no step for it. What the step states
   is the menu: a name, a currency, and a list of material/amount/price rows. Where the keepers stand is
   derived unless one names a place of its own (`docs/pgm/shops.md` §9), so the step offers the place and
   fills nothing in where the board says nothing.
-
-- [ ] **TC14 — The wizard drops the `warnings` its intent save answers.** `ConfigureTool.SaveIfDirtyAsync`
-  reads only the status of `PUT /map/{slug}/intent`, so an `RQ3` naming a field the server kept nowhere reads
-  as Saved. Show the complaint beside the editor bar's save state, naming the field path. Evidence: the Room
-  step wrote `wools[].room` while the intent reads `protection`, and every room drawn there was dropped
-  under a green Saved.
 
 - [ ] **TC16 — The Build phase offers the build mode.** `BuildIntent.Mode` (`void`, `never`, `only`, from
   `BuildModes`) and `Materials` are stated on the intent and nowhere in the wizard: a select beside Build
@@ -189,10 +168,10 @@ what is gathered here is the parked and dormant slices of the same surface.
   pass could be merged out of the first. Whether the rest is worth an incremental cache depends on a number
   nobody has: a typical board is ~93 ms end to end now, so this is the 200×200 case, not the common one.
 
-- [ ] **WE46 — A building wears the ground it stands on.** A house has to read as something somebody built,
-  from across the map, which means its walls are not in the tone family under its feet. Complain where a
-  building's wall material and the terrain ringing its footprint resolve to one `TerrainPalette` family, and
-  refuse an ore block as a building material outright. `docs/world-export/decoration.md`.
+- [ ] **WE46 — A building is told when it is walled in its ground's colour.** Ore walls are refused (`HS5`). Left:
+  a complaint for a house whose wall material and the ground ringing its footprint resolve to one `TerrainPalette`
+  family — the house analogue of `DR-TONE` (`RockTone.cs`), raised where `SketchMaterialGate` reads the ground.
+  `docs/world-export/decoration.md`.
 
   *9 of 50 buildings on the spec boards are walled in the ground's own family — `opus5-siderite-bowl` puts
   three grey-stone houses on grey stone, `sonnet-gantry` two brick houses on brick.*
@@ -220,19 +199,10 @@ what is gathered here is the parked and dormant slices of the same surface.
 
 ### Water
 
-- [ ] **S46 — Water reads the ground; a river on the axis is a canal.** A dressing path draping over whatever
-  it crosses is **settled as correct** — it repaints the top block of each column and adds no cell, which is
-  what lets a road cross a slope without becoming a ramp, and routing or grading it would be the tool
-  deciding where the author's road goes. Terrain that a route *emits* is the draw phase's path primitive
-  (`FEATURES.md`) and the erected-shape modes, not this. Water is the half that is genuinely wrong on
-  ground with relief, because it has to obey the ground rather than sit on it. It needs three things the flat model never
-  did: routing on a **depression-filled** copy, because steepest descent stops at the first grain-made pit after 2 cells
-  where the filled run covers 65; a bed floor forced non-increasing downstream; and **per-pool** water levels
-  replacing `decoration.md` §7's single lowest-surface line — the measured run holds 14 distinct levels, and a
-  basin is an outlet alongside the map edge, which is what a pond is. The exception is the case that matters
-  most: **a river on the mirror axis cannot both fall and be fair**, because a half-turn reverses the flow, so
-  on the axis it is a canal at one level and falling water belongs to the flanks
-  (`world-export/decoration.md` §7.1).
+- [ ] **S46 — A river on the mirror axis is a level canal.** The Terraform River modifier gives a bed that never
+  climbs, per-reach water levels with falls between, and one level where bodies meet (`Courses.cs`). Left: a river
+  lying on the mirror axis holds a single level, and the dressing fluid prop takes reach levels rather than one
+  lowest-surface line. A road draping over what it crosses stays settled as correct. `docs/world-export/decoration.md`.
 
 ### A made thing is a third kind, and it is drawn out of layers
 
@@ -311,11 +281,10 @@ what is gathered here is the parked and dormant slices of the same surface.
 ### Shapes
 
 - [ ] **TS156 — An outline can be bent into a coast from the canvas.** `POST /map/{slug}/sketch/shapes/{id}/bend`
-  resamples long edges, wanders the cut points and fits Béziers, optionally only on named shore edges, keeping a
-  plan's corners fixed; the sketch canvas has no control for it, so a compiled plan's rectangles are roughened by
-  hand point by point. Add a *Bend* action on a selected polygon (edges and wander as two sliders, a preview, one
-  undo step) in `SketchInspector`, calling the route. `docs/tools/sketch.md`. *Evidence: the route is used by
-  every agent build-spec that roughens a coast; no `.razor` under `Features/Sketch` names bend or wander.*
+  resamples long edges, wanders the cut points and fits Béziers, optionally only on named shore edges; the canvas has
+  no control for it, so any polygon — a hand-drawn one or a plan import's rectangle — is roughened point by point.
+  Add a *Bend* action on a selected polygon (edges and wander as two sliders, a preview, one undo step) in
+  `SketchInspector`, calling the route. `docs/tools/sketch.md`.
 
 - [ ] **TS141 — A room style stated as a library fork is honoured, or refused.** In `dressing.styles` a
   house stated as `{"library": <name>, "kind": "house", "shell": <parts>}` builds the fork (`DressingJson`
@@ -475,12 +444,11 @@ seams support and nothing asks for, the word the model uses for a seam — and t
 piece's own geometry rather than about what is stamped on it: what a spawn's ray faces, what a wall seals,
 and what a `subtract` takes away.
 
-- [ ] **B213 — Stop fusing the two pieces a wall sits between, and lock the seam in the sketch.** A wall's
-  rect is fixed at compile from the interface its two plan pieces share, and nothing afterwards holds that
-  seam: resize or re-bow either shape and the wall stays where it was, spanning less than the lane it was
-  drawn across, with no refusal and no warning. A wall slows an attack and gives defenders a base to build on
-  **without players tunnelling around it** (author) — both halves need the bedrock line cutting its lane in
-  full, so a shortened wall is a gameplay failure rather than a cosmetic one.
+- [ ] **B213 — A wall holds the coast it was drawn across.** A wall slows an attack and gives defenders a base
+  **without players tunnelling around it** (author), so it must cut its lane in full. `PL17` now warns when ground
+  runs past a wall's end. Left: a sketch wall (`WallLine`) that keeps spanning its lane when the shape under it is
+  reshaped, and the plan import no longer fusing the two pieces a wall sits between (`PlanCompiler`).
+  *Open (author): is the lock still wanted now that `PL17` warns?* `docs/tools/sketch.md`.
 
   **The shape (author's call).** `PlanCompiler` does not fuse an abutting pair at equal height when a wall
   sits on the seam between them — the fusion is what destroys it. The wall then has an interface in the
@@ -532,56 +500,30 @@ the skerry layout as the board that shows the over-warning is gone.
   `docs/generator/audit.md` §8 lists thirteen rules where `rules.md` argues one thing and the check does
   another; for each, the author says which is right, and the losing half changes in the same commit.
   `docs/generator/`.
-- [ ] **TS167 — A path reaches a house's door.** The clearances around a building make a road or path to its
-  door impossible. A path may run up to the door, paving never paints inside the house (its floor does), and
-  `/sketch/seats` agrees with the pass that places buildings: today it refuses a building on paving the pass
-  allows (`ClaimRaster.cs:210` against `Decorator.cs:1287`). `docs/tools/sketch.md`.
+- [ ] **TS167 — The seat preview lets a house stand on paving, as the build does.** `/sketch/seats` refuses a
+  house on a route cell as ground taken (`ClaimRaster.Stops`) while the pass seats it (`Decorator.FirstOverlap`
+  ignores paving), so the preview and the build disagree. Make the seat read agree, and check a path can be drawn
+  up to the door through the keep-out rings. `docs/tools/sketch.md`.
 
 ## A first-time reader: the words, the sizes, and the help a tool owes them
 A reviewer new to mapmaking read the studio cold and reported what stopped them. The copy pass and the
 text-size setting have shipped; what remains is what a sentence cannot fix — a term with nowhere to be looked
-up, controls that behave unlike every other tool, and the look itself. `docs/client/writing-for-the-ui.md`
+up, and controls that behave unlike every other tool. `docs/client/writing-for-the-ui.md`
 is the standard the copy is held to.
 
-- [~] **RP99 — A term inside a sentence is defined where it stands.** A field or a section naming a glossary term
-  shows its definition behind its `?`; a term inside a description, a note or a readout has no way to. A
-  definition tooltip — the word dotted-underlined, its definition on focus and hover, a link to `/glossary#slug` —
-  closes that, and the guide entries in `docs/client/writing-for-the-ui.md` join the glossary as a longer field
-  when a page needs them. `docs/client/`.
+- [ ] **RP99 — A term inside a sentence is defined where it stands.** A field's `?` already defines its term.
+  Left: an inline definition — the term dotted, its definition on hover or focus, a link to `/glossary#slug` — for
+  terms inside descriptions, notes and readouts, and a longer guide entry on a glossary term.
+  `docs/client/writing-for-the-ui.md`.
 
-- [ ] **C83 — Clicking the zoom readout resets the view.** The zoom percentage in `CanvasReadout` is
-  pointer-transparent; a reader expects clicking it to return to 100% or fit. Make the zoom item a button
-  (the rest of the readout stays transparent) that calls each canvas's existing fit command, in the sketch
-  and configure canvases. `docs/client/canvas-interaction.md`.
-
-- [ ] **TS150 — Zoom in the sketch's 3-D view.** Reported: in a map's Draw phase with 3-D on, the wheel moves
-  the zoom readout and the scale bar but the picture stays still. Reproduce in the iso view
-  (`sketch-canvas.js`, the lazily loaded `iso-webgl`) first; the readout and the picture must answer the same
-  zoom. `docs/tools/sketch.md`.
-
-- [~] **TS151 — The notes overview and the change history, laid out for the work.** Review's notes overview heads
-  its lists with four filter chips plus three grouped lists; put the filters into tabs (*This view · Whole map ·
-  All*) with a status select. History: up to 60 edit lines sit above *Restore*, so pin it in the inspector's footer
-  and show the three column counts as one row. `docs/tools/sketch.md` § Review, § History.
+- [ ] **TS151 — The notes overview and the change history, laid out for the work.** The World counts sit on one
+  row. Left: tabs (This view · Whole map · All) and a status select in place of the notes column's four filter
+  chips, and History's Restore pinned in the inspector's footer above its edit lines. `docs/tools/sketch.md`.
 - [ ] **TS164 — Decoration's inspector widens only for its picker.** *Parked (author): judging from the
   screenshots in the layout mockups' section 6.* `.workspace-inspector--wide` holds the
   Decoration inspector at 420px (`editor.css:295`) against 280px everywhere else, so the canvas jumps 140px on
   entering the phase while the wide column shows an empty state. Widen it only while a block or pattern picker
   is open. `docs/tools/sketch.md`.
-
-- [ ] **C69 — A proportional UI font.** *Parked (author): waits on the design direction.* Every page is set
-  in `ui-monospace` (`.editor-page`, `editor.css`), which reads as a terminal and is wider per word at the same
-  size. The alternative is a system sans for interface text with monospace kept for data: slugs, coordinates,
-  JSON, block counts. `docs/client/ui-conventions.md`.
-
-- [ ] **C70 — Which visual direction the studio takes.** *Parked (author): pick a mock-up.* Six directions
-  were mocked as artifacts (a cleaned-up version of today's look, a game-flavoured one, a dense pro-tool one,
-  *Paper*, the whitepaper's figure style: white ground, one ink, one accent, the four plan inks; *PGM*,
-  pgm.dev's look: its orange-red, the orange navbar bar, documentation layouts, light and dark; and
-  *Overcast*, oc.tc's look: maroon and cream, Lexend, slanted pictures, ribbon panels, and a map page laid
-  out like a player profile), each covering the landing page with map pictures and the map list with
-  authors, beside the sketch's In-game and change-history panels. The choice decides `tokens.css` and the
-  landing and list layouts; the components stay. `docs/client/ui-conventions.md`.
 
 ## The studio's own icons: one glyph for one thing
 `docs/client/icon-map.md` is the map: 511 icon assignments, where one picture stands for several things and one
@@ -592,9 +534,7 @@ thing is drawn several ways, and the order the move to the studio's own glyphs t
   register the kept ones in `icons/terrain-icons.js` under their prefix, point every table in
   `docs/client/icon-map.md`'s collision lists at them, rename `terrain-hill` to `terrain-mound` with its modifier,
   and change the rule in `docs/client/ui-conventions.md` that names `terrain-*` alone.
-- [ ] **C110 — One table per icon set.** The props' icons are stated in `DressingTools.All` and
-  `PropKindNames.All`, and the pieces' in the Layout dock's marker list and `SketchStructuralRow.Icon`; each pair
-  agrees only by hand. Keep one of each and derive the other, before any glyph moves.
+
 - [ ] **C111 — The vendor scan takes only icon names.** The Lucide subset vendors every kebab-case literal in the
   client, so 37 of its 152 names are never drawn (*anchor*, *bed*, *road*). Scan only icon positions — `Icon=`,
   `data-lucide`, the icon tables — and regenerate. `docs/client/icon-map.md`.
@@ -609,29 +549,21 @@ the client source.
   paint read (`sketch/paint`) and show it in each card's header — *claims 1,240 columns*, or *claims none: an earlier
   rule wins* in the warning colour — and tint that rule's columns while its card is hovered. `docs/tools/sketch.md`.
 
-- [ ] **TS219 — A paint rule card folds to one line.** Five rules take about 1,700 px; unset conditions weigh as much
-  as set ones, an empty field looks like 0, and nothing says every condition must hold. Fold a card to a sentence
-  built from what it sets (*Snow Block · slope ≤ 34° · y 26–28 · in patches*), offer *+ Add condition* for the rest,
-  say "all conditions must hold" once, and state Bare share in percent like Paved share. `SketchPaintRules`.
-  `docs/tools/sketch.md`.
+- [ ] **TS219 — A paint rule row says what it does.** Rules are one row each, empty conditions read *Any*, and
+  Coverage % replaced Bare share. Left: each row's summary built from what the rule sets (material · slope · y range
+  · patches) rather than its name alone; only set conditions shown, with *+ Add condition* for the rest; and "all
+  conditions must hold" said once. `docs/tools/sketch.md`.
 
-- [ ] **TS220 — Every modifier row says its type, and the list scrolls to its pick.** Terraform's list names a type
-  only on renamed rows, and lumps, roughness and warp share one wavy glyph. From about seventeen rows the picked one
-  is cut off. Show a muted type word on every row, give the list its own scroll region, and scroll the pick into
-  view as the Placed list does. `SketchModifierList`. `docs/tools/sketch.md`.
+- [ ] **TS220 — Every modifier row says its type, and the list scrolls to its pick.** Each op has its own glyph.
+  Left: a muted type word on every row (the type is only the icon's tooltip), a scroll region for the Modifiers
+  list, and the picked row scrolled into view as `SketchDressingList` does. `docs/tools/sketch.md`.
 
-- [ ] **TS221 — Deleting a modifier is not beside Close, and says how to undo.** The inspector header puts Delete
-  32 px from Close with no confirmation; undo exists but only as the top bar's arrows and Ctrl+Z. Move Delete to the
-  inspector's foot and show *ridge-2 deleted · Undo* after it. `SketchModifierInspector`. `docs/tools/sketch.md`.
+- [ ] **TS221 — Deleting a modifier says how to undo.** Delete sits at the inspector's foot (`TS229`). Left: after a
+  delete, a notice "*name* deleted · Undo" whose Undo is the bridge's `history.undo`. `docs/tools/sketch.md`.
 
-- [ ] **TS222 — The tree picker searches.** About 94 cards in library order with no search, height or family;
-  selected and hover share one border (`design.css` `.prop-card--active`). Add a search box and Species and Size chips
-  over the grid, a height under each generated card, and a check mark on the selected one.
-  `SketchDressingInspector`. `docs/tools/sketch.md`.
-
-- [ ] **TS223 — A block is picked by name, not typed as id:data.** Paint rules and stroke paving take numeric id and
-  data (`3:1`, `60:7`) and truncate names in the 280 px Palette column. Reuse the searchable `BlockPicker` with id:data
-  as a caption, and widen Palette's inspector to Decoration's. `docs/tools/sketch.md`.
+- [ ] **TS222 — The tree picker searches.** The picker is split into In use · Generated · Hand-built, hand-built
+  folded behind *Show more*. Left: a search box with Species and Size chips over the grids, a height caption under
+  each generated card, and a check mark on the picked card distinct from hover. `docs/tools/sketch.md`.
 
 - [ ] **TS224 — Ground cover shows its density before a field is drawn.** The inspector draws no picture of a
   ground cover, because the plan view the pass rendered read as a flat green square, and four plants (cacti, dead
@@ -649,10 +581,9 @@ the client source.
   through a sample patch at a few values — and open it in the field's help. `SketchModifierInspector`,
   `docs/tools/sketch.md`.
 
-- [ ] **C107 — Drawing the land shows its fill and its mirror while it is drawn.** A lasso trails 8 px squares with
-  no fill, the mirrored half appears only once the ring closes, and the close target is a 7 px square. Draw a
-  translucent fill and the symmetry copy at 40% while tracing, and a 14 px close ring that grows on hover.
-  `docs/client/canvas-interaction.md`.
+- [ ] **C107 — Drawing the land shows its fill and its mirror while it is drawn.** The lasso trace fills. Left: a
+  fill on the polygon tool's in-progress preview, the symmetry images drawn at 40% during any draw, and the
+  polygon's close target a 14 px ring that grows on hover. `docs/client/canvas-interaction.md`.
 
 - [ ] **TG5 — Player bands are counted and combined.** The Generator's band chips (`SizeBands`) carry no counts
   and only one can be on, because `GET /api/compose` serves one band per request and its feed returns no
@@ -663,9 +594,9 @@ the client source.
   house part to its own bounding sphere, so a shrub and an oak fill their cards equally. Bound a library kind's
   set once and draw every card of it at that scale. `docs/tools/library.md`.
 
-- [ ] **TL44 — The Dressing pickers draw with block textures.** `SpeciesCards` and `BoulderFormCards` in the
-  sketch's Dressing phase still draw the flat SVG side view while the Library's cards of the same props are
-  textured (`StructurePicture`). Route them through `StructureCard.Once`. `docs/tools/library.md`.
+- [ ] **TL44 — The boulder picker draws with block textures.** The tree picker uses the library's textured cards.
+  Left: `GET /api/terrain/boulder-forms` (`DressingPreview.BoulderFormCards`) still draws flat side-view SVG; route it
+  through `StructureCard` with the studio's sprites. `docs/tools/library.md`.
 
 - [ ] **TL45 — A house card is drawn on the footprint its editor chose.** `RoomStylePreview.CardOnce` renders the
   default 8×8 sample footprint from a fixed front camera, not the footprint the house editor's dock states.
@@ -698,16 +629,10 @@ the client source.
   exists and `Tokens.razor` only issues the caller's own (`/users/me/tokens`). Add the member picker to the
   admin's Tokens page. `docs/access.md`.
 
-- [ ] **B9 — Re-import a world into an existing map (keep the authored intent).** *Parked (author): imports
-  are not a priority.* When an author tweaks the
-  terrain (e.g. adds iron inside the spawns so the renewable populates) they currently have to import the
-  updated world as a *new* map and hand-copy the intent across. Add a "re-import / update world" action on
-  an intent-authored map that re-scans a chosen folder/zip in place — refreshing only the world-derived
-  data (`islands_json`, `resource_block`, surface/layer parquets, monument candidates) and **preserving the
-  `map_intent_json`**, then regenerating. Safe while island detection stays stable (the intent references
-  islands by id, and spawns/wools are world coordinates); flag the author when the island set changes so a
-  stale `islandTeams` mapping can be re-checked. (Manual procedure today: copy the `map_intent_json`
-  artifact + re-scan, then `PUT /map/{slug}/intent`.)
+- [ ] **B9 — Re-import a world from a zip or folder into its map.** *Parked (author): imports are not a priority.*
+  Re-import from a URL, keeping intent, document, notes and changes, shipped (`POST /map/{slug}/import-url`,
+  Configure's *Replace the world*). Left: re-import from an uploaded zip or a folder, and telling the author when the
+  re-scan changes the island set, so the island-to-team map is checked again. `docs/tools/configure.md`.
 
 ## The tool hosts and their bridges: one shape for save, feed, selection and the verb table
 
@@ -734,16 +659,6 @@ the client source.
   own `scale` by hand: `render/walk` 1–8 default 2 (`WorldReadEndpoints:1134`), the change diff 1–16 default 4
   (`MapChangeEndpoints:144`) and the terrain preview (`TerrainPreviewEndpoints:124`). Give them the same range
   reader, so the word is declared and clamped in one place. `docs/world-scan/read-backs.md`.
-
-- [ ] **RP107 — The edit-route count is stated from the code.** `MapEdit.cs`, `EditException.cs` and
-  `docs/architecture.md` say "thirty-six edit routes"; there are 20 `MapEdit.RunAsync` call sites. State the
-  number nowhere, or derive it. `docs/architecture.md`.
-
-- [ ] **TN16 — The prose calls a wool room a wool cage and a spawn room a spawn cube.** The vocabulary already
-  says `woolRoom` (`StructuralRoles.WoolRoom`), and a board binds a shell for a **wool** room and a **spawn**
-  room (`roomStyles.wool`, `roomStyles.spawn`), yet docstrings in `WorldBuilder`, `SketchMaterialGate`,
-  `PieceDoors`, `WorldProvenance`, `MonumentStamper` and `StructureRenewables` still call the structures a wool
-  cage and a spawn cube, which is the same word under a different hat. Rename them in one pass.
 
 - [ ] **G143 — the board deriver calls segments "edges", which is the one word the model reserves.**
   `model.md` fixes the vocabulary: an **edge** is one full side end to end, a **run** is a contiguous
@@ -851,11 +766,12 @@ where only the attackers need the wool. Take the rest per cause, reading each ag
   *Evidence: `ki` states `<apply block-place="deny(void)" region="bases">` "You may not bridge to the enemy
   side!"; `outcast`'s halves are joined only by water at y ≤ 1.*
 
-- [ ] **PG19 — The `resize` region is refused.** PGM grows or shrinks a child region by a vector
-(`<resize min=… max=…>`); the parser does not read it, and `MapParser.EnsureSupported` refuses the five corpus
-maps using it rather than read a rule over it as covering the whole board. Read it as the child's footprint
-grown by the x and z of `min`/`max`, in `RegionParser` and `RegionGeometry2d`, and take it off the refused
-list. `docs/pgm/supported-maps.md`.
+- [ ] **PG19 — The `resize` region is refused.** PGM's `<resize min max relative>` (`RegionParser.parseResize`,
+`ResizedRegion`) moves a block-bounded static child's bounds out to `oldMin − min` and `oldMax + max` — `min` and
+`max` read as fractions of the old size when `relative` — and stretches the child onto that box axis by axis, so a
+circle becomes an ellipse rather than a ring around it. The parser does not read it, and `MapParser.EnsureSupported`
+refuses the five corpus maps using it. Read it with that stretch in `RegionParser` and `RegionGeometry2d`, and take
+it off the refused list. `docs/pgm/supported-maps.md`.
 
 - [ ] **A8 Should the layout generator be its own project?** `Pgm` holds two charters:
   the `map.xml` codec (48 files) and the layout generator (`Compose`/`Evaluate`/`Shapes`/`Derive`/`Plan`, 85

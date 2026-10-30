@@ -6,7 +6,7 @@ namespace PgmStudio.Domain;
 /// player opens it by hand, so it seals nothing and the rule has nothing to whitelist.</summary>
 public enum DoorMaterial
 {
-    /// <summary>An open doorway. The spawn cube's only choice — a player spawning in has to be able to walk
+    /// <summary>An open doorway. The spawn room's only choice — a player spawning in has to be able to walk
     /// straight out — and a legitimate cage style in its own right.</summary>
     Air,
     /// <summary>Cobweb: passable but slow, so the doorway costs an attacker time rather than a pickaxe.</summary>

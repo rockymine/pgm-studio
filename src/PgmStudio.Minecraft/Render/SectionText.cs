@@ -14,7 +14,7 @@ namespace PgmStudio.Minecraft.Render;
 /// <para>Every block classes first by what it is — liquid, a log, a leaf or a plant, bedrock — then by where
 /// it stands: below the recorded terrain surface it is ground, above it and inside a stacked layer's own
 /// span it is that layer's storey, and failing both it classes by which pass claimed the column, so a wall, a
-/// wool cage, a spawn platform and a made thing each read as themselves.</para>
+/// wool room, a spawn platform and a made thing each read as themselves.</para>
 /// </summary>
 public static class SectionText
 {

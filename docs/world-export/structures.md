@@ -56,7 +56,8 @@ fanned per orbit image) and as many as an author drew for a hand-authored one �
 framed on what that union encloses. There is no second rectangle naming the same ground: the
 building is the room's house (`House`, its room capped by `ST9`), the region is this one (capped
 by `ST10`), and an intent that states no region at all falls back to the marker-anchored default
-frame, the one a 10×10 piece would resolve to. **Both rooms state their doors in one shape**,
+frame, the one a 10×10 piece would resolve to. A frame the world builds more than 20 blocks across, a wool
+room's as much as a spawn room's, raises `WX13`. **Both rooms state their doors in one shape**,
 `Doors`, already fanned and in the order they are cut: each a `StatedDoor` — the way its wall faces, as an
 edge word, and the point on that wall it is centred on, `{"edge": "-z", "x": 12, "z": -40}`, or no point,
 `{"edge": "+x"}`, for a door centred on its wall. The plan states a wool's at the midpoint of each entry

@@ -12,7 +12,7 @@ public sealed record PlacedMonument(string WoolSlug, int X, int Y, int Z);
 /// The monument a wool is placed on: a bedrock pedestal standing on the floor, the air cell above it the wool
 /// goes in, a cap of stained glass in the wool's own colour, and a sign beside it saying which wool it wants.
 ///
-/// <para>Here rather than inside the spawn cube because a monument is not a thing about spawn cubes. The same
+/// <para>Here rather than inside the spawn room because a monument is not a thing about spawn rooms. The same
 /// four blocks are what a wool room, a house or a plain plinth on open ground needs, and a second copy of them
 /// is how a map comes to have two monuments that do not look alike.</para>
 /// </summary>

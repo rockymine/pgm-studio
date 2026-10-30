@@ -69,6 +69,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   maps*) beside the newest map drawn in game; *Continue working* as picture cards; tool tiles for Generator,
   Shape catalog, Library and Rules; a banner to the glossary. `MapThumb` keeps a placeholder where a map cannot
   be drawn, over `GET /api/map/{slug}/render/picture`. `docs/client/routing-and-ia.md`.
+- **Clicking the zoom readout fits the board (`C83`).** In the Sketch and Configure canvases the zoom percentage
+  is a button calling the tool's own fit; the rest of the readout stays out of the pointer's way.
+  `docs/client/ui-conventions.md`.
+- **Configure says what a landed save was warned of (`TC14`).** A save that lands with warnings — a field the
+  studio kept nowhere among them — shows them over the wizard in the studio's own sentences, rather than reading
+  only as Saved. `docs/tools/configure.md`.
+- **A wool room is held to the room cap too (`RP121`).** `WX13` is asked of every room the world builds, wool
+  rooms beside spawn rooms. `docs/world-export/structures.md`.
+- **Palette's inspectors are Decoration's width (`TS223`).** 420 px, since a block is picked there by name.
+  `docs/tools/sketch.md`.
 - **The start page and the maps list say what is there, in PGM's words (`C121`).** Gamemodes read by PGM's own
   full names (*Destroy the Monument*, *Control the Point*) in the table and the filter, and a map with none says
   *No gamemode*; the start page names no gamemode and has one way to the maps page; *Create map* and *Import map*

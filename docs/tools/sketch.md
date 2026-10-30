@@ -1482,7 +1482,7 @@ cell that carries none falls to the map default, so the resolution is shape, the
 down — a thing in hand is the first thing it lets go of — and so does leaving the phase.
 
 **The inspector says what is in hand, what the selection carries, and — with neither — what the board falls
-back to.** Palette, badged **in hand**: where the theme was copied from and whether it still says what that
+back to.** It is Decoration's width, 420 px, since a block is picked in it by name. Palette, badged **in hand**: where the theme was copied from and whether it still says what that
 row says — the row is read and the two documents compared, so a snapshot that has been edited on either side
 says so instead of reading as current — the sample plateau the theme finishes, and **Delete**, which takes it
 off the board. A theme is edited in the library, never here. Selection: what that shape or group is painted

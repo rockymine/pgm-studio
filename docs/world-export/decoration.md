@@ -892,7 +892,10 @@ work, and both decide where the author's road goes, which is the tool overruling
 varies along its length states `anchor_heights` one to one with its drawn points (`docs/tools/sketch.md`).
 
 **Water** is the half that is genuinely wrong on ground with relief, because it has to obey the ground rather than sit on
-it, and this is `S46` — designed and measured, not built. Steepest descent from a source stops at the first
+it, and this is `S46`. A channel the author draws as a line is the Terraform River modifier, which cuts a bed that
+never climbs, held level in reaches and stepping down in falls (`docs/tools/sketch.md`); what follows is the design
+for the dressing fluid prop, which still takes one lowest-surface line, and for the canal below, neither of them
+built. Steepest descent from a source stops at the first
 cell with no lower neighbour, and a grained surface is full of one-block pits: measured, the descent stopped
 after **2 cells**. Water is therefore routed on a **depression-filled** copy of the surface, where every basin
 has been raised to the level of its lowest outlet, so a strictly-non-climbing path to the edge of the land

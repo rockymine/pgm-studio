@@ -13,7 +13,7 @@ namespace PgmStudio.Api.Services;
 /// the house styles it binds and the terrain themes it registers. One gate because they enter together and
 /// are built together — a board is refused for what it is made of, whichever half of the finish said it.
 ///
-/// <para><b>The styles</b> are the wool cage, the spawn and every building the dressing places, against the
+/// <para><b>The styles</b> are the wool room, the spawn and every building the dressing places, against the
 /// same universal checks, since none of the three wears a rule the others don't: the style's own materials and
 /// geometry (<c>HS*</c>), and the one thing a style cannot answer about itself, whether the shell it builds
 /// stands under the map's build ceiling (<c>WX10</c>). A placed building is a house style like the bound ones
