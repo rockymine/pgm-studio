@@ -3751,6 +3751,9 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **A finished sketch's scan follows the intent's rooms (`TS178`).** The scan records the layout and intent revisions
   it was rasterized from (`WorldFeatureWriter.ScanSource`), so a room moved through the piece route is ground the
   next read answers for. `docs/tools/sketch.md`.
+- **The seat preview seats a house where the build does (`TS167`).** `/sketch/seats` asks a house a goal's clearance
+  and a door's approach and no other keep-out ring, and seats it over paving, so a path drawn up to a door through a
+  spawn's ring and the house at its end both read as the pass builds them. `docs/tools/sketch.md`.
 - **A region carries no draft step (`PG18`).** `draft_step` is gone from `POST /regions`, `/orbit` and the region
   tree, and `M0091` deletes every stored `region_drafts_json`. `docs/pgm/region-data-flow.md`.
 

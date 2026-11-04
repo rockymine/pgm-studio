@@ -18,11 +18,6 @@ concept since `WE71`, and holding them apart is a deliberate not-yet.
 something wrong today, on a page a person uses or on the API an agent drives; the composer's own bugs stay
 deferred in the backlog with the rest of the generator, and `PG29` waits there on the author's ruling.
 
-- [ ] **TS167 — The seat preview lets a house stand on paving, as the build does.** `/sketch/seats` refuses a
-  house on a route cell as ground taken (`ClaimRaster.Stops`) while the pass seats it (`Decorator.FirstOverlap`
-  ignores paving), so the preview and the build disagree. Make the seat read agree, and check a path can be drawn
-  up to the door through the keep-out rings. `docs/tools/sketch.md`.
-
 - [ ] **TS141 — A room style stated as a library fork is honoured, or refused.** In `dressing.styles` a
   house stated as `{"library": <name>, "kind": "house", "shell": <parts>}` builds the fork (`DressingJson`
   resolves the shell over the row), but the same object under `roomStyles.spawn` stores 200, raises nothing and
