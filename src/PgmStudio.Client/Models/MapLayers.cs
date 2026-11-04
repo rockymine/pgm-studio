@@ -17,6 +17,10 @@ public static class MapLayers
         _ => map.HasSurface,
     };
 
+    /// <summary>Whether <paramref name="map"/> was imported from a world rather than drawn in the studio: it holds a
+    /// world and no sketch layout, the same test <c>GET /api/map/{slug}/origin</c> answers.</summary>
+    public static bool Imported(MapSummary map) => map.HasSurface && !map.HasSketch;
+
     /// <summary>The tool a click on <paramref name="map"/> opens: the one at its stage, or for a finished map the
     /// last layer it holds, and nothing when it holds none.</summary>
     public static string? Opens(MapSummary map) =>

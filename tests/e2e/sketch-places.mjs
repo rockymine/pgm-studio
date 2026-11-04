@@ -50,8 +50,8 @@ await page.locator(".panel-list .list-label", { hasText: "Abbey Hill" }).waitFor
 checks.add("the name is stored", (await api(`/map/${seed.sketchSlug}/places`)).places[0].name === "Abbey Hill");
 
 checks.section("the place's panel is one conversation, and a note written in it is pinned to the place");
-checks.add("the panel has no New note step and no filters",
-  !(await page.locator(".workspace-inspector .notes-column button:has-text('New note')").count())
+checks.add("the panel has no Create note step and no filters",
+  !(await page.locator(".workspace-inspector .notes-column button:has-text('Create note')").count())
   && !(await page.locator(".workspace-inspector .notes-column__filters").count()));
 await page.fill(".workspace-inspector #note-reply", "Is the hill tall enough to hold?");
 await page.click(".workspace-inspector .notes-column button:has-text('Send')");

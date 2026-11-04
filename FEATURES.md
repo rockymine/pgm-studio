@@ -79,6 +79,17 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   rooms beside spawn rooms. `docs/world-export/structures.md`.
 - **Palette's inspectors are Decoration's width (`TS223`).** 420 px, since a block is picked there by name.
   `docs/tools/sketch.md`.
+- **The start page carries a fixed header picture (`C122`).** The same for every reader, the studio mark until an
+  image is chosen, rather than the newest map an agent built. `docs/client/routing-and-ia.md`.
+- **An imported map says so (`C123`).** A map holding a world and no sketch carries an *Imported* tag on its row and
+  its start-page card, and the maps page's **Origin** filter (`?origin=studio|imported`) keeps one kind.
+  `docs/client/routing-and-ia.md`.
+- **A stage is marked by its word, never a colour (`C124`).** The stage dots are gone from the maps list, the start
+  page's cards and the editor bar's switcher. `docs/client/routing-and-ia.md`.
+- **The studio bar's Search finds maps, glossary terms and rules (`C125`).** The command palette lists them under the
+  commands, five of each, and opens the page each names (`StudioSearch`). `docs/client/canvas-interaction.md`.
+- **A document's button says Create (`C126`).** *Create map*, *Create palette*, *Create note*; a *New …* button is
+  refused by `ClientTextTests`. `docs/client/writing-for-the-ui.md`.
 - **The start page and the maps list say what is there, in PGM's words (`C121`).** Gamemodes read by PGM's own
   full names (*Destroy the Monument*, *Control the Point*) in the table and the filter, and a map with none says
   *No gamemode*; the start page names no gamemode and has one way to the maps page; *Create map* and *Import map*

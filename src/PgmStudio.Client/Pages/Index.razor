@@ -5,7 +5,7 @@
 
 <PageTitle>PGM Studio</PageTitle>
 
-@* The studio entry: a hero (what the studio makes, the way in, an in-game picture of a map), the maps the reader
+@* The studio entry: a hero (what the studio makes, the way in, the header picture), the maps the reader
    changed last as cards, the tools that are not reached from a map, and a way into the glossary. The shell is
    given no Bar — the home page is not a tool — and every tool is reachable from the studio's own bar. *@
 
@@ -13,7 +13,7 @@
   <ChildContent>
       <div class="workspace">
         <div class="workspace-scroll"><div class="landing">
-          <LandingHero HeroSlug="@hero?.Slug" HeroName="@hero?.Name" />
+          <LandingHero />
 
           <section class="landing-section">
             <h2 class="landing-section-title">@(mine ? "Your recent maps" : "Latest maps")</h2>
@@ -32,7 +32,8 @@
                     <div class="landing-card-body">
                       <div class="landing-card-line">
                         <span class="landing-card-name">@item.Map.Name</span>
-                        <span class="landing-stage"><span class="map-stage-dot map-stage-dot--@stage"></span>@MapLayers.LabelOf(stage)</span>
+                        @if (MapLayers.Imported(item.Map)) { <span class="list-tag">Imported</span> }
+                        <span class="landing-stage">@MapLayers.LabelOf(stage)</span>
                       </div>
                       <span class="landing-card-meta">@Meta(item.Map, item.At)</span>
                     </div>

@@ -20,6 +20,9 @@ public partial class Maps
     /// one of them is shown.</summary>
     [SupplyParameterFromQuery(Name = "gamemode")] public string[]? Gamemode { get; set; }
 
+    /// <summary>Where the maps shown came from, one of <see cref="Origins"/>, or absent for both.</summary>
+    [SupplyParameterFromQuery(Name = "origin")] public string? Origin { get; set; }
+
     [SupplyParameterFromQuery(Name = "sort")] public string? Sort { get; set; }
 
     private const string NoGamemode = "none";
@@ -31,6 +34,11 @@ public partial class Maps
     [
         (MapStage.Sketch, "Sketch"), (MapStage.Configure, "Configure"),
     ];
+
+    private const string Imported = "imported";
+
+    /// <summary>Where a map came from: drawn in the studio, or imported from a world (<see cref="MapLayers.Imported"/>).</summary>
+    private static readonly (string Word, string Label)[] Origins = [("studio", "Studio"), (Imported, "Imported")];
 
     private static readonly (string Title, bool Agents)[] AuthorGroups = [("Agents", true), ("Users", false)];
 
@@ -45,10 +53,11 @@ public partial class Maps
     private string? loadError;
 
     private string? CurrentStage => StageWords.Any(entry => entry.Word == Stage) ? Stage : null;
+    private string? CurrentOrigin => Origins.Any(entry => entry.Word == Origin) ? Origin : null;
     private string SortKey => SortOptions.Any(o => o.Value == Sort) ? Sort! : "changed";
     private IReadOnlyList<string> Picked => Author ?? [];
     private IReadOnlyList<string> PickedGamemodes => Gamemode ?? [];
-    private bool Filtering => CurrentStage is not null || Picked.Count > 0 || PickedGamemodes.Count > 0;
+    private bool Filtering => CurrentStage is not null || CurrentOrigin is not null || Picked.Count > 0 || PickedGamemodes.Count > 0;
 
 
     private void Open(MapSummary map)
@@ -88,11 +97,15 @@ public partial class Maps
 
     /// <summary>Whether a map passes every filter, or — for a count — every filter but <paramref name="skip"/>,
     /// with the one value given in its place.</summary>
-    private bool Passes(MapSummary map, string? skip = null, string? stage = null, string? author = null, string? gamemode = null)
+    private bool Passes(MapSummary map, string? skip = null, string? stage = null, string? author = null, string? gamemode = null,
+        string? origin = null)
     {
         var credits = MapLayers.Credited(map);
         var stageIs = skip == "stage" ? stage : CurrentStage;
         if (stageIs is not null && MapLayers.StageOf(map) != stageIs) return false;
+
+        var originIs = skip == "origin" ? origin : CurrentOrigin;
+        if (originIs is not null && MapLayers.Imported(map) != (originIs == Imported)) return false;
 
         IReadOnlyList<string> authors = skip == "author" ? author is null ? [] : [author] : Picked;
         if (authors.Count > 0 && !credits.Any(credit => authors.Contains(MapLayers.NameOf(credit)))) return false;
@@ -109,8 +122,8 @@ public partial class Maps
         return true;
     }
 
-    private int Count(string skip, string? stage = null, string? author = null, string? gamemode = null) =>
-        maps?.Count(map => Passes(map, skip, stage, author, gamemode)) ?? 0;
+    private int Count(string skip, string? stage = null, string? author = null, string? gamemode = null, string? origin = null) =>
+        maps?.Count(map => Passes(map, skip, stage, author, gamemode, origin)) ?? 0;
 
     private List<MapSummary> Shown
     {
@@ -159,7 +172,7 @@ public partial class Maps
         authorSearch = "";
         Nav.NavigateTo(Nav.GetUriWithQueryParameters(new Dictionary<string, object?>
         {
-            ["stage"] = null, ["author"] = null, ["gamemode"] = null,
+            ["stage"] = null, ["origin"] = null, ["author"] = null, ["gamemode"] = null,
         }), replace: true);
     }
 

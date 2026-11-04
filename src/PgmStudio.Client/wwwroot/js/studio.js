@@ -211,6 +211,11 @@ window.studio = {
     const overlay = await import("/js/studio/shared/keys-overlay.js");
     overlay.openPalette();
   },
+  // Give the palette the .NET searcher (StudioSearch) it asks for maps, glossary terms and rules.
+  async setPaletteSearch(dotnetRef) {
+    const overlay = await import("/js/studio/shared/keys-overlay.js");
+    overlay.setSearch(dotnetRef ? (needle) => dotnetRef.invokeMethodAsync("Find", needle) : null);
+  },
   // Hand focus to the first element a selector finds, for a control whose opener lives in another component.
   focusFirst(selector) {
     document.querySelector(selector)?.focus();

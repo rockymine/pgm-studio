@@ -76,7 +76,7 @@ async function openFirstLayout() {
 // Every page whose actions write, the actions, and what to do on the page before they are read. A library
 // entry is saved only once it has a name, so the admin types one; the visitor's name field is greyed.
 const WRITE_PAGES = [
-  ["/library/themes", null, [["the library's New button", /^New palette$/]]],
+  ["/library/themes", null, [["the library's Create button", /^Create palette$/]]],
   ["/library/themes/new", async open => {
     await page.waitForSelector(".lib-section", { timeout: 20000 }).catch(() => {});
     if (open) await page.fill("#lib-entry-name", "E2E access palette");

@@ -26,5 +26,6 @@ builder.Services.AddScoped<PgmStudio.Client.Components.StudioAccess>();
 builder.Services.AddScoped<PgmStudio.Client.Components.MaterialSchema>();
 // The rules and scored terms the server can cite, asked once and shared by the rules page and every check list.
 builder.Services.AddScoped<PgmStudio.Client.Components.RuleBook>();
+builder.Services.AddScoped<PgmStudio.Client.Components.StudioSearch>();
 
 await builder.Build().RunAsync();

@@ -2,10 +2,12 @@
 @implements IDisposable
 @inject NavigationManager Nav
 @inject IJSRuntime JS
+@inject StudioSearch Finder
 
 @* The studio's own bar, the same on every page that is not an editor: the mark and name (home), a link to each
    tool, then the two reference pages — the rules a check can name and the glossary of the studio's words — and at
-   the right a search that opens the command palette, the keyboard shortcuts, the design reference, the text size,
+   the right a search that opens the command palette — commands, and the maps, glossary terms and rules
+   StudioSearch finds — the keyboard shortcuts, the design reference, the text size,
    the theme and the account. What belongs to the tool in front of it — its trail, its state, its actions — is the
    Topbar under it.
 
@@ -128,6 +130,7 @@ else
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await JS.InvokeVoidAsync("studio.icons");
+        if (firstRender) await JS.InvokeVoidAsync("studio.setPaletteSearch", Finder.Reference);
         if (MenuOpen == shownOpen) return;
         shownOpen = MenuOpen;
         if (MenuOpen) await panel.FocusAsync();

@@ -55,7 +55,6 @@
   border: 0; border-radius: var(--radius-sm); background: none;
   color: var(--text-strong); letter-spacing: inherit; text-align: left; white-space: nowrap;
 }
-.editor-crumb .editor-stage .map-stage-dot { width: 8px; height: 8px; margin-right: 2px; }
 .editor-stage--button { cursor: pointer; }
 .editor-stage--button:hover, .editor-stage--button[aria-expanded="true"] {
   color: var(--text-strong); background: var(--bg-vis-hover); box-shadow: 0 0 0 3px var(--bg-vis-hover);

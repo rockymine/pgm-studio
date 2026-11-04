@@ -1,8 +1,7 @@
 @namespace PgmStudio.Client.Components
 
 @* The studio entry's opening block: what the studio makes, the two ways in (a new map, made and opened, or the
-   maps), and a picture of a map the studio has drawn in game — the newest one with a world, named by HeroSlug —
-   or the studio mark where none has. *@
+   maps), and the studio's fixed header picture, the same for every reader whatever maps the studio holds. *@
 
 <section class="landing-hero">
   <div class="landing-hero-text">
@@ -15,12 +14,9 @@
       <Button Size="lg" Icon="map" Href="@MapsHref">Browse maps</Button>
     </div>
   </div>
-  <MapThumb Class="landing-hero-picture" Slug="@HeroSlug" Name="@HeroName" />
+  <MapThumb Class="landing-hero-picture" />
 </section>
 
 @code {
-    /// <summary>The map the hero picture is drawn of; omitted until a map with a world is known.</summary>
-    [Parameter] public string? HeroSlug { get; set; }
-    [Parameter] public string? HeroName { get; set; }
     [Parameter] public string MapsHref { get; set; } = "maps";
 }
