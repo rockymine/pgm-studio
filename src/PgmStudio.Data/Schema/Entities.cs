@@ -739,19 +739,14 @@ public static class ArtifactKind
     public const string WorldBlocksJson = "world_blocks_json";
     // symmetry_json was promoted to the `symmetry` table (M0003).
     public const string MapConfigJson = "map_config_json";
-    // Editor-only sidecar: {region_key: editor_step} for freshly drawn, not-yet-wired regions (E10).
-    // Lives outside the entity-replace codec so it survives MapWriter.SaveDocAsync; never part of the
-    // PGM map document. Pruned against live regions on read; entries graduate out once a region's
-    // derived category is no longer "other".
-    public const string RegionDraftsJson = "region_drafts_json";
     // Declarative authoring intent for NEW maps (docs/pgm/new-map-authoring.md): the source of
-    // truth the generator projects into regions/filters/apply-rules. Like the draft sidecar it lives
+    // truth the generator projects into regions/filters/apply-rules. It lives
     // outside the entity-replace codec, so it survives MapWriter.SaveDocAsync and is never part of the
     // PGM document. Presence of this artifact is what makes a map "intent-authored".
     public const string MapIntentJson = "map_intent_json";
     // Sketch tool authoring source (docs/tools/sketch.md): the drawn layout (setup +
-    // shapes + island metadata, the browser's JS-origin blob) for a draft map. Like the intent/draft
-    // sidecars it lives outside the entity-replace codec. A draft map with this artifact but no
+    // shapes + island metadata, the browser's JS-origin blob) for a draft map. Like the intent
+    // it lives outside the entity-replace codec. A draft map with this artifact but no
     // layer_parquet is a sketch-in-progress; "finish" rasterizes it into the geometry artifacts (S2e).
     public const string SketchLayoutJson = "sketch_layout_json";
     // The plan a map was planned from (docs/tools/plan.md), kept as read-only history: the cell-grid

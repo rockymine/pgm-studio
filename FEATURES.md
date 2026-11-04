@@ -3745,6 +3745,8 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **The Edit tool is retired (`TE3`)** — `/maps/{slug}/edit` and `Features/Edit/` are gone; `WorldCanvas` and
   the bodies drawn beside it live in `Features/Configure/`, and a finished map's document is changed through
   the entity routes `docs/tools/flow.md` documents. (`TE3`)
+- **A region carries no draft step (`PG18`).** `draft_step` is gone from `POST /regions`, `/orbit` and the region
+  tree, and `M0091` deletes every stored `region_drafts_json`. `docs/pgm/region-data-flow.md`.
 
 ## Pipeline / world import (M7)
 - **World folders only where someone can put one (`TC12`).** `/maps/new` lists the imports root's world

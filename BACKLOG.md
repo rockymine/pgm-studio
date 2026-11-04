@@ -34,14 +34,6 @@ about which section the entry sits in — the retired prefixes still on entries 
   `geometry/shape.js`, `addShape` in `sketch-bridge.js`), and inspector rows for an arch's rock `thick`, its easing
   powers and its `camber`, stated over the API today (`docs/tools/sketch.md`, *Solids*).
 
-- [ ] **TS190 — A place states the numbers it is held to.** *Parked (author): agent-facing, and the rule measures already band a distance.* A place carries targets — a value and the band it
-  must fall in — and each is measured off the sketch's ground and shown beside its band, a miss as a complaint,
-  as pgmvox's checker prints one line per number (`freeform/lib/AGENT-GUIDE.md` § the plan). The walks the
-  sketch already measures (`BoardWalks`, `PlanNav.Of`) carry the first kinds: a team's walk from its spawns to a
-  place, and which team arrives first. Lands on `PlacesDocument`'s `Place` (`Contracts/PlacesDtos.cs`) and
-  `PlacesCheck`. **Open, the author's:** which kinds of target a place may state beyond walks and arrivals —
-  a width or a height reads the place's shape against the ground. `docs/tools/sketch.md`.
-
 - [ ] **TS191 — `sight`: who can see whom on the sketch's ground.** *Parked (author): agent-facing; a target is likely an objective.* A line between an eye 1.62 blocks over the
   feet and a target's chest 0.9 over its feet is clear when every block it passes, sampled each quarter block,
   is above the ground the sketch builds and outside its houses; answered as each target's share of eyes that
@@ -103,7 +95,7 @@ them one rather than with the contract work that shipped them.
 - [ ] **TC7 — Configure states capture points on a map not drawn in the Sketch.** The Sketch's Layout step places,
   moves, resizes and tunes control points (`PlayPieceAdd`, `PlayPieceSettings`); a map that arrives by import has no
   such step. Add a Configure step stating a count and anchors and filling the tuning the Sketch's rail already
-  shares. *Open (author): does an imported map need it?* `docs/pgm/control-points.md`.
+  shares; an imported map needs it (author). `docs/pgm/control-points.md`.
 
 - [ ] **TC9 — The configure tool cannot place a shop.** The API is the way in — an agent adds `shops` to the
   intent it already posts (`docs/pgm/shops.md` §9) — and the wizard has no step for it. What the step states
@@ -131,12 +123,6 @@ them one rather than with the contract work that shipped them.
   (`PlanCompiler.cs:413`). Blocked on the layout law: BZ5 forbids every zone touching a spawn piece and the BZ
   rules read every zone a plan states (`PlanValidator.cs:686`), so a rule zone needs its own place in
   `docs/generator/rules.md`, amended by its correction protocol. `docs/pgm/zones.md` §3.
-- [ ] **PG31 — A spawn keeps every region it states.** `Spawn.Region` holds one region, so a spawn written
-  with several `<region>` children keeps the first and loses the rest on read — 83 spawns in 34 corpus maps
-  (`skill_issue`'s defenders spawn at either end). A portal naming a lost one exports a reference to nothing.
-  `Spawn.Regions`, each with its own yaw, read and written by `MapParser`/`XmlWriter`, stored and served.
-  `docs/pgm/portals.md`.
-
 ## The sketch tool: shapes, islands, and the ground they become
 
 The depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection highlight);
@@ -192,11 +178,6 @@ what is gathered here is the parked and dormant slices of the same surface.
 
 ### The finished sketch's scan
 
-- [ ] **TS178 — A finished sketch's scan follows the intent's rooms.** The scan is redrawn when the layout's
-  revision moves past the one it was drawn from (`SketchFinish.RefreshAsync`, `WorldFeatureWriter.SketchScanRevision`),
-  but a room holds the ground under it and lives in the intent, so a move through the piece route alone leaves the
-  scan describing the room where it stood. Key the scan on both revisions. `docs/tools/sketch.md`.
-
 ### Water
 
 - [ ] **S46 — A river on the mirror axis is a level canal.** The Terraform River modifier gives a bed that never
@@ -227,16 +208,6 @@ what is gathered here is the parked and dormant slices of the same surface.
 
 ### Dressing: what the pass can place
 
-- [ ] **TL35 — A copied tree states no species.** A tree save requires `species` (`RQ1`) and the library
-  answers one for every row, so every copied recipe states `"species": "oak"` — `acacia-1`, `birch-3` and
-  `sequoia-1` alike, and so every entry of the seed folder's `trees.json`. A copied tree
-  reads only its body, so the word is inert, but it says of an acacia what the showcase's `kinds.json` exists to
-  stop anyone reading off a block. `TreeStyleSaveRequest.Species` is required of a template only,
-  `PropStyleLibrary.TreeOf` gives a copied row none and `DressingJson` writes none for one; the snapshot is cut
-  again after. `docs/tools/library.md`.
-
-  *Evidence: all 84 entries of the snapshot read `"species":"oak"`.*
-
 - [ ] **WE154 — A chest PGM refills.** A `chest` prop's stacks are written into the world and never
   refilled. PGM's `<lootables>` refills one: `<loot id>` states items the way a kit does, and `<fill loot=…
   filter=… refill-interval=…|refill-trigger=…>` fills every container its filter admits the first time it is
@@ -249,14 +220,14 @@ what is gathered here is the parked and dormant slices of the same surface.
   parses Bukkit's (`WOOD`), so the prop needs one table between them. `docs/world-export/decoration.md` §8a;
   `docs/pgm/`.
 
-- [ ] **WE152 — A room's door width, stated by its style.** *Parked (author): what a stored `door_width` of 2
-  means.* `WX7` cuts a room's door from its wall (`RoomFrames.DoorWidth`: 4 on an even interior of six or more,
+- [ ] **WE152 — A room's door width, stated by its style.** `WX7` cuts a room's door from its wall (`RoomFrames.DoorWidth`: 4 on an even interior of six or more,
   3 on an odd one, 2 at four across) and a style's `doorway.width` reaches only the dressing's houses. Honouring
   it is `clamp(stated, 2, interior − 2)`, dropped by one where its parity differs from the wall's so the door
   stays centred — carried on `RoomShells`, since `Domain` cannot see `HouseStyle`, and re-checked against the
   iron cube the room seats beside the door (`ResolvedRoom.Iron`, `WX8`). The field is `NOT NULL DEFAULT 2`
-  (`M0027`), and 11 of the deployed 13 room styles hold 2, so read as stated every room door narrows: it has to
-  become nullable with a migration, and whether a stored 2 is a statement is the author's. *Evidence: Sootcombe
+  (`M0027`), and 11 of the deployed 13 room styles hold 2. **The author's ruling:** a stored 2 is the default, so the
+  column becomes nullable and a migration turns every 2 into null; and a door may be 1 wide, which is a literal
+  door — a door block in the opening — rather than a gap. *Evidence: Sootcombe
   note 10 asks for a 2-wide wool-room door.* `docs/world-export/structures.md` §7.
 
 - [ ] **WE175 — Timber bays along a storey's wall.** `Storey.Bays`: a post every `period` blocks along a wall
@@ -285,14 +256,6 @@ what is gathered here is the parked and dormant slices of the same surface.
   no control for it, so any polygon — a hand-drawn one or a plan import's rectangle — is roughened point by point.
   Add a *Bend* action on a selected polygon (edges and wander as two sliders, a preview, one undo step) in
   `SketchInspector`, calling the route. `docs/tools/sketch.md`.
-
-- [ ] **TS141 — A room style stated as a library fork is honoured, or refused.** In `dressing.styles` a
-  house stated as `{"library": <name>, "kind": "house", "shell": <parts>}` builds the fork (`DressingJson`
-  resolves the shell over the row), but the same object under `roomStyles.spawn` stores 200, raises nothing and
-  builds the bare library row. Resolve `roomStyles.<part>` through the same reader the dressing registry uses,
-  or answer `RQ1` at the path; a second accepted shape that is silently dropped is the failure.
-  `docs/tools/sketch.md`. *Evidence: `pgm-studio-mapgen/reports/sonnet55-halcyon-cays.md`, the kit section — the
-  spawn halls came out cyan clay over pink-white clay.*
 
 - [ ] **S59 — Per-vertex height is the headline feature and is found by accident.** The path is: select a
   polygon, read the one conditional sentence in the inspector, click a vertex on the canvas without moving it,
@@ -444,21 +407,6 @@ seams support and nothing asks for, the word the model uses for a seam — and t
 piece's own geometry rather than about what is stamped on it: what a spawn's ray faces, what a wall seals,
 and what a `subtract` takes away.
 
-- [ ] **B213 — A wall holds the coast it was drawn across.** A wall slows an attack and gives defenders a base
-  **without players tunnelling around it** (author), so it must cut its lane in full. `PL17` now warns when ground
-  runs past a wall's end. Left: a sketch wall (`WallLine`) that keeps spanning its lane when the shape under it is
-  reshaped, and the plan import no longer fusing the two pieces a wall sits between (`PlanCompiler`).
-  *Open (author): is the lock still wanted now that `PL17` warns?* `docs/tools/sketch.md`.
-
-  **The shape (author's call).** `PlanCompiler` does not fuse an abutting pair at equal height when a wall
-  sits on the seam between them — the fusion is what destroys it. The wall then has an interface in the
-  sketch model too, and the four vertices bounding it are **locked together**: they move as one or not at
-  all, so an organic pass can bow the coast either side and the wall's own span survives it.
-
-  *`opus5-coldharbour-v2-authoring.md` §6: an organic pass bowed a wool lane's coasts past both ends of its
-  wall, players could walk round it, every call answered 200, and the only symptom was traversability moving
-  from 2 isolated markers to **0** — the direction that reads as an improvement.*
-
 ## Measuring a board the way a player plays it
 The author ruled on how each distance a rule checks is read (*Rule text audit*, *Declarations and geometry*
 tab, 2026-10-04). Each ruling moves which findings fire, so each lands with its `--goldens` re-recorded and
@@ -500,11 +448,6 @@ the skerry layout as the board that shows the over-warning is gone.
   `docs/generator/audit.md` §8 lists thirteen rules where `rules.md` argues one thing and the check does
   another; for each, the author says which is right, and the losing half changes in the same commit.
   `docs/generator/`.
-- [ ] **TS167 — The seat preview lets a house stand on paving, as the build does.** `/sketch/seats` refuses a
-  house on a route cell as ground taken (`ClaimRaster.Stops`) while the pass seats it (`Decorator.FirstOverlap`
-  ignores paving), so the preview and the build disagree. Make the seat read agree, and check a path can be drawn
-  up to the door through the keep-out rings. `docs/tools/sketch.md`.
-
 ## A first-time reader: the words, the sizes, and the help a tool owes them
 A reviewer new to mapmaking read the studio cold and reported what stopped them. The copy pass and the
 text-size setting have shipped; what remains is what a sentence cannot fix — a term with nowhere to be looked
@@ -624,7 +567,8 @@ the client source.
   Tag each step with the phase that made it and restore only that phase's slice of the document — Draw the
   shapes, Theme the registry and each shape's theme, Dressing `dressing`, Terraform `modifiers`, Info `setup` — so
   Undo in a phase walks back that phase's own steps and is greyed where it has none; `Ctrl`+`Z` follows the
-  same rule. *Open (author): whether Info's mode needs an undo at all.* `docs/tools/sketch.md`.
+  same rule. Identity takes no undo: it holds words and simple choices such as the symmetry (author).
+  `docs/tools/sketch.md`.
 
 ## Refactoring and cleanup
 
@@ -671,32 +615,12 @@ server's backups.
   deploy failed — a GitHub issue opened with a fine-grained token scoped to issues, or mail — since today a
   failure is only in the journal and `/var/lib/pgm-studio-deploy/failed`. `docs/deployment.md` *Limits*.
 
-- [ ] **RP132 — A session that ends under an open page says "sign in to save".** The client asks `api/me`
-  once a page load (`StudioAccess.MeAsync` caches it), so a cookie that lapses or is cleared while a tool is
-  open leaves the page writable, and the next write comes back `401 RQ7`, which each tool shows as its own
-  error. A client `DelegatingHandler` that sees `RQ7` on any request calls `StudioAccess.Forget()` and has the
-  shell re-ask, so every `Writes` control closes with the sign-in reason and the bar offers
-  `StudioAccess.SignInHref` back to the same page; the refused write says the session ended rather than
-  that saving failed. `docs/access.md`.
-
-  *Evidence: the author hit a sign-in error on pgmstudio.de while signed in, gone after a reload — a stale
-  cached caller over a session the server no longer had.*
-
 ## The remainder: work no concept above has claimed
 
 - [ ] **TE2 — Write `docs/tools/edit.md`.** The `TE` prefix obliges a document that does not exist. The region,
   filter and apply-rule editors (`RegionEditor`, `FilterEditor`, `ApplyRuleEditor` under `Pgm/Editing/`) and
   their two rules (`ED1`, `ED2`) are described nowhere, and the filter and apply-rule editors have no HTTP
   route, only the generators reach them. The document follows the seven in `docs/tools/`.
-
-- [ ] **WE162 — Two seeded houses stamp their doorway on other columns in a mirror image.** The stamper's
-  orbit tests (`A_room_and_its_rot_180_image_stand_on_the_same_columns`,
-  `A_room_and_its_mirror_images_stand_on_the_same_columns`, `HouseStamperTests`) run over the eight houses they
-  were written for and pass; run over every seeded house, `dark-oak-stilt-hut` (hip roof, stilts) and
-  `jungle-saltbox-cottage` (saltbox) fail, their door columns landing apart between a room and its image. Find
-  which of the two forms moves the doorway, fix it in `HouseStamper`, and widen `RoomStyles()` to
-  `SeedFolder.Houses`. `docs/world-export/structures.md`. *Evidence: `dark-oak-stilt-hut 18x9 door -z mirror_x at
-  (-9, 65, -73)`, `jungle-saltbox-cottage 14x13 door -x at (-6, 76, -78)`.*
 
 - [ ] **RP97 — The sketch layout's words are published sets.** `GET /api/kit.py` checks a word only where
   the schema lists it, and 44 of 574 string fields do: the layout an author writes most has none, so
@@ -705,12 +629,6 @@ server's backups.
   `PlanGlobals.symmetry`, declaring each set in `Vocabulary` where it is not already; and publish `minimum`/
   `maximum` for the 0–1 shares (`FloraSpec`, `RoofStyle.Wear`) so the kit refuses `coverage=5`.
   `docs/architecture.md`. *Evidence: a constructor sweep against schema `a095aa2c71059f2c`.*
-
-- [ ] **RP98 — A stated null is a value the store refuses, not one the report trips on.** `kit.CellMaterial(
-  rise=None)` writes `"rise": null`; the store answers 200 and `GET /map/{slug}/report` then answers `400 RQ1
-  Cannot get the value of a token type 'Null' as a number @ rim.material.rise`. Refuse the null where the
-  document is stored (the material reader), and have the kit treat an argument of `None` as unstated.
-  `docs/architecture.md`. *Evidence: `pgm-studio-mapgen/reports/sonnet55-pippin-coomb.md`, the kit section.*
 
 - [ ] **G262 — The seed corpus states iron the placement rules no longer seat.** Measured across
   `tools/seeds`: 12 of 14 spawn-room cubes resolve unplaceable, on five seeds, because a cube and a walled
@@ -722,31 +640,14 @@ server's backups.
 - [ ] **WE134 — A map's own dressing registry still takes a hand-written `copied` body.** The tree library
   refuses a `copied` save carrying no cut (`DR-COPY`), but a map's `dressing.styles` takes
   `{"kind":"tree","form":"copied","body":…}` as written and nothing asks where the body came from.
-  *Blocking question (author): does "hand-built props are not wanted" reach a map's own registry — refuse an
-  inline `copied` body unless it names a library tree, which carries the cut — or only the library?*
+  **The author's ruling:** "hand-built props are not wanted" is the library's rule only. A map builds whatever
+  prop it needs, and a hand-built one is marked as such: it is a **schematic** (`docs/pgmvox-port.md`, D17), so
+  an inline body that names no library tree is stored and served as a schematic rather than as a `copied` tree.
   `docs/world-export/decoration.md`.
 
   *Evidence: 11 build specs in `pgm-studio-mapgen/specs` (`opus5-flintwick`'s `library_tree`, the
   `opus5b`/`opus5c` commons) copy a library tree's body inline, which a cut-carrying rule would still allow;
   the hand-written bodies among the specs' 37 inline bodies are the ones it would refuse.*
-
-- [ ] **PG18 — The region draft bucket has no client left.** `POST /regions` and its `/orbit` follow-up take
-  `draft_step`, `RegionDrafts` writes it into the `region_drafts_json` artifact and `/regions/tree` echoes
-  it back, so a freshly drawn region could be shown as drawn-but-unwired. The Edit tool was the only thing
-  that drew one, and it is gone. Retire the field on both request DTOs (`EditRequests.cs`), `RegionNode`'s
-  echo (`RegionTreeDtos.cs`), `RegionDrafts` and the artifact, and `docs/pgm/region-data-flow.md` §5 with them.
-
-- [~] **WS74 — Traversability reads 169 of 911 corpus maps as not connected.** *Parked by the author: more
-corpus reading is not worth its cost, and `--goldens` holds these 169 as the baseline any change is measured
-against.* These are played maps, so most verdicts are still the reading's. By first cause: 81 separate ground, 41 a point with no ground near,
-27 a team barred by an `enter` rule, 20 a sealed room. Known and left: `abstract` stacks six spawns per team
-one above another behind spawn filters, `curly_wools_ix` asks defenders to pillar up to their wool,
-`black_betty` has a broken void setup, the cannon maps fight across void, and `citadel` is attack/defend,
-where only the attackers need the wool. Take the rest per cause, reading each against PGM.
-`docs/world-scan/read-backs.md`.
-
-  *Evidence: `ki` states `<apply block-place="deny(void)" region="bases">` "You may not bridge to the enemy
-  side!"; `outcast`'s halves are joined only by water at y ≤ 1.*
 
 - [ ] **PG19 — The `resize` region is refused.** PGM's `<resize min max relative>` (`RegionParser.parseResize`,
 `ResizedRegion`) moves a block-bounded static child's bounds out to `oldMin − min` and `oldMax + max` — `min` and

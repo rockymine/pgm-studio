@@ -33,7 +33,7 @@ public sealed class RegionTreeShapeTests
     };
 
     private static (Dict Regions, Dictionary<string, string> Categories,
-                    Dictionary<string, RegionFacet> Facets, Dictionary<string, string> Drafts) Board()
+                    Dictionary<string, RegionFacet> Facets) Board()
     {
         var regions = new Dict
         {
@@ -77,8 +77,7 @@ public sealed class RegionTreeShapeTests
             ["far-side"] = new("build", [], "protection"),
             ["north"] = new("other", []),
         };
-        var drafts = new Dictionary<string, string> { ["far-side"] = "teams" };
-        return (regions, categories, facets, drafts);
+        return (regions, categories, facets);
     }
 
     /// <summary>Every key the encoder writes has a field on the record. An added key fails here rather than
@@ -86,8 +85,8 @@ public sealed class RegionTreeShapeTests
     [Test]
     public async Task The_record_carries_every_key_the_encoder_writes()
     {
-        var (regions, categories, facets, drafts) = Board();
-        var groups = RegionAuthoringEncoder.EncodeTree(regions, categories, (0, 0, 10, 10), facets, drafts);
+        var (regions, categories, facets) = Board();
+        var groups = RegionAuthoringEncoder.EncodeTree(regions, categories, (0, 0, 10, 10), facets);
         var body = new Dict
         {
             ["groups"] = groups,
@@ -106,8 +105,8 @@ public sealed class RegionTreeShapeTests
     [Test]
     public async Task The_awkward_corners_read_back_as_the_record_describes_them()
     {
-        var (regions, categories, facets, drafts) = Board();
-        var groups = RegionAuthoringEncoder.EncodeTree(regions, categories, (0, 0, 10, 10), facets, drafts);
+        var (regions, categories, facets) = Board();
+        var groups = RegionAuthoringEncoder.EncodeTree(regions, categories, (0, 0, 10, 10), facets);
         var body = new Dict { ["groups"] = groups, ["bounding_box"] = null };
 
         var tree = JsonSerializer.Deserialize<RegionTreeDto>(JsonSerializer.Serialize(body, Strict), Strict)!;
@@ -120,7 +119,6 @@ public sealed class RegionTreeShapeTests
         var mirror = nodes.Single(n => n.Id == "far-side");
         await Assert.That(mirror.Source!.Id).IsEqualTo("pad");
         await Assert.That(mirror.Subtype).IsEqualTo("protection");
-        await Assert.That(mirror.DraftStep).IsEqualTo("teams");
 
         // The half-space's unbounded side is the string the attribute spells, not a number.
         var half = nodes.Single(n => n.Id == "north");

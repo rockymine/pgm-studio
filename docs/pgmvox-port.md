@@ -303,7 +303,8 @@ landed.
 - The generator emits a sketch, shipped as `TG7`. Its piece model stays its own (`docs/generator/model.md`) and ends
   in a layout with a shape per box and an intent, and a candidate becomes a map in one step.
 - The rules move onto the sketch: the measures read off the sketch's rasterized ground, which never builds a
-  world, and the refusals asked between play pieces. `sight` is the one new read, parked with the target numbers a place states (`TS191`, `TS190`); in-game notes are tagged with
+  world, and the refusals asked between play pieces. `sight` is the one new read, parked (`TS191`); a place states no target numbers of its own, since the rule
+  measures already band each distance it would carry; in-game notes are tagged with
   the place their ground falls in.
 - The plan retires: the Plan tool and `from-plan` go, every stored plan is kept read-only as history, and
   `drive.py` and the skill move to sketch sources; the specs stay as they are (D11).
