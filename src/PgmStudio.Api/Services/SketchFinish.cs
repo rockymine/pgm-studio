@@ -43,17 +43,23 @@ public static class SketchFinish
         long mapId, MapRepository repo, MapArtifactStore artifacts, WorldFeatureWriter writer,
         CancellationToken ct)
     {
-        // The revision is read before the bytes, so a write landing between the two leaves the scan behind
+        // The revisions are read before the bytes, so a write landing between the two leaves the scan behind
         // rather than ahead: the next read refreshes it.
-        var revision = await artifacts.RevisionAsync(mapId, ArtifactKind.SketchLayoutJson, ct) ?? 0;
+        var source = await SourceAsync(mapId, artifacts, ct);
         var data = await artifacts.LoadLayoutAsync(mapId, ct);
         if (data is null)
             return Refuse(422, "nothing to finish", new Finding(SketchRules.NothingStored,
                 "the map has no stored sketch layout"));
 
         var prepared = Prepare(Encoding.UTF8.GetString(data));
-        return await WriteAsync(mapId, prepared, revision, repo, writer, ct);
+        return await WriteAsync(mapId, prepared, source, repo, writer, ct);
     }
+
+    /// <summary>The layout and intent revisions a scan rasterized now would be drawn from.</summary>
+    public static async Task<WorldFeatureWriter.ScanSource> SourceAsync(long mapId, MapArtifactStore artifacts,
+        CancellationToken ct) =>
+        new(await artifacts.RevisionAsync(mapId, ArtifactKind.SketchLayoutJson, ct) ?? 0,
+            await artifacts.RevisionAsync(mapId, ArtifactKind.MapIntentJson, ct) ?? 0);
 
     /// <summary>Everything finishing a drawing can be refused for, and the geometry it would write, decided
     /// from the documents alone. A caller about to replace a stored map asks this first, so a drawing the
@@ -74,14 +80,14 @@ public static class SketchFinish
         static SketchPrepared Refused(Refusal refusal) => new(refusal, [], [], Findings.None);
     }
 
-    /// <summary>Write what <see cref="Prepare"/> rasterized as the map's geometry, recording the layout
-    /// revision it was drawn from, and move the map to Configure.</summary>
+    /// <summary>Write what <see cref="Prepare"/> rasterized as the map's geometry, recording the revisions it
+    /// was drawn from, and move the map to Configure.</summary>
     public static async Task<SketchFinished> WriteAsync(
-        long mapId, SketchPrepared prepared, long layoutRevision, MapRepository repo, WorldFeatureWriter writer,
-        CancellationToken ct)
+        long mapId, SketchPrepared prepared, WorldFeatureWriter.ScanSource source, MapRepository repo,
+        WorldFeatureWriter writer, CancellationToken ct)
     {
         if (prepared.Refusal is { } refusal) return new(refusal);
-        await writer.WriteSketchAsync(mapId, prepared.Cells, prepared.Islands, layoutRevision, ct);
+        await writer.WriteSketchAsync(mapId, prepared.Cells, prepared.Islands, source, ct);
         await repo.SetStageAsync(mapId, MapStage.Configure, ct);   // the draft has geometry → ready to configure
         return new(null, prepared.Cells.Count, prepared.Islands.Count, prepared.Judged);
     }
@@ -100,28 +106,34 @@ public static class SketchFinish
         return SketchLayoutCheck.Unfinished(stated) is { } bare ? new Findings([.. judged, bare]) : judged;
     }
 
-    /// <summary>Rasterize a finished sketch again where the stored layout has moved past the scan: a vertex
-    /// moved, a coast bent, a shape redrawn after Finish. Every read of the board's ground — editability,
+    /// <summary>Rasterize a finished sketch again where the stored layout or the intent has moved past the scan:
+    /// a vertex moved, a coast bent, a shape redrawn or a room moved after Finish. Every read of the board's ground — editability,
     /// traversability, the pre-flight, the export — goes through the scan, so a stale one answers for a board
     /// that is no longer drawn. A map never finished, and an imported world's scan, are left alone. True where
     /// the scan was written again.</summary>
     public static async Task<bool> RefreshAsync(long mapId, MapArtifactStore artifacts, WorldFeatureWriter writer,
         CancellationToken ct)
     {
-        if (await artifacts.RevisionAsync(mapId, ArtifactKind.SketchLayoutJson, ct) is not { } revision) return false;
+        if (!await artifacts.HasAsync(mapId, ArtifactKind.SketchLayoutJson, ct)) return false;
         if (await artifacts.LoadAsync(mapId, ArtifactKind.MapConfigJson, ct) is not { } configBytes) return false;
         if (JsonNode.Parse(configBytes) is not JsonObject config
             || config["scan_read"]?.GetValue<string>() != "surface") return false;
-        if (config[WorldFeatureWriter.SketchScanRevision] is JsonValue scanned
-            && scanned.TryGetValue<long>(out var at) && at == revision) return false;
+        var source = await SourceAsync(mapId, artifacts, ct);
+        if (Revision(config, WorldFeatureWriter.SketchScanRevision) == source.Layout
+            && Revision(config, WorldFeatureWriter.SketchScanIntentRevision) == source.Intent) return false;
 
         if (await artifacts.LoadLayoutAsync(mapId, ct) is not { } data) return false;
         var cells = SketchRasterizer.RasterizeColumns(Encoding.UTF8.GetString(data));
         var islands = IslandDetector.Detect(cells.Select(cell => (cell.X, cell.Z)), minIslandSize: 1);
         if (islands.Count == 0) return false;
-        await writer.WriteSketchAsync(mapId, cells, islands, revision, ct);
+        await writer.WriteSketchAsync(mapId, cells, islands, source, ct);
         return true;
     }
+
+    /// <summary>The revision a scan's config records under <paramref name="key"/>; 0 where it records none, which is
+    /// the revision a map holding no such document is at.</summary>
+    private static long Revision(JsonObject config, string key) =>
+        config[key] is JsonValue value && value.TryGetValue<long>(out var at) ? at : 0;
 
     private static SketchFinished Refuse(int status, string error, params Finding[] findings) =>
         new(Refusal.At(status, error, findings));

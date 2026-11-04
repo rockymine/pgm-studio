@@ -22,8 +22,14 @@ namespace PgmStudio.Data.Features;
 /// </summary>
 public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
 {
-    /// <summary>The map_config key a finished sketch's scan records the layout revision under.</summary>
+    /// <summary>The map_config keys a finished sketch's scan records its source under: the layout's revision and
+    /// the intent's, since the intent's rooms hold ground too.</summary>
     public const string SketchScanRevision = "layout_revision";
+    public const string SketchScanIntentRevision = "intent_revision";
+
+    /// <summary>The documents a finished sketch's scan was rasterized from, by revision: the stored layout and the
+    /// intent whose rooms are projected onto it (0 where the map holds none).</summary>
+    public readonly record struct ScanSource(long Layout, long Intent);
 
     public readonly record struct Counts(int WoolBlocks, int ResourceBlocks, int ChestItems, int SpawnerBlocks, int Segments, int Islands, int MonumentCandidates, int CoreCandidates, int DestroyableCandidates, int FlagCandidates);
 
@@ -136,11 +142,11 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
     /// map_config. The sketched map then has the same geometry shape an imported world does, so it flows
     /// into the Configure wizard. Replaces any prior features for the map.
     ///
-    /// <para>The config records <paramref name="layoutRevision"/>, the stored layout's revision the cells were
-    /// rasterized from, so a reader can tell a scan the layout has since moved past.</para>
+    /// <para>The config records <paramref name="source"/>, the layout and intent revisions the cells were
+    /// rasterized from, so a reader can tell a scan either document has since moved past.</para>
     /// </summary>
     public async Task WriteSketchAsync(long mapId, IReadOnlyCollection<ColumnSegment> cells,
-        IReadOnlyList<IslandDetector.Island> islands, long layoutRevision, CancellationToken ct = default)
+        IReadOnlyList<IslandDetector.Island> islands, ScanSource source, CancellationToken ct = default)
     {
         // Surface layer = one row per (x,z) at its highest top (stacked layers can repeat a column); the
         // per-segment spans (possibly several per column, e.g. ground + a sky bridge) live in segment.
@@ -164,7 +170,8 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
         config["scan_read"] = "surface";
         config["scan_read_confirmed"] = true;
         config["bounding_box"] = SurfaceBbox(cells.Select(c => (c.X, c.Z)));
-        config[SketchScanRevision] = layoutRevision;
+        config[SketchScanRevision] = source.Layout;
+        config[SketchScanIntentRevision] = source.Intent;
 
         // One write, for the reason the scan above is one: the three artifacts and the segment rows are the
         // finished board, and a map holding some of them is a map whose geometry disagrees with itself.

@@ -199,7 +199,8 @@ public static class MapSource
             await artifacts.SaveAsync(mapId, ArtifactKind.RefinementJson, Encoding.UTF8.GetBytes(kept ?? "{}"), ct);
             var layoutRevision = await artifacts.SaveAsync(mapId, ArtifactKind.SketchLayoutJson,
                 Encoding.UTF8.GetBytes(layoutJson), ct);
-            var finished = await SketchFinish.WriteAsync(mapId, prepared, layoutRevision, repo, features, ct);
+            var finished = await SketchFinish.WriteAsync(mapId, prepared,
+                new WorldFeatureWriter.ScanSource(layoutRevision, 0), repo, features, ct);
             if (finished.Refusal is { } refused)
             {
                 await repo.DeleteMapAsync(mapId, ct);

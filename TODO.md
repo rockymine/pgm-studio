@@ -18,11 +18,6 @@ concept since `WE71`, and holding them apart is a deliberate not-yet.
 something wrong today, on a page a person uses or on the API an agent drives; the composer's own bugs stay
 deferred in the backlog with the rest of the generator, and `PG29` waits there on the author's ruling.
 
-- [ ] **TS178 — A finished sketch's scan follows the intent's rooms.** The scan is redrawn when the layout's
-  revision moves past the one it was drawn from (`SketchFinish.RefreshAsync`, `WorldFeatureWriter.SketchScanRevision`),
-  but a room holds the ground under it and lives in the intent, so a move through the piece route alone leaves the
-  scan describing the room where it stood. Key the scan on both revisions. `docs/tools/sketch.md`.
-
 - [ ] **TS167 — The seat preview lets a house stand on paving, as the build does.** `/sketch/seats` refuses a
   house on a route cell as ground taken (`ClaimRaster.Stops`) while the pass seats it (`Decorator.FirstOverlap`
   ignores paving), so the preview and the build disagree. Make the seat read agree, and check a path can be drawn
