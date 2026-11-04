@@ -24,8 +24,8 @@ shown, never name one.
 
 | Route | Component | Is |
 |---|---|---|
-| `/` | `Index` | the landing — a hero with an in-game picture, the maps last changed as cards, the tools, a way into the glossary |
-| `/maps` | `Maps` | every map in one table; `?stage=`, `?author=`, `?gamemode=` and `?sort=` are its filters |
+| `/` | `Index` | the landing — a hero with the studio's header picture, the maps last changed as cards, the tools, a way into the glossary |
+| `/maps` | `Maps` | every map in one table; `?stage=`, `?origin=`, `?author=`, `?gamemode=` and `?sort=` are its filters |
 | `/maps/{slug}/sketch` | `SketchTool` | the sketch tool |
 | `/maps/{slug}/configure` | `ConfigureTool` | the configure wizard |
 | `/maps/new` | `ConfigureTool` | the same tool with no slug: its Import phase, which is how a world becomes a map row |
@@ -75,6 +75,7 @@ the **Clear** beside the sidebar's *Filters* heading drops them all. The sidebar
 | Filter | Address | Keeps |
 |---|---|---|
 | **Stage** | `?stage=sketch\|configure` | the maps standing at that stage |
+| **Origin** | `?origin=studio\|imported` | the maps drawn in the studio, or the ones imported from a world |
 | **Author** | `?author=` (repeated) | maps credited to any one of the ticked authors |
 | **Gamemode** | `?gamemode=ctw\|dtm\|dtc\|none` (repeated) | maps played for any one of the ticked gamemodes, each shown by PGM's own full name for it (`Gamemode.java`: *Destroy the Monument*, *Control the Point*), `none` — *No gamemode* — for a map with none |
 | **Sort** | `?sort=name\|author\|stage` | the order; absent is last changed |
@@ -87,6 +88,10 @@ DTC board is listed as one from the moment it states its goals.
 **Configure is the last stage the page offers.** It is where a map is downloaded. A map whose stage is `edit`
 was read in by the corpus import, which reads a world that already has a `map.xml`; no authoring tool sets it,
 and the page lists such a map under Configure, which is the tool its row opens.
+
+**An imported map says so.** A map holding a world and no sketch layout came in through *Import map* rather
+than being drawn here — the same test `GET /api/map/{slug}/origin` answers — and its row, and its card on the
+start page, carry a muted *Imported* tag after its name. The **Origin** filter keeps one kind or the other.
 
 **The Author filter lists every credited author in two groups, Agents and Users,** each with **Select all**,
 and a search box narrows both. A credit with an account is a person and shows the player's head; a credit by
@@ -104,8 +109,8 @@ many maps each would show.
 last layer it holds — Configure, where it has a world — and one holding no layer opens nothing. The **Open in**
 column is two fixed slots, Sketch · Configure, in the same place on every row. A layer the map holds is
 a link straight into its tool, so a configured map's sketch is one click away whatever stage filter is
-on; the one the row opens is outlined and carries the stage's dot, which is how the table says where a map
-stands; a layer it lacks is an empty dashed slot. Below 1200px the table drops Game mode and keeps the slots.
+on; the one the row opens is outlined and bold, which is how the table says where a map
+stands — a stage is marked by its word, never by a colour; a layer it lacks is an empty dashed slot. Below 1200px the table drops Game mode and keeps the slots.
 
 `GET /api/maps` serves the table: every map, each with its stage, layers, credited authors, when it was last
 written, and `youWroteAt` — when the caller last changed its documents themselves, in a browser rather than
@@ -124,15 +129,15 @@ only the studio's own bar above the page. The page is one centred column, 1240px
 **The hero names what the studio makes and offers two ways in.** Two equal columns: an eyebrow naming the
 studio, a title and lead describing the pipeline from layout to `map.xml`, naming no gamemode, and two 44px buttons
 (`Button` with `Size="lg"`) — **Create map** (`NewMapButton`, the same button the map list's header carries) makes a sketch and opens it on its Identity phase, and **Browse maps** opens the maps page unfiltered. Beside the
-text sits a 16:9 `MapThumb` of the newest built map — a sketch layout and its world — drawn in game; with no such map it is
-the studio mark on a token-coloured panel.
+text sits the studio's fixed header picture, a 16:9 panel that is the same for every reader whatever maps the
+studio holds; until a header image is chosen it is the studio mark on a token-coloured panel (`MapThumb` with no map).
 
 **A map picture is `GET /api/map/{slug}/render/picture`, over a placeholder.** `MapThumb` holds a fixed 16:9 box
 with the map's initial in it, loads the picture lazily on top and fades it in. A map that is not built (a sketch
 layout and the world compiled from it) asks for no picture, since only a built one is sure to have ground to frame; a refused one (422 no ground, 503 `RQ10` without textures, a failed request) leaves the
 placeholder, and a 429 from the build queue is asked again after a wait that doubles from one second, never
-longer than its `Retry-After`, up to four times, so a broken-image icon never shows. The hero asks for 960 × 540 and
-a recent map's card for 480 × 270, the size it is shown at.
+longer than its `Retry-After`, up to four times, so a broken-image icon never shows. A recent map's card asks for
+480 × 270, the size it is shown at.
 
 **Your recent maps lists up to three maps,** under a heading with no link of its own: the hero's **Browse maps**
 is the one way from the landing to the maps page. They are the ones the reader changed themselves, newest first
@@ -173,7 +178,8 @@ lifecycle position (no `map.xml` yet against has one), which is why the labels a
 **Every page that is not an editor carries a studio bar and a bar of its own, and each answers one question.** The
 studio's own bar (`AppNav`) is the same everywhere: the studio's mark and name, which go home, then **Maps ·
 Generator · Library · Rules · Glossary**, each lit on the page it names and every page under it, so Maps is lit in a
-map's tools; and at the right a search that opens the command palette (what `Ctrl K` also opens), icon buttons for
+map's tools; and at the right a search that opens the command palette (what `Ctrl K` also opens), which finds
+maps, glossary terms and rules as well as commands (`canvas-interaction.md` §9), icon buttons for
 the keyboard shortcuts (the sheet `?` also opens) and the design reference (`/design`), then the text size, the theme
 and the account. The account menu carries Tokens, and for an admin Users and **API docs** (`/api-docs`, which
 opens in a new tab, being the API's own page rather than the client's); the page and its schema stay reachable to
@@ -218,7 +224,7 @@ is already the way home; on an editor the way home is the crumb's *Maps*, or the
 opens.
 
 **The tool is the path's last word, and a switcher.** After the map's name `StageSwitch` shows the tool the page
-is — *Sketch* or *Configure* — after its stage's dot, in the colour the map list gives that stage, as a button
+is — *Sketch* or *Configure*, by its word alone — as a button
 whose menu lists the two. A tool is a link where the map holds that layer
 and a dashed, disabled entry where it does not, the same distinction the Maps table draws in its *Open in*
 column and read from the same place: `GET /api/maps` and `MapLayers.Holds`, fetched when the menu opens, because

@@ -56,10 +56,6 @@
 a.map-row-name:hover { text-decoration: underline; }
 .map-row-slug { color: var(--text-muted); font-size: var(--font-sm); font-family: var(--font-mono); }
 
-.map-stage-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; margin-right: var(--space-1); }
-.map-stage-dot--sketch { background: var(--canvas-add-fill); }
-.map-stage-dot--configure { background: var(--color-warning); }
-.map-stage-dot--edit { background: var(--color-success); }
 
 .map-modes { font-size: var(--font-sm); color: var(--text-secondary); white-space: nowrap; }
 .map-changed { white-space: nowrap; color: var(--text-secondary); font-size: var(--font-sm); }
@@ -76,7 +72,6 @@ a.map-row-name:hover { text-decoration: underline; }
   display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: calc(22px * var(--ui-scale));
 }
 .map-layer-empty { border: 1px dashed var(--border); border-radius: var(--radius-pill); opacity: 0.7; }
-.map-layer .map-stage-dot { margin-right: 0; }
 .map-layer {
   padding: 2px 8px;
   border: 1px solid var(--border);
@@ -88,9 +83,5 @@ a.map-row-name:hover { text-decoration: underline; }
   transition: color .12s, border-color .12s, background .12s;
 }
 .map-layer:hover { color: var(--text-bright); border-color: var(--text-muted); }
-.map-layer--now {
-  color: var(--text-bright);
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-}
+.map-layer--now { color: var(--text-bright); border-color: var(--text-muted); font-weight: 600; }
 .map-row-mark { display: inline-block; margin-left: var(--space-1); }

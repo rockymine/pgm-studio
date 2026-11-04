@@ -49,6 +49,23 @@ try {
   await sidebar.locator(".filter-chip", { hasText: "All" }).first().click();
   await page.waitForURL(u => !u.search.includes("stage="), { timeout: 5000 });
 
+  checks.section("an imported map says so, and the Origin filter keeps one kind");
+  const imported = all.filter(m => m.hasSurface && !m.hasSketch).map(m => m.slug).sort();
+  const tagged = await rows().filter({ has: page.locator(".list-tag", { hasText: /^Imported$/ }) }).locator(".map-row-slug").allTextContents();
+  checks.add("every imported map's row is tagged Imported, and no other",
+    JSON.stringify(tagged.sort()) === JSON.stringify(imported), `${tagged.length} tagged, ${imported.length} imported`);
+  await sidebar.locator(".filter-chip", { hasText: /^Imported/ }).click();
+  await page.waitForURL(/origin=imported/, { timeout: 5000 });
+  checks.add("the Imported chip lists only them",
+    imported.length === 0 ? await rows().count() === 0 : JSON.stringify((await slugs()).sort()) === JSON.stringify(imported),
+    (await slugs()).join(", "));
+  await sidebar.locator(".filter-chip", { hasText: /^Studio/ }).click();
+  await page.waitForURL(/origin=studio/, { timeout: 5000 });
+  checks.add("the Studio chip lists the rest",
+    JSON.stringify((await slugs()).sort()) === JSON.stringify(all.map(m => m.slug).filter(slug => !imported.includes(slug)).sort()));
+  await page.goto(`${BASE}/maps`, { waitUntil: "networkidle" });
+  await page.waitForSelector(".map-table-row", { timeout: 15000 });
+
   checks.section("an author ticks on and off in the sidebar");
   const author = sidebar.locator(".filter-group--authors .filter-chip", { hasText: "E2E fixture" });
   await author.click();

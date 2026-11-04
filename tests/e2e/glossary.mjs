@@ -74,6 +74,28 @@ for (const label of ["Show keyboard shortcuts", "Open the design reference"]) {
 checks.add("the footer no longer carries them", (await page.locator(".app-footer-link", { hasText: /Keyboard|Design/ }).count()) === 0);
 await page.click('.app-nav-tools [aria-label="Show keyboard shortcuts"]');
 await page.waitForFunction(() => /Keyboard|shortcut/i.test(document.body.textContent), null, { timeout: 5000 });
+await page.keyboard.press("Escape");
+
+checks.section("the studio bar's Search finds terms and rules, and opens them");
+await page.goto(`${BASE}/maps`, { waitUntil: "networkidle", timeout: 30000 });
+await page.click(".app-nav-search");
+await page.fill(".keys-search-input", "hub");
+const term = page.locator(".keys-item--found", { has: page.locator(".keys-item-group", { hasText: "Glossary" }) })
+  .filter({ has: page.locator(".keys-item-label", { hasText: /^hub$/ }) });
+await term.first().waitFor({ timeout: 10000 });
+checks.add("a glossary term is found by its name", (await term.count()) === 1);
+await term.first().click();
+await page.waitForSelector("#hub.glossary-term--target", { timeout: 20000 });
+checks.add("and opens at its entry", new URL(page.url()).hash === "#hub", page.url());
+const ruleId = (await api("/rules"))[0].rule;
+await page.click(".app-nav-search");
+await page.fill(".keys-search-input", ruleId);
+const rule = page.locator(".keys-item--found", { has: page.locator(".keys-item-group", { hasText: "Rule" }) })
+  .filter({ has: page.locator(".keys-item-label", { hasText: ruleId }) });
+await rule.first().waitFor({ timeout: 10000 });
+await rule.first().click();
+await page.waitForURL((url) => url.pathname.endsWith("/rules") && url.searchParams.get("rule") === ruleId, { timeout: 20000 });
+checks.add(`a rule is found by its id and opens on the rules page`, true, ruleId);
 
 checks.add("the glossary is clean", page.faults.length === 0, page.faults.slice(0, 3).join(" | "));
 checks.finish();

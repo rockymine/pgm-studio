@@ -75,13 +75,13 @@ try {
       .every(sep => sep.trim() === "/"));
 
     const word = { sketch: "Sketch", configure: "Configure" }[tool];
-    checks.add("the switcher names the tool", (await page.locator(".editor-stage--button > span:not(.map-stage-dot)").textContent())?.trim() === word);
-    checks.add("after its stage's dot", await page.locator(`.editor-stage--button > .map-stage-dot--${tool}`).count() === 1);
+    checks.add("the switcher names the tool", (await page.locator(".editor-stage--button > span").textContent())?.trim() === word);
+    checks.add("by its word alone", await page.locator(".editor-stage--button > span").count() === 1);
 
     // Alignment: the three crumb texts and the switcher's label share one baseline and one font.
     const maps = await measure(".editor-crumb-link");
     const title = await measure(".editor-crumb-name");
-    const label = await measure(".editor-crumb .editor-stage--button > span:not(.map-stage-dot)");
+    const label = await measure(".editor-crumb .editor-stage--button > span");
     for (const [what, other] of [["the map's name", title], ["Maps", maps]]) {
       checks.add(`the switcher's label shares ${what}'s baseline`, near(label.baseline, other.baseline),
         `${label.baseline} vs ${other.baseline}`);

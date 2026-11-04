@@ -66,6 +66,12 @@
 .keys-item-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .keys-item-group { flex: 0 0 auto; font-size: var(--font-xs); color: var(--text-muted); }
 .keys-item-keys { flex: 0 0 auto; display: flex; gap: 3px; }
+/* A map, term or rule the palette found: its name, then what it is in a muted line that takes the rest. */
+.keys-item--found .keys-item-label { flex: 0 1 auto; max-width: 45%; }
+.keys-item-detail {
+  flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: var(--font-sm); color: var(--text-muted);
+}
 
 /* The library rows the add panel offers, as a plain list rather than a select: a theme is picked by
    recognising its name, and a dropdown hides every name but one. The panel it sits in scrolls, so this does

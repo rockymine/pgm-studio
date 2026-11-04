@@ -15,7 +15,7 @@
           <span class="notes-column__kicker">Notes</span>
           <span class="notes-column__name">@(ViewName ?? "This view")</span>
         </div>
-        <Button Variant="primary" Icon="plus" OnClick="OnNew">New note</Button>
+        <Button Variant="primary" Icon="plus" OnClick="OnNew">Create note</Button>
       </div>
       <div class="notes-column__filters">
         @foreach (var (id, label) in Filters)

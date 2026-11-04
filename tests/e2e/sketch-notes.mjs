@@ -62,7 +62,7 @@ if (views.undrawable) {
 
   checks.section("a new note: Send is off until something is written, and one press is one note");
   await page.waitForSelector(".notes-column", { timeout: 60000 });
-  await page.click("text=New note");
+  await page.click("text=Create note");
   checks.add("Send is off with nothing written", await send.isDisabled());
   await page.fill("#note-body", "   ");
   checks.add("and with only spaces written", await send.isDisabled());

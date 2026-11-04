@@ -30,11 +30,11 @@
 .landing-card .map-thumb { border: 0; border-radius: 0; border-bottom: 1px solid var(--border); }
 .landing-card-body { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-4) calc(18px * var(--ui-scale)); min-width: 0; }
 .landing-card-line { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); min-width: 0; }
-.landing-card-name { font-size: calc(17px * var(--ui-scale)); font-weight: 600; color: var(--text-strong); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.landing-card-name { flex: 1 1 auto; min-width: 0; font-size: calc(17px * var(--ui-scale)); font-weight: 600; color: var(--text-strong); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .landing-card-meta { font-size: var(--font-md); color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .landing-stage {
   flex: none; display: inline-flex; align-items: center; padding: 2px var(--space-3);
-  border-radius: var(--radius-pill); background: var(--bg-selected); color: var(--accent-lighter);
+  border: 1px solid var(--border); border-radius: var(--radius-pill); color: var(--text-secondary);
   font-size: var(--font-sm); font-weight: 600;
 }
 

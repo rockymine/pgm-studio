@@ -493,6 +493,14 @@ not only the ones that can run now, grouped as their owners first registered the
 currently answers false — a chord that needs a selection is still a chord the tool has. The palette lists
 every *live* entry by name, filtered as it is typed, and runs the highlighted one on Enter or a click.
 
+**The palette is also the studio's search.** Under the commands it lists the maps, glossary terms and rules the
+typed words find, five of each, once two letters are typed. They come from `StudioSearch`, a C# service the studio
+bar hands the palette through `studio.setPaletteSearch`, so a map opens in the tool its row on the maps page opens
+(`MapLayers.Opens`) and a term at the anchor the glossary page gives it (`Glossary.Slug`): the maps the caller may
+see from `GET /api/maps`, asked again once the answer is a minute old, the terms from `Glossary.Terms` by name or
+another name they are called, the rules from `RuleBook` by id or by what they refuse. A found row opens its page
+through `Blazor.navigateTo`, so the app is not reloaded.
+
 Blazor reaches the registry through two calls rather than the module directly: `studio.registerKeys(ownerId,
 dotnetRef, entriesJson)` imports `keys.js` and registers one entry per `{id, keys, label, group, inField,
 priority}` in `entriesJson`, each wired to call back `dotnetRef.invokeMethodAsync("OnShortcut", entry.id)`;

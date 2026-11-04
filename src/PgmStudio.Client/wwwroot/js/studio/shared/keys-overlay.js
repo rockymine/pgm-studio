@@ -1,10 +1,15 @@
 // keys-overlay.js — the two ways a reader meets the keymap: the sheet that lists it and the palette that
 // runs it. Both are rendered from `keys.js`'s registry rather than from a written list, so neither can offer
-// a chord the app does not have or omit one it does.
+// a chord the app does not have or omit one it does. The palette also finds maps, glossary terms and rules,
+// through the searcher the studio hands it (StudioSearch), and opens the page each one names.
 
 import * as Keys from "./keys.js";
 
 let open = null;   // { root, kind, cleanup } while a panel is showing
+let search = null; // needle => Promise<[{ label, group, detail, href }]>, or null where none was given
+
+/** Set what the palette asks for maps, terms and rules as it is typed into; null leaves it commands only. */
+export function setSearch(searcher) { search = searcher; }
 
 /** Close whatever is open. Safe to call when nothing is. */
 export function close() {
@@ -51,40 +56,64 @@ export function openSheet() {
   if (!groups.length) panel.querySelector(".keys-groups").innerHTML = `<p class="keys-empty">No shortcuts are available here.</p>`;
 }
 
-/** Every live binding by name, filtered as it is typed — what Ctrl/⌘K shows. Enter runs the highlighted row. */
+/** Open a page the studio routes, without reloading the app. */
+function go(href) {
+  if (globalThis.Blazor?.navigateTo) globalThis.Blazor.navigateTo(href);
+  else location.assign(new URL(href, document.baseURI));
+}
+
+/** Every live binding by name, filtered as it is typed — what Ctrl/⌘K shows — and, under them, the maps,
+ *  glossary terms and rules the typed words find. Enter runs the highlighted row. */
 export function openPalette() {
   const all = Keys.commands();
-  const panel = shell("palette", "Command palette");
+  const panel = shell("palette", "Search and commands");
   panel.innerHTML = `
-    <div class="keys-search"><input class="keys-search-input" type="text" placeholder="Search commands…"
-         aria-label="Filter commands" autocomplete="off" spellcheck="false" /></div>
+    <div class="keys-search"><input class="keys-search-input" type="text"
+         placeholder="${search ? "Search maps, terms, rules and commands" : "Search commands"}"
+         aria-label="Search" autocomplete="off" spellcheck="false" /></div>
     <div class="keys-list" role="listbox"></div>`;
   const input = panel.querySelector(".keys-search-input");
   const list = panel.querySelector(".keys-list");
   let shown = all;
   let at = 0;
+  let asked = 0;   // the latest search sent; an answer to an older one is dropped
+
+  const row = (item, i) => item.href
+    ? `<button class="keys-item keys-item--found ${i === at ? "keys-item--at" : ""}" data-at="${i}" role="option" aria-selected="${i === at}">
+         <span class="keys-item-label">${escape(item.label)}</span>
+         <span class="keys-item-detail">${escape(item.detail)}</span>
+         <span class="keys-item-group">${escape(item.group)}</span></button>`
+    : `<button class="keys-item ${i === at ? "keys-item--at" : ""}" data-at="${i}" role="option" aria-selected="${i === at}">
+         <span class="keys-item-label">${escape(item.label)}</span>
+         <span class="keys-item-group">${escape(item.group)}</span>
+         <span class="keys-item-keys">${chordHtml(item.keys)}</span></button>`;
 
   const draw = () => {
-    list.innerHTML = shown.length
-      ? shown.map((cmd, i) => `<button class="keys-item ${i === at ? "keys-item--at" : ""}" data-at="${i}"
-           role="option" aria-selected="${i === at}"><span class="keys-item-label">${escape(cmd.label)}</span>
-           <span class="keys-item-group">${escape(cmd.group)}</span>
-           <span class="keys-item-keys">${chordHtml(cmd.keys)}</span></button>`).join("")
-      : `<p class="keys-empty">No commands match.</p>`;
+    list.innerHTML = shown.length ? shown.map(row).join("") : `<p class="keys-empty">Nothing matches.</p>`;
     list.querySelector(".keys-item--at")?.scrollIntoView({ block: "nearest" });
   };
 
   const runAt = (index) => {
-    const cmd = shown[index];
-    if (!cmd) return;
+    const item = shown[index];
+    if (!item) return;
     close();
-    cmd.run();
+    if (item.href) go(item.href);
+    else item.run();
   };
 
-  input.addEventListener("input", () => {
+  input.addEventListener("input", async () => {
     const needle = input.value.trim().toLowerCase();
-    shown = needle ? all.filter(cmd => `${cmd.label} ${cmd.group}`.toLowerCase().includes(needle)) : all;
+    const commands = needle ? all.filter(cmd => `${cmd.label} ${cmd.group}`.toLowerCase().includes(needle)) : all;
+    shown = commands;
     at = 0;
+    draw();
+    if (!search || needle.length < 2) return;
+    const mine = ++asked;
+    let hits = [];
+    try { hits = await search(needle) ?? []; }
+    catch (error) { console.warn("[palette] search failed:", error?.message ?? error); }
+    if (mine !== asked || open?.kind !== "palette") return;
+    shown = [...commands, ...hits];
     draw();
   });
   input.addEventListener("keydown", (e) => {

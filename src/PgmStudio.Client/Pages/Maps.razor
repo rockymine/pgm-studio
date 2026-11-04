@@ -7,8 +7,8 @@
 
 <PageTitle>Maps · PGM Studio</PageTitle>
 
-@* Every map in the studio, in one table, with its filters open in the sidebar beside it. Stage, author and
-   gamemode are kept in the address so a link or a landing card can open a view; each row links straight into
+@* Every map in the studio, in one table, with its filters open in the sidebar beside it. Stage, origin, author
+   and gamemode are kept in the address so a link or a landing card can open a view; each row links straight into
    every tool the map has a layer in. *@
 
 <StudioShell>
@@ -21,8 +21,16 @@
               @foreach (var (word, label) in StageWords)
               {
                 <Chip Active="@(CurrentStage == word)" Count='Count(skip: "stage", stage: word)' OnClick='() => Go("stage", word)'>
-                  <span class="map-stage-dot map-stage-dot--@word"></span>@label
+                  @label
                 </Chip>
+              }
+            </FilterGroup>
+
+            <FilterGroup Label="Origin">
+              <Chip Active="@(CurrentOrigin is null)" Count='Count(skip: "origin")' OnClick='() => Go("origin", null)'>All</Chip>
+              @foreach (var (word, label) in Origins)
+              {
+                <Chip Active="@(CurrentOrigin == word)" Count='Count(skip: "origin", origin: word)' OnClick='() => Go("origin", word)'>@label</Chip>
               }
             </FilterGroup>
 
@@ -107,6 +115,10 @@
                           }
                           else { <span class="map-row-name" title="@m.Name">@m.Name</span> }
                           <span class="map-row-slug" title="@m.Slug">@m.Slug</span>
+                          @if (MapLayers.Imported(m))
+                          {
+                            <span class="list-tag">Imported</span>
+                          }
                           @if (m.AgentMade)
                           {
                             <span class="list-tag" title="Seen by admins and its owner">Agent</span>
@@ -127,7 +139,7 @@
                               else if (opens == id)
                               {
                                 <a class="map-layer map-layer--now" @onclick:stopPropagation href="@($"maps/{m.Slug}/{id}")"
-                                   title="@LayerTitle(id)"><span class="map-stage-dot map-stage-dot--@m.Stage"></span>@label</a>
+                                   title="@LayerTitle(id)">@label</a>
                               }
                               else
                               {

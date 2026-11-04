@@ -48,7 +48,7 @@ public sealed class ClientTextTests
         ["scan"] = ["Zoom"],
     };
 
-    /// <summary>What a "New" button may start: a document of its own. An entry added to a list is "Add a …".</summary>
+    /// <summary>What a "Create" button may start: a document of its own. An entry added to a list is "Add a …".</summary>
     private static readonly HashSet<string> Documents = new(StringComparer.OrdinalIgnoreCase)
         { "map", "note", "token", "plan", "sketch", "{x}" };
 
@@ -339,12 +339,18 @@ public sealed class ClientTextTests
                 && text.Words != "Couldn't reach the studio. Check your connection and try again.")
                 wrong.Add($"{text.Where}: '{text.Words}' — an unreachable studio is said one way");
         }
-        foreach (var text in Of(Channel.Button).Where(text => !text.Words.Contains("{x}") || text.Words.StartsWith("New ")))
+        foreach (var text in Of(Channel.Button).Where(text => !text.Words.Contains("{x}") || text.Words.StartsWith("New ")
+                     || text.Words.StartsWith("Create ")))
         {
             if (text.Words == "Add") wrong.Add($"{text.Where}: 'Add' names what it adds");
-            var made = System.Text.RegularExpressions.Regex.Match(text.Words, @"^New (.+)$");
+            var fresh = System.Text.RegularExpressions.Regex.Match(text.Words, @"^New (.+)$");
+            if (fresh.Success)
+                wrong.Add(Documents.Contains(fresh.Groups[1].Value)
+                    ? $"{text.Where}: '{text.Words}' — making a document is 'Create {fresh.Groups[1].Value}'"
+                    : $"{text.Where}: '{text.Words}' — an entry in a list is 'Add a {fresh.Groups[1].Value}'");
+            var made = System.Text.RegularExpressions.Regex.Match(text.Words, @"^Create (\{x\}|[a-z]+)$");
             if (made.Success && !Documents.Contains(made.Groups[1].Value))
-                wrong.Add($"{text.Where}: '{text.Words}' — an entry in a list is 'Add a {made.Groups[1].Value}'");
+                wrong.Add($"{text.Where}: '{text.Words}' — only a document is created; an entry in a list is 'Add a {made.Groups[1].Value}'");
         }
         foreach (var text in Of(Channel.Tooltip).Where(text => text.Owner is "icon trash-2" or "icon trash" or "InspectorDelete"))
             if (!text.Words.StartsWith("Delete this ", StringComparison.Ordinal))
