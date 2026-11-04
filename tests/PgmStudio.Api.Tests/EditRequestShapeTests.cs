@@ -88,14 +88,13 @@ public sealed class EditRequestShapeTests
     {
         var doc = Map();
         var posted = Posted(new RegionCreateRequest(
-            Type: "rectangle", Id: "yard", Category: "objective", DraftStep: "objective",
+            Type: "rectangle", Id: "yard", Category: "objective",
             Coords: new RegionCoordsDto(MinX: 0, MinZ: 0, MaxX: 4, MaxZ: 4)));
 
         RegionEditor.CreateRegion(doc, posted);
 
         var categories = (Dict)doc["region_categories"]!;
         await Assert.That((List<object?>)categories["objective"]!).Contains("yard");
-        await Assert.That(posted.GetValueOrDefault("draft_step")).IsEqualTo("objective");
     }
 
     [Test]

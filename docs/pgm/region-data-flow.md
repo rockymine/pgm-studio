@@ -1,8 +1,8 @@
 # Region data flow: persistence, derivation, and drawn-vs-wired display
 
 How a region travels from the editor to the database and back, why its **category is never
-stored**, why **all region rows are dropped and rewritten on every save**, and how that shaped the
-**draft bucket** for freshly drawn regions (E10). Read alongside `region-categorization.md`
+stored**, why **all region rows are dropped and rewritten on every save**, and how the canvas tells a
+drawn region from a wired one. Read alongside `region-categorization.md`
 (what the categories *mean*) — this doc is about *where the data lives and when it's computed*.
 
 ---
@@ -44,8 +44,8 @@ So **every edit drops and recreates all region rows.** This is deliberate:
 
 **Key implication:** you **cannot** stash editor state in a column on `region` (or any entity table) —
 the next save wipes it unless it round-trips through the codec, which would pollute the canonical
-format. Editor-only state must live **outside** the entity-replace path. (This is exactly why the
-draft bucket in §5 is an artifact blob, not a region column.)
+format. Editor-only state must live **outside** the entity-replace path, as a `map_artifact` blob rather
+than a region column.
 
 ---
 
@@ -82,38 +82,11 @@ lets you save that wiring.
   on top. Used for tree **grouping**.
 
 Because `region_categories` isn't persisted (§2), the two agree in practice today. The **canvas** filters
-by `node.category` (the pure value), so a drawn region (`other`) needs the separate signal in §5 to show.
+by `node.category` (the pure value), so a drawn region stays `other` until something wires it.
 
 ---
 
-## 5. The draft bucket (E10): showing drawn-but-unwired regions
-
-A region drawn in an activity is correctly `other` (unwired). To still show it **in the step it was
-drawn in**, without faking the derived category, the editor keeps a small **sidecar**:
-
-- **Store:** a `region_drafts_json` **`map_artifact`** blob = `{region_key: editor_step}` where
-  `editor_step ∈ {teams, objective, build}`. It lives **outside** the entity-replace codec, so it
-  **survives `SaveDocAsync`** (`DeleteEntitiesAsync` keeps artifacts) and is **never** part of the PGM
-  document the codec/categorizer see. `RegionDrafts` (in `RegionEndpoints.cs`) reads and tags it, over `MapArtifactStore`.
-- **Write:** `POST /regions` (and the F3 `/orbit` follow-up) carry `draft_step`; after the edit, the
-  endpoint tags `{newKey: step}` (and each orbit counterpart) into the blob.
-- **Read:** `/regions/tree` loads the blob, **prunes** keys whose region no longer exists, and attaches
-  `node.draft_step` via `EncodeTree`/`EncodeNode`.
-- **Render:** no client surface draws from the draft set. The Configure canvas renders by category alone
-  (§6), and `node.draft_step` is on the tree for a caller that wants it.
-- **Graduate:** a node is shown as a draft **only while its derived category is still `other`**. The
-  moment R1 wiring lands, the next `/regions/tree` derives its real category/subtype → it **leaves** the
-  Draft section and the canvas's draft set, and appears in its proper subtype section via normal
-  derivation. The stale `draft_step` is then ignored (and pruned). The draft bucket is purely a
-  **bridge**; it never competes with or mutates the derivation.
-
-**End state (after R1):** a configured activity has the *same base data as the real corpus maps* —
-geometry rows + wiring (filters/spawns/wools/apply-rules) — and the draft bucket is empty, because every
-region is now classified by derivation.
-
----
-
-## 6. How the canvas displays a region: wired vs just drawn
+## 5. How the canvas displays a region: wired vs just drawn
 
 The canvas (`studio-canvas.js` → `WorldCanvas`) renders the **primitive** nodes (compounds excluded;
 their primitive children carry the classification) selected by this rule, walking the **whole** tree
@@ -125,14 +98,8 @@ render n  ⟺  n is primitive AND n.category ∈ {the step's categories}        
 ```
 
 - **Wired region** — e.g. a rectangle referenced by `enter=only-red`, or a region in `spawns[]`. Its
-  derived `category` (`spawn`/`wool`/`build`) matches the activity, so it renders via the **first** clause.
-  No draft entry is needed or used.
-- **Just-drawn region** — `category == "other"`, but it carries `draft_step` from the activity that drew
-  it, so it renders via the **second** clause. Its F3 orbit counterparts are tagged the same way and
-  render alongside it.
-- **A drawn region that gets wired** — once a rule/spawn/wool references it, derivation gives it a real
-  category; it now matches the first clause and **drops out** of the second (the `category == "other"`
-  guard), so it never double-renders. The two clauses are mutually exclusive by construction.
-
-The mutual-exclusion guard (`category == "other"` on the draft clause) is what lets a region move from
-"drawn" to "wired" with no flicker, no duplicate, and no cleanup step.
+  derived `category` (`spawn`/`wool`/`build`) matches the activity, so it renders.
+- **Just-drawn region** — `category == "other"` until a rule, spawn or wool references it, so no activity
+  draws it; its F3 orbit counterparts are the same.
+- **A drawn region that gets wired** — once something references it, derivation gives it a real category
+  and the next `/regions/tree` renders it under that activity, with nothing to clean up.

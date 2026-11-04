@@ -234,7 +234,8 @@ to sit between. Fusing is deliberate — a compiled layout is a layout, not a co
 three things that rode on it have since been paid: a shape is named for its component's first piece and the
 surface it stands at rather than for where it was emitted (`TS82`, `FEATURES.md`), so a piece name does
 address what it produced; and a coast is bent by the studio rather than restated beside the plan (`TS30`).
-What is left is the seam itself. `B213`.
+What is left is the seam itself, and the author holds it settled: `PL17` warns when ground runs past a wall's
+end, and no lock holds the wall's span.
 
 **A convention is measured and nothing complains.** Four entries in one section each name a predicate, a
 corpus number and the document that would carry the rule, and none of them is a gate: a building walled in
@@ -485,7 +486,7 @@ dead ground is `Cells.Stretches`, which the plan tier and the built-world tier a
 question by the same name"*, applied, and the readings that ground was settled for drained with it.
 
 Of the causes this section named earlier, the client reading its own schema closed with `C51` (`FEATURES.md`) and
-the compiler's lost identity is `B213` alone, so neither stands as a programme. What is left whole, after the walk, is **the layer
+the compiler's lost identity is answered by `PL17`'s warning, so neither stands as a programme. What is left whole, after the walk, is **the layer
 word** (`B264`, `WE28`, `TS64` — a layer is first-class in the export and an afterthought everywhere
 else), and the pgmvox port (`TODO.md`) takes it over. The port's modifier list gives every terrain operation an id of its own, so all three retire when its
 Phase 2 lands rather than being built (`docs/pgmvox-port.md`). The two shop entries that remain (`PG15`, `PG16`) are independent

@@ -51,8 +51,6 @@ public sealed record RegionGroupDto(string Name, string Label, IReadOnlyList<Reg
 /// <c>min_x</c>…<c>max_z</c> for a cuboid, <c>center_x</c>/<c>radius</c> for a circle, <c>offset_x</c>… for a
 /// translate. An open object rather than a record, because ten region types state their shape ten ways and a
 /// fixed set of fields would have to be null for nine of them.</param>
-/// <param name="DraftStep">The editor step a freshly drawn, not-yet-wired region was drawn in, so the
-/// activity that drew it can still show it. Absent once the region is wired, and on every imported one.</param>
 /// <param name="Polygon2d">The region's footprint as rings, for the types that have one. Present only where
 /// the geometry could be computed against the map's extent.</param>
 /// <param name="Type">What the region is made of — <c>cuboid</c>, <c>circle</c>, <c>union</c>,
@@ -83,7 +81,6 @@ public sealed record RegionNodeDto(
     [property: JsonPropertyName("synthetic_id")] bool SyntheticId,
     string? Category,
     string? Subtype,
-    [property: JsonPropertyName("draft_step")] string? DraftStep,
     IReadOnlyList<string>? Wiring,
     IReadOnlyList<RegionNodeDto> Children,
     RegionNodeDto? Source,

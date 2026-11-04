@@ -13,14 +13,67 @@ blocks (`ST10`), a building footprint at most **20×20** (`ST9`), and the smalle
 it is **4×4** (`WX2`). A dressed prop's 192-cell ceiling (`HP3`) and a room building's 20×20 measure the same
 concept since `WE71`, and holding them apart is a deliberate not-yet.
 
-## The programme: bringing pgmvox into the studio
-**The author put this programme first.** `docs/pgmvox-port.md` is the programme: pgmvox's capabilities move
-into the studio one phase at a time, each proven against a pgmvox fixture, until a board built on pgmstudio.de
-reaches the ceiling a pgmvox board does. Phase 0 has shipped, Phase 1 has closed with its two agent-facing
-entries parked, and Phase 2 has shipped: shapes, eighteen ground operations in the modifier stack, and the water
-they make. Phase 3 has shipped too: soil by slope, paint rules, beds that dip, fold and cycle, a water's own bed
-and its fall off the edge, and a layer's underside. Phase 4, space in three dimensions, has shipped its carves and solids; dragging a solid out in the dock (`TS212`)
-is parked. Phase 5 has shipped its pieces and stamps; its upload (`TC23`) is parked. Phase 6 has shipped the
-wooden door and the head course; the other house fields (`WE175`, `WE177`, `WE178`, `WE180`) are back in the
-backlog, and the rest of the phase is not on the board yet.
+## Bugs: what the studio does wrong now
+**The author put the user-facing bugs first** (the backlog audit, November 2026). Each entry is the product doing
+something wrong today, on a page a person uses or on the API an agent drives; the composer's own bugs stay
+deferred in the backlog with the rest of the generator, and `PG29` waits there on the author's ruling.
 
+- [ ] **RP132 — A session that ends under an open page says "sign in to save".** The client asks `api/me`
+  once a page load (`StudioAccess.MeAsync` caches it), so a cookie that lapses or is cleared while a tool is
+  open leaves the page writable, and the next write comes back `401 RQ7`, which each tool shows as its own
+  error. A client `DelegatingHandler` that sees `RQ7` on any request calls `StudioAccess.Forget()` and has the
+  shell re-ask, so every `Writes` control closes with the sign-in reason and the bar offers
+  `StudioAccess.SignInHref` back to the same page; the refused write says the session ended rather than
+  that saving failed. `docs/access.md`.
+
+  *Evidence: the author hit a sign-in error on pgmstudio.de while signed in, gone after a reload — a stale
+  cached caller over a session the server no longer had.*
+
+- [ ] **TS178 — A finished sketch's scan follows the intent's rooms.** The scan is redrawn when the layout's
+  revision moves past the one it was drawn from (`SketchFinish.RefreshAsync`, `WorldFeatureWriter.SketchScanRevision`),
+  but a room holds the ground under it and lives in the intent, so a move through the piece route alone leaves the
+  scan describing the room where it stood. Key the scan on both revisions. `docs/tools/sketch.md`.
+
+- [ ] **TS167 — The seat preview lets a house stand on paving, as the build does.** `/sketch/seats` refuses a
+  house on a route cell as ground taken (`ClaimRaster.Stops`) while the pass seats it (`Decorator.FirstOverlap`
+  ignores paving), so the preview and the build disagree. Make the seat read agree, and check a path can be drawn
+  up to the door through the keep-out rings. `docs/tools/sketch.md`.
+
+- [ ] **TS141 — A room style stated as a library fork is honoured, or refused.** In `dressing.styles` a
+  house stated as `{"library": <name>, "kind": "house", "shell": <parts>}` builds the fork (`DressingJson`
+  resolves the shell over the row), but the same object under `roomStyles.spawn` stores 200, raises nothing and
+  builds the bare library row. Resolve `roomStyles.<part>` through the same reader the dressing registry uses,
+  or answer `RQ1` at the path; a second accepted shape that is silently dropped is the failure.
+  `docs/tools/sketch.md`. *Evidence: `pgm-studio-mapgen/reports/sonnet55-halcyon-cays.md`, the kit section — the
+  spawn halls came out cyan clay over pink-white clay.*
+
+- [ ] **TL35 — A copied tree states no species.** A tree save requires `species` (`RQ1`) and the library
+  answers one for every row, so every copied recipe states `"species": "oak"` — `acacia-1`, `birch-3` and
+  `sequoia-1` alike, and so every entry of the seed folder's `trees.json`. A copied tree
+  reads only its body, so the word is inert, but it says of an acacia what the showcase's `kinds.json` exists to
+  stop anyone reading off a block. `TreeStyleSaveRequest.Species` is required of a template only,
+  `PropStyleLibrary.TreeOf` gives a copied row none and `DressingJson` writes none for one; the snapshot is cut
+  again after. `docs/tools/library.md`.
+
+  *Evidence: all 84 entries of the snapshot read `"species":"oak"`.*
+
+- [ ] **PG31 — A spawn keeps every region it states.** `Spawn.Region` holds one region, so a spawn written
+  with several `<region>` children keeps the first and loses the rest on read — 83 spawns in 34 corpus maps
+  (`skill_issue`'s defenders spawn at either end). A portal naming a lost one exports a reference to nothing.
+  `Spawn.Regions`, each with its own yaw, read and written by `MapParser`/`XmlWriter`, stored and served.
+  `docs/pgm/portals.md`.
+
+- [ ] **WE162 — Two seeded houses stamp their doorway on other columns in a mirror image.** The stamper's
+  orbit tests (`A_room_and_its_rot_180_image_stand_on_the_same_columns`,
+  `A_room_and_its_mirror_images_stand_on_the_same_columns`, `HouseStamperTests`) run over the eight houses they
+  were written for and pass; run over every seeded house, `dark-oak-stilt-hut` (hip roof, stilts) and
+  `jungle-saltbox-cottage` (saltbox) fail, their door columns landing apart between a room and its image. Find
+  which of the two forms moves the doorway, fix it in `HouseStamper`, and widen `RoomStyles()` to
+  `SeedFolder.Houses`. `docs/world-export/structures.md`. *Evidence: `dark-oak-stilt-hut 18x9 door -z mirror_x at
+  (-9, 65, -73)`, `jungle-saltbox-cottage 14x13 door -x at (-6, 76, -78)`.*
+
+- [ ] **RP98 — A stated null is a value the store refuses, not one the report trips on.** `kit.CellMaterial(
+  rise=None)` writes `"rise": null`; the store answers 200 and `GET /map/{slug}/report` then answers `400 RQ1
+  Cannot get the value of a token type 'Null' as a number @ rim.material.rise`. Refuse the null where the
+  document is stored (the material reader), and have the kit treat an argument of `None` as unstated.
+  `docs/architecture.md`. *Evidence: `pgm-studio-mapgen/reports/sonnet55-pippin-coomb.md`, the kit section.*

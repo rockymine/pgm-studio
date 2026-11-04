@@ -11,32 +11,8 @@ namespace PgmStudio.Api.Endpoints;
 
 using Dict = Dictionary<string, object?>;
 
-/// <summary>
-/// Editor-only "draft" sidecar (E10): a per-map <c>{region_key: editor_step}</c> map for freshly drawn,
-/// not-yet-wired regions. Stored as a <c>region_drafts_json</c> artifact so it survives the entity-replace
-/// save path (MapWriter deletes+recreates region rows on every edit, so a per-region column would be lost),
-/// and is never part of the PGM map document the codec/categorizer see. Pruned against live regions on read.
-/// </summary>
-internal static class RegionDrafts
-{
-    public static Task<Dictionary<string, string>> LoadAsync(MapArtifactStore artifacts, long mapId, CancellationToken ct)
-        => artifacts.LoadJsonOrEmptyAsync<Dictionary<string, string>>(mapId, ArtifactKind.RegionDraftsJson, ct);
-
-    /// <summary>Record that the given region keys were drawn in <paramref name="step"/> (teams/objective/build).
-    /// A map with nothing left in draft carries no artifact at all rather than an empty one.</summary>
-    public static async Task TagAsync(
-        MapArtifactStore artifacts, long mapId, string step, IEnumerable<string> regionKeys, CancellationToken ct)
-    {
-        var drafts = await LoadAsync(artifacts, mapId, ct);
-        foreach (var k in regionKeys) if (!string.IsNullOrEmpty(k)) drafts[k] = step;
-        if (drafts.Count == 0) await artifacts.DeleteAsync(mapId, ArtifactKind.RegionDraftsJson, ct);
-        else await artifacts.SaveJsonAsync(mapId, ArtifactKind.RegionDraftsJson, drafts, ct);
-    }
-}
-
-/// <summary>POST /api/map/{slug}/regions — create a primitive region, optionally tagged with a
-/// <c>draft_step</c> that <c>/regions/tree</c> echoes back while the region is unwired.</summary>
-public sealed class RegionCreateEndpoint(MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts) : EndpointWithoutRequest
+/// <summary>POST /api/map/{slug}/regions — create a primitive region.</summary>
+public sealed class RegionCreateEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
 {
     public override void Configure()
     {
@@ -48,11 +24,6 @@ public sealed class RegionCreateEndpoint(MapRepository repo, MapReader reader, M
         var slug = Route<string>("slug")!;
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
         var applied = await MapEdit.RunAsync(repo, reader, writer, slug, doc => RegionEditor.CreateRegion(doc, p), Revisions.Expected(HttpContext), ct);
-
-        if (applied.Refusal is null && p.GetValueOrDefault("draft_step") is string step && step.Length > 0
-            && (applied.Result as Dict)?.GetValueOrDefault("id") is string newId
-            && await repo.GetBySlugAsync(slug, ct) is { } map)
-            await RegionDrafts.TagAsync(artifacts, map.Id, step, [newId], ct);
 
         await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
     }
@@ -108,7 +79,7 @@ public sealed class RegionCounterpartEndpoint(MapRepository repo, MapReader read
 /// Body: {category?}; mode + centre come from the confirmed symmetry artifact. If the map has no
 /// confirmed symmetry this is a no-op (200 {created:[]}) so the draw flow works on asymmetric maps too.
 /// </summary>
-public sealed class RegionOrbitEndpoint(MapRepository repo, MapReader reader, MapWriter writer, PgmDb db, MapArtifactStore artifacts) : EndpointWithoutRequest
+public sealed class RegionOrbitEndpoint(MapRepository repo, MapReader reader, MapWriter writer, PgmDb db) : EndpointWithoutRequest
 {
     public override void Configure()
     {
@@ -123,7 +94,6 @@ public sealed class RegionOrbitEndpoint(MapRepository repo, MapReader reader, Ma
 
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
         var category = p.GetValueOrDefault("category") as string ?? "other";
-        var step = p.GetValueOrDefault("draft_step") as string;
 
         var symRow = await SymmetryStore.LoadAsync(db, map.Id, ct);
         var mode = symRow?.PrimaryType;
@@ -136,12 +106,6 @@ public sealed class RegionOrbitEndpoint(MapRepository repo, MapReader reader, Ma
 
         var applied = await MapEdit.RunAsync(repo, reader, writer, slug,
             doc => SymmetryAuthoring.CreateOrbit(doc, regionId, mode, cx.Value, cz.Value, category), Revisions.Expected(HttpContext), ct);
-
-        // the orbit counterparts are unwired too — tag them with the same draft step so they appear
-        // alongside the source in the activity until wiring derives their real category (E10).
-        if (applied.Refusal is null && !string.IsNullOrEmpty(step)
-            && (applied.Result as Dict)?.GetValueOrDefault("created") is List<object?> created)
-            await RegionDrafts.TagAsync(artifacts, map.Id, step, created.OfType<string>(), ct);
 
         await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
     }

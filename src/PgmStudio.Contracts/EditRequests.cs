@@ -24,8 +24,6 @@ namespace PgmStudio.Contracts;
 /// <c>RQ5</c>.</param>
 /// <param name="Category">Which of the editor's region groups this one is filed under. Absent means
 /// <c>other</c>.</param>
-/// <param name="DraftStep">Marks the region as drawn but not yet wired; <c>/regions/tree</c> echoes it back
-/// while the region's derived category is still <c>other</c>. Absent means it is wired.</param>
 /// <param name="Coords">The type's own numbers. Which are read is <see cref="Type"/>, and a number the
 /// chosen type requires and <c>coords</c> omits is refused as <c>RQ1</c>; an absent <c>coords</c> is the
 /// same refusal.</param>
@@ -33,7 +31,6 @@ public sealed record RegionCreateRequest(
     string? Type = null,
     string? Id = null,
     string? Category = null,
-    [property: JsonPropertyName("draft_step")] string? DraftStep = null,
     RegionCoordsDto? Coords = null);
 
 /// <summary>The numbers a region is drawn from, under the key that sets each one. Which are read is the
@@ -105,11 +102,7 @@ public sealed record RegionCounterpartRequest(
 /// nothing.</summary>
 /// <param name="Category">Which region group the counterparts are filed under. Absent means
 /// <c>other</c>.</param>
-/// <param name="DraftStep">Marks the counterparts as drawn but not yet wired, the same as on the region they
-/// were fanned from.</param>
-public sealed record RegionOrbitRequest(
-    string? Category = null,
-    [property: JsonPropertyName("draft_step")] string? DraftStep = null);
+public sealed record RegionOrbitRequest(string? Category = null);
 
 /// <summary>Where a team enters the map.</summary>
 /// <param name="RegionId">The region the team spawns in, which must already exist — this tool draws no

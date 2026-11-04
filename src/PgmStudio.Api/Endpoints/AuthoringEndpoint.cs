@@ -16,7 +16,7 @@ using Dict = Dictionary<string, object?>;
 using PgmStudio.Minecraft.Palette;
 
 /// <summary>GET /api/map/{slug}/regions/tree — category-grouped nested region tree (canvas render input).</summary>
-public sealed class RegionsTreeEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts, FeatureData feature) : EndpointWithoutRequest
+public sealed class RegionsTreeEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest
 {
     public override void Configure()
     {
@@ -37,13 +37,9 @@ public sealed class RegionsTreeEndpoint(MapRepository repo, MapReader reader, Ma
         var facets = RegionCategorizer.DeriveFacets(doc);
         var bbox = await feature.MapBboxAsync(map.Id, ct);
 
-        // editor drafts (E10), pruned to regions that still exist (entity-replace keeps keys stable).
-        var allDrafts = await RegionDrafts.LoadAsync(artifacts, map.Id, ct);
-        var drafts = allDrafts.Where(kv => regions.ContainsKey(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value);
-
         await Send.OkAsync(new Dict
         {
-            ["groups"] = RegionAuthoringEncoder.EncodeTree(regions, cats, bbox?.bounds, facets, drafts),
+            ["groups"] = RegionAuthoringEncoder.EncodeTree(regions, cats, bbox?.bounds, facets),
             ["bounding_box"] = bbox?.dict,
         }, ct);
     }
