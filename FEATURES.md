@@ -3745,6 +3745,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **The Edit tool is retired (`TE3`)** — `/maps/{slug}/edit` and `Features/Edit/` are gone; `WorldCanvas` and
   the bodies drawn beside it live in `Features/Configure/`, and a finished map's document is changed through
   the entity routes `docs/tools/flow.md` documents. (`TE3`)
+- **A session that ends under an open page closes its writes (`RP132`).** The first `401 RQ7` any request meets
+  (`SessionWatch`) makes `StudioAccess` forget the caller and the shell and the bar ask again, so every control that
+  writes closes with the sign-in reason and the refused write says the session ended. `docs/access.md`.
+- **A finished sketch's scan follows the intent's rooms (`TS178`).** The scan records the layout and intent revisions
+  it was rasterized from (`WorldFeatureWriter.ScanSource`), so a room moved through the piece route is ground the
+  next read answers for. `docs/tools/sketch.md`.
 - **A region carries no draft step (`PG18`).** `draft_step` is gone from `POST /regions`, `/orbit` and the region
   tree, and `M0091` deletes every stored `region_drafts_json`. `docs/pgm/region-data-flow.md`.
 

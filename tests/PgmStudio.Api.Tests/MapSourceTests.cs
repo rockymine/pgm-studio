@@ -378,6 +378,36 @@ public sealed class MapSourceTests
             .IsEqualTo((-10, 9)).Because("the scan was rasterized again from the shape as it is drawn now");
     }
 
+    /// <summary><b>The scan follows the intent's rooms too.</b> A room holds the ground under it and lives in the
+    /// intent, so a room placed or moved after the finish — which writes the intent and not the layout — changes
+    /// the ground the reads answer for.</summary>
+    [Test]
+    public async Task A_room_placed_after_the_finish_is_ground_the_reads_answer_for()
+    {
+        using var client = await FreshAsync();
+        var raised = Layout.Replace("\"layers\":", "\"rooms\":{\"spawn-red\":{\"floor\":8,\"base_height\":30}},\"layers\":");
+        var loaded = await client.PutAsJsonAsync(Source, new
+        {
+            layout = JsonDocument.Parse(raised).RootElement,
+            intent = JsonDocument.Parse("""{"meta":{"name":"Weirgate","authors":[],"contributors":[]}}""").RootElement,
+            name = "Weirgate",
+        });
+        await Assert.That(loaded.IsSuccessStatusCode).IsTrue().Because(await loaded.Content.ReadAsStringAsync());
+        var before = await client.GetStringAsync("/api/map/weirgate/column-floor?x=5&z=5");
+
+        var intent = await client.PutAsync("/api/map/weirgate/intent", new StringContent("""
+            {"meta":{"name":"Weirgate","authors":[],"contributors":[]},
+             "teams":[{"id":"red","name":"Red","color":"red","size":8}],
+             "spawns":[{"team":"red","point":{"x":5,"y":12,"z":5},
+                        "protection":[{"minX":0,"minZ":0,"maxX":10,"maxZ":10}]}]}
+            """, Encoding.UTF8, "application/json"));
+        await Assert.That(intent.IsSuccessStatusCode).IsTrue().Because(await intent.Content.ReadAsStringAsync());
+
+        var after = await client.GetStringAsync("/api/map/weirgate/column-floor?x=5&z=5");
+        await Assert.That(after).IsNotEqualTo(before)
+            .Because("the room stands there now and states its own ground, and only the intent moved");
+    }
+
     /// <summary><b>Every route that reads the scan reads the same one.</b> After a layout is shrunk past the
     /// finish, the side view, a single column, the islands, the surface overlay and the region frame all answer
     /// for the board as drawn — and the island the author excluded in Configure stays excluded, since a scan

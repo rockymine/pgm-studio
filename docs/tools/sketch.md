@@ -79,8 +79,9 @@ sees every phase read-only: the canvas pans, selects and measures and changes no
 are greyed, and nothing is saved or discarded (`docs/client/ui-conventions.md`). The bridge enforces it below the
 greying: every handle verb that edits the document is refused while the page is read-only (`docs/client/canvas-interaction.md` §6).
 
-**The geometry follows the drawing after the first build, too.** The scan the finish writes records the layout revision it
-was rasterized from, so a layout written later (a vertex moved, a coast bent, a shape redrawn) is rasterized
+**The geometry follows the drawing after the first build, too.** The scan the finish writes records the layout and intent
+revisions it was rasterized from, since a room holds the ground under it and lives in the intent, so a layout
+written later (a vertex moved, a coast bent, a shape redrawn) or an intent that moves a room is rasterized
 again the first time anything reads the scan (`SketchFinish.RefreshAsync`). Every read of it goes through one
 accessor, `FeatureData` — the segment rows behind `segments`, `column-floor` and `block-seat`, the surface
 layer behind `top-surface`, the islands behind `islands` and `symmetry`, the configuration and the bounds
