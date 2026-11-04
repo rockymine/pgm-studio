@@ -24,7 +24,8 @@
    "StudioWriteReason", and why deleting a shared row is closed (StudioAccess.DeleteReasonAsync) as
    "StudioDeleteReason"; a Button marked Writes or Deletes, and a WriteGate, read them. Why asking the server to
    build something, a map's export, is closed (StudioAccess.BuildReasonAsync) reaches both as
-   "StudioBuildReason", which a Button marked Builds reads. Until the answers are in, all three are closed. *@
+   "StudioBuildReason", which a Button marked Builds reads. Until the answers are in, all three are closed, and a
+   session that ends under the page (StudioAccess.Changed) has them all asked again. *@
 
 <div class="@PageCls">
     <AppNav Focused="Focused" MenuOpen="menuOpen" OnMenu="SetMenu" />
@@ -115,8 +116,16 @@
         SetMenu(false);
         menuPath = PathOf(Nav.Uri);
         Nav.LocationChanged += OnLocationChanged;
+        Access.Changed += OnAccessChanged;
         await AskAsync();
     }
+
+    /// <summary>The session ended under the page: every reason is asked again, so what writes closes.</summary>
+    private void OnAccessChanged() => _ = InvokeAsync(async () =>
+    {
+        await AskAsync();
+        StateHasChanged();
+    });
 
     private async void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
@@ -141,5 +150,9 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 
-    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
+    public void Dispose()
+    {
+        Nav.LocationChanged -= OnLocationChanged;
+        Access.Changed -= OnAccessChanged;
+    }
 }

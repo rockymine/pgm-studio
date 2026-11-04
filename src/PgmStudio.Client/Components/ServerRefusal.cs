@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using PgmStudio.Contracts;
 
@@ -23,6 +24,7 @@ public static class ServerRefusal
     public static async Task<RefusalDto> ReadAsync(HttpResponseMessage response, string? fallback = null)
     {
         fallback ??= "Couldn't complete the request. Try again.";
+        if (response.StatusCode == HttpStatusCode.Unauthorized) return Unanswered(SessionEnded);
         try
         {
             var refusal = await response.Content.ReadFromJsonAsync<RefusalDto>();
@@ -36,6 +38,9 @@ public static class ServerRefusal
             return Unanswered(fallback);
         }
     }
+
+    /// <summary>What a request refused 401 (<c>RQ7</c>) says: the browser's session ended under the page.</summary>
+    public const string SessionEnded = "Your session ended. Sign in again to save.";
 
     /// <summary>A refusal the client says for itself, where no gate answered: a request that never arrived or a
     /// body that was not a refusal.</summary>

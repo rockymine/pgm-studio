@@ -221,12 +221,19 @@ column and its fields take the width.
 
 **An action the caller may not take is greyed wherever it sits, with the reason on hover.** That holds on a
 page that writes nothing as much as on one that writes: the map list's *Create map* and *Import
-map*, the library's *New* and an entry's *Save*, the generator's *Make a map*, the canvas's 2D/3D switch (the 3-D preview is a build), and every save,
+map*, the library's *Create* and an entry's *Save*, the generator's *Make a map*, the canvas's 2D/3D switch (the 3-D preview is a build), and every save,
 build and remove in the map tools. Deleting a
 library entry is greyed for anyone but an admin, since a `DELETE` outside a map is an
 admin's (below). Reading and downloading are never greyed. `docs/client/ui-conventions.md` says how the shell
 decides both. `tests/e2e/access.mjs` holds it, against a second server over the suite's database
 running invited with the browser signed out.
+
+**A session that ends under an open page closes the page's writes.** The browser asks who it is once a page
+load, so a cookie that lapses or is cleared while a tool is open would leave the page offering writes the server
+refuses. Every request goes through one handler (`SessionWatch`), and the first answer of `401 RQ7` makes
+`StudioAccess` forget the caller it holds and the shell ask again: every control that writes closes with the
+sign-in reason, the bar offers *Sign in with Discord* back to the same page, and the refused write says *Your
+session ended. Sign in again to save.* rather than that saving failed.
 
 ## Agent-made maps
 

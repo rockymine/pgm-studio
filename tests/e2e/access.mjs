@@ -132,6 +132,30 @@ checks.add("no page fault", page.faults.length === 0, page.faults.slice(0, 3).jo
 checks.section("an open studio offers every action that writes");
 await checkWrites(BASE, true);
 
+// The browser asks who it is once a page load; a session that ends while the page is open is seen on the first
+// write the server refuses 401, and from then on the page offers nothing the server would refuse.
+checks.section("a session that ends under an open page closes what writes");
+await visit(BASE, "/maps");
+await settle(/^Create map$/, false);
+await page.route("**/api/me", route => route.fulfill({ status: 200, contentType: "application/json",
+  body: JSON.stringify({ mode: "invited", signedIn: false, uuid: null, name: null, role: null, notes: false, owner: false }) }));
+await page.route("**/api/sketch", route => route.request().method() !== "POST" ? route.continue()
+  : route.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ error: "not signed in",
+      message: "the request is signed in as nobody on the studio's whitelist",
+      findings: [{ rule: "RQ7", message: "the request is signed in as nobody on the studio's whitelist" }] }) }));
+await page.click(".page-heading button:has-text('Create map')");
+// The button is disabled while its request is out as well, so the wait is for the reason, not for disabled.
+await page.waitForFunction(() => /^Sign in to/.test([...document.querySelectorAll("button")]
+  .find(e => e.textContent.trim() === "Create map")?.title ?? ""), null, { timeout: 15000 }).catch(() => {});
+const lapsed = await control(/^Create map$/);
+checks.add("Create map closes with the sign-in reason", lapsed?.closed === true && /^Sign in to/.test(lapsed.title),
+  JSON.stringify(lapsed));
+checks.add("and the bar offers the sign-in back to the page",
+  (await page.locator('a.account-signin[href*="api/auth/discord"]').count()) === 1);
+await page.unroute("**/api/me");
+await page.unroute("**/api/sketch");
+clearFaults(page);
+
 // ── a second server over the same database, invited, with this browser signed out ─────────────────────
 const port = Number(new URL(BASE).port) + 1;
 const invited = `http://localhost:${port}`;

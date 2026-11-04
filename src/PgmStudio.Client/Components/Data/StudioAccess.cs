@@ -7,12 +7,24 @@ namespace PgmStudio.Client.Components;
 /// <summary>
 /// Who the browser is signed in as, and whether the page in front of it may write. The server refuses
 /// every write the caller may not make whatever the client shows (<c>docs/access.md</c>); this is what lets
-/// the client say so before the edit rather than after it.
+/// the client say so before the edit rather than after it. A session that ends while a page is open
+/// (<see cref="SessionWatch"/>) is forgotten here and announced through <see cref="Changed"/>.
 /// </summary>
-public sealed class StudioAccess(HttpClient http)
+public sealed class StudioAccess
 {
+    private readonly HttpClient http;
     private Task<CallerDto>? me;
     private readonly Dictionary<string, Task<bool>> mapEdits = new(StringComparer.OrdinalIgnoreCase);
+
+    public StudioAccess(HttpClient http, SessionWatch watch)
+    {
+        this.http = http;
+        watch.Ended += OnSessionEnded;
+    }
+
+    /// <summary>Raised when the caller held has been forgotten because the server no longer signs the browser
+    /// in, so whatever reads it asks again.</summary>
+    public event Action? Changed;
 
     /// <summary>Who the request is, asked once per page load. A studio that does not answer is treated as a
     /// signed-out visitor, which is the reading that offers nothing it cannot keep.</summary>
@@ -23,6 +35,15 @@ public sealed class StudioAccess(HttpClient http)
     {
         me = null;
         mapEdits.Clear();
+    }
+
+    /// <summary>A request came back signed in as nobody. A caller held as signed in is no longer true; one held
+    /// as a visitor already says so, and nothing changes.</summary>
+    private void OnSessionEnded()
+    {
+        if (me is { IsCompletedSuccessfully: true } held && !held.Result.SignedIn) return;
+        Forget();
+        Changed?.Invoke();
     }
 
     /// <summary>Whether the caller may write anything at all — someone on the whitelist.</summary>
