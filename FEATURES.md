@@ -3754,6 +3754,9 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **The seat preview seats a house where the build does (`TS167`).** `/sketch/seats` asks a house a goal's clearance
   and a door's approach and no other keep-out ring, and seats it over paving, so a path drawn up to a door through a
   spawn's ring and the house at its end both read as the pass builds them. `docs/tools/sketch.md`.
+- **A room style stated as a prop style is refused (`TS141`).** `{library, kind: "house", shell}` under
+  `roomStyles.<part>` or a house prop's own `style` refuses the source `422` `RQ1` at its path, rather than building
+  the bare row; a room style states the shell's fields beside `library`. `docs/tools/library.md`.
 - **A region carries no draft step (`PG18`).** `draft_step` is gone from `POST /regions`, `/orbit` and the region
   tree, and `M0091` deletes every stored `region_drafts_json`. `docs/pgm/region-data-flow.md`.
 

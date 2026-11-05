@@ -1008,6 +1008,11 @@ in its turn and replaces what it stands in:
 {"themes": {"heath": {"library": "dunes", "rimEdges": "boundary", "wall": {"library": "sandstone"}}}}
 ```
 
+**A room style is stated as the shell's own fields beside its name.** Under `roomStyles.<part>` and a house
+prop's own `style`, the `{library, kind: "house", shell: {…}}` a `dressing.styles` recipe takes refuses the
+source, `422` with `RQ1` naming the path: its `kind` and `shell` would be laid over the shell as two members
+nothing reads, and the room would be built from the bare row.
+
 **A name that names no row refuses the source**, `422` with `SR6` naming the nearest names the library holds.
 A name is compared without case, as the library keeps it one row of its kind. A theme or a biome copied this way is recorded in the layout's
 `themeSources` and `biomeSource` as one copied in the Sketch tool is, and the kept refinement carries each name's

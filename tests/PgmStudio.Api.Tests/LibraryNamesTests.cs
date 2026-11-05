@@ -161,6 +161,36 @@ public sealed class LibraryNamesTests
         await Assert.That(kept.GetProperty("row").GetInt64()).IsGreaterThan(0);
     }
 
+    /// <summary><b>A room style stated as a prop style is refused at its path.</b> A room style states the shell's own
+    /// fields beside its name; the <c>{library, kind: house, shell}</c> a <c>dressing.styles</c> recipe takes, stated
+    /// under <c>roomStyles</c>, would lay two keys over the shell that nothing reads and build the bare row.</summary>
+    [Test]
+    public async Task A_room_style_stated_as_a_prop_style_is_refused_at_its_path()
+    {
+        using var client = await FreshAsync();
+        using (var scope = ApiTestFactory.Shared.Services.CreateScope())
+            await scope.ServiceProvider.GetRequiredService<Services.LibrarySeed>().SeedAsync();
+
+        var refused = await client.PutAsJsonAsync(Source, Body(JsonDocument.Parse("""
+            {"roomStyles": {"spawn": {"library": "brick-roofed-stone-and-dark-oak-house", "kind": "house",
+                                      "shell": {"doorway": {"height": 4}}}}}
+            """).RootElement));
+        var text = await refused.Content.ReadAsStringAsync();
+        await Assert.That((int)refused.StatusCode).IsEqualTo(422).Because(text);
+        var finding = JsonDocument.Parse(text).RootElement.GetProperty("findings")[0];
+        await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo("RQ1");
+        await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo("refinement.roomStyles.spawn");
+
+        var stated = await client.PutAsJsonAsync(Source, Body(JsonDocument.Parse("""
+            {"roomStyles": {"spawn": {"library": "brick-roofed-stone-and-dark-oak-house", "doorway": {"height": 4}}}}
+            """).RootElement));
+        await Assert.That(stated.IsSuccessStatusCode).IsTrue().Because(await stated.Content.ReadAsStringAsync());
+        var spawn = (await client.GetFromJsonAsync<JsonElement>("/api/map/weirgate/sketch"))
+            .GetProperty("roomStyles").GetProperty("spawn");
+        await Assert.That(spawn.GetProperty("doorway").GetProperty("height").GetInt32()).IsEqualTo(4)
+            .Because("the shell's own fields beside the name are laid over the copy");
+    }
+
     /// <summary>A pattern, <c>weir-sand</c> — sand mottled with red sand — and a theme, <c>weir-dunes</c>, surfacing
     /// with it. The studio seeds a library of its own, so the names are ones it does not seed.</summary>
     private static async Task<(long Sand, long Dunes)> LibraryAsync(HttpClient client)

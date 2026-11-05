@@ -159,7 +159,7 @@ shape whether a layout was hand-drawn or compiled from a plan.
 | `setup` | `mirror_mode` — `none` for a board with no symmetry, and `rot_180` when unstated — the symmetry `center`, and the `bbox` the canvas frames on open |
 | `layers[]` | the stacked slabs — each `{id, name, base_y, layout:{shapes, groups}}`, plus `kind`, `part_of` and `seat` where the layer holds a made thing, and `underside` where it hangs rock under itself (*A layer's underside*). Always at least one; a flat board is a stack of one, called `ground` |
 | `themes` · `themeSources` · `mapTheme` | the terrain-paint registry, which library row each of its themes was copied from, and the map-wide default |
-| `roomStyles` | the two bound room shells — `wool` and `spawn` |
+| `roomStyles` | the two bound room shells — `wool` and `spawn` — each a shell stated with its own fields, never wrapped as a `dressing.styles` recipe's `{kind, shell}` (`library.md`) |
 | `dressing` | every placed prop |
 | `biome` · `biomeSource` | the biome every column carries, and the library row it was copied from |
 | `paint[]` | the paint rules: a material laid over a column's top courses where its slope, height, noise or nearness to a modifier say so, the first rule a column meets winning over its theme (`docs/world-export/terrain-painting.md`, TP28) |

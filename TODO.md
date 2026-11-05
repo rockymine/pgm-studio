@@ -18,14 +18,6 @@ concept since `WE71`, and holding them apart is a deliberate not-yet.
 something wrong today, on a page a person uses or on the API an agent drives; the composer's own bugs stay
 deferred in the backlog with the rest of the generator, and `PG29` waits there on the author's ruling.
 
-- [ ] **TS141 — A room style stated as a library fork is honoured, or refused.** In `dressing.styles` a
-  house stated as `{"library": <name>, "kind": "house", "shell": <parts>}` builds the fork (`DressingJson`
-  resolves the shell over the row), but the same object under `roomStyles.spawn` stores 200, raises nothing and
-  builds the bare library row. Resolve `roomStyles.<part>` through the same reader the dressing registry uses,
-  or answer `RQ1` at the path; a second accepted shape that is silently dropped is the failure.
-  `docs/tools/sketch.md`. *Evidence: `pgm-studio-mapgen/reports/sonnet55-halcyon-cays.md`, the kit section — the
-  spawn halls came out cyan clay over pink-white clay.*
-
 - [ ] **TL35 — A copied tree states no species.** A tree save requires `species` (`RQ1`) and the library
   answers one for every row, so every copied recipe states `"species": "oak"` — `acacia-1`, `birch-3` and
   `sequoia-1` alike, and so every entry of the seed folder's `trees.json`. A copied tree

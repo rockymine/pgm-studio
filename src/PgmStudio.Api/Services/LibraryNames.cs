@@ -5,6 +5,7 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Theme;
+using PgmStudio.Domain;
 using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Minecraft.Houses;
 using PgmStudio.Pgm.Plan;
@@ -112,6 +113,16 @@ public sealed partial class LibraryNames(
         if (node is JsonObject stated && stated[StatedName.LibraryKey] is JsonValue name)
         {
             var kind = KindAt(path, stated);
+            if (kind == RoomStyle && (stated.ContainsKey("kind") || stated.ContainsKey("shell")))
+            {
+                // A room style is a shell, stated with its fields beside the name; `kind` and `shell` are how a
+                // prop style in `dressing.styles` wraps one, and laid over a shell here they would be dropped.
+                resolution.Findings.Add(new Finding(RequestRules.Unreadable,
+                    $"`{path}` wraps its house in `kind` and `shell` as a `dressing.styles` recipe does, and a room's "
+                    + "house states the shell's own fields beside `library`",
+                    Field: $"refinement.{path}"));
+                return;
+            }
             var found = await FindAsync(kind, name, path, resolution, ct);
             if (found is not { } copy) return;
             var beside = new JsonObject();
