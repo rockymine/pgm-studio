@@ -52,6 +52,7 @@ public sealed class KitEndpointTests
             assert len(methods) == {{operations}}, f"{len(methods)} methods for {{operations}} routes"
             assert kit.find("protection", show=False), "find answered nothing for a word the schema uses"
             assert kit.SolidMaterial(id=12) == {"kind": "solid", "id": 12}
+            assert kit.SolidMaterial(id=12, data=None) == {"kind": "solid", "id": 12}, "a None for a number was written"
             try:
                 kit.StrokeProp(style="dashed")
                 raise AssertionError("a word outside the set was accepted")

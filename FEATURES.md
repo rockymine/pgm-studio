@@ -3760,6 +3760,10 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **A copied tree states no species (`TL35`).** A copied row stores none and its recipe writes none, `M0092` nulls
   every stored copied row's, the seed folder's `trees.json` carries none, and a template saved without one is
   refused `RQ1`. `docs/tools/library.md`.
+- **A material stated with a null is refused where it is stored (`RP98`).** `SketchMaterialGate` reads every
+  material a layout states — a shape's, a paint rule's, a water's bed — and refuses one that will not read `RQ1` at
+  its path, and the Python kit writes a `None` handed to a field that takes no null as unstated.
+  `docs/architecture.md`.
 - **A region carries no draft step (`PG18`).** `draft_step` is gone from `POST /regions`, `/orbit` and the region
   tree, and `M0091` deletes every stored `region_drafts_json`. `docs/pgm/region-data-flow.md`.
 

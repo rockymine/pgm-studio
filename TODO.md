@@ -32,9 +32,3 @@ deferred in the backlog with the rest of the generator, and `PG29` waits there o
   which of the two forms moves the doorway, fix it in `HouseStamper`, and widen `RoomStyles()` to
   `SeedFolder.Houses`. `docs/world-export/structures.md`. *Evidence: `dark-oak-stilt-hut 18x9 door -z mirror_x at
   (-9, 65, -73)`, `jungle-saltbox-cottage 14x13 door -x at (-6, 76, -78)`.*
-
-- [ ] **RP98 — A stated null is a value the store refuses, not one the report trips on.** `kit.CellMaterial(
-  rise=None)` writes `"rise": null`; the store answers 200 and `GET /map/{slug}/report` then answers `400 RQ1
-  Cannot get the value of a token type 'Null' as a number @ rim.material.rise`. Refuse the null where the
-  document is stored (the material reader), and have the kit treat an argument of `None` as unstated.
-  `docs/architecture.md`. *Evidence: `pgm-studio-mapgen/reports/sonnet55-pippin-coomb.md`, the kit section.*

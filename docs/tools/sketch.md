@@ -2321,6 +2321,12 @@ style had when its floor, ceiling and wall were each one block — is refused by
 room style (`roomStyles.wool.wall`) and `DR-DOC` on a building's recipe (`shell.wall`), since the export would
 otherwise stamp the bedrock box in its place.
 
+**A material the painter cannot read is refused where it is stated.** A shape's `material`, a paint rule's and
+a water's `bed_material` are read as the painter reads them, and one that will not read — a `null` where it
+takes a number, a kind no material has — is refused `RQ1` at its path (`layers.ground.shapes.rim.material.rise`,
+`paint[0].material`, `modifiers[0].bed_material`), since every later read of the board would drop it or trip on
+it.
+
 **And a bound shell taller than the build ceiling is refused there too** (`WX10`,
 `docs/world-export/structures.md`). A room's shell is authored geometry subject to no cap of its own, while
 the goal marker over it hangs five blocks above a ceiling twenty over the ground — so a tall layer stack

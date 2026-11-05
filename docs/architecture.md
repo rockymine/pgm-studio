@@ -186,8 +186,9 @@ serves, with no exception left.
 
 **A Python caller has one, and it is generated where nothing can be committed: by the studio, on request.**
 `GET /api/kit.py` is written from the document the studio publishes (`PythonKit`) — a constructor per shape a
-route takes, by the studio's own field names, writing only what is stated and checking each word and type
-before anything is sent; `Studio`, a method per route named after it, which waits out a `429`, prints a
+route takes, by the studio's own field names, writing only what is stated — a `None` handed to a field that
+takes no null is an argument left unstated, not a `null` — and checking each word and type before anything is
+sent; `Studio`, a method per route named after it, which waits out a `429`, prints a
 success's `warnings` and raises a refusal with its findings; `find()` over every description; and `build()`,
 which rebuilds a document through the constructors. Its `ETag` is the document's hash, so a kit held by a
 driver says which studio it was written for. It is the drivers' replacement for the hand-written constructors
