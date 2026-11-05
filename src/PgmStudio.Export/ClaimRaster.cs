@@ -151,7 +151,7 @@ public static class ClaimRaster
             for (var column = 0; column < grid.Width; column++)
             {
                 if (grid.Rows[row][column] == ' ') { line[column] = ' '; continue; }
-                var stopped = Stops(grid, near, after, column, row, width, depth)
+                var stopped = Stops(grid, near, after, standing is not null, column, row, width, depth)
                     ?? (standing is not null && level is not null && !Levels(grid, level, column, row, width, depth)
                         ? DressingRules.SiteNotLevel : null)
                     ?? (standing is null ? null : Blocked(grid, standing, column, row, width, depth))
@@ -191,8 +191,11 @@ public static class ClaimRaster
     /// <summary>The rule that turns this anchor away, or null where the whole footprint seats.
     /// <paramref name="after"/> is the asked kind's place in the pass's order: a cell claimed by a kind that
     /// places later is free ground for this one, because on the next pass that prop meets this claim rather
-    /// than the other way round.</summary>
-    private static string? Stops(Grid grid, bool[] near, int after, int column, int row, int width, int depth)
+    /// than the other way round. A <paramref name="building"/> is asked what the pass asks a building: a goal's
+    /// clearance and a door's approach, and no other ring of the keep-out mask; and it is raised over paving,
+    /// which is the road it is reached by.</summary>
+    private static string? Stops(Grid grid, bool[] near, int after, bool building, int column, int row, int width,
+        int depth)
     {
         for (var dz = 0; dz < depth; dz++)
             for (var dx = 0; dx < width; dx++)
@@ -203,7 +206,9 @@ public static class ClaimRaster
                 var stopped = held switch
                 {
                     GoalClearance => ObjectiveRules.PropInClearance,
-                    SpawnKeepOut or DoorApproach or WoolRoomKeepOut or StructureKeepOut => DressingRules.KeptClear,
+                    DoorApproach => DressingRules.KeptClear,
+                    SpawnKeepOut or WoolRoomKeepOut or StructureKeepOut => building ? null : DressingRules.KeptClear,
+                    Route when building => null,
                     null => DressingRules.NoGround,
                     _ when held != Free && Places(held.Value) <= after => DressingRules.GroundTaken,
                     _ => null,

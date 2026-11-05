@@ -439,11 +439,12 @@ public static class PythonKit
 
 
         def _stated(shape, values):
-            """The fields stated, each checked against what the shape takes; a field left out is not written."""
+            """The fields stated, each checked against what the shape takes; a field left out is not written, and
+            neither is a None handed to a field that takes no null, which is an argument left unstated."""
             fields = _SHAPES[shape]["fields"]
             stated = {}
             for name, value in values.items():
-                if value is _MISSING:
+                if value is _MISSING or value is None and not fields.get(name, {}).get("null"):
                     continue
                 if name in fields:
                     ok, why = _fits(value, fields[name])

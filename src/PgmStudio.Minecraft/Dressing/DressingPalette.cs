@@ -184,7 +184,7 @@ public static class DressingPalette
         new("willow", Woods[6], CanopyProfile.Weeping, Height: 11, CanopyRadius: 5.0),
     ];
 
-    public static TreeSpecies SpeciesNamed(string name)
+    public static TreeSpecies SpeciesNamed(string? name)
         => Species.FirstOrDefault(species => species.Name == name) ?? Species[0];
 }
 

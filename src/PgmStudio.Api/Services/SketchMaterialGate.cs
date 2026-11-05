@@ -111,11 +111,33 @@ public static class SketchMaterialGate
         var findings = new List<Finding>();
         foreach (var layer in SketchLayout.Stack(layout))
             foreach (var shape in layer.Shapes)
-                if (TerrainThemeScope.MaterialOf(shape) is { } material)
+            {
+                var path = $"layers.{layer.Id}.shapes.{shape.Id}.material";
+                if (Unreadable(shape.Material, path) is { } fault) findings.Add(fault);
+                else if (TerrainThemeScope.MaterialOf(shape) is { } material)
                     findings.AddRange(TerrainThemeValidation
-                        .Check(TerrainTheme.OfMaterial(material, TerrainTheme.Default))
-                        .Under($"layers.{layer.Id}.shapes.{shape.Id}.material"));
+                        .Check(TerrainTheme.OfMaterial(material, TerrainTheme.Default)).Under(path));
+            }
+        for (var at = 0; at < (layout.Paint?.Count ?? 0); at++)
+            if (Unreadable(layout.Paint![at].Material, $"paint[{at}].material") is { } fault) findings.Add(fault);
+        for (var at = 0; at < (layout.Modifiers?.Count ?? 0); at++)
+            if (Unreadable(layout.Modifiers![at].BedMaterial, $"modifiers[{at}].bed_material") is { } fault)
+                findings.Add(fault);
         return findings;
+    }
+
+    /// <summary>A material stated where the store keeps it that the painter cannot read — a <c>null</c> for a
+    /// number, a kind no material has — refused by its path (<c>RQ1</c>). Every later read of the board would
+    /// drop it or trip on it, so the store is where it is said.</summary>
+    private static Finding? Unreadable(JsonElement? material, string path)
+    {
+        if (material is not { ValueKind: JsonValueKind.Object } json) return null;
+        try
+        {
+            TerrainThemeJson.DeserializeMaterial(json.GetRawText());
+            return null;
+        }
+        catch (JsonException fault) { return JsonFaults.Said(RequestRules.Unreadable, fault, path); }
     }
 
     /// <summary>Every placed building's own shell, and the roof each wing states for itself, each finding under

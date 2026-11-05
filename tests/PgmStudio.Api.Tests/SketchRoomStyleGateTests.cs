@@ -1,6 +1,8 @@
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using PgmStudio.Api.Services;
+using PgmStudio.Pgm.Sketch;
 
 namespace PgmStudio.Api.Tests;
 
@@ -228,5 +230,47 @@ public sealed class SketchMaterialGateTests
 
         var put = await client.PutAsync("/api/map/bare/sketch", Body(Clean));
         await Assert.That(put.IsSuccessStatusCode).IsTrue().Because(await put.Content.ReadAsStringAsync());
+    }
+
+    // ── a material the store keeps is one the painter can read ──────────────────────────────────────────
+
+    private const string Cell = """{"kind":"cell","seed":3,"cellSize":4,"jitter":1,"warp":0,"palette":[{"kind":"solid","id":1,"data":0}],"rise":null}""";
+
+    private static string MaterialLayout(string shapeMaterial, string paint = "", string modifiers = "") => $$$"""
+        {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},{{{paint}}}{{{modifiers}}}
+         "layers":[{"id":"ground","base_y":0,"layout":{
+           "shapes":[{"id":"rim","type":"rectangle","operation":"add","min_x":-20,"max_x":20,"min_z":-20,"max_z":20,
+                      "floor":8,"base_height":12{{{shapeMaterial}}}}],
+           "groups":[{"id":"i","name":"I","shapeIds":["rim"]}]}}]}
+        """;
+
+    [Test]
+    public async Task A_null_where_a_material_states_a_number_is_refused_at_its_path()
+    {
+        var refused = SketchMaterialGate.Check(MaterialLayout($",\"material\":{Cell}"), LayoutReading.Document).Refusals.ToList();
+        await Assert.That(refused.Select(finding => finding.Rule)).Contains("RQ1");
+        await Assert.That(refused.Single(finding => finding.Rule == "RQ1").Field)
+            .IsEqualTo("layers.ground.shapes.rim.material.rise");
+    }
+
+    [Test]
+    public async Task A_paint_rule_and_a_waters_bed_are_held_to_the_same_reading()
+    {
+        var painted = SketchMaterialGate.Check(MaterialLayout("", paint: $"\"paint\":[{{\"material\":{Cell}}}],"),
+            LayoutReading.Document).Refusals;
+        await Assert.That(painted.Single().Field).IsEqualTo("paint[0].material.rise");
+
+        var bedded = SketchMaterialGate.Check(MaterialLayout("",
+            modifiers: $"\"modifiers\":[{{\"id\":\"r\",\"op\":\"river\",\"bed_material\":{Cell}}}],"),
+            LayoutReading.Document).Refusals;
+        await Assert.That(bedded.Single().Field).IsEqualTo("modifiers[0].bed_material.rise");
+    }
+
+    [Test]
+    public async Task A_material_that_states_its_numbers_passes()
+    {
+        var cell = Cell.Replace("\"rise\":null", "\"rise\":2");
+        await Assert.That(SketchMaterialGate.Check(MaterialLayout($",\"material\":{cell}"), LayoutReading.Document).Refuses)
+            .IsFalse();
     }
 }

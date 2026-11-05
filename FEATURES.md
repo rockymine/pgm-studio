@@ -3751,6 +3751,19 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **A finished sketch's scan follows the intent's rooms (`TS178`).** The scan records the layout and intent revisions
   it was rasterized from (`WorldFeatureWriter.ScanSource`), so a room moved through the piece route is ground the
   next read answers for. `docs/tools/sketch.md`.
+- **The seat preview seats a house where the build does (`TS167`).** `/sketch/seats` asks a house a goal's clearance
+  and a door's approach and no other keep-out ring, and seats it over paving, so a path drawn up to a door through a
+  spawn's ring and the house at its end both read as the pass builds them. `docs/tools/sketch.md`.
+- **A room style stated as a prop style is refused (`TS141`).** `{library, kind: "house", shell}` under
+  `roomStyles.<part>` or a house prop's own `style` refuses the source `422` `RQ1` at its path, rather than building
+  the bare row; a room style states the shell's fields beside `library`. `docs/tools/library.md`.
+- **A copied tree states no species (`TL35`).** A copied row stores none and its recipe writes none, `M0092` nulls
+  every stored copied row's, the seed folder's `trees.json` carries none, and a template saved without one is
+  refused `RQ1`. `docs/tools/library.md`.
+- **A material stated with a null is refused where it is stored (`RP98`).** `SketchMaterialGate` reads every
+  material a layout states — a shape's, a paint rule's, a water's bed — and refuses one that will not read `RQ1` at
+  its path, and the Python kit writes a `None` handed to a field that takes no null as unstated.
+  `docs/architecture.md`.
 - **A region carries no draft step (`PG18`).** `draft_step` is gone from `POST /regions`, `/orbit` and the region
   tree, and `M0091` deletes every stored `region_drafts_json`. `docs/pgm/region-data-flow.md`.
 

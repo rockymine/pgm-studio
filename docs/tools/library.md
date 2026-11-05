@@ -516,10 +516,12 @@ author built in a world and the cutter took out of it, and it carries its own **
 `[x, y, z, id, data]` from its foot, the lowest log, which stands at the origin and rests on the ground. Its
 height is read off the body rather than stated, and it has no knob — it is retuned by cutting it again. Beside
 the body it carries its **cut**, `{world, x, y, z, at}`: the world directory it was cut from, the foot's world
-coordinates there and the time of the cut (UTC), which a template never carries. Each form reads only its own fields, so the
-ones it does not read are inert rather than wrong, and switching form keeps every field: a body survives a
-look at what the same recipe would be as a template, and the species chosen for it is still chosen on the way
-back. A `boulder_style` is four statements — form, size,
+coordinates there and the time of the cut (UTC), which a template never carries. A copied tree states **no
+species**: it is made of the blocks it was cut with, so its row stores none and its recipe writes none, and a
+template saved without one is refused `RQ1` at `species`. Each form reads only its own fields, and the editor
+keeps every field while the form is switched: a body survives a look at what the same recipe would be as a
+template, and the species chosen for it is still chosen on the way back; the save keeps only what the form
+reads. A `boulder_style` is four statements — form, size,
 whether moss specks a tenth of its sky-lit faces, and the material it is cut from, which is a full terrain material and
 so may be any of the fourteen kinds.
 
@@ -915,7 +917,7 @@ and *Save* for anyone off the whitelist, and *Delete* for anyone but an admin.
 | `GET /room-styles/{id}/json` | the stamper's own JSON — what a sketch binds and a building prop snapshots — as `{styleJson: "…"}`, likewise a string to unwrap |
 | `POST /room-styles/preview` · `POST /room-styles/preview-snapshot` | the shell a set of courses composes to, or the one a stored `HouseStyle` snapshot builds. The answer is `{plan, section, cutaway, columns}`: three SVG cuts, and **`columns`** — the stamped world's own per-column runs, the same shape `POST /plan/columns` answers for a map, which the browser meshes and draws in 3-D. **The two take different bodies**: `preview` takes the same record as `POST /room-styles`, `preview-snapshot` takes a **bare `HouseStyle`** — the document itself, unwrapped, exactly what `GET /room-styles/{id}/json` hands back once its string is unwrapped. A wrapper posted to it is dropped and previews the defaults |
 | `DELETE /room-styles/{id}` | forget a room style; its courses cascade, its styles stay |
-| `GET`·`POST`·`PUT`·`DELETE /tree-styles[/{id}]` · `…/boulder-styles` | the two recipe libraries — what a *click* puts down. `GET /tree-styles` lists `{id, name, preview, form, species, height, builder}`, so a picker can group generated trees from hand-built ones and tune a generated one without fetching it. A tree is `{name, form, species, height, body, cut}`, a cut `{world, x, y, z, at, builder}` with `builder` null where the cutter was not told; `POST`/`PUT /tree-styles` answer 400 `{error: "invalid tree style", findings}` with `DR-COPY` when a `copied` tree carries no `cut`. Each `POST …/preview` draws a draft as the card a browse row carries, answering `{card: "…"}` — an `<img>` of the textured view where the studio has sprites, an SVG where it has not. Nothing asks before a delete, because nothing binds a recipe: a placement names a key in its **own document's** registry, which the pull copied |
+| `GET`·`POST`·`PUT`·`DELETE /tree-styles[/{id}]` · `…/boulder-styles` | the two recipe libraries — what a *click* puts down. `GET /tree-styles` lists `{id, name, preview, form, species, height, builder}`, `species` null on a copied tree, so a picker can group generated trees from hand-built ones and tune a generated one without fetching it. A tree is `{name, form, species, height, body, cut}`, a cut `{world, x, y, z, at, builder}` with `builder` null where the cutter was not told; `POST`/`PUT /tree-styles` answer 400 `{error: "invalid tree style", findings}` with `DR-COPY` when a `copied` tree carries no `cut`, and `RQ1` when a `template` states no `species`. Each `POST …/preview` draws a draft as the card a browse row carries, answering `{card: "…"}` — an `<img>` of the textured view where the studio has sprites, an SVG where it has not. Nothing asks before a delete, because nothing binds a recipe: a placement names a key in its **own document's** registry, which the pull copied |
 | `GET /tree-styles/{id}/json` · `GET /boulder-styles/{id}/json` | the recipe as a dressing document states it, as `{styleJson: "…"}` — what a pull copies into a map's `styles` registry under a key. A copied tree whose cut names a builder carries it as `builder` |
 | `GET /terrain/blocks` · `GET /terrain/patterns` | the block palette — each block's id/data, name, tone family, swatch, and what it **looks like** per face (below) — and every material kind with its fields, defaults and the cell facts it varies with |
 | `GET /terrain/looks` | the construction words a face's `construction` is drawn from, each with what it means |
@@ -1007,6 +1009,11 @@ in its turn and replaces what it stands in:
 ```json Refinement
 {"themes": {"heath": {"library": "dunes", "rimEdges": "boundary", "wall": {"library": "sandstone"}}}}
 ```
+
+**A room style is stated as the shell's own fields beside its name.** Under `roomStyles.<part>` and a house
+prop's own `style`, the `{library, kind: "house", shell: {…}}` a `dressing.styles` recipe takes refuses the
+source, `422` with `RQ1` naming the path: its `kind` and `shell` would be laid over the shell as two members
+nothing reads, and the room would be built from the bare row.
 
 **A name that names no row refuses the source**, `422` with `SR6` naming the nearest names the library holds.
 A name is compared without case, as the library keeps it one row of its kind. A theme or a biome copied this way is recorded in the layout's

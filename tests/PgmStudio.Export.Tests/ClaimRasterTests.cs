@@ -283,6 +283,46 @@ public sealed class ClaimRasterTests
         await Assert.That(string.Join("; ", disagreed.Take(6))).IsEqualTo("");
     }
 
+    /// <summary><b>A building seats where the pass raises it: over a path, and across a spawn's ring.</b> The pass
+    /// asks a building no keep-out but a door's approach and lets it stand on paving, so a board carrying a path
+    /// and a spawn's protection is asked both ways at every anchor and the two answers agree.</summary>
+    [Test]
+    public async Task A_building_seats_on_a_path_and_across_a_spawns_ring_as_the_pass_seats_it()
+    {
+        const int size = 30;
+        var surface = Ground(0, 0, size - 1, size - 1);
+        var path = new StrokeProp { Id = "path", Seed = 1, Points = [[0, 15], [size - 1, 15]] };
+        KeepOut? Kept(int x, int z) => x < 6 ? KeepOut.Spawn : null;
+
+        var (built, builtTop) = World(surface);
+        var paved = Decorator.Decorate(built, new DressingContext(builtTop, [path], Kept, DressingSymmetry.None));
+        var grid = ClaimRaster.Read(paved.Placements, surface, Kept, (_, _) => false);
+        await Assert.That(grid.Rows[15][0]).IsEqualTo('2')
+            .Because("a path is drawn through the spawn's ring, which holds back only what stands on the ground");
+        var seats = ClaimRaster.Seat(grid, "house", standoff: 0, width: 5, depth: 5);
+
+        var disagreed = new List<string>();
+        int onPath = 0, inRing = 0;
+        for (var row = 0; row + 4 < grid.Height; row++)
+        for (var column = 0; column + 4 < grid.Width; column++)
+        {
+            var raster = seats.Rows[row][column] == '1';
+            if (raster && grid.Rows[row + 2][column + 2] == '2') onPath++;
+            if (raster && column < 6) inRing++;
+            var (world, top) = World(surface);
+            var tally = Decorator.Decorate(world, new DressingContext(top,
+                [path, House("new", column, row, column + 4, row + 4)], Kept, DressingSymmetry.None));
+            var refused = tally.Declines.Any(finding => finding.SubjectIds.Contains("new"));
+            if (raster == !refused) continue;
+            disagreed.Add($"({column}, {row}) raster {(raster ? "seats" : "refuses")}, pass "
+                + string.Join("/", tally.Declines.Where(f => f.SubjectIds.Contains("new")).Select(f => f.Rule)));
+        }
+
+        await Assert.That(onPath).IsGreaterThan(0).Because("a building is offered a seat over the path");
+        await Assert.That(inRing).IsGreaterThan(0).Because("and one inside the spawn's ring");
+        await Assert.That(string.Join("; ", disagreed.Take(6))).IsEqualTo("");
+    }
+
     [Test]
     public async Task A_route_refuses_the_cells_nearer_than_the_standoff_and_lets_the_one_at_it_stand()
     {

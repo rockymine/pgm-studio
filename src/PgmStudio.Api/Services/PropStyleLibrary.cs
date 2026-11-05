@@ -2,6 +2,7 @@ using System.Text.Json;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Schema;
 using PgmStudio.Data.Theme;
+using PgmStudio.Domain;
 using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Minecraft.Library;
 using PgmStudio.Minecraft.Painting;
@@ -34,7 +35,7 @@ public sealed class PropStyleLibrary(PropStyleStore store)
     public static TreeStyle TreeOf(TreeStyleRow row) => new()
     {
         Form = TreeForms.Canonical(row.Form) == TreeForms.Copied ? TreeForm.Copied : TreeForm.Template,
-        Species = TreeSpeciesNames.Canonical(row.Species),
+        Species = TreeForms.Canonical(row.Form) == TreeForms.Copied ? null : TreeSpeciesNames.Canonical(row.Species),
         Height = row.Height,
         Body = BodyOf(row.Body),
         Builder = TreeForms.Canonical(row.Form) == TreeForms.Copied && row.CutBuilder is { Length: > 0 } builder
@@ -42,13 +43,17 @@ public sealed class PropStyleLibrary(PropStyleStore store)
     };
 
     /// <summary>The tree gate a save passes: a <c>copied</c> recipe states where it was cut
-    /// (<see cref="DressingRules.UncutCopy"/>). A template is never refused here.</summary>
+    /// (<see cref="DressingRules.UncutCopy"/>), and a template the species it grows as (<c>RQ1</c>).</summary>
     public static Findings Check(TreeStyleSaveRequest req) =>
-        TreeForms.Canonical(req.Form) != TreeForms.Copied || req.Cut is { World.Length: > 0 }
-            ? Findings.None
-            : Findings.Of(new Finding(DressingRules.UncutCopy,
-                $"copied tree '{req.Name}' has no cut record",
-                Field: "cut"));
+        TreeForms.Canonical(req.Form) == TreeForms.Copied
+            ? req.Cut is { World.Length: > 0 }
+                ? Findings.None
+                : Findings.Of(new Finding(DressingRules.UncutCopy, $"copied tree '{req.Name}' has no cut record",
+                    Field: "cut"))
+            : req.Species is { Length: > 0 }
+                ? Findings.None
+                : Findings.Of(new Finding(RequestRules.Unreadable,
+                    $"template tree '{req.Name}' states no species to grow as", Field: "species"));
 
     /// <summary>A copied recipe's height is what its body stands, read rather than stated: a knob that
     /// disagrees with the blocks would size a preview's sample patch for a tree that is not there. The cut is
@@ -61,7 +66,7 @@ public sealed class PropStyleLibrary(PropStyleStore store)
         {
             Name = req.Name,
             Form = TreeForms.Canonical(req.Form),
-            Species = TreeSpeciesNames.Canonical(req.Species),
+            Species = copied ? null : TreeSpeciesNames.Canonical(req.Species),
             Height = copied
                 ? new TreeStyle { Form = TreeForm.Copied, Body = req.Body }.BodyHeight
                 : Math.Clamp(req.Height, 5, 40),
@@ -82,7 +87,7 @@ public sealed class PropStyleLibrary(PropStyleStore store)
     {
         Name = name,
         Form = TreeForms.Copied,
-        Species = TreeSpeciesNames.Canonical(tree.Species),
+        Species = null,
         Height = tree.BodyHeight,
         Body = tree.Body is { Count: > 0 } body ? JsonSerializer.Serialize(body) : "",
         CutWorld = world,
