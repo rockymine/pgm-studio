@@ -86,4 +86,25 @@ public sealed class PropStyleLibraryTests
 
         await Assert.That(spruce).IsNotEqualTo(oak);
     }
+
+    /// <summary><b>A copied tree states no species.</b> It is made of the blocks it was cut with, so the row, the
+    /// recipe and what the recipe serializes to carry none; a template states the one it grows as, and saving one
+    /// without is refused at <c>species</c>.</summary>
+    [Test]
+    public async Task A_copied_tree_states_no_species_and_a_template_must()
+    {
+        var cut = new TreeCut("tree-showcase", 8, 1, -493, DateTime.UtcNow);
+        var copied = new TreeStyleSaveRequest("acacia-1", TreeForms.Copied, "oak", 9, [[0, 0, 0, 17, 0]], cut);
+        var row = PropStyleLibrary.RowOf(copied);
+        await Assert.That(row.Species).IsNull();
+        await Assert.That(PropStyleLibrary.TreeOf(row).Species).IsNull();
+        await Assert.That(Minecraft.Dressing.DressingJson.SerializeStyle(PropStyleLibrary.TreeOf(row))).DoesNotContain("species");
+        await Assert.That(SeedFolder.Trees.Trees.All(tree => tree.Style.Species is null)).IsTrue()
+            .Because("the seed folder's trees are all cut from the showcase world");
+
+        var template = PropStyleLibrary.RowOf(new TreeStyleSaveRequest("birch", TreeForms.Template, "birch", 12));
+        await Assert.That(PropStyleLibrary.TreeOf(template).Species).IsEqualTo("birch");
+        var refused = PropStyleLibrary.Check(new TreeStyleSaveRequest("bare", TreeForms.Template, null, 12));
+        await Assert.That(refused.Refusals.Single().Field).IsEqualTo("species");
+    }
 }

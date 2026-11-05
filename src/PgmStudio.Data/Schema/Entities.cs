@@ -1106,7 +1106,8 @@ public sealed class TreeStyleRow : ILibraryRow
     /// and for a row stored before rows recorded their maker.</summary>
     [Column("owner_uuid")] public string? OwnerUuid { get; set; }
     [Column("form"), NotNull] public string Form { get; set; } = "template";
-    [Column("species"), NotNull] public string Species { get; set; } = "oak";
+    /// <summary>Template only — the species it grows as; null on a copied tree, which is made of its body.</summary>
+    [Column("species")] public string? Species { get; set; } = "oak";
     [Column("height")] public double Height { get; set; } = 12;
     /// <summary>Copied only — the tree's blocks as the recipe's own JSON (<c>[[x, y, z, id, data], …]</c>,
     /// M0031). Empty on a template, which builds its own from its species.</summary>

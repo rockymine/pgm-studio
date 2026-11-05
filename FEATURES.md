@@ -3757,6 +3757,9 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **A room style stated as a prop style is refused (`TS141`).** `{library, kind: "house", shell}` under
   `roomStyles.<part>` or a house prop's own `style` refuses the source `422` `RQ1` at its path, rather than building
   the bare row; a room style states the shell's fields beside `library`. `docs/tools/library.md`.
+- **A copied tree states no species (`TL35`).** A copied row stores none and its recipe writes none, `M0092` nulls
+  every stored copied row's, the seed folder's `trees.json` carries none, and a template saved without one is
+  refused `RQ1`. `docs/tools/library.md`.
 - **A region carries no draft step (`PG18`).** `draft_step` is gone from `POST /regions`, `/orbit` and the region
   tree, and `M0091` deletes every stored `region_drafts_json`. `docs/pgm/region-data-flow.md`.
 

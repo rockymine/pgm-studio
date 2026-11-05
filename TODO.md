@@ -18,16 +18,6 @@ concept since `WE71`, and holding them apart is a deliberate not-yet.
 something wrong today, on a page a person uses or on the API an agent drives; the composer's own bugs stay
 deferred in the backlog with the rest of the generator, and `PG29` waits there on the author's ruling.
 
-- [ ] **TL35 — A copied tree states no species.** A tree save requires `species` (`RQ1`) and the library
-  answers one for every row, so every copied recipe states `"species": "oak"` — `acacia-1`, `birch-3` and
-  `sequoia-1` alike, and so every entry of the seed folder's `trees.json`. A copied tree
-  reads only its body, so the word is inert, but it says of an acacia what the showcase's `kinds.json` exists to
-  stop anyone reading off a block. `TreeStyleSaveRequest.Species` is required of a template only,
-  `PropStyleLibrary.TreeOf` gives a copied row none and `DressingJson` writes none for one; the snapshot is cut
-  again after. `docs/tools/library.md`.
-
-  *Evidence: all 84 entries of the snapshot read `"species":"oak"`.*
-
 - [ ] **PG31 — A spawn keeps every region it states.** `Spawn.Region` holds one region, so a spawn written
   with several `<region>` children keeps the first and loses the rest on read — 83 spawns in 34 corpus maps
   (`skill_issue`'s defenders spawn at either end). A portal naming a lost one exports a reference to nothing.

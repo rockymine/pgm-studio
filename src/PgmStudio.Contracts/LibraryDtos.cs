@@ -355,20 +355,20 @@ public record PorchStyleSaveRequest(
 /// <param name="Preview">The card picture, drawn through the grower the export runs, so a tree is picked by
 /// what it looks like rather than by its numbers.</param>
 /// <param name="Form">Generated from a species, or copied block by block from a world.</param>
-/// <param name="Species">The species a generated tree grows as.</param>
+/// <param name="Species">The species a generated tree grows as; a copied tree has none.</param>
 /// <param name="Height">A generated tree's height in blocks; a copied tree's is its body's.</param>
 /// <param name="Builder">Who built a copied tree, credited on the maps that use it.</param>
 public sealed record TreeStyleSummary(
     long Id, string Name, string Preview,
     [property: WordSet(typeof(TreeForms))] string Form,
-    string Species, double Height, string? Builder);
+    string? Species, double Height, string? Builder);
 
 /// <summary>A tree recipe (GET /api/tree-styles/{id}): the save request plus the row's id, which a placement
 /// names it by once it is pulled into a map's dressing registry.</summary>
 /// <remarks><c>Seeded</c> says whether the seed folder states this row. A seeded row is rewritten on every start and
 /// refuses an edit or a delete (<c>LB6</c>); it is changed by saving a copy.</remarks>
 public sealed record TreeStyleDetail(
-    long Id, string Name, string Form, string Species, double Height, int[][]? Body = null, TreeCut? Cut = null, bool Seeded = false)
+    long Id, string Name, string Form, string? Species, double Height, int[][]? Body = null, TreeCut? Cut = null, bool Seeded = false)
     : TreeStyleSaveRequest(Name, Form, Species, Height, Body, Cut);
 
 /// <summary>Where a copied tree was cut: the world it stood in, its foot there, when, and who built it there.
@@ -390,8 +390,9 @@ public sealed record TreeCut(string World, int X, int Y, int Z, DateTime At, str
 /// wrong.</summary>
 /// <param name="Name">What the library lists it under.</param>
 /// <param name="Form">Which tree this is, from <see cref="TreeForms"/>.</param>
-/// <param name="Species">Template only — the vanilla species, whose row carries the wood, the canopy profile
-/// and the proportions.</param>
+/// <param name="Species">Template only, and required there — the vanilla species, whose row carries the wood, the
+/// canopy profile and the proportions. A copied tree states none, since it is made of the blocks it was cut
+/// with.</param>
 /// <param name="Height">Overall height in blocks, held to 5–40: it scales the species' proportions. Ignored
 /// on a copy, whose height is read off its body.</param>
 /// <param name="Body">Copied only — the tree's blocks as <c>[x, y, z, id, data]</c> rows, offsets from the
@@ -402,7 +403,7 @@ public sealed record TreeCut(string World, int X, int Y, int Z, DateTime At, str
 public record TreeStyleSaveRequest(
     string Name,
     [property: WordSet(typeof(TreeForms))] string Form,
-    [property: WordSet(typeof(TreeSpeciesNames))] string Species,
+    [property: WordSet(typeof(TreeSpeciesNames))] string? Species,
     double Height,
     int[][]? Body = null,
     TreeCut? Cut = null);

@@ -239,8 +239,10 @@ public sealed record TreeStyle : PropStyle
         Body is { Count: > 0 } ? BodyCells.Max(cell => cell.Y) - BodyCells.Min(cell => cell.Y) + 1 : 0;
 
     /// <summary>Template only — a row in <see cref="DressingPalette.Species"/>: the wood, the canopy profile
-    /// and the proportions of one vanilla species.</summary>
-    public string Species { get; init; } = "oak";
+    /// and the proportions of one vanilla species. A template stating none grows as the first row, the oak; a
+    /// copied tree states none, since it is made of the blocks it was cut with.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Species { get; init; }
 
     /// <summary>Overall height in blocks: on a template it scales the species' proportions; on a copy it is
     /// the courses the body stands, read off the blocks rather than stated.</summary>
