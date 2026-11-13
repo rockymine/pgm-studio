@@ -41,9 +41,9 @@ Read alongside:
 - `docs/world-export/structures.md` §6.4 — the preset seam (style-as-data). A dressing style attaches here.
 - `docs/tools/sketch.md` — the sketch document this stage stores its props beside.
 - `docs/world-export/ideas.md` — the dressing-stage gap pool: what turns these tools into one coherent
-  stage. The fairness rule (G162) is answered here in §2; what remains is the guardrail budget,
-  vertical-surface dressing, the arbitration contract, a biome theme, context-aware placement, and
-  border/POI framing.
+  stage. The fairness rule (G162) is answered here in §2 save a prop on the axis itself; what remains is the
+  density budget, vertical-surface dressing, affinity between the passes, a biome theme, context-aware
+  placement, and border/POI framing.
 
 ---
 
