@@ -411,8 +411,9 @@ partition it — a third of the entries are cleanup, naming and consistency work
 but each of the three wants a different treatment, which is what makes them worth naming despite the
 ambiguity at their edges.
 
-**Blocked decisions** are what the board still marks as parked — `WE41` (not yet), `A8`, `G278` and `G282`
-(not now), and `B9` (imports are not a priority). A question put to the author comes back the
+**Blocked decisions** are what the board still marks as parked — `WE41` (not yet) and `B9` (imports are not a
+priority); `A8`, `G278` and `G282` (not now) wait in `docs/generator/ideas.md` with the rest of the frozen
+generator. A question put to the author comes back the
 same day, and five of the answers so far have been to decline the question. Each has a definite end
 and none of it is work until the answer arrives.
 
