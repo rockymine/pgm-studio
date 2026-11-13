@@ -22,52 +22,32 @@ about which section the entry sits in — the retired prefixes still on entries 
 
 ## Parked from the programme
 
-- [ ] **TC23 — A world uploaded with its `map.xml`.** *Parked (author): skipped for the time being.* `POST /map/upload` takes a zip of a world's `region/` and
+- [ ] **TC23 — A world uploaded with its `map.xml`.** *Parked (author): a studio map starts from an unconfigured world, so a world arriving with its `map.xml` waits.* `POST /map/upload` takes a zip of a world's `region/` and
   its `map.xml` from any member, refused over a size cap, scanned as `import-url` scans; the stamps run over it
   on export. The `map.xml` is read into an intent, on the author's call: teams, spawns, wools, monuments, cores,
   control points and build regions become intent pieces, configured in Configure as a world read from a scan is
   (D13), and what the studio cannot state is refused by name (`docs/tools/configure.md`, `docs/tools/flow.md`).
 
-- [ ] **TS212 — Dragging a solid out in the dock.** *Parked (author): not yet.* The dock draws a rectangle, polygon, polyline or lasso, and a
+- [ ] **TS212 — Dragging a solid out in the dock.** *Parked (author): new capabilities wait while the backlog's fixes are worked.* The dock draws a rectangle, polygon, polyline or lasso, and a
   solid is made by reading a drawn footprint with the inspector's Form row. Add dock tools that drag out a box,
   wedge, cylinder, sphere or torus with the form already chosen (`SketchTool.razor`, `asSolid` in
   `geometry/shape.js`, `addShape` in `sketch-bridge.js`), and inspector rows for an arch's rock `thick`, its easing
   powers and its `camber`, stated over the API today (`docs/tools/sketch.md`, *Solids*).
 
-- [ ] **TS191 — `sight`: who can see whom on the sketch's ground.** *Parked (author): agent-facing; a target is likely an objective.* A line between an eye 1.62 blocks over the
-  feet and a target's chest 0.9 over its feet is clear when every block it passes, sampled each quarter block,
-  is above the ground the sketch builds and outside its houses; answered as each target's share of eyes that
-  see it, and the targets none sees, over HTTP with a `?format=text` twin (pgmvox `read/sight.py`). **Open, the
-  author's:** what the eyes and targets are — fixed points (spawns, goals, places) or every cell a team stands
-  on. `docs/tools/sketch.md`.
+- [ ] **TS191 — `sight`: who can see whom on the sketch's ground.** *Parked (author): what must be seen depends on
+  the map rather than on a rule — a player leaving spawn turns round to find the wool or the core, so it is rarely
+  in view from the spawn itself, and anything a player can reach is in practice visible; a core or a monument
+  built in, which nobody can reach, is the case that matters.* A line between an eye 1.62 blocks over the feet and
+  a target's chest 0.9 over its feet is clear when every block it passes, sampled each quarter block, is above the
+  ground the sketch builds and outside its houses (pgmvox `read/sight.py`). `docs/tools/sketch.md`.
 
-- [ ] **TS201 — The canvas keeps its width across Draw's steps.** *Parked (author): no layout decided yet.* The
+- [ ] **TS201 — The canvas keeps its width across Draw's steps.** *Parked (author): kept apart from TS202 and not touched for now.* The
   Places step's inspector is wider than Ground's and Layout's, so stepping into it narrows the canvas and moves
   the board under the pointer. `docs/tools/sketch.md`.
 
-- [ ] **TS202 — Ground and Layout as one step.** *Parked (author): needs a redesigned dock first.* The two were
+- [ ] **TS202 — Ground and Layout as one step.** *Parked (author): kept apart from TS201 and not touched for now.* The two were
   split so the dock would not hold every tool at once; one step means the dock carries the shape tools and the
   piece families together. `docs/tools/sketch.md`.
-
-- [ ] **WE168 — A room's interior is placed relative to its house.** *Parked (author): later; derived for now.*
-  The chests (`WoolChests`, `RoomFrames.InteriorCorners`) and the monuments (`RoomFrames.MonumentSlots`) are
-  stated on the room's `house` as positions relative to its first wing, movable in Layout, and a migration
-  carries each derived position into the stored one. `docs/world-export/structures.md`.
-
-- [ ] **TS172 — The look is stated before the review.** *Parked (author): too much for now; the programme goes on
-  without it.* A palette, a house style per area, tree and rock zones and
-  the biome as sketch data, drawn on the review sheet and applied by the build, so the author judges what a board
-  is made of before it is built (D12, phase 5). `docs/tools/sketch.md`.
-
-  *Evidence: four of the seven points of Abbeymoor's first review were paint, materials or dressing, and no picture
-  before its build showed any of them (`experiment/REVIEW-1.md`).*
-
-- [ ] **TS130 — Point edits and bends reach every outline.** *Parked (author): tangled with how land is made,
-  which the pgmvox port's Phase 2 redesigns; picked up when that work needs it.* `editShapes` and
-  `bendShapes` address a shape's `vertices` alone (`SketchGeometryEdit.Outline`), where `outlines` already
-  writes a stroke's, fluid's or flora's `points`
-  (`Refinement.Outlined`). Both reach those, each refused where an edit folds the ring.
-  `docs/tools/flow.md`.
 
 - [ ] **TS126 — A note's checkable claim, kept as a check.** *Parked (author): not yet.* Some notes state
   what a board must keep being — a path reaches the bridge (note 58), a bedrock wall has void on both sides
@@ -107,12 +87,6 @@ them one rather than with the contract work that shipped them.
   `BuildModes`) and `Materials` are stated on the intent and nowhere in the wizard: a select beside Build
   height showing the default `BuildIntent.ModeFor` takes, and a material list where the mode is `only`.
   `docs/tools/configure.md` §*Build*.
-- [ ] **PG29 — A kit loses nothing it states, or the map is refused.** `MapParser.ParseKits` reads items,
-  armour, effects, `max-health`, `force` and `clear`, and drops every other kit element in silence, so an exported map plays
-  differently from the one read: `game-mode` in 325 corpus maps, `action` in 112, `double-jump` in 68, `health`
-  in 56, `knockback-reduction` in 48, `walk-speed` in 40. Each is read and written
-  (`Kit`, `XmlWriter`, `Serializer`, the `kit` row), or its presence refuses the map the way an unread objective
-  module does. `docs/pgm/supported-maps.md`.
 - [ ] **PG24 — Jump pads.** `MapIntent.JumpPads`: a box, a velocity turned with the symmetry, a pad block and
   `safe`. `JumpPadGenerator` writes `<apply region velocity>`, which already round-trips
   (`XmlWriter.cs:879`); a safe pad adds pgmvox's fall variable and fall-damage deny (`play/rules.py:477`). The
@@ -462,12 +436,6 @@ is the standard the copy is held to.
 - [ ] **TS151 — The notes overview and the change history, laid out for the work.** The World counts sit on one
   row. Left: tabs (This view · Whole map · All) and a status select in place of the notes column's four filter
   chips, and History's Restore pinned in the inspector's footer above its edit lines. `docs/tools/sketch.md`.
-- [ ] **TS164 — Decoration's inspector widens only for its picker.** *Parked (author): judging from the
-  screenshots in the layout mockups' section 6.* `.workspace-inspector--wide` holds the
-  Decoration inspector at 420px (`editor.css:295`) against 280px everywhere else, so the canvas jumps 140px on
-  entering the phase while the wide column shows an empty state. Widen it only while a block or pattern picker
-  is open. `docs/tools/sketch.md`.
-
 ## The studio's own icons: one glyph for one thing
 `docs/client/icon-map.md` is the map: 511 icon assignments, where one picture stands for several things and one
 thing is drawn several ways, and the order the move to the studio's own glyphs takes.
