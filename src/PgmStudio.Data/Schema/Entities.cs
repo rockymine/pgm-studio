@@ -183,6 +183,9 @@ public sealed class KitRow
     [Column("clear")] public bool? Clear { get; set; }
     [Column("effects_json")] public string? EffectsJson { get; set; }   // [{type,duration,amplifier}]
     [Column("max_health")] public double? MaxHealth { get; set; }        // NULL = the kit states none
+    /// <summary>What the kit states that the studio does not read (M0093): <c>{attributes: {name: value},
+    /// elements: [xml]}</c>, carried and written back as stated. NULL where it states nothing else.</summary>
+    [Column("carried_json")] public string? CarriedJson { get; set; }
 }
 
 // An item of a kit: the slot, and the stack in it. The stack is one JSON object rather than a column per

@@ -383,6 +383,11 @@ public sealed partial class MapParser
         return teams;
     }
 
+    /// <summary>The kit elements the studio reads into <see cref="Kit"/>'s own fields; every other one is
+    /// carried.</summary>
+    private static readonly HashSet<string> ReadKitElements =
+        ["item", "helmet", "chestplate", "leggings", "boots", "effect", "clear", "max-health"];
+
     private List<Kit> ParseKits() =>
         [.. _root.Elements("kits").SelectMany(block => block.Elements("kit"))
             .Select(kitElem => ParseKit(kitElem, Xml.Get(kitElem, "id", "")))
@@ -420,11 +425,21 @@ public sealed partial class MapParser
         var clear = kitElem.Element("clear") is not null;
         var maxHealth = kitElem.Element("max-health") is { } health
             && double.TryParse(Xml.Text(health).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var hp) ? hp : (double?)null;
-        if (!clear && items.Count == 0 && armor.Count == 0 && effects.Count == 0 && maxHealth is null) return null;
+
+        // Everything else a kit states is carried as written, so the map is written back as it plays.
+        var attributes = kitElem.Attributes()
+            .Where(attribute => attribute.Name.LocalName is not ("id" or "force"))
+            .ToDictionary(attribute => attribute.Name.LocalName, attribute => attribute.Value);
+        var elements = kitElem.Elements()
+            .Where(child => !ReadKitElements.Contains(child.Name.LocalName))
+            .Select(child => child.ToString(SaveOptions.DisableFormatting))
+            .ToList();
+        if (!clear && items.Count == 0 && armor.Count == 0 && effects.Count == 0 && maxHealth is null
+            && attributes.Count == 0 && elements.Count == 0) return null;
         return new Kit
         {
             Id = kitId, Force = Xml.BoolAttr(kitElem, "force"), Clear = clear, Items = items, Armor = armor,
-            Effects = effects, MaxHealth = maxHealth,
+            Effects = effects, MaxHealth = maxHealth, CarriedAttributes = attributes, CarriedElements = elements,
         };
     }
 

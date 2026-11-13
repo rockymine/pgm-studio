@@ -306,6 +306,7 @@ public static partial class XmlWriter
         var ke = new XElement("kit");
         if (!IsSynthetic(kit.Id)) Set(ke, "id", kit.Id);
         if (kit.Force) Set(ke, "force", "true");
+        foreach (var (name, value) in kit.CarriedAttributes) Set(ke, name, value);
         // PGM applies <clear> before every other sub-kit whatever its position (KitParser), but the
         // canonical shape puts it first, ahead of the items it makes room for.
         if (kit.Clear) ke.Add(new XElement("clear"));
@@ -320,6 +321,7 @@ public static partial class XmlWriter
         }
         foreach (var eff in kit.Effects) ke.Add(EffectElem(eff));
         if (kit.MaxHealth is { } health) ke.Add(new XElement("max-health", C(health)));
+        foreach (var carried in kit.CarriedElements) ke.Add(XElement.Parse(carried));
         return ke;
     }
 

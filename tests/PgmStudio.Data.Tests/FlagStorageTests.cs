@@ -15,7 +15,7 @@ namespace PgmStudio.Data.Tests;
 [NotInParallel]
 public sealed class FlagStorageTests
 {
-    private const string Xml = """
+    internal const string Xml = """
         <?xml version="1.0"?>
         <map proto="1.5.0">
           <name>CTF Map</name>

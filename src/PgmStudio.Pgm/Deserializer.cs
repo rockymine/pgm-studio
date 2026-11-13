@@ -269,6 +269,10 @@ public static class Deserializer
         Armor = ListOf(d, "armor").Select(a => DecodeKitArmor(AsDict(a))).ToList(),
         Effects = ListOf(d, "effects").Select(e => DecodeEffect(AsDict(e))).ToList(),
         MaxHealth = AsDoubleN(Val(d, "max_health")),
+        CarriedAttributes = Val(d, "carried_attributes") is Dict carried
+            ? carried.ToDictionary(pair => pair.Key, pair => pair.Value?.ToString() ?? "")
+            : [],
+        CarriedElements = ListOf(d, "carried_elements").Select(element => element?.ToString() ?? "").ToList(),
     };
 
     private static PotionEffect DecodeEffect(Dict d) => new()

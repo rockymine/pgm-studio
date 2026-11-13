@@ -64,6 +64,13 @@ the same rule, because the alternative is an entity spawned at the origin. Unlik
 one reads the document **after** variants and constants are resolved, because the corpus writes whole
 categories inside an `<if variant>`. `shops.md` is what it reads. No corpus map is refused by it.
 
+**A kit is never a reason to refuse a map, and it loses nothing it states.** The studio reads a kit's items,
+armour, effects, `clear`, `max-health` and `force` into its own fields; every other attribute (`parents`,
+`potion-particles`, `discard-potion-bottles` …) and every other element (`game-mode` in 325 corpus maps,
+`action` in 112, `double-jump` in 68, `health`, `knockback-reduction`, `walk-speed` …) is carried as written —
+the kit's `CarriedAttributes` and `CarriedElements`, the kit row's `carried_json` — and written back in the
+exported `map.xml`, so a map plays as the one read. A kit stating nothing but those is kept too.
+
 Swept over every `map.xml` in both corpora — 1,626 directories, which is more than the 350-slug set the
 round-trip harness runs because it counts the nested category folders too — **1,522 parse**. The 104 refused
 are 37 below the proto floor, 32 for an unread objective module (23 a score box that redeems items, 9

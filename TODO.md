@@ -25,11 +25,6 @@ nothing it makes is welcome, a change to what it makes is not — and its layout
   gestures as a shape's (`sketch-edit-controller.js`). The API's point edits and bends reach the same outlines:
   `editShapes` and `bendShapes` address a shape's `vertices` alone (`SketchGeometryEdit.Outline`), where
   `outlines` already writes a stroke's, fluid's or flora's `points` (`Refinement.Outlined`). `docs/tools/flow.md`.
-- [ ] **PG29 — A kit loses nothing it states.** `MapParser.ParseKits` reads items, armour, effects, `max-health`,
-  `force` and `clear`, and drops every other kit element in silence, so an exported map plays differently from the
-  one read: `game-mode` in 325 corpus maps, `action` in 112, `double-jump` in 68, `health` in 56,
-  `knockback-reduction` in 48, `walk-speed` in 40. Every element is read and written (`Kit`, `XmlWriter`,
-  `Serializer`, the `kit` row, with a migration); a map is never refused for one (author). `docs/pgm/supported-maps.md`.
 - [ ] **WE168 — A room's interior is placed relative to its house.** The chests (`WoolChests`, `RoomFrames.InteriorCorners`) and the monuments (`RoomFrames.MonumentSlots`) are
   stated on the room's `house` as positions relative to its first wing, movable in Layout, and a migration
   carries each derived position into the stored one. `docs/world-export/structures.md`.

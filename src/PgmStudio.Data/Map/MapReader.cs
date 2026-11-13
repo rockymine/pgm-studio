@@ -96,6 +96,8 @@ public sealed class MapReader(PgmDb db)
                 Force = kit.Force ?? false,
                 Clear = kit.Clear ?? false,
                 MaxHealth = kit.MaxHealth,
+                CarriedAttributes = Carried(kit.CarriedJson).Attributes,
+                CarriedElements = Carried(kit.CarriedJson).Elements,
                 Items = items.Select(i => new KitItem { Slot = i.Slot ?? 0, Item = ItemSpec(i.SpecJson) }).ToList(),
                 Armor = armor.Select(a => new KitArmor { SlotName = a.SlotName, Item = ItemSpec(a.SpecJson) }).ToList(),
                 Effects = ListOfDicts(kit.EffectsJson).Select(e => new PotionEffect { Type = Str(e, "type"), Duration = Str(e, "duration"), Amplifier = Int(e, "amplifier") }).ToList(),
@@ -285,6 +287,19 @@ public sealed class MapReader(PgmDb db)
     // document, which is what stops the two from spelling an item differently.
     private static ItemSpec ItemSpec(string json)
         => Deserializer.ItemFromDict(JsonTree.FromJson(json) is Dict d ? d : new Dict());
+
+    // What a kit carries without reading it: the attributes by name and the elements as written.
+    private static (Dictionary<string, string> Attributes, List<string> Elements) Carried(string? json)
+    {
+        if (json is null || JsonTree.FromJson(json) is not Dict d) return ([], []);
+        var attributes = d.GetValueOrDefault("attributes") is Dict named
+            ? named.ToDictionary(pair => pair.Key, pair => pair.Value as string ?? "")
+            : new Dictionary<string, string>();
+        var elements = d.GetValueOrDefault("elements") is List<object?> list
+            ? list.Select(element => element as string ?? "").ToList()
+            : [];
+        return (attributes, elements);
+    }
 
     private static List<Dict> ListOfDicts(string? json)
         => json is not null && JsonTree.FromJson(json) is List<object?> list ? list.OfType<Dict>().ToList() : [];
