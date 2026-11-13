@@ -17,15 +17,15 @@
 .problem-row { border: 1px solid transparent; border-radius: var(--radius-sm); }
 .problem-row[open] { background: var(--bg-base); border-color: var(--border); }
 .problem-row > summary {
-  list-style: none; display: grid; grid-template-columns: 12px 14px auto minmax(0, 1fr) auto; align-items: center; gap: 6px;
-  min-height: calc(28px * var(--ui-scale)); padding: 0 6px; border-radius: var(--radius-sm);
+  list-style: none; display: grid; grid-template-columns: 12px 14px auto minmax(0, 1fr) auto; align-items: start; gap: 6px;
+  min-height: calc(28px * var(--ui-scale)); padding: 5px 6px; border-radius: var(--radius-sm);
   cursor: pointer; font-size: var(--font-sm);
 }
 .problem-row > summary::-webkit-details-marker { display: none; }
 .problem-row > summary:hover { background: var(--bg-selected-hover); }
-.problem-row svg.problem-chev { width: 12px; height: 12px; color: var(--text-muted); transition: transform var(--transition-fast); }
+.problem-row svg.problem-chev { margin-top: 3px; width: 12px; height: 12px; color: var(--text-muted); transition: transform var(--transition-fast); }
 .problem-row[open] svg.problem-chev { transform: rotate(90deg); }
-.problem-sev { display: inline-flex; }
+.problem-sev { display: inline-flex; margin-top: 2px; }
 .problem-sev svg { width: 14px; height: 14px; }
 .problem-sev--problem { color: var(--color-error); }
 .problem-sev--left, .problem-sev--range { color: var(--color-warning); }
@@ -37,7 +37,8 @@
 }
 .problem-id svg { width: 10px; height: 10px; }
 .problem-id:hover { text-decoration: underline; }
-.problem-sum { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-bright); }
+/* A rule is read by its whole title: it wraps rather than being cut to the line it fits on. */
+.problem-sum { min-width: 0; line-height: 1.45; overflow-wrap: anywhere; color: var(--text-bright); }
 .problem-val { font-size: var(--font-sm); font-weight: 700; color: var(--color-warning); font-variant-numeric: tabular-nums; }
 
 .problem-body { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-1) var(--space-2) var(--space-3) 24px; }

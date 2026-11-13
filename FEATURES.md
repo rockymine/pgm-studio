@@ -3764,6 +3764,10 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   material a layout states — a shape's, a paint rule's, a water's bed — and refuses one that will not read `RQ1` at
   its path, and the Python kit writes a `None` handed to a field that takes no null as unstated.
   `docs/architecture.md`.
+- **The Problems list reads whole (`TS238`).** A row's title wraps in full rather than being cut with an ellipsis,
+  so a broken rule is read by its whole title. `docs/client/ui-conventions.md`.
+- **One inspector width in every tool and phase (`TS164`).** 420 px (`--inspector-width`), which the handle drags
+  between 260 and 680; no phase widens or narrows it. `docs/client/ui-conventions.md`.
 - **A region carries no draft step (`PG18`).** `draft_step` is gone from `POST /regions`, `/orbit` and the region
   tree, and `M0091` deletes every stored `region_drafts_json`. `docs/pgm/region-data-flow.md`.
 

@@ -31,7 +31,7 @@
             </span>
             <a class="problem-id" href="@($"/rules?rule={Uri.EscapeDataString(row.Rule)}")" target="_blank" rel="noopener"
                title="@($"Open rule {row.Rule}")" @onclick:stopPropagation>@row.Rule<i data-lucide="external-link"></i></a>
-            <span class="problem-sum" title="@title">@title</span>
+            <span class="problem-sum">@title</span>
             @if (row.Reading is not null)
             {
               <span class="problem-val">@row.Reading.Value</span>
@@ -55,10 +55,6 @@
               }
               else
               {
-                @if (title.Length > 34)
-                {
-                  <p class="problem-full">@title</p>
-                }
                 @if (rule?.Fix is { } fix)
                 {
                   <div class="problem-blk"><span class="problem-lbl">Fix</span><p>@RuleWords.Plain(fix)</p></div>

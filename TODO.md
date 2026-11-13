@@ -19,16 +19,6 @@ optimisation and the user experience. The generator's behaviour is frozen — a 
 nothing it makes is welcome, a change to what it makes is not — and its layout entries move to
 `docs/generator/ideas.md`.
 
-- [ ] **TS238 — The Problems list reads whole.** The sketch bar's Problems button opens a list whose rows fold
-  out and link to their rule, and a row's title is cut to one line with an ellipsis (`.problem-sum`,
-  `problem-list.css:40`), so a broken rule is read by its first words. A row wraps its title in full; and every
-  rule the sketch's checks raise (`SketchPlayCheck`, the board and seam checks the plan's rules moved into) is
-  listed there, since a rule that moved into the Sketch and no longer reaches the reader is the failure.
-  `docs/tools/sketch.md`.
-- [ ] **TS164 — Every Sketch phase's inspector is one width.** Decoration's and Palette's inspector is 420 px
-  (`.workspace-inspector--wide`, `editor.css`) against 280 px in every other phase, so the canvas jumps on entering
-  them. The author's ruling: 420 px is the inspector's default in every phase, one width rather than a rule that
-  widens it, since a reader can drag the panel narrower. `docs/tools/sketch.md`.
 - [ ] **TS130 — Every outline on the canvas edits the same way.** A line the canvas draws — a shape's polygon, a
   polyline, a modifier's path, a stroke, a fluid's or flora's outline — has points and edges, and wherever the
   element allows it a point drags, a point is inserted at an edge's midpoint and a point is deleted, by the same
