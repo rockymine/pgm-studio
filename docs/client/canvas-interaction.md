@@ -115,6 +115,7 @@ canvas layer can then reuse or test it.
 | `render/iso-webgl.js` | the depth-buffered 3-D preview, on raw WebGL, lazily imported: a mesh uploaded once, a camera fitted to the board then zoomed at the pointer and panned along the ground, and `navigate(target)`, the wheel, drag and double-click a host wires to whatever element receives its input |
 | `render/column-mesh.js` | the server's per-column runs → the triangles that preview draws; decides which faces are seen, and drops the runs of any sketch layer the viewer has hidden before deciding |
 | `bridge/live-feed.js` | the one debounced, sequence-guarded POST of a bridge's document to a route, answering only the latest request, and the one `refusalText` that reads the sentence out of a refusal envelope |
+| `bridge/sketch-undo.js` | what a step back in one sketch phase takes back: the layout cut into parts by the phase that owns each, the step between two readings, and the step back that restores its own phase's parts and another's only where nothing has changed it since |
 | `bridge/iso-preview.js` | the 3-D preview the sketch bridge drives: enter, the mesh kept against the document it came from, rebuild on demand, rotate, layer hiding, and the two reasons it cannot run |
 | `bridge/house-iso-bridge.js` | the library's 3-D building: an `IsoScene` on a wrap with no canvas under it (§6) |
 | `canvas/canvas-base.js` | the shared pan/zoom/drag machinery (§3) |
@@ -342,7 +343,7 @@ zoom until the preview is left. On the Blazor side one `IsoView` (state, in `Com
 `IsoToggle` (the 2D/3D switch with the note that says why it is disabled) serve the sketch tool's host.
 
 **The sketch bridge's verb table is where an edit is gated.** `MUTATORS` in `sketch-bridge.js` names every handle verb
-that changes the document, and one wrapper makes each an undo step and refuses it while the page is read-only. A
+that changes the document, and one wrapper makes each an undo step of the phase in view and refuses it while the page is read-only. A
 verb that only reads the document stays out of it, and so does `load`, which opens a document rather than editing
 one. A new verb that writes the document is added to the list, or it is neither undoable nor refused read-only.
 

@@ -33,6 +33,7 @@ test("binding a room shell or a biome announces the finish", async () => {
 
 test("a step taken back announces the finish it restored", async () => {
   const { handle, firedOf, fired } = await mountSketchBridge();
+  handle.setPhase("theme");
   const id = handle.defineTheme("rock");
   handle.setRoomStyle("wool", JSON.stringify({ shell: "tower" }));
   fired.length = 0;

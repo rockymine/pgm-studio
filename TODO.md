@@ -23,14 +23,6 @@ nothing it makes is welcome, a change to what it makes is not — and its layout
 uses or in what a build writes. They are worked before the fixes and the user experience that wait in
 `BACKLOG.md`.
 
-- [ ] **TS162 — Undo takes back only what the phase in view edited.** *The author's ruling:* an undo never
-  removes work done in another phase. The sketch keeps one stack of whole-document snapshots across every
-  phase (`history` in `sketch-bridge.js`), so the topbar Undo in Theme takes back the last shape drawn in Draw.
-  Tag each step with the phase that made it and restore only that phase's slice of the document — Draw the
-  shapes, Theme the registry and each shape's theme, Dressing `dressing`, Terraform `modifiers`, Info `setup` — so
-  Undo in a phase walks back that phase's own steps and is greyed where it has none; `Ctrl`+`Z` follows the
-  same rule. Identity takes no undo: it holds words and simple choices such as the symmetry (author).
-  `docs/tools/sketch.md`.
 - [ ] **TS237 — A hand-drawn board has a way into Configure.** The *Sketch ▾* menu enables Configure only once the
   map has a world (`MapLayers.Holds` → `HasSurface`, `Models/MapLayers.cs:17`), and the world is built only by
   Download (`BuildWorldIfMissingAsync`), so a first-time author reaches Review › Notes with *Next* greyed and no

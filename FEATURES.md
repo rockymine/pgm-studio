@@ -10911,8 +10911,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **A Follow relief scope reaches the document (TS159).** The bridge validates relief scopes and height modes
   against one JS word module (`shared/relief-words.js`), pinned to `ReliefScopes`/`HeightModes` by a JS test, so
   the inspector's *Follow* is stored rather than dropped back to *Inherit*.
-- **The symmetry setup follows an undo (TS161).** The bridge fires `OnSetup` on load, mode and centre changes and
-  every undo/redo restore, and the host reads the setup only from it, so Info shows the mode the board has.
+- **The symmetry setup is announced, not held twice (TS161).** The bridge fires `OnSetup` on load and on mode and
+  centre changes, and the host reads the setup only from it, so Info shows the mode the board has.
+- **Undo takes back only what the phase in view edited (TS162).** Draw, Terraform, Palette and Decoration each keep
+  their own stack; a step is the slices of the layout it changed (`bridge/sketch-undo.js`), and taking it back
+  restores its phase's slices and another phase's only where nothing has changed it since. Undo is greyed in a
+  phase with no step of its own, and Identity takes none.
 
 - **Each sketch phase owns its state (TS160).** A bridge-sourced phase relays one snapshot (Relief, Dressing, and
   Palette's `SketchThemes`, which now carries the room shells and biome and refreshes on every undo); a server

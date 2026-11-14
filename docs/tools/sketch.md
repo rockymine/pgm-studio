@@ -881,17 +881,31 @@ the ground and owns no objective, so they arrive from the map's intent as positi
 name, no handle, nothing to select. An author refining the ground can see what it has to carry; Configure is
 where one is edited.
 
-**Undo is one stack for the whole document, sixty steps deep.** `Ctrl`/`⌘`+`Z` steps back and
-`Ctrl`/`⌘`+`Shift`+`Z` (or `Ctrl`+`Y`) steps forward. A step is the whole layout — the value the canvas can be
-loaded back into — rather than a record of which edit happened, so a press that changes nothing costs no step
-and a drag that fires on every frame between the press and the release costs exactly one. A step is the
-document and not the view: the camera and the layer being drawn on are where the author is, so both survive
-it. The symmetry setup is part of the document, so a step back restores it too: the canvas announces
-`OnSetup(mirrorMode, cx, cz)` on every load, edit and step, and the Setup controls and Identity read nothing else.
+**Undo takes back only what the phase in view edited.** Each phase that edits the layout keeps its own stack of
+steps, sixty deep, and the editor bar's Undo and Redo — and `Ctrl`/`⌘`+`Z`, `Ctrl`/`⌘`+`Shift`+`Z` (or `Ctrl`+`Y`)
+— walk the open phase's stack and no other: a shape drawn in Draw is not taken back from Palette, where Undo is
+greyed until Palette has a step of its own. The host tells the bridge the phase on every switch (`setPhase`).
+
+**The layout is cut into slices, each owned by the phase that edits it** (`bridge/sketch-undo.js`). Draw owns the
+layers — every shape and group as drawn, the play pieces Layout places and the room ground they bring — and the
+intent a piece write changes. Palette owns the finish (the registry, where each theme came from, the map default,
+the room shells, the biome and the paint rules) and each shape's `theme`. Terraform owns the modifier stack and
+each shape's `relief_scope`, which its Shapes list sets. Decoration owns the dressing. Identity takes no undo: it
+holds words and simple choices, the symmetry among them, so a setup edit is no step and no step restores the
+setup. Review and History edit nothing in the layout and keep no stack.
+
+**A step is the slices it changed, as they stood before and after it.** A press that changes nothing costs no
+step, and a drag that fires on every frame between the press and the release costs exactly one. Taking a step
+back restores its own phase's slices, and another phase's slice only where that slice still holds what the step
+left: a shape deleted in Draw and taken back comes back with the theme it carried, while a relief scope set in
+the Draw inspector and changed since in Terraform keeps Terraform's word. A theme is put back on a shape only
+where the registry still holds it. A step is the document and not the view: the camera and the layer being drawn
+on are where the author is, so both survive it. The canvas announces `OnSetup(mirrorMode, cx, cz)` on every load
+and edit, and the Setup controls and Identity read nothing else.
 
 **A play piece is a step too, though it is not in the layout.** A piece is the intent's, written on the server
 through `…/intent/pieces`, so placing, moving, resizing, turning, deleting or setting one keeps the intent's text
-beside the layout as one step, and stepping over it writes that text back with `PUT /api/map/{slug}/intent` before
+beside the layers as one of Draw's steps, and stepping over it writes that text back with `PUT /api/map/{slug}/intent` before
 the layout is restored. The room ground a placement brings is part of the placement's step rather than one of its
 own. A step the studio refuses is not taken, and the note beside the rail says why. Whatever writes the intent takes
 a turn: a piece write waits for the one before it to be kept, so two pieces placed close together are two steps,
@@ -930,8 +944,8 @@ table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+
 | `[` / `]` | Take the previous / next theme in hand — answers only in Palette | Palette |
 | `Shift`+click | Paint every shape the group holds, with a theme in hand | Palette |
 | `Alt`+click | Lift a shape's theme into the hand, with a theme in hand | Palette |
-| `Ctrl`/`⌘`+`Z` | Undo | Everywhere |
-| `Ctrl`/`⌘`+`Shift`+`Z` (or `Ctrl`+`Y`) | Redo | Everywhere |
+| `Ctrl`/`⌘`+`Z` | Undo the open phase's last step | Everywhere |
+| `Ctrl`/`⌘`+`Shift`+`Z` (or `Ctrl`+`Y`) | Redo the open phase's step | Everywhere |
 | `Ctrl`/`⌘`+`S` | Save the sketch | Everywhere |
 
 ### Identity

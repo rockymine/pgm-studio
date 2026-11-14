@@ -374,6 +374,8 @@ public partial class SketchTool
     private async Task PushCanvasMode(string phase)
     {
         if (handle is null) return;
+        // Undo and Redo walk the steps of the phase in view and no other's.
+        await handle.InvokeVoidAsync("setPhase", phase);
         // Geometry is Draw's alone. Theme assigns paint to it and Terraform traces masks over it, so in both the
         // canvas picks and never edits a shape, or the gesture that selects one is also the gesture that
         // reshapes it. Dressing places props rather than shapes,
@@ -501,7 +503,7 @@ public partial class SketchTool
         StateHasChanged();
     }
 
-    /// <summary>What the undo stack can do now, so the tool can say so.</summary>
+    /// <summary>What the open phase's undo stack can do now, so the tool can say so.</summary>
     [JSInvokable]
     public void OnHistory(bool undo, bool redo)
     {
@@ -620,6 +622,8 @@ public partial class SketchTool
             WriteAddress();
         }
         else await TakeAddressAsync();
+        // Identity is entered without a phase switch, so the canvas is told the phase it opened on.
+        await handle.InvokeVoidAsync("setPhase", active);
     }
 
     /// <summary>Take up the stored layout (an empty <c>{}</c> for a fresh sketch, which the bridge draws as
