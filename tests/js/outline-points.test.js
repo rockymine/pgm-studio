@@ -12,7 +12,7 @@ import { ModifierController }
 import { newModifier } from "../../src/PgmStudio.Client/wwwroot/js/studio/relief/modifier-doc.js";
 import { DressingController }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/controllers/dressing-controller.js";
-import { DressingDoc } from "../../src/PgmStudio.Client/wwwroot/js/studio/dressing/dressing-doc.js";
+import { DressingDoc, isRoute } from "../../src/PgmStudio.Client/wwwroot/js/studio/dressing/dressing-doc.js";
 import { WallCornerController }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/controllers/wall-corner-controller.js";
 
@@ -102,4 +102,17 @@ test("an approach wall: a corner goes in at a leg's middle, a still press picks 
   tools.onHandleUp();
   assert.equal(tools.removeSelected(), false, "a wall keeps two corners");
   assert.equal(edited.length, 3);
+});
+
+test("a stroke and a channel are routes, and a ground cover, a pool and a basin are rings with an edge to close", () => {
+  assert.ok(isRoute("stroke") && isRoute({ kind: "fluid" }) && isRoute({ kind: "fluid", shape: "channel" }));
+  assert.ok(!isRoute({ kind: "fluid", shape: "pool" }) && !isRoute({ kind: "fluid", shape: "basin" }) && !isRoute("flora"));
+  const doc = new DressingDoc();
+  const tools = new DressingController(doc, null, null, {});
+  doc.add({ kind: "fluid", shape: "pool", points: [[0, 0], [10, 0], [10, 10]] });
+  const id = doc.props[0].id;
+  tools.select(id);
+  assert.ok(tools.insertPoint(2), "a pool has an edge from its last point back to its first");
+  tools.onHandleUp();
+  assert.deepEqual(doc.byId(id).points.at(-1), [5, 5]);
 });

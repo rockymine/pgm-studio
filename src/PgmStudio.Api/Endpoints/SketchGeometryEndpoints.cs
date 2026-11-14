@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using FastEndpoints;
 using PgmStudio.Api.Services;
 using PgmStudio.Domain;
@@ -397,15 +398,17 @@ public sealed class SketchVertexMoveEndpoint(MapRepository repo, MapArtifactStor
             }, needsBody: true);
 
         if (outcome.IsAnswered) return;
-        if (outcome.IsMissing) { await Refusals.NotFoundAsync(HttpContext, "shape", ct, id); return; }
+        if (outcome.IsMissing) { await Refusals.NotFoundAsync(HttpContext, "shape or prop", ct, id); return; }
         await Send.OkAsync(new OutlineDto(outcome.Id, index, vertices), ct);
     }
 
     internal static int Count(GeometryEdit edit, string shapeId) =>
-        edit.Layout is { } drawn
-            ? SketchLayout.Stated(drawn)?.Layers?.SelectMany(layer => layer.Shapes)
-                .FirstOrDefault(shape => shape.Id == shapeId)?.Vertices?.Length ?? 0
-            : 0;
+        edit.Layout is not { } drawn ? 0
+            : SketchLayout.Stated(drawn)?.Layers?.SelectMany(layer => layer.Shapes)
+                .FirstOrDefault(shape => shape.Id == shapeId)?.Vertices?.Length
+              ?? ((JsonNode.Parse(drawn)?["dressing"]?["props"] as JsonArray ?? []).OfType<JsonObject>()
+                  .FirstOrDefault(prop => prop["id"] is JsonValue id && id.TryGetValue<string>(out var named) && named == shapeId)?["points"] as JsonArray)?.Count
+              ?? 0;
 }
 
 /// <summary>POST /api/map/{slug}/sketch/shapes/{shapeId}/vertices — add one point to one outline, after the
@@ -441,7 +444,7 @@ public sealed class SketchVertexAddEndpoint(MapRepository repo, MapArtifactStore
             }, needsBody: true);
 
         if (outcome.IsAnswered) return;
-        if (outcome.IsMissing) { await Refusals.NotFoundAsync(HttpContext, "shape", ct, id); return; }
+        if (outcome.IsMissing) { await Refusals.NotFoundAsync(HttpContext, "shape or prop", ct, id); return; }
         await Send.OkAsync(new OutlineDto(outcome.Id, index, vertices), ct);
     }
 }
@@ -472,7 +475,7 @@ public sealed class SketchVertexDeleteEndpoint(MapRepository repo, MapArtifactSt
             }, needsBody: false);
 
         if (outcome.IsAnswered) return;
-        if (outcome.IsMissing) { await Refusals.NotFoundAsync(HttpContext, "shape", ct, id); return; }
+        if (outcome.IsMissing) { await Refusals.NotFoundAsync(HttpContext, "shape or prop", ct, id); return; }
         await Send.OkAsync(new OutlineDto(outcome.Id, index, vertices), ct);
     }
 }

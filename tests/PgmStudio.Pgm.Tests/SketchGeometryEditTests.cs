@@ -252,4 +252,75 @@ public sealed class SketchGeometryEditTests
 
         await Assert.That(Heights(removed.Layout!)).IsEquivalentTo(new double[] { 6, 6, 4, 16 });
     }
+
+    private const string Dressed = """
+        {"layers":[{"id":"ground","layout":{"shapes":[],"groups":[]}}],
+         "dressing":{"props":[
+           {"id":"road","kind":"stroke","points":[[0,0],[10,0]],"radius":3},
+           {"id":"meadow","kind":"flora","points":[[0,0],[10,0],[10,10]]},
+           {"id":"oak","kind":"tree","at":[4,4]},
+           {"id":"mere","kind":"fluid","shape":"pool","points":[[0,0],[10,0],[10,10]]}]}}
+        """;
+
+    private static double[][] PointsOf(string json, string id) =>
+        [.. Root(json)["dressing"]!["props"]!.AsArray().OfType<JsonObject>()
+            .First(prop => (string?)prop["id"] == id)["points"]!.AsArray()
+            .Select(point => new[] { (double)point![0]!, (double)point[1]! })];
+
+    [Test]
+    public async Task A_route_takes_a_point_at_its_middle_and_has_no_edge_after_its_last()
+    {
+        var added = SketchGeometryEdit.InsertVertex(Dressed, "road", after: 0, x: null, z: null, out var index);
+        var past = SketchGeometryEdit.InsertVertex(Dressed, "road", after: 1, x: null, z: null, out _);
+
+        await Assert.That(index).IsEqualTo(1);
+        await Assert.That(PointsOf(added.Layout!, "road")[1]).IsEquivalentTo(new double[] { 5, 0 });
+        await Assert.That(past.Refusal).IsNotNull();
+    }
+
+    [Test]
+    public async Task A_route_keeps_two_points_and_a_ground_cover_three()
+    {
+        var road = SketchGeometryEdit.RemoveVertex(Dressed, "road", index: 0);
+        var meadow = SketchGeometryEdit.RemoveVertex(Dressed, "meadow", index: 0);
+        var longer = SketchGeometryEdit.InsertVertex(Dressed, "meadow", after: 2, x: null, z: null, out _);
+        var trimmed = SketchGeometryEdit.RemoveVertex(longer.Layout, "meadow", index: 3);
+
+        await Assert.That(road.Refusal).IsNotNull();
+        await Assert.That(meadow.Refusal).IsNotNull();
+        await Assert.That(PointsOf(longer.Layout!, "meadow")[3]).IsEquivalentTo(new double[] { 5, 5 });
+        await Assert.That(PointsOf(trimmed.Layout!, "meadow").Length).IsEqualTo(3);
+    }
+
+    [Test]
+    public async Task A_fluid_pool_is_a_ring_with_an_edge_back_to_its_first_point()
+    {
+        var closed = SketchGeometryEdit.InsertVertex(Dressed, "mere", after: 2, x: null, z: null, out _);
+        var kept = SketchGeometryEdit.RemoveVertex(Dressed, "mere", index: 0);
+
+        await Assert.That(PointsOf(closed.Layout!, "mere")[3]).IsEquivalentTo(new double[] { 5, 5 });
+        await Assert.That(kept.Refusal).IsNotNull();
+    }
+
+    [Test]
+    public async Task A_moved_route_point_moves_alone_and_the_prop_keeps_its_other_fields()
+    {
+        var moved = SketchGeometryEdit.MoveVertex(Dressed, "road", index: 1, x: 12, z: 6);
+        var road = Root(moved.Layout!)["dressing"]!["props"]!.AsArray().OfType<JsonObject>().First();
+
+        await Assert.That(PointsOf(moved.Layout!, "road")[0]).IsEquivalentTo(new double[] { 0, 0 });
+        await Assert.That(PointsOf(moved.Layout!, "road")[1]).IsEquivalentTo(new double[] { 12, 6 });
+        await Assert.That((double?)road["radius"]).IsEqualTo(3);
+    }
+
+    [Test]
+    public async Task A_point_edit_refuses_a_prop_with_no_outline_and_misses_an_id_nothing_carries()
+    {
+        var tree = SketchGeometryEdit.MoveVertex(Dressed, "oak", index: 0, x: 1, z: 1);
+        var nothing = SketchGeometryEdit.MoveVertex(Dressed, "nowhere", index: 0, x: 1, z: 1);
+
+        await Assert.That(tree.Refusal).IsNotNull();
+        await Assert.That(nothing.Layout).IsNull();
+        await Assert.That(nothing.Refusal).IsNull();
+    }
 }

@@ -1162,7 +1162,9 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **Every outline on the canvas takes a point the same way (TS130).** A modifier's mask, a dressing route or area
   and an approach wall each offer a point at the middle of the edge under the pointer, pick a point on a press that
   does not move and take the picked one out on `Delete` while a ring keeps three and a run two, through the one
-  `geometry/outline-points.js`, as a shape's points already did.
+  `geometry/outline-points.js`, as a shape's points already did. The API's point edits — the vertex routes and
+  the refinement's `editShapes` — reach a stroke's, fluid's or flora's `points` by its id the same way, and a fluid
+  `pool` or `basin` is a ring on the canvas and on the server alike (`isRoute`, `SketchGeometryEdit.PointsAt`).
 
 - **A live feed, an iso preview and a refusal sentence are one module each (C92).** `bridge/live-feed.js` is the
   debounced, sequence-guarded POST both bridges' seven feeds use, `bridge/iso-preview.js` the 3-D preview both

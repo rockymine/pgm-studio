@@ -62,6 +62,15 @@ export const isMarker = (propOrKind) => {
   return kind === "tree" || kind === "boulder" || kind === "chest";
 };
 
+/** Whether a prop — or a kind — is a route, an open line that goes somewhere and keeps two points: a stroke, and a
+ *  fluid drawn as a channel. A ground cover and a fluid drawn as a `pool` or a `basin` are rings, closed and kept
+ *  to three, which is how the export lays them. */
+export const isRoute = (propOrKind) => {
+  const prop = typeof propOrKind === "string" ? { kind: propOrKind } : propOrKind;
+  if (prop?.kind === "stroke") return true;
+  return prop?.kind === "fluid" && prop.shape !== "pool" && prop.shape !== "basin";
+};
+
 /** Whether a prop rests on the storey `layer` names. A prop naming no layer rests on the top surface and a
  *  board with no active layer is flat, so either reads as on every storey. */
 export const onLayer = (prop, layer) => !layer || !prop?.layer || prop.layer === layer;

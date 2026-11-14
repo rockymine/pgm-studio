@@ -24,7 +24,7 @@
  */
 
 import { paintDressingPreview, paintMarkerGhost, paintPropHover } from "../render/dressing-render.js";
-import { buildingsOverlap, defaultProp, isMarker, isRect, propAnchor, propReach, rectFootprint, rectsJoinUp,
+import { buildingsOverlap, defaultProp, isMarker, isRect, isRoute, propAnchor, propReach, rectFootprint, rectsJoinUp,
          onLayer, translateProp, wingCorners, wingRects, withCorners } from "../dressing/dressing-doc.js";
 import { MIN_FOOTPRINT_SPAN, wallNear, wingOffWall } from "../shared/building.js";
 import { douglasPeucker, simplifyRing } from "../geometry/simplify.js";
@@ -140,7 +140,7 @@ export class DressingController {
    *  it went. */
   deleteSelectedPoint() {
     const prop = this.#selectedId ? this.#doc.byId(this.#selectedId) : null;
-    const kept = prop ? withoutPoint(prop.points, this.#selectedPoint, !isOpenLine(prop)) : null;
+    const kept = prop ? withoutPoint(prop.points, this.#selectedPoint, !isRoute(prop)) : null;
     if (!kept) return false;
     this.#selectedPoint = -1;
     this.#doc.update(prop.id, { points: kept });
@@ -154,7 +154,7 @@ export class DressingController {
    *  adds it is the drag that places it. Returns true if it went in. */
   insertPoint(edge) {
     const prop = this.#selectedId ? this.#doc.byId(this.#selectedId) : null;
-    const inserted = prop && Array.isArray(prop.points) ? withMidpoint(prop.points, edge, !isOpenLine(prop)) : null;
+    const inserted = prop && Array.isArray(prop.points) ? withMidpoint(prop.points, edge, !isRoute(prop)) : null;
     if (!inserted) return false;
     this.#doc.update(prop.id, { points: inserted.points });
     this.#selectedPoint = inserted.index;
@@ -332,7 +332,7 @@ export class DressingController {
   #offerPoint(prop, wx, wz, activeTool, viewport) {
     const near = prop && Array.isArray(prop.points) && !isMarker(prop) && !isRect(prop) && this.#editable()
       && (activeTool === "select" || !activeTool) && !this.#pointDrag
-      ? edgeNear(prop.points, !isOpenLine(prop), toScreen(wx, wz, viewport), viewport, EDGE_REACH)
+      ? edgeNear(prop.points, !isRoute(prop), toScreen(wx, wz, viewport), viewport, EDGE_REACH)
       : null;
     this.#edge = near ? near.edge : -1;
     if (!this.#handlesLayer) return;
@@ -536,7 +536,7 @@ export class DressingController {
     // splits at the two farthest points and walks both ways round, which is right for an outline and would
     // reorder a route. So the open-line props (a path, a fluid channel) keep their direction through the plain
     // open simplifier.
-    const openLine = isOpenLine(kind);
+    const openLine = isRoute(kind);
     const simplified = openLine
       ? douglasPeucker(points, TRACE_SIMPLIFY_TOLERANCE)
       : simplifyRing(points, TRACE_SIMPLIFY_TOLERANCE);
@@ -592,11 +592,4 @@ function areaReach(prop) {
   if (!points.length) return 0;
   const [ax, az] = propAnchor(prop);
   return Math.max(...points.map(([x, z]) => Math.hypot(x - ax, z - az))) + (prop.radius ?? 0);
-}
-
-/** Whether a route or area kind — or a prop of one — is an open line (a path, a fluid channel) rather than a closed
- *  area: an open line goes somewhere and keeps two points, an area encloses something and keeps three. */
-function isOpenLine(propOrKind) {
-  const kind = typeof propOrKind === "string" ? propOrKind : propOrKind?.kind;
-  return kind === "stroke" || kind === "fluid";
 }

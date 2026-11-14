@@ -206,6 +206,20 @@ public sealed class RefinementTests
     }
 
     [Test]
+    public async Task A_point_edit_reaches_a_prop_by_its_id_as_it_reaches_a_shape()
+    {
+        var refined = Apply("""
+            {"dressing":{"props":[{"kind":"stroke","id":"lane","points":[[0,0],[20,0]]}]},
+             "editShapes":{"lane":[{"after":0},{"index":2,"x":20,"z":8}]}}
+            """);
+
+        await Assert.That(refined.Findings.Count).IsEqualTo(0);
+        var points = JsonNode.Parse(refined.LayoutJson)!["dressing"]!["props"]![0]!["points"]!.AsArray()
+            .Select(point => $"{point![0]},{point[1]}").ToList();
+        await Assert.That(points).IsEquivalentTo(new[] { "0,0", "10,0", "20,8" });
+    }
+
+    [Test]
     public async Task An_outline_reaching_no_outline_of_its_own_or_nothing_at_all_is_a_complaint()
     {
         var refined = Apply("""
