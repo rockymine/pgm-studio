@@ -51,7 +51,7 @@ glyphs and the open phase's dots, with each name on hover; it opens unfolded, an
 browser. At the right the bar carries the save state, the *View only* tag and the Problems button, then one group of icon buttons
 — **Undo**, **Redo**, **Download** — a divider, and Back and Next, which is the only filled button and names where
 it goes: the step after this one, or the phase after the last step (*Next: Ground*, *Next: Terraform*); on
-Review's last step it is closed, and History draws neither Back nor Next. A visitor
+Review's last step it is the finish, *Build & open Configure*, and History draws neither Back nor Next. A visitor
 who may not change the map is drawn no Undo or Redo, and one who may not have the studio build it no Download.
 Below 960px Back, Undo, Redo and Next are a foot pinned to the window's bottom; below 600px the rail is
 not drawn and the foot's middle is a button naming the phase and step, which opens a sheet drawing the rail. The number of
@@ -59,7 +59,7 @@ groups on the board is not in the bar: the sidebar's *Shapes* list, each group w
 continuously — every change schedules a debounced write 800 ms later, and Ctrl+S flushes it at
 once. The save state reads *Saving…* while an edit waits for that write and *Saved* once every edit has landed;
 in Identity it is the identity's own save, and a refused save leaves it to the Problems button's *Save blocked*. The finished map leaves by **Download** (an icon-only button titled *Download map*, which pulses while it builds) on every phase: it flushes the layout, builds
-the world the first time (the finish below, `POST …/sketch/finish`, which rasterizes the layout and moves the
+the world the first time (the finish, `POST …/sketch/finish`, which rasterizes the layout and moves the
 map to `stage=configure`), and saves the export — the world ZIP with its `map.xml`. A board built from a plan
 carries the plan's game settings, so its export needs nothing from Configure. What stops the map, and what the
 build left out of it, sits behind **one button** in the bar — *Download blocked* or *Save blocked* with the number
@@ -2015,8 +2015,15 @@ without them answers the list with the reason, and the Notes step says so instea
 **Review is two steps, Cameras and then Notes, and it opens on Cameras.** Cameras is the canvas, where the views
 are placed, kept, removed and the map's picture is chosen; Notes is the gallery of what those cameras see, with
 the author's notes beside it. On Cameras, **Back** goes to Decoration and **Next** to Notes; on Notes, **Back** goes
-to Cameras and **Next** is closed, since Notes is the last step of the work, and the rail reaches either step directly. A link to a note — `?note={id}`
+to Cameras and **Next** is the finish, since Notes is the last step of the work, and the rail reaches either step directly. A link to a note — `?note={id}`
 on the route, or a thread opened from History — lands on Notes, on that thread.
+
+**The finish is how a drawn board reaches Configure.** Notes' **Next** reads *Build & open Configure*: it
+flushes the layout, builds the world where the map has none — the same `POST …/sketch/finish` Download runs the
+first time — and opens the map in Configure, which the stage switcher offers only once the map holds a world.
+Until then the switcher's Configure entry is disabled and titled with what makes it. The button reads
+*Building…* while the build runs, needs an account on the whitelist as Download does, and a refused build stays
+on Notes and opens the Problems list with the build's refusal.
 
 **Entering it saves the board's unsaved edits first**, because every picture is of the board as stored. A board that has
 changed builds a new world, and every picture is drawn again the first time it is asked for; a board that has

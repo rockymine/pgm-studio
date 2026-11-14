@@ -9270,6 +9270,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   its sentence and *Open Configure*. Draw's *Done* goes on to Terraform, Ctrl+S saves, and the Configuring
   list's "just finished" banner is gone with the redirect that fed it. Plan, Configure's Review and the sketch
   save an export through one `MapDownload`.
+- **A hand-drawn board has a way into Configure (`TS237`).** Review's last step is the finish, *Build & open
+  Configure*: it saves, builds the world where the map has none through the build Download makes
+  (`sketch/finish`), and opens Configure. The stage switcher's disabled Configure entry, and the Maps table's
+  empty cell, are titled with what makes it (`MapLayers.Missing`).
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
   several surfaces compiles to one shape per surface — a stepped island becomes stacked plateaus, each
   `{component}-{surface}` and each addressable — so a theme scoped per plateau paints one hillside as two or

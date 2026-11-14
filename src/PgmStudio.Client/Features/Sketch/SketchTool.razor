@@ -13,8 +13,8 @@
   <Bar>
     <EditorBar MapName="@(string.IsNullOrWhiteSpace(mapName) ? Slug.Replace('_', ' ') : mapName)" Slug="@Slug" Stage="@MapStage.Sketch"
                PhaseTitle="@move.Title" Steps="@move.Steps" CurrentStep="@move.Step" NoMove="@(!move.Moves)"
-               BackEnabled="true" NextLabel="@move.NextLabel" NextEnabled="@move.NextOpen"
-               OnBack="move.OnBack" OnNext="move.OnNext">
+               BackEnabled="true" NextLabel="@move.NextLabel" OnBack="move.OnBack" OnNext="move.OnNext"
+               NextBusy="@(move.Finishes && finishing)" NextBusyLabel="Building…" NextWrites="@move.Finishes" NextBuilds="@move.Finishes">
       <State>
         @if (SaveState is { } saveState) { <span role="status">@saveState</span> }
         @if (ProblemsShown)

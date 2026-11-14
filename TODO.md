@@ -23,12 +23,6 @@ nothing it makes is welcome, a change to what it makes is not — and its layout
 uses or in what a build writes. They are worked before the fixes and the user experience that wait in
 `BACKLOG.md`.
 
-- [ ] **TS237 — A hand-drawn board has a way into Configure.** The *Sketch ▾* menu enables Configure only once the
-  map has a world (`MapLayers.Holds` → `HasSurface`, `Models/MapLayers.cs:17`), and the world is built only by
-  Download (`BuildWorldIfMissingAsync`), so a first-time author reaches Review › Notes with *Next* greyed and no
-  word of either. Give Review's last step the finish — *Build & continue in Configure*, `POST …/sketch/finish`
-  then the route — and title the disabled menu entry with what makes it. Evidence: a fresh-eyes review run found
-  Configure only after downloading. `docs/tools/sketch.md`.
 - [ ] **WE152 — A room's door width, stated by its style.** `WX7` cuts a room's door from its wall (`RoomFrames.DoorWidth`: 4 on an even interior of six or more,
   3 on an odd one, 2 at four across) and a style's `doorway.width` reaches only the dressing's houses. Honouring
   it is `clamp(stated, 2, interior − 2)`, dropped by one where its parity differs from the wall's so the door
