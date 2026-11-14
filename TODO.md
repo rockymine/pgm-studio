@@ -13,10 +13,26 @@ blocks (`ST10`), a building footprint at most **20×20** (`ST9`), and the smalle
 it is **4×4** (`WX2`). A dressed prop's 192-cell ceiling (`HP3`) and a room building's 20×20 measure the same
 concept since `WE71`, and holding them apart is a deliberate not-yet.
 
+## The backlog's fixes, while new capabilities wait
+**The author has paused new capabilities** (November 2026): the backlog's fixes are worked first, then
+optimisation and the user experience. The generator's behaviour is frozen — a fix or a speed-up that changes
+nothing it makes is welcome, a change to what it makes is not — and its layout entries move to
+`docs/generator/ideas.md`.
+
+- [ ] **TS130 — Every outline on the canvas edits the same way.** A line the canvas draws — a shape's polygon, a
+  polyline, a modifier's path, a stroke, a fluid's or flora's outline — has points and edges, and wherever the
+  element allows it a point drags, a point is inserted at an edge's midpoint and a point is deleted, by the same
+  gestures as a shape's (`sketch-edit-controller.js`). The API's point edits and bends reach the same outlines:
+  `editShapes` and `bendShapes` address a shape's `vertices` alone (`SketchGeometryEdit.Outline`), where
+  `outlines` already writes a stroke's, fluid's or flora's `points` (`Refinement.Outlined`). `docs/tools/flow.md`.
+- [ ] **WE168 — A room's interior is placed relative to its house.** The chests (`WoolChests`, `RoomFrames.InteriorCorners`) and the monuments (`RoomFrames.MonumentSlots`) are
+  stated on the room's `house` as positions relative to its first wing, movable in Layout, and a migration
+  carries each derived position into the stored one. `docs/world-export/structures.md`.
+
 ## Bugs: what the studio does wrong now
 **The author put the user-facing bugs first** (the backlog audit, November 2026). Each entry is the product doing
-something wrong today, on a page a person uses or on the API an agent drives; the composer's own bugs stay
-deferred in the backlog with the rest of the generator, and `PG29` waits there on the author's ruling.
+something wrong today, on a page a person uses or on the API an agent drives; the composer's own bugs wait
+in `docs/generator/ideas.md` with the rest of the generator.
 
 - [ ] **PG31 — A spawn keeps every region it states.** `Spawn.Region` holds one region, so a spawn written
   with several `<region>` children keeps the first and loses the rest on read — 83 spawns in 34 corpus maps

@@ -150,6 +150,9 @@ public static class Serializer
             ["effects"] = k.Effects.Select(EncodeEffect).ToList<object?>(),
         };
         if (k.MaxHealth is { } health) r["max_health"] = health;
+        if (k.CarriedAttributes.Count > 0)
+            r["carried_attributes"] = k.CarriedAttributes.ToDictionary(pair => pair.Key, pair => (object?)pair.Value);
+        if (k.CarriedElements.Count > 0) r["carried_elements"] = k.CarriedElements.ToList<object?>();
         return r;
     }
 

@@ -116,6 +116,13 @@ public sealed class Kit
     /// <summary><c>&lt;max-health&gt;</c>: the health, in half-hearts, a player is given the kit at; null where it
     /// states none. PGM sets it back to 20 when a player respawns.</summary>
     public double? MaxHealth;
+    /// <summary>The kit's attributes the studio does not read — <c>parents</c>, <c>potion-particles</c>,
+    /// <c>discard-potion-bottles</c> and the rest PGM takes — carried by name and written back as stated.</summary>
+    public Dictionary<string, string> CarriedAttributes = [];
+    /// <summary>The kit's elements the studio does not read — <c>game-mode</c>, <c>action</c>, <c>double-jump</c>,
+    /// <c>walk-speed</c> and the rest — each its element as written, carried and written back unchanged, so a map
+    /// plays as the one read.</summary>
+    public List<string> CarriedElements = [];
 }
 
 public sealed class Spawn

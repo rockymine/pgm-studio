@@ -142,8 +142,8 @@ try {
   const aim = await worldAimer(page, board);
   const ground = (await api(`/map/${seed.sketchSlug}/sketch`)).layers.flatMap(layer => layer.layout?.shapes ?? [])
     .filter(shape => !shape.role);
-  const spots = aim ? deepestPoints(ground, 5, 12).map(point => aim(point.x, point.z)) : [];
-  checks.add("the ground offers five places for a tree and a rock", spots.length === 5
+  const spots = aim ? deepestPoints(ground, 6, 12).map(point => aim(point.x, point.z)) : [];
+  checks.add("the ground offers six places for the trees, a rock and a chest", spots.length === 6
     && spots.every(spot => spot.x > box.x && spot.x < box.x + box.width && spot.y > box.y && spot.y < box.y + box.height),
     `${spots.length} found`);
   const placeAt = spot => page.mouse.click(spot.x, spot.y);
@@ -271,10 +271,10 @@ try {
     await page.locator("text=Depth").count() > 0 && await page.locator("text=Form").count() > 0);
   await shot("dressing-fluid.png");
 
-  // Drop a chest with a click and give it a stack: the inspector lists what it holds, and the stack is what
+  // Drop a chest with a click on ground of its own and give it a stack: the inspector lists what it holds, and the stack is what
   // the stored board carries.
   await page.click('button[aria-label^="Chest"]');
-  await page.mouse.click(box.x + box.width * 0.6, box.y + box.height * 0.5);
+  await placeAt(spots[5]);
   await page.waitForTimeout(1500);
   await page.locator("button", { hasText: "Add a stack" }).click();
   await page.waitForTimeout(2500);

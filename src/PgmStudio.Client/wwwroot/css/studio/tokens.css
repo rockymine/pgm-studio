@@ -249,7 +249,7 @@
 
   /* ── Sidebar widths ─────────────────────────────────────────────────── */
   --sidebar-width:   calc(280px * var(--ui-scale));   /* left panels — list / form content */
-  --inspector-width: calc(280px * var(--ui-scale));   /* right panels — detail / property view */
+  --inspector-width: calc(420px * var(--ui-scale));   /* right panels — one width in every tool and phase */
 
   /* ── Icon sizes ──────────────────────────────────────────────────────── */
   /* A lucide glyph's box. The app named eight sizes (11 · 13 · 14 · 15 · 16 · 20 · 22 · 24px) across twenty

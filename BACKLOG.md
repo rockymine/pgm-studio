@@ -17,57 +17,37 @@ a task at a time.
 
 Task ids are a prefix + number, **globally unique and stable** across all three files; never renumber or
 reuse. The prefix names the document the task must leave correct, catalogued in `CLAUDE.md`, and says nothing
-about which section the entry sits in — the retired prefixes still on entries here (`B`, `S`, `N`, `C`, `CV`,
-`P`, `A`) keep theirs untouched.
+about which section the entry sits in — the retired prefixes still on entries here (`B`, `S`) keep theirs
+untouched.
 
 ## Parked from the programme
 
-- [ ] **TC23 — A world uploaded with its `map.xml`.** *Parked (author): skipped for the time being.* `POST /map/upload` takes a zip of a world's `region/` and
+- [ ] **TC23 — A world uploaded with its `map.xml`.** *Parked (author): a studio map starts from an unconfigured world, so a world arriving with its `map.xml` waits.* `POST /map/upload` takes a zip of a world's `region/` and
   its `map.xml` from any member, refused over a size cap, scanned as `import-url` scans; the stamps run over it
   on export. The `map.xml` is read into an intent, on the author's call: teams, spawns, wools, monuments, cores,
   control points and build regions become intent pieces, configured in Configure as a world read from a scan is
   (D13), and what the studio cannot state is refused by name (`docs/tools/configure.md`, `docs/tools/flow.md`).
 
-- [ ] **TS212 — Dragging a solid out in the dock.** *Parked (author): not yet.* The dock draws a rectangle, polygon, polyline or lasso, and a
+- [ ] **TS212 — Dragging a solid out in the dock.** *Parked (author): new capabilities wait while the backlog's fixes are worked.* The dock draws a rectangle, polygon, polyline or lasso, and a
   solid is made by reading a drawn footprint with the inspector's Form row. Add dock tools that drag out a box,
   wedge, cylinder, sphere or torus with the form already chosen (`SketchTool.razor`, `asSolid` in
   `geometry/shape.js`, `addShape` in `sketch-bridge.js`), and inspector rows for an arch's rock `thick`, its easing
   powers and its `camber`, stated over the API today (`docs/tools/sketch.md`, *Solids*).
 
-- [ ] **TS191 — `sight`: who can see whom on the sketch's ground.** *Parked (author): agent-facing; a target is likely an objective.* A line between an eye 1.62 blocks over the
-  feet and a target's chest 0.9 over its feet is clear when every block it passes, sampled each quarter block,
-  is above the ground the sketch builds and outside its houses; answered as each target's share of eyes that
-  see it, and the targets none sees, over HTTP with a `?format=text` twin (pgmvox `read/sight.py`). **Open, the
-  author's:** what the eyes and targets are — fixed points (spawns, goals, places) or every cell a team stands
-  on. `docs/tools/sketch.md`.
+- [ ] **TS191 — `sight`: who can see whom on the sketch's ground.** *Parked (author): what must be seen depends on
+  the map rather than on a rule — a player leaving spawn turns round to find the wool or the core, so it is rarely
+  in view from the spawn itself, and anything a player can reach is in practice visible; a core or a monument
+  built in, which nobody can reach, is the case that matters.* A line between an eye 1.62 blocks over the feet and
+  a target's chest 0.9 over its feet is clear when every block it passes, sampled each quarter block, is above the
+  ground the sketch builds and outside its houses (pgmvox `read/sight.py`). `docs/tools/sketch.md`.
 
-- [ ] **TS201 — The canvas keeps its width across Draw's steps.** *Parked (author): no layout decided yet.* The
+- [ ] **TS201 — The canvas keeps its width across Draw's steps.** *Parked (author): kept apart from TS202 and not touched for now.* The
   Places step's inspector is wider than Ground's and Layout's, so stepping into it narrows the canvas and moves
   the board under the pointer. `docs/tools/sketch.md`.
 
-- [ ] **TS202 — Ground and Layout as one step.** *Parked (author): needs a redesigned dock first.* The two were
+- [ ] **TS202 — Ground and Layout as one step.** *Parked (author): kept apart from TS201 and not touched for now.* The two were
   split so the dock would not hold every tool at once; one step means the dock carries the shape tools and the
   piece families together. `docs/tools/sketch.md`.
-
-- [ ] **WE168 — A room's interior is placed relative to its house.** *Parked (author): later; derived for now.*
-  The chests (`WoolChests`, `RoomFrames.InteriorCorners`) and the monuments (`RoomFrames.MonumentSlots`) are
-  stated on the room's `house` as positions relative to its first wing, movable in Layout, and a migration
-  carries each derived position into the stored one. `docs/world-export/structures.md`.
-
-- [ ] **TS172 — The look is stated before the review.** *Parked (author): too much for now; the programme goes on
-  without it.* A palette, a house style per area, tree and rock zones and
-  the biome as sketch data, drawn on the review sheet and applied by the build, so the author judges what a board
-  is made of before it is built (D12, phase 5). `docs/tools/sketch.md`.
-
-  *Evidence: four of the seven points of Abbeymoor's first review were paint, materials or dressing, and no picture
-  before its build showed any of them (`experiment/REVIEW-1.md`).*
-
-- [ ] **TS130 — Point edits and bends reach every outline.** *Parked (author): tangled with how land is made,
-  which the pgmvox port's Phase 2 redesigns; picked up when that work needs it.* `editShapes` and
-  `bendShapes` address a shape's `vertices` alone (`SketchGeometryEdit.Outline`), where `outlines` already
-  writes a stroke's, fluid's or flora's `points`
-  (`Refinement.Outlined`). Both reach those, each refused where an edit folds the ring.
-  `docs/tools/flow.md`.
 
 - [ ] **TS126 — A note's checkable claim, kept as a check.** *Parked (author): not yet.* Some notes state
   what a board must keep being — a path reaches the bridge (note 58), a bedrock wall has void on both sides
@@ -107,22 +87,12 @@ them one rather than with the contract work that shipped them.
   `BuildModes`) and `Materials` are stated on the intent and nowhere in the wizard: a select beside Build
   height showing the default `BuildIntent.ModeFor` takes, and a material list where the mode is `only`.
   `docs/tools/configure.md` §*Build*.
-- [ ] **PG29 — A kit loses nothing it states, or the map is refused.** `MapParser.ParseKits` reads items,
-  armour, effects, `max-health`, `force` and `clear`, and drops every other kit element in silence, so an exported map plays
-  differently from the one read: `game-mode` in 325 corpus maps, `action` in 112, `double-jump` in 68, `health`
-  in 56, `knockback-reduction` in 48, `walk-speed` in 40. Each is read and written
-  (`Kit`, `XmlWriter`, `Serializer`, the `kit` row), or its presence refuses the map the way an unread objective
-  module does. `docs/pgm/supported-maps.md`.
 - [ ] **PG24 — Jump pads.** `MapIntent.JumpPads`: a box, a velocity turned with the symmetry, a pad block and
   `safe`. `JumpPadGenerator` writes `<apply region velocity>`, which already round-trips
   (`XmlWriter.cs:879`); a safe pad adds pgmvox's fall variable and fall-damage deny (`play/rules.py:477`). The
   launch is checked against its landing with pgmvox's `solve_launch` (`core/move.py`), ported beside
   `PgmStudio.Geom.Jump`. 215 corpus maps write `velocity=`. `docs/pgm/new-map-authoring.md`.
-- [ ] **G292 — A plan states a zone of rules.** `PlanZone` states build regions and water lanes; a third kind,
-  with `ZoneIntent`'s rules (`enter`, `place`, `break`, `harm`, `kit`), compiles into `MapIntent.Zones`
-  (`PlanCompiler.cs:413`). Blocked on the layout law: BZ5 forbids every zone touching a spawn piece and the BZ
-  rules read every zone a plan states (`PlanValidator.cs:686`), so a rule zone needs its own place in
-  `docs/generator/rules.md`, amended by its correction protocol. `docs/pgm/zones.md` §3.
+
 ## The sketch tool: shapes, islands, and the ground they become
 
 The depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection highlight);
@@ -288,166 +258,6 @@ what is gathered here is the parked and dormant slices of the same surface.
   `ctw/mame_i_shrunk_the_pvpers` states each of its two gold-nugget generators four times — `8s` plain, then
   `5s` behind `after-30m`, `after-60m` and `after-90m`.
 
-## The composer states distances in cells, and a grid scale moves them
-
-- [ ] **G273 — A fine row should key to the hub's legs where the front has none.** `MidCarver.Keyed` lines
-  its stones up with the faces of the unit's **front row**, which is the right feature when there is more
-  than one — but a front presents a single face on about two boards in three, so the keyed row lands on one
-  or two boards in twenty-four and the rest centre. The hub always has a body, and the holed forms (ring, G,
-  P, twin, double-hole) all carry legs either side of a bay: those are the same kind of feature and they are
-  there on every board. Read them out of the hub box's pieces the way `TryCarve` reads the front's, and key
-  to them when the front offers nothing. `docs/generator/model.md` §5.13 and `rules.md` amendment 38.
-
-  *Evidence: `p24 rot_180 seed 3` (`opus5-stennerwath`) — `frontline-t1` is one 64-block bar, so nothing to
-  key to, while `hub-t2 x[-32,0)` and `hub-t3 x[16,36)` are two legs 16 blocks apart. Its stones sit centred
-  at `x[-12,16)`, in the hub's own bay rather than in front of either leg.*
-
-- [ ] **G272 — Bound the run a player walks around a hub's hole at 40 blocks.** A hole's job is rotation
-  (`CT8`): a loop round it gives an alternative route between lanes. Past a certain length it stops being a
-  loop and becomes a wall — two players on opposite sides never meet and neither can change direction. The
-  author's bar is **40 blocks on the hole's longest side**. `HubBoxCells` sizes the hub from its budget share
-  alone and the holed bodies build every wall one corridor thick, so the hole takes the whole difference as
-  the box grows. Either the ring's walls thicken with the box or the body splits the void — a `double-hole`
-  where one ring's hole would run long. Lands in `TeamUnitAllocator.ChooseHubForm`/`ChooseHubWalls`;
-  `docs/generator/model.md` and `rules.md` (`CT8` is the rule that states the envelope and measures nothing).
-
-  *Evidence: 12 seeds a band, cell 4 — the hole run's median is 16 · 16 · 18 · 24 blocks up the ladder and
-  **14 of 38 centi boards exceed 40**, none below it. The corpus of 359 CTW maps puts the run's median at 20
-  and its p90 at 43 (836 voids), so the bar is the corpus p90. `opus5-threapland` is the worked case: one
-  76×36 hole at cell (-10,-19), where a double-hole hub would have given two.*
-
-- [~] **G264 — A composed wool room can stand 12 blocks across void from a piece fronting the crossing.** The
-  inside corner of a bent wool is its lane's width, 12 blocks at nano, which `WL20` allows against the team's
-  own ground and `WL12` refuses against the front (16). The room's setback along its lane takes a block basis of its own
-  where the ground across the corner fronts the band, in `WoolBoxEmitter` rather than in the seat clearance.
-  `docs/generator/rules.md` and `model.md`.
-
-  *Evidence: 4 of 400 composed boards (200 seeds each at 8 and 20 players), e.g. `p20 rot_180 seed 53`,
-  `frontline-t1` ↔ `wool-b-room`, 12 blocks.*
-
-## Composed boards the author judged: what a larger board is made of
-
-Twelve judged donut boards at 20 and 30 players named what a larger composed board gets wrong. `MD7` now scores the thin, long crossing; the rest is below, to be taken
-**one change at a time** and judged between, because changing several at once made the boards worse.
-
-- [ ] **G278 — Parked: a wider front paid for out of the hub.** *Parked (author): not now. When resumed,
-  the question is which single change is tried first.* A combined round — the face drawn from a fixed range per band (24–36 · 32–48 · 40–56 · 48–64
-  blocks), the hub capped at 44 · 52 · 68 · 76 blocks, two wools from micro up, a two-legged front only where
-  each leg reaches `FR9`, 16-block stones — widened the crossing but made the hubs uniform (every milli hub a
-  68-block ring; the double-hole, G and P gone) and the wool placement worse, and was rolled back. The ranges
-  are the author's and stand for when this is resumed.
-
-- [ ] **G279 — A donut hangs toward the back, and its spawn steps inward to clear it.** `SeatOverhang` draws
-  either flip; prefer the one whose ring runs toward the hub's back, and let `UnitSeating.SpawnCentre`'s
-  back-end seat slide inward past the ring. Also seat the donut nearer the spawn where its route to the wool
-  stays long. `docs/generator/model.md` §5.6.
-
-  *Evidence: judged boards p20 seed 71 (the ring runs toward the middle) and p20 seed 25 (the donut sits far
-  from the spawn with a long way to its wool).*
-
-- [ ] **G280 — A donut may dock turned 90°, its entry and a third of its long bar against the hub's side
-  wall.** A new dock for `CompoundForm.Donut` in `UnitSeating.SeatOverhang`/`WoolBoxEmitter`, beside the
-  entry-stub dock. `docs/generator/model.md` §4.6.
-
-  *Evidence: judged board p30 seed 32, where the author proposed it.*
-
-- [ ] **G281 — An approach may raise its arm: an `I` or `L` seated at the hub's far edge, facing the way the
-  spawn faces.** Today every approach leaves the hub sideways. Seat it at the end of a lateral edge nearest
-  the back, turned so its run heads toward the back, as a variety draw in `UnitRequests.WoolRequest` and
-  `UnitSeating`. `docs/generator/model.md` §5.5–5.6.
-
-- [ ] **G282 — On an L-shaped hub with the spawn at the back, the short arm takes a long `I` turned so its
-  wool stands ahead of the spawn, with a build zone across the bay.** *Parked (author): not now.* The zone gives attackers a second,
-  shorter way in and moves the wool further from the spawn. Build it first as an adapted plan through the
-  studio's API and play it back with the author, before any composer change. `docs/tools/plan.md`.
-
-  *Evidence: judged board p20 seed 80, where both wools cannot sit well on an L hub.*
-
-- [ ] **G283 — A wool stands too near its own spawn or too near the front on a two-wool board.** The
-  non-donut wool sits close to its spawn on p20 seed 24, and the second wool close to the frontline on p20
-  seed 50, where the author would shift both wool boxes back. `spawn-wool-ratio` and `wool-front-ratio`
-  already score it; the fix is in where `UnitSeating` seats the second wool. `docs/generator/model.md` §5.6.
-
-## The plan model: pieces, and the edges between them
-
-- [ ] **G270 — A mid stone may grow to the build zone's border, and one spanning the band splits it in two.**
-  *Parked (author): no composer change yet.* A zone never grows to overhang the ground it docks (`BZ9`
-  stands). A stone is read by how many of its edges border the zone: **four** — inside it; **three** —
-  against one side, not spanning it; **two adjacent** — in a corner; all three allowed. **Two opposite** —
-  across the whole band: allowed, and the band is then emitted as two zones, one per side, neither holding the
-  stone (PGM accepts one zone either way; two is what mapmakers write). A stone with **one** edge on the zone
-  would stand outside the band; the composer never lays one, and nothing is checked for it, since only the
-  composer knows a stone (`MidCarver.IsStone`) and a frontline docks on one edge. Several stones with zone
-  between them keep one zone. So
-  `StoneInsetCells` stops holding a stone a cell off the band's ends, and `MD4` and `CT1`'s one band zone are
-  restated: `rules.md` (a new amendment), `model.md` §5.13, `MidCarver.Stones`.
-
-  *Evidence: `rot_180`, seeds 0–59, normal crossings spend a median of 85 · 72 · 81 · 88% of their share
-  from nano to centi; `p16 rot_180 seed 0`, band 8×12 cells, one 6×6 stone held a cell off each end, 72%.
-  Spanning the band it is 8×6, 48 of 50 cells, and the band becomes two 8×3 zones.*
-
-- [ ] **G268 — A frontline spine docked flush on a hub wall makes one slab twice the corridor deep.**
-  The frontline's spine is one corridor deep and the hub's wall behind it is another, and the spine docks
-  edge to edge across its whole width, so the two read as a single solid run of `2 × corridor`. Measured
-  over 48 composed boards a band (`docs/world-scan/map-size-ladder.md`): the fault appears on **22–32 of
-  them at every band**, and its widest run grows with the corridor — 48×24 blocks at nano, 52×32 at micro,
-  100×32 at milli and 116×32 at centi — against a corpus whose own modal ground width is
-  10 · 14 · 16 · 16. The grid does not reach it: a board's modal width is 30 at micro on cell 5 and 29
-  on cell 4. `TeamUnitFiller` already prefers a strand frontline over the solid bar on a holed hub; what is
-  missing is the same preference read off the **edge the spine actually docks** rather than off the hub's
-  form. `docs/generator/model.md` §5 and `rules.md` `FR6`.
-
-  *Evidence: `p16 mirror_z seed 1` — `frontline-t1 z[5,9)` docked on `hub-t2 z[9,13)` across `x[-6,7)`:
-  52 × 32 blocks of unbroken ground.*
-
-`PieceInterfaces` turned every seam between two plan pieces into a read — its height delta, its typed wall,
-each side's frontline share, the straits between bridged islands — and the lint table quantifies over it
-(`SP8`/`SP9`/`ST8`/`ST9`/`BZ11`/`FR8`/`CT12`). What is left is one number nobody has stated, one read the
-seams support and nothing asks for, the word the model uses for a seam — and the rules that are about a
-piece's own geometry rather than about what is stamped on it: what a spawn's ray faces, what a wall seals,
-and what a `subtract` takes away.
-
-## Measuring a board the way a player plays it
-The author ruled on how each distance a rule checks is read (*Rule text audit*, *Declarations and geometry*
-tab, 2026-10-04). Each ruling moves which findings fire, so each lands with its `--goldens` re-recorded and
-the skerry layout as the board that shows the over-warning is gone.
-
-- [ ] **G285 — A crossing is a straight bridge from the nearest land.** A player walks the land the shortest
-  way and bridges straight across the void; nobody routes around inside it. `G5` (rectangle gap, `ContactGraph.cs:312`),
-  `CT12` (4-connected void path, `PieceInterfaces.cs:157`) and `WL12`, `WL20` and `LN6` (straight runs) read the same void three
-  ways and over-warn: on the skerry layout a small front piece makes the check ask a diagonal route through
-  the void to a wool room. One measure: walk the land, then the straightest bridge from land edge to land
-  edge. `docs/generator/`.
-- [ ] **G286 — A step a player cannot walk is 3 blocks.** `EL1`, `SP8`, `WL11` and `WX11` fire at 2. A 2-block step is fine where a block can be placed; 3 or more is the fault, on plan seams and above all
-  out of a spawn. Lower is always better, so a soft term prefers it. Read the thresholds from
-  `Walk.FreeRise`/`Walk.ScrambleStep` rather than literals. `docs/generator/`.
-- [ ] **G301 — `CT12` measures a strait no build region spans.** `PieceInterfaces.IslandGaps`
-  (`PieceInterfaces.cs:104`) pairs two landmasses only where one build region touches both, so two team sides
-  whose build regions each stop short of the gap are no pair and the strait goes unmeasured — a 2-block gap
-  on a rot_180 board raised no `CT12` (`PL9` refused it). Pair the two team sides of a two-team wool board
-  whatever the build regions do, and keep the region test for `direct` alone. Lands with `G285`'s one measure if
-  that comes first. `docs/generator/rules.md`.
-- [ ] **G287 — A corridor is its size band's width.** `G2` is three numbers today: the size band's text, 10
-  blocks in the plan check (`ContactGraph.CorridorMin`) and 2 cells in producibility. It is the composer's band
-  width, a multiple of 4: 8, 12, 16, 20, for generated wool layouts. What `G2` asks of a build region is open
-  too: `LintG2` measures every entry in `zones` on its shorter side, while a region is cut against the front
-  lines it lies between, so widening one moves it off them, and a mid region too thin says the front lines
-  are too short (author). `MD7` already holds the mid region's width along the front lines per band, so
-  settle which question `G2` asks of a region before it carries an edit. Read it beside `EZ2`
-  (`Analysis/Playability/BuildZoneGap.cs`), which asks the same relation of the built ground: a coast pulled
-  back from its build region leaving void under 10 blocks where the plan put ground. `docs/generator/`.
-- [ ] **G288 — A front line's width is its front edge.** `FR6` counts cells and `FR9` blocks, off different
-  structures. The width is the edge that faces the enemy into the build zone, not every edge touching it: a
-  2 by 20 piece poking into the zone is not a 42-block front. `docs/generator/`.
-- [ ] **G289 — One measure per question, in `PgmStudio.Geom`.** Rectangle overlap, touch and clearance are
-  written six or seven times. One rectangle relation (apart, corner, edge, overlap, with the gap), one
-  "nearer than N" over a set of cells with the edge stated (a thing exactly at the limit stands), replacing
-  `GroundClaims.NearerThan`, `NearRoute` and `DressingScope`'s rect lambdas. Same numbers first, then
-  G285–G288 on top. `docs/generator/`.
-- [ ] **G291 — Settle the raised rules whose check is not their argument.** *Parked on the author.*
-  `docs/generator/audit.md` §8 lists thirteen rules where `rules.md` argues one thing and the check does
-  another; for each, the author says which is right, and the losing half changes in the same commit.
-  `docs/generator/`.
 ## A first-time reader: the words, the sizes, and the help a tool owes them
 A reviewer new to mapmaking read the studio cold and reported what stopped them. The copy pass and the
 text-size setting have shipped; what remains is what a sentence cannot fix — a term with nowhere to be looked
@@ -462,12 +272,6 @@ is the standard the copy is held to.
 - [ ] **TS151 — The notes overview and the change history, laid out for the work.** The World counts sit on one
   row. Left: tabs (This view · Whole map · All) and a status select in place of the notes column's four filter
   chips, and History's Restore pinned in the inspector's footer above its edit lines. `docs/tools/sketch.md`.
-- [ ] **TS164 — Decoration's inspector widens only for its picker.** *Parked (author): judging from the
-  screenshots in the layout mockups' section 6.* `.workspace-inspector--wide` holds the
-  Decoration inspector at 420px (`editor.css:295`) against 280px everywhere else, so the canvas jumps 140px on
-  entering the phase while the wide column shows an empty state. Widen it only while a block or pattern picker
-  is open. `docs/tools/sketch.md`.
-
 ## The studio's own icons: one glyph for one thing
 `docs/client/icon-map.md` is the map: 511 icon assignments, where one picture stands for several things and one
 thing is drawn several ways, and the order the move to the studio's own glyphs takes.
@@ -528,11 +332,6 @@ the client source.
   fill on the polygon tool's in-progress preview, the symmetry images drawn at 40% during any draw, and the
   polygon's close target a 14 px ring that grows on hover. `docs/client/canvas-interaction.md`.
 
-- [ ] **TG5 — Player bands are counted and combined.** The Generator's band chips (`SizeBands`) carry no counts
-  and only one can be on, because `GET /api/compose` serves one band per request and its feed returns no
-  per-band totals. Accept several bands and answer a count per band, then give the chips counts and multi-select
-  like the shape facets. `docs/tools/generator.md`.
-
 - [ ] **TL43 — Textured cards of one kind share a scale.** `StructureCard.Once` frames each tree, boulder and
   house part to its own bounding sphere, so a shrub and an oak fill their cards equally. Bound a library kind's
   set once and draw every card of it at that scale. `docs/tools/library.md`.
@@ -572,6 +371,9 @@ the client source.
 
 ## Refactoring and cleanup
 
+The layout generator is frozen (author): a change to its code stays here only where every composed board comes
+out byte-identical, and the rest of its work waits in `docs/generator/ideas.md`.
+
 - [ ] **RP129 — A read of a world in memory does not encode it as NBT first.** Seven renderers take
   `IEnumerable<AnvilRegion.Chunk>` so one path reads both a `.mca` file and a built world, and the built one
   arrives through `AnvilRegion.FromWorld`, which runs `AnvilRegionWriter.BuildLevel` over every chunk on every
@@ -600,6 +402,12 @@ the client source.
   Check `BoxEdgeInterface`/`EdgeInterval` in the same pass: those name a genuine full edge
   and its sub-intervals, so they are correct and should stay, which is exactly why the deriver's misuse
   is worth removing rather than tolerating.
+
+- [ ] **G289 — One measure per question, in `PgmStudio.Geom`.** Rectangle overlap, touch and clearance are
+  written six or seven times. One rectangle relation (apart, corner, edge, overlap, with the gap), one
+  "nearer than N" over a set of cells with the edge stated (a thing exactly at the limit stands), replacing
+  `GroundClaims.NearerThan`, `NearRoute` and `DressingScope`'s rect lambdas. It moves no number; the rulings
+  that would (`G285`–`G288`) wait in `docs/generator/ideas.md`. `docs/generator/`.
 
 ## Opening the studio to other people: sign-in, a server, and what a caller may ask for
 
@@ -630,13 +438,6 @@ server's backups.
   `maximum` for the 0–1 shares (`FloraSpec`, `RoofStyle.Wear`) so the kit refuses `coverage=5`.
   `docs/architecture.md`. *Evidence: a constructor sweep against schema `a095aa2c71059f2c`.*
 
-- [ ] **G262 — The seed corpus states iron the placement rules no longer seat.** Measured across
-  `tools/seeds`: 12 of 14 spawn-room cubes resolve unplaceable, on five seeds, because a cube and a walled
-  room need `6 + 2 + 3` = 11 blocks on one axis and those spawn pieces are 10×10, 15×15 and 20×10. Nothing is
-  broken by it — an unplaceable marker stamps nothing and is flagged `WX9` — so this is a data refresh, not a
-  defect: re-author each spawn piece so it either has the depth for a yard or states a footprint small enough
-  to open one, then re-record whatever `docs/generator/seed-stats.md` measures off them.
-
 - [ ] **WE134 — A map's own dressing registry still takes a hand-written `copied` body.** The tree library
   refuses a `copied` save carrying no cut (`DR-COPY`), but a map's `dressing.styles` takes
   `{"kind":"tree","form":"copied","body":…}` as written and nothing asks where the body came from.
@@ -655,15 +456,3 @@ server's backups.
 circle becomes an ellipse rather than a ring around it. The parser does not read it, and `MapParser.EnsureSupported`
 refuses the five corpus maps using it. Read it with that stretch in `RegionParser` and `RegionGeometry2d`, and take
 it off the refused list. `docs/pgm/supported-maps.md`.
-
-- [ ] **A8 Should the layout generator be its own project?** `Pgm` holds two charters:
-  the `map.xml` codec (48 files) and the layout generator (`Compose`/`Evaluate`/`Shapes`/`Derive`/`Plan`, 85
-  files and 11.5k lines, touching no XML). The generator references only `Domain` and `Geom`, so
-  `PgmStudio.Compose` would add **no dependency edge** — the split is free in graph terms, and it would make
-  `Pgm`'s charter true again while making the generator's own dependencies enforceable (today it can reach the
-  codec and nothing notices). Against it: a rename across every citation, and `PlanCompiler` — the plan →
-  layout + intent seam — would sit on a project boundary rather than inside one. **Deferred (author): not
-  yet**, because which side `PlanCompiler` belongs to is not yet known — and it is the one thing the split
-  turns on. The answer arrives when the generator next needs a structural change and the seam has to be
-  argued about anyway; doing the rename as a standalone refactor before then buys nothing.
-  See `docs/project-structure.md` §7.1.
