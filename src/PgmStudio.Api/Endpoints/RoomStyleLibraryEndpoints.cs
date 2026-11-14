@@ -89,7 +89,8 @@ internal static class RoomStyleMapping
                 ? null
                 : new RoomDoorHeadDto(row.DoorHeadForm, row.DoorHeadBlock, row.DoorHeadFill,
                     row.DoorHeadFillBlock, row.DoorHeadFillData),
-            row.DoorWidth, row.RoofStair, row.RoofWear, PorchEdges.Canonical(row.Front), row.SeedKey is not null);
+            row.DoorWidth, row.RoofStair, row.RoofWear, PorchEdges.Canonical(row.Front),
+            HouseFootprints.Canonical(row.Footprint), row.SeedKey is not null);
 
     /// <summary>What a saved request comes back as — read off the <em>row</em> it composes to rather than off
     /// the request, so the clamps the row applies are the numbers the editor is handed back.</summary>
@@ -111,7 +112,7 @@ public sealed class RoomStyleListEndpoint(RoomStyleLibrary library, BlockTexture
         var sprites = await textures.ForPicturesAsync(ct);
         await Send.OkAsync((await library.ComposeAllAsync(ct))
             .Select(entry => new RoomStyleSummary(
-                entry.Row.Id, entry.Row.Name, LibraryCards.Offer(RoomStylePreview.CardOf(entry.Style, sprites)),
+                entry.Row.Id, entry.Row.Name, LibraryCards.Offer(RoomStylePreview.CardOf(entry.Style, sprites, footprint: entry.Row.Footprint)),
                 HouseStyleJson.Serialize(entry.Style)))
             .ToList(), ct);
     }

@@ -67,17 +67,22 @@ public static class RoomStylePreview
             Stamped(style, sample), CutTo(style, Outer(style, sample), part), cell);
     }
 
-    /// <summary>The card a library row lists with, named by the style and part (<see cref="LibraryCards"/>):
-    /// the building seen from outside with the game's sprites where the studio has them
-    /// (<see cref="StructureCard"/>), else <see cref="Card"/>'s flat section.</summary>
-    public static LibraryCard CardOf(HouseStyle style, PictureSprites sprites, string? part = null) =>
-        StructureCard.Card("house-card/" + part, HouseStyleJson.Serialize(style), sprites,
-            flat: () => Card(style, part: part),
+    /// <summary>The card a library row lists with, named by the style, part and footprint
+    /// (<see cref="LibraryCards"/>): the building on the shell <paramref name="footprint"/> names, seen from
+    /// outside with the game's sprites where the studio has them (<see cref="StructureCard"/>), else
+    /// <see cref="Card"/>'s flat section.</summary>
+    public static LibraryCard CardOf(
+        HouseStyle style, PictureSprites sprites, string? part = null, string? footprint = null)
+    {
+        var shell = HouseFootprints.Canonical(footprint);
+        return StructureCard.Card($"house-card/{part}/{shell}", HouseStyleJson.Serialize(style), sprites,
+            flat: () => Card(style, footprint: shell, part: part),
             volume: () =>
             {
-                var sample = SampleOf(style, null);
+                var sample = SampleOf(style, shell);
                 return (Stamped(style, sample), CutTo(style, Outer(style, sample), part));
             });
+    }
 
     /// <summary>
     /// The box the views are taken over for the part an editor has open — the whole shell where none is.

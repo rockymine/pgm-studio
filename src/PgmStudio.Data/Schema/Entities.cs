@@ -985,6 +985,7 @@ public sealed class RoomStyleRow : ILibraryRow
     [Column("porch_depth")] public int PorchDepth { get; set; }
     [Column("porch_inset")] public int PorchInset { get; set; }
     [Column("front"), NotNull] public string Front { get; set; } = "front";   // the wall the door faces; front = the building's own
+    [Column("footprint"), NotNull] public string Footprint { get; set; } = "8x8";   // the shell its card is drawn on (M0099)
     [Column("porch_edge"), NotNull] public string PorchEdge { get; set; } = "front";
     [Column("porch_roof"), NotNull] public string PorchRoof { get; set; } = "gable";
     [Column("porch_rail_block")] public int PorchRailBlock { get; set; } = 85;

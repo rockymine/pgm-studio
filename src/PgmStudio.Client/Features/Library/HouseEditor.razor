@@ -19,10 +19,10 @@
   </Views>
   <Dock>
     @* A style states nothing about the rectangle it is stamped over, and a ridge follows that rectangle, so
-       the proportion the sample is judged at is asked here rather than set on the style. *@
+       the proportion the house is judged at is the library row's: its card is drawn on the shell picked here. *@
     @foreach (var (id, width, depth) in HouseFootprints.All)
     {
-      <DockChoice Active="@(id == footprint)" @key="id"
+      <DockChoice Active="@(id == Footprint)" @key="id"
                   OnClick="() => SetFootprint(id)">@width × @depth</DockChoice>
     }
   </Dock>

@@ -641,8 +641,11 @@ section where it has not — since a grid of rows can afford one picture each an
 
 All four are drawn on the shell the `footprint` word names, asked in the dock at the foot of the stage rather
 than among the views: which view and at what proportion are two questions, and a row of nine capsules in one
-corner reads as one long list of neither. Neither is a field of the style — both change what the picture is
-taken over and nothing about what a save would store.
+corner reads as one long list of neither. Neither is part of the building a map stamps. The view is the
+editor's alone; the footprint a house editor's dock chooses is the row's `footprint`, saved with it, and the
+house's card is drawn on that shell — so a long hall is browsed as the long hall its author judged it at
+rather than squeezed onto the 8×8 default. A roof, storey or porch editor's dock saves nothing, and their
+cards stand on the default shell.
 
 ### A seeded house, written out
 
@@ -941,7 +944,7 @@ colours instead, which is the form an agent saves and looks at.
 | `view` | which view to draw, out of that route's own closed set — the first is what it draws unasked. A name outside the set is a **400** listing the ones it has. A route with one picture and nothing to choose declares no `view` at all |
 | `scale` | 1 to 8, absent is 1. A magnification rather than a redraw: the same view at more pixels, because a house section is 72 × 108 unasked and a roof idiom cannot be read off that. Anything outside the range, or not a number, draws at 1 — a scale is how the answer is looked at rather than part of the question, so a bad one costs a bigger picture and never the picture |
 | `part` | which part of the building the pictures are **cut to**, from `RoomParts` — a floor is its plate, a wall is the course players walk on up to the eave, a roof is everything over it and the two courses under it the overhang may fall through. Neighbouring bands therefore share courses, which is the honest picture: the eave is both the top of the wall and what the roof lands on. Absent draws the whole shell, and so does a word outside the set. What an editor sends so the picture follows the row the author has open; the three part libraries cut to their own part without being asked |
-| `footprint` | the shell a **house or a part** is drawn on: `6x6`, `8x8`, `10x15` or `16x16`, absent being `8x8`. A style states nothing about the rectangle it is stamped over while a ridge follows that rectangle's own proportions, so the same style on a square and on a long shell is two different roofs. 6×6 is the least a shell may stand on (`WX2`), and the piece each is resolved out of is two blocks larger on each axis. A word outside the set draws the default, for the same reason a bad `scale` does |
+| `footprint` | the shell a **house or a part** is drawn on: `6x6`, `8x8`, `10x15` or `16x16`, absent being `8x8`. A house row states its own as the save request's `footprint`, which its card is drawn on. A style states nothing about the rectangle it is stamped over while a ridge follows that rectangle's own proportions, so the same style on a square and on a long shell is two different roofs. 6×6 is the least a shell may stand on (`WX2`), and the piece each is resolved out of is two blocks larger on each axis. A word outside the set draws the default, for the same reason a bad `scale` does |
 
 The view sets, each stated once in the code and published as the `view` parameter's enum, so what the schema
 names and what a refusal lists are the same list: **`material-preview`** and **`prop-preview`** draw
@@ -1076,7 +1079,7 @@ refinement naming a block's row holds the block instead, and one naming a merged
 `M0059` gives a room style the wall its doorway faces, which a house style could state and the row had nowhere
 to keep. `M0097` made a doorway width of 2 the default it always was: `door_width` turned nullable and its 2s
 null, and every snapshot a map, a composed board or a recorded change keeps had its `doorway.width` of 2 written
-as `null`. `M0060` made every stored name a library name — a `+` spelled `plus`, any other character a name may not
+as `null`. `M0099` gave every room style the `footprint` its card is drawn on, `8x8` for every stored row. `M0060` made every stored name a library name — a `+` spelled `plus`, any other character a name may not
 hold a space — gave each later row sharing a name, compared without case, the first free count after it, put a
 unique index over every table's names, and made each map's current refinement follow a renamed row. `M0061`
 gave the nine tables `seed_key`, empty, which the next start fills. Nothing stored is rewritten for the

@@ -109,6 +109,7 @@ public sealed class RoomStyleStore(PgmDb db)
                 .Set(r => r.PorchInset, room.PorchInset)
                 .Set(r => r.PorchEdge, room.PorchEdge)
                 .Set(r => r.Front, room.Front)
+                .Set(r => r.Footprint, room.Footprint)
                 .Set(r => r.PorchRoof, room.PorchRoof)
                 .Set(r => r.PorchRailBlock, room.PorchRailBlock)
                 // The M0019 trim. A column added to the row and not to this list is a column the editor can save

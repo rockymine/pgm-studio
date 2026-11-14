@@ -34,6 +34,3 @@ uses or in what a build writes. They are worked before the fixes and the user ex
   prop it needs, and a hand-built one is marked as such: it is a **schematic** (`docs/pgmvox-port.md`, D17), so
   an inline body that names no library tree is stored and served as a schematic rather than as a `copied` tree.
   `docs/world-export/decoration.md`.
-- [ ] **TL45 — A house card is drawn on the footprint its editor chose.** `RoomStylePreview.CardOnce` renders the
-  default 8×8 sample footprint from a fixed front camera, not the footprint the house editor's dock states.
-  `docs/tools/library.md`.

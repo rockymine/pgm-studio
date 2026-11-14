@@ -461,11 +461,13 @@ public sealed record RoomStyleDetail(
     IReadOnlyList<RoomCourseDto> Courses,
     RoomBeamDto? Beams = null, int RoofSlab = -1, int RoofSlabData = 0,
     RoomWindowDto? GableWindows = null, RoomDoorHeadDto? DoorHead = null, int? DoorWidth = null,
-    int RoofStair = -1, double RoofWear = 0, string Front = PorchEdges.Front, bool Seeded = false)
+    int RoofStair = -1, double RoofWear = 0, string Front = PorchEdges.Front,
+    string Footprint = HouseFootprints.Default, bool Seeded = false)
     : RoomStyleSaveRequest(
         Name, FloorDepth, WallHeight, RoofForm, Pitch, Overhang, RoofHole, RidgeCap, BorderWidth, InlayInset,
         Storeys, StoreyClear, Windows, Porch, Door, DoorHeight, RoofStyleId, PorchStyleId, StoreyStack,
-        Courses, Beams, RoofSlab, RoofSlabData, GableWindows, DoorHead, DoorWidth, RoofStair, RoofWear, Front)
+        Courses, Beams, RoofSlab, RoofSlabData, GableWindows, DoorHead, DoorWidth, RoofStair, RoofWear, Front,
+        Footprint)
 {
     /// <summary>The style as the request that would store it unchanged — every field, including the ones an
     /// editor draws no control for. An editor loading a row into a draft takes this rather than restating the
@@ -474,7 +476,8 @@ public sealed record RoomStyleDetail(
     public RoomStyleSaveRequest AsSaveRequest() => new(
         Name, FloorDepth, WallHeight, RoofForm, Pitch, Overhang, RoofHole, RidgeCap, BorderWidth, InlayInset,
         Storeys, StoreyClear, Windows, Porch, Door, DoorHeight, RoofStyleId, PorchStyleId, StoreyStack,
-        Courses, Beams, RoofSlab, RoofSlabData, GableWindows, DoorHead, DoorWidth, RoofStair, RoofWear, Front);
+        Courses, Beams, RoofSlab, RoofSlabData, GableWindows, DoorHead, DoorWidth, RoofStair, RoofWear, Front,
+        Footprint);
 }
 
 /// <summary>Create or replace a room style (POST /api/room-styles, PUT /api/room-styles/{id}) — a whole
@@ -532,6 +535,8 @@ public sealed record RoomStyleDetail(
 /// <param name="RoofWear">0–1; how weathered the roof is.</param>
 /// <param name="Front">The wall the doorway is cut through, from <see cref="PorchEdges"/>: <c>front</c> leaves the
 /// building's own, read off its footprint.</param>
+/// <param name="Footprint">The sample shell the house is drawn on, from <see cref="HouseFootprints"/> — its card
+/// and the editor's pictures alike. The library's, and never part of the building a map stamps.</param>
 public record RoomStyleSaveRequest(
     string Name,
     int FloorDepth, int WallHeight,
@@ -547,7 +552,8 @@ public record RoomStyleSaveRequest(
     RoomBeamDto? Beams = null, int RoofSlab = -1, int RoofSlabData = 0,
     RoomWindowDto? GableWindows = null, RoomDoorHeadDto? DoorHead = null, int? DoorWidth = null,
     int RoofStair = -1, double RoofWear = 0,
-    [property: WordSet(typeof(PorchEdges))] string Front = PorchEdges.Front);
+    [property: WordSet(typeof(PorchEdges))] string Front = PorchEdges.Front,
+    [property: WordSet(typeof(HouseFootprints))] string Footprint = HouseFootprints.Default);
 
 /// <summary>What an editor draws a room style from: three flat pictures — from above, projected onto its
 /// front, and one plane at the scale of the pieces in it — and the building itself, as the columns a 3-D view

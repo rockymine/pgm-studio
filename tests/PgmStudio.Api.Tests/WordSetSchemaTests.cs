@@ -34,7 +34,7 @@ public sealed class WordSetSchemaTests
         typeof(SizeBands), typeof(AccessModes), typeof(StudioRoles),
         typeof(NoteStatuses), typeof(NoteAnchors), typeof(MapDocuments), typeof(SymmetryModes),
         typeof(RuleLevels), typeof(RuleLevelSources), typeof(FlagCarriers), typeof(PlayPieceKinds), typeof(PieceSettings), typeof(PlaceShapes), typeof(PlanVerdicts),
-        typeof(ControlPointShapes), typeof(CaptureModes),
+        typeof(ControlPointShapes), typeof(CaptureModes), typeof(HouseFootprints),
     ];
 
     /// <summary>The fields marked today. Nothing in the compiler can say a field <em>ought</em> to be
@@ -46,7 +46,7 @@ public sealed class WordSetSchemaTests
     /// fields carries the mark once, on the base, and publishes it through <c>allOf</c> — so consolidating
     /// two records into one lowers this while the wire gains nothing and loses nothing. Lower it only for
     /// that reason, and never because a mark went missing.</para></summary>
-    private const int Published = 37;
+    private const int Published = 38;
 
     /// <summary>Every marked field publishes exactly the words its class declares, in that order — so a word
     /// added to a set reaches the document with no second edit, and one removed cannot linger there.</summary>

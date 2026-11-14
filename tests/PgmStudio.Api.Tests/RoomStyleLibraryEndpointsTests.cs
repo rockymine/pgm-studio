@@ -205,6 +205,31 @@ public sealed class RoomStyleLibraryEndpointsTests
         await Assert.That(after.Windows.HostBlock).IsEqualTo(Blocks.Cobblestone);
     }
 
+    /// <summary>A house's card is drawn on the shell its editor chose: the footprint is kept with the row, and
+    /// the card the list offers follows it there and back.</summary>
+    [Test]
+    public async Task A_house_card_follows_the_footprint_its_row_states()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var created = await client.PostAsJsonAsync("/api/room-styles", Draft("footprint-house"));
+        var saved = (await created.Content.ReadFromJsonAsync<RoomStyleDetail>())!;
+        await Assert.That(saved.Footprint).IsEqualTo(HouseFootprints.Default);
+        var square = await CardAsync(client, saved.Id);
+
+        await client.PutAsJsonAsync($"/api/room-styles/{saved.Id}", saved.AsSaveRequest() with { Footprint = HouseFootprints.Long });
+        var after = await client.GetFromJsonAsync<RoomStyleDetail>($"/api/room-styles/{saved.Id}");
+        await Assert.That(after!.Footprint).IsEqualTo(HouseFootprints.Long);
+        var elongated = await CardAsync(client, saved.Id);
+        await Assert.That(elongated).IsNotEqualTo(square);
+
+        await client.PutAsJsonAsync($"/api/room-styles/{saved.Id}", after.AsSaveRequest() with { Footprint = HouseFootprints.Square });
+        await Assert.That(await CardAsync(client, saved.Id)).IsEqualTo(square);
+    }
+
+    private static async Task<string> CardAsync(HttpClient client, long id)
+        => (await client.GetFromJsonAsync<List<RoomStyleSummary>>("/api/room-styles"))!.Single(row => row.Id == id).Preview;
+
     /// <summary>A doorway's width is what a save last stated: a single door, then none, which is the
     /// default.</summary>
     [Test]
