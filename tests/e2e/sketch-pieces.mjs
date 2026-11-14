@@ -164,6 +164,26 @@ try {
     corners.length === 2 && Math.min(corners[0][0], corners[1][0]) === wing.min_x + 2
       && Math.max(corners[0][0], corners[1][0]) === wing.max_x - 1, JSON.stringify(corners));
 
+    checks.section("a picked room's monument seats are drawn inside it, and one drags by whole blocks");
+  // The resize put the wing back in hand, so its seats are drawn where the room derives them.
+  const interior = await api(`/map/${slug}/intent/pieces/${room.id}/interior`);
+  const drawnSeats = await page.locator("[data-seat]").count();
+  checks.add("every seat the room derives is drawn", drawnSeats === interior.monuments.length && drawnSeats > 0,
+    `${drawnSeats} drawn, ${interior.monuments.length} derived`);
+  // The last seat is drawn over its neighbours, so a press on its block takes it however far out the board is.
+  const last = interior.monuments.length - 1;
+  const [seatX, seatZ] = interior.monuments[last];
+  const free = ([dx, dz]) => dx >= interior.floor[0] && dx < interior.floor[2] && dz >= interior.floor[1] && dz < interior.floor[3]
+    && !(dx >= interior.pad[0] && dx < interior.pad[2] && dz >= interior.pad[1] && dz < interior.pad[3])
+    && !interior.monuments.some(([x, z]) => x === dx && z === dz);
+  const target = [[seatX - 1, seatZ], [seatX + 1, seatZ], [seatX, seatZ - 1], [seatX, seatZ + 1]].find(free);
+  const cellCentre = ([dx, dz]) => ({ x: interior.corner[0] + dx + 0.5, z: interior.corner[1] + dz + 0.5 });
+  await drag(cellCentre([seatX, seatZ]), cellCentre(target));
+  const seated = (await spawnHouse())?.monuments ?? [];
+  checks.add("the release states every seat on the house, the dragged one moved",
+    JSON.stringify(seated) === JSON.stringify(interior.monuments.map((cell, at) => (at === last ? target : cell))),
+    JSON.stringify(seated.slice(-2)));
+
     checks.section("Escape steps a picked wing back to its room, then lets the room go");
   const pickedTitle = () => page.locator(".workspace-inspector .detail-header").first().innerText().catch(() => "");
   await page.mouse.click(wingMiddle.x, wingMiddle.y);

@@ -92,7 +92,8 @@ Colour: the layer-4 strip + the 2×2 floor wool follow the **room colour** (wool
 
 ### 2a. Wool-cage chests
 
-Each of the **4 interior corners** holds **2 chests stacked** (bottom + top). A "row" = 9 slots.
+Each chest stack is **2 chests stacked** (bottom + top), one in each of the **4 interior corners** unless the room's
+house states the cells they stand on (`docs/world-export/structures.md` §1). A "row" = 9 slots.
 
 - **Chest A** — row of **planks ×16**; row of **Speed I potions (3:00)**; row of **golden apples ×16**.
 - **Chest B** — row of **diamond leggings**; row of **Power I + Infinity bows**; row of **planks ×16**.

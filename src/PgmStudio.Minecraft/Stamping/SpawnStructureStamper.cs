@@ -29,10 +29,13 @@ public sealed record SpawnStructure
     /// already raised needs no foundation of its own.</summary>
     public IReadOnlyDictionary<(int X, int Z), int>? Ground { get; init; }
 
-    /// <summary>The wools this team must capture, one monument seat each, in
-    /// <see cref="RoomFrames.MonumentSlots"/> order: the door-wall corners, the back-wall corners, then the
-    /// back wall filling inward and the door wall — so capacity scales with the interior perimeter.</summary>
+    /// <summary>The wools this team must capture, one monument seat each, in <see cref="Seats"/> order.</summary>
     public IReadOnlyList<string> CapturedWools { get; init; } = [];
+
+    /// <summary>The monument seats the room offers, in the order its captured wools take them, or null for the
+    /// ones its <see cref="Frame"/> derives (<see cref="RoomFrames.Interior"/>): the door-wall corners, the
+    /// back-wall corners, then the back wall filling inward and the door wall.</summary>
+    public IReadOnlyList<MonumentSlot>? Seats { get; init; }
 
     /// <summary>The building around the spawn, or null for a spawn on open ground — and one is raised only
     /// where the <see cref="Frame"/> has walls to raise it on. A house style rather than a room style, for the
@@ -69,7 +72,7 @@ public static class SpawnStructureStamper
         // After the shell, so the pad is the floor the spawn point sits on rather than whatever a style laid.
         var point = PadStamp.Lay(world, frame.Pad, room.FloorY, Blocks.Wool, room.TeamColor);
 
-        var slots = frame.Doors.Count > 0 ? RoomFrames.MonumentSlots(frame, frame.Doors[0]) : [];
+        var slots = room.Seats ?? RoomFrames.Interior(frame, null, null, out _).Monuments;
         var monuments = new List<PlacedMonument>();
         for (var i = 0; i < room.CapturedWools.Count && i < slots.Count; i++)
         {

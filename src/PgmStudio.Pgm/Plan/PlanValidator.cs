@@ -420,7 +420,7 @@ public static class PlanValidator
             // Capacity: this spawn will host a monument for every wool its team captures — on a symmetric
             // board, every authored wool per opposing team. Truncating at stamp time silently drops goals.
             var captured = plan.Placements.Wools.Count * Math.Max(1, d.Order - 1);
-            var seats = RoomFrames.MonumentSlots(room.Frame, room.Frame.Doors[0]).Count;
+            var seats = RoomFrames.Interior(room.Frame, null, null, out _).Monuments.Count;
             if (captured > seats)
                 yield return new Finding(PlanRules.MonumentSeats,
                     $"spawn room on piece '{s.Piece}' seats {seats} wool monuments, "

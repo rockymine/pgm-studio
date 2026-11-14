@@ -684,9 +684,10 @@ public readonly record struct StatedDoor(
 }
 
 /// <summary>
-/// A room's building, in the shape a dressed house takes: its wings, absolute, and the style it wears. The first
-/// wing is the room — its pad, its chests and its monuments are laid inside it — and the rest are building
-/// joined to it. A house stating no style wears the map's style for its kind (<c>roomStyles</c>).
+/// A room's building, in the shape a dressed house takes: its wings, absolute, the style it wears, and where its
+/// chests and monument seats stand. The first wing is the room — its pad, its chests and its monuments are laid
+/// inside it — and the rest are building joined to it. A house stating no style wears the map's style for its
+/// kind (<c>roomStyles</c>), and one stating no chests or seats has them where the room derives them.
 /// </summary>
 public sealed record RoomHouse
 {
@@ -698,6 +699,26 @@ public sealed record RoomHouse
     /// stated null as absent.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public JsonElement Style { get; init; }
+
+    /// <summary>The cells a wool room's chest stacks stand on, each <c>[dx, dz]</c> from the first wing's lowest
+    /// corner; absent stands one in each interior corner.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<int[]>? Chests { get; init; }
+
+    /// <summary>The cells a spawn room's monument seats stand on, in the order its captured wools take them, each
+    /// <c>[dx, dz]</c> from the first wing's lowest corner; absent seats them corners first, then along the back
+    /// wall.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<int[]>? Monuments { get; init; }
+
+    /// <summary>The chests and seats <paramref name="house"/> holds inside <paramref name="frame"/>, each where it
+    /// states it, else where the room derives it, and the refusal a stated list raised
+    /// (<see cref="RoomFrames.Interior"/>).</summary>
+    public static RoomInterior Interior(RoomHouse? house, RoomFrame frame, out Finding? refusal) =>
+        RoomFrames.Interior(frame, Offsets(house?.Chests), Offsets(house?.Monuments), out refusal);
+
+    private static List<(int Dx, int Dz)>? Offsets(List<int[]>? cells) =>
+        cells is null ? null : [.. cells.Where(cell => cell.Length == 2).Select(cell => (cell[0], cell[1]))];
 
     /// <summary>The house of one wing covering <paramref name="room"/>, max-exclusive.</summary>
     public static RoomHouse Over(Rect room) => new() { Wings = [Wing(room)] };
@@ -717,7 +738,9 @@ public sealed record RoomHouse
     /// states.</summary>
     public static RoomHouse? Raised(RoomHouse? stated, IReadOnlyList<Rect> region, IReadOnlyList<RoomEdge> doorEdges, Pt marker) =>
         stated is { Wings.Count: > 0 } ? stated
-        : Default(region, doorEdges, marker) is { } raised ? raised with { Style = stated?.Style ?? default } : null;
+        : Default(region, doorEdges, marker) is { } raised
+            ? raised with { Style = stated?.Style ?? default, Chests = stated?.Chests, Monuments = stated?.Monuments }
+            : null;
 
     /// <summary>The cells the first wing covers, max-exclusive — the room; null for a house with no wing.</summary>
     [JsonIgnore]
@@ -732,9 +755,24 @@ public sealed record RoomHouse
     public IEnumerable<Rect> Rects() => Wings.Select(RectOf);
 
     /// <summary>The same house with every wing's cells mapped by <paramref name="map"/>, each wing keeping what it
-    /// states about itself.</summary>
-    public RoomHouse Mapped(Func<Rect, Rect> map) =>
-        this with { Wings = [.. Wings.Select(wing => Wing(map(RectOf(wing))) with { Spec = wing.Spec })] };
+    /// states about itself, and every chest and seat it states carried with them: the block mapped as a cell of
+    /// its own, and stated again from the mapped first wing's lowest corner.</summary>
+    public RoomHouse Mapped(Func<Rect, Rect> map)
+    {
+        var moved = this with { Wings = [.. Wings.Select(wing => Wing(map(RectOf(wing))) with { Spec = wing.Spec })] };
+        if (Room is not { } room || moved.Room is not { } image) return moved;
+        List<int[]>? Carried(List<int[]>? cells) => cells is null ? null : [.. cells.Select(cell =>
+        {
+            if (cell.Length != 2) return cell;
+            var mapped = map(new Rect(room.MinX + cell[0], room.MinZ + cell[1], room.MinX + cell[0] + 1, room.MinZ + cell[1] + 1));
+            return new[]
+            {
+                (int)(Math.Floor((mapped.MinX + mapped.MaxX) / 2) - image.MinX),
+                (int)(Math.Floor((mapped.MinZ + mapped.MaxZ) / 2) - image.MinZ),
+            };
+        })];
+        return moved with { Chests = Carried(Chests), Monuments = Carried(Monuments) };
+    }
 
     /// <summary>The cells a wing covers, max-exclusive; its corners are floored and inclusive.</summary>
     public static Rect RectOf(AuthoredWing wing)

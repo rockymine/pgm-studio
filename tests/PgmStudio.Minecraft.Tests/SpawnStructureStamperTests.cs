@@ -12,7 +12,7 @@ namespace PgmStudio.Minecraft.Tests;
 /// <summary>
 /// Spawn cube + auto-wired monuments: the shell is stamped over its frame, and each captured wool becomes
 /// a bedrock pedestal + air cell + wool-colour glass cap + label sign, seated by
-/// <see cref="RoomFrames.MonumentSlots"/> (door-wall corners first, then back-wall corners, then the walls
+/// <see cref="RoomFrames.Interior"/> (door-wall corners first, then back-wall corners, then the walls
 /// fill). Baseline frame: 10×10 piece centred on (0,0), floor y=64, door facing -Z.
 /// </summary>
 public sealed class SpawnStructureStamperTests
@@ -54,6 +54,18 @@ public sealed class SpawnStructureStamperTests
 
         // Door-wall corner: the interior row against the -Z wall (world z=-3).
         await Assert.That(m.Z).IsEqualTo(-3);
+    }
+
+    [Test]
+    public async Task A_wool_takes_the_seat_the_room_states_and_its_sign_hangs_off_that_seats_wall()
+    {
+        var w = new VoxelWorld();
+        var seats = RoomFrames.Interior(Baseline(), null, [(6, 3)], out _).Monuments;   // against the east wall
+        var placed = SpawnStructureStamper.Stamp(w, new SpawnStructure
+        { Frame = Baseline(), FloorY = 64, TeamColor = 11, CapturedWools = ["red"], Seats = seats }).Monuments;
+
+        await Assert.That((placed.Single().X, placed.Single().Z)).IsEqualTo((2, -1));
+        await Assert.That(w.GetBlock(1, 65, -1).Id).IsEqualTo(Blocks.WallSign).Because("the sign hangs toward the room's centre");
     }
 
     [Test]

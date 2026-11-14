@@ -1043,11 +1043,13 @@ export class SketchCanvas extends CanvasBase {
     this.#renderTransformChrome();
   }
 
-  /** Pick a plan piece, or `null` to let it go. The terrain selection is cleared with it: one click selects
-   *  one thing, and a room and the ground under it are two. */
   /** The doors a room is built with, drawn on its house's outline while one of its wings is picked. */
   setRoomDoors(room, doors) { this.#roomHouse?.setDoors(room, doors); }
+  /** Draw the chests and seats `room` is built with inside its house — the interior read, or null to draw none. */
+  setRoomInterior(room, interior) { this.#roomHouse?.setInterior(room, interior); }
 
+  /** Pick a plan piece, or `null` to let it go. The terrain selection is cleared with it: one click selects
+   *  one thing, and a room and the ground under it are two. */
   selectStructural(id) {
     const next = this.#structural.some(s => s.id === id) ? id : null;
     if (next === this.#selectedStructuralId) return;
@@ -1374,6 +1376,7 @@ export class SketchCanvas extends CanvasBase {
     this.#roomHouse = new RoomHouseController(this.#screen.roomHandles, getViewport, () => this.#structural, {
       onEdited: (room, wings) => this.#callbacks.onRoomHouseEdited?.(room, wings),
       onDoorsEdited: (room, doors) => this.#callbacks.onRoomDoorsEdited?.(room, doors),
+      onInteriorEdited: (room, field, cells, wings) => this.#callbacks.onRoomInteriorEdited?.(room, field, cells, wings),
       onRefused: (sentence) => this.#callbacks.onRoomHouseRefused?.(sentence),
       onPreview: () => this.#paintWorld(),
       isEditable: () => !this._readOnly,

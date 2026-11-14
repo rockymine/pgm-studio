@@ -20,6 +20,8 @@ import { isHeightMode, isReliefScope } from "../shared/relief-words.js";
 import { diffOverlay } from "../render/diff-render.js";
 import { DRESSING_TOOLS } from "../controllers/dressing-controller.js";
 import { rectsJoinUp, wingRects } from "../dressing/dressing-doc.js";
+import { cellsCarried } from "../controllers/room-house-controller.js";
+import { wingOf } from "../shared/pick.js";
 
 // Default footprint = 2-team landscape (120×80), framed about the origin. CTW maps fit a ~120-block long
 // axis with 10–15-wide lanes; a tight default keeps the canvas at a scale where those read true.
@@ -69,6 +71,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   let groups = [];            // alias of layers[active].groups — kept current by recompute()
   let mirrorVisible = true;
   let selectedStructuralId = null; // the picked plan piece, whose rail states the height it carries
+  const interiors = new Map();       // room id → the chests and seats it was last read built with
   // Every play piece that is not a room, as the intent places it: drawn and moved with the rooms, never
   // written into the layout, because none of them is ground the layout states.
   let pieces = [];
@@ -192,6 +195,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     onRoomHouseEdited: (room, wings) => pieceStep(() => reshapeHouse(room, wings)),
     // A door shift-pressed onto or off a room's wall is written with the room's other doors, whole.
     onRoomDoorsEdited: (room, doors) => pieceStep(() => writeDoors(room, doors)),
+    // A chest or a seat dragged inside a room is written with the rest of its list, on the room's house.
+    onRoomInteriorEdited: (room, field, cells, wings) => pieceStep(() => writeInterior(room, field, cells, wings)),
     onRoomHouseRefused: (sentence) => fire("OnStructuralNote", sentence),
     // A wall's end dragged to a corner is asked of the intent the way a whole-wall drag is.
     onWallLineEdited: (piece, points, putBack) => pieceStep(() => setWallLine(piece, points, putBack)),
@@ -292,7 +297,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // One click selects one thing. The canvas has already dropped the terrain selection; the panel and the
     // rail are told too, or the group list goes on lighting a row whose chrome is gone.
     if (s) { fire("OnShapeSelected", null); fire("OnGroupSelected", null); }
-    if (s?.role === "building") loadDoors(structuralTarget(s).id);
+    if (s?.role === "building") { loadDoors(structuralTarget(s).id); loadInterior(structuralTarget(s).id); }
     fire("OnStructuralSelected", s ? JSON.stringify(structuralRow(s)) : null);
   }
 
@@ -502,7 +507,29 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   async function reshapeHouse(room, rects, pick = rects.length - 1) {
     const house = await storedHouse(room) ?? {};
     const wings = rects.map((r, at) => ({ ...(house.wings?.[at] ?? {}), corners: [[r.min_x, r.min_z], [r.max_x - 1, r.max_z - 1]] }));
-    await writeHouse(room, { ...house, wings }, pick);
+    // The chests and seats the house states keep their blocks as the room's wing moves under them, pushed back onto
+    // the floor where a wall now stands over one.
+    const read = interiors.get(room);
+    const was = house.wings?.[0]?.corners;
+    const carried = {};
+    if (read && was && rects[0]) {
+      const from = {
+        min_x: Math.floor(Math.min(was[0][0], was[1][0])), min_z: Math.floor(Math.min(was[0][1], was[1][1])),
+        max_x: Math.floor(Math.max(was[0][0], was[1][0])) + 1, max_z: Math.floor(Math.max(was[0][1], was[1][1])) + 1,
+      };
+      for (const field of ["chests", "monuments"])
+        if (house[field]) carried[field] = cellsCarried(house[field], from, rects[0], read.floor);
+    }
+    await writeHouse(room, { ...house, ...carried, wings }, pick);
+  }
+
+  /** Write `room`'s chests or seats — `field` is `chests` or `monuments` — as the canvas now draws them, on the house
+   *  it states, or on one of the wings the canvas draws where it states none. */
+  async function writeInterior(room, field, cells, rects) {
+    const house = await storedHouse(room) ?? {};
+    const wings = house.wings?.length ? house.wings
+      : rects.map(r => ({ corners: [[r.min_x, r.min_z], [r.max_x - 1, r.max_z - 1]] }));
+    await writeHouse(room, { ...house, wings, [field]: cells }, wingOf(selectedStructuralId)?.wing ?? 0);
   }
 
   /** Write `room`'s house whole, read the board back and pick wing `pick` of it; a refusal puts the drawing back
@@ -534,7 +561,21 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     } catch { /* the house keeps the doors it last drew */ }
   }
 
-  /** Write `room`'s doors whole and draw them as built; a refusal keeps the doors as they were and says why. */
+  /** Read the chests and seats `room` is built with and draw them inside its house — a room stating none shows
+   *  the ones it derives. */
+  async function loadInterior(room) {
+    if (!slug) return;
+    try {
+      const res = await fetch(`/api/map/${encodeURIComponent(slug)}/intent/pieces/${encodeURIComponent(room)}/interior`);
+      if (!res.ok) return;
+      const interior = await res.json();
+      interiors.set(room, interior);
+      canvas.setRoomInterior(room, interior);
+    } catch { /* the house keeps the markers it last drew */ }
+  }
+
+  /** Write `room`'s doors whole and draw them, and the chests and seats they settle, as built; a refusal keeps the
+   *  doors as they were and says why. */
   async function writeDoors(room, doors) {
     if (!slug) return;
     try {
@@ -548,6 +589,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     }
     iso.drop();
     await loadDoors(room);
+    await loadInterior(room);
   }
 
   /** Take wing `wing` out of `room`'s house. The room's own wing stays, and so does any wing the rest would no

@@ -194,7 +194,7 @@ public static class WorldBuilder
             WoolStructureStamper.Stamp(world, new WoolStructure
             {
                 Frame = frame, FloorY = fy, WoolSlug = slug, Ground = woolGround, Shell = shell, Wings = wings,
-                Chests = StampSwitches.On(w.StampsOff, StampSwitches.Loot),
+                Chests = StampSwitches.On(w.StampsOff, StampSwitches.Loot) ? RoomHouse.Interior(w.House, frame, out _).Chests : [],
             });
             Raise(plinths, StructureStamper.FoundationTops(
                 woolGround, frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ));
@@ -244,6 +244,7 @@ public static class WorldBuilder
             {
                 Frame = frame, FloorY = fy, TeamColor = WoolDataForTeam(s.Team, teams),
                 CapturedWools = [.. captured.Select(x => ColorSlug(x.w, teams))], Shell = shell, Wings = wings,
+                Seats = RoomHouse.Interior(s.House, frame, out _).Monuments,
             }).Monuments;
             Raise(plinths, StructureStamper.FoundationTops(
                 spawnGround, frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ));

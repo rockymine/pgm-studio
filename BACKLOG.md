@@ -98,13 +98,6 @@ them one rather than with the contract work that shipped them.
 The depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection highlight);
 what is gathered here is the parked and dormant slices of the same surface.
 
-- [ ] **TS237 — A hand-drawn board has a way into Configure.** The *Sketch ▾* menu enables Configure only once the
-  map has a world (`MapLayers.Holds` → `HasSurface`, `Models/MapLayers.cs:17`), and the world is built only by
-  Download (`BuildWorldIfMissingAsync`), so a first-time author reaches Review › Notes with *Next* greyed and no
-  word of either. Give Review's last step the finish — *Build & continue in Configure*, `POST …/sketch/finish`
-  then the route — and title the disabled menu entry with what makes it. Evidence: a fresh-eyes review run found
-  Configure only after downloading. `docs/tools/sketch.md`.
-
 ### Painting terrain
 
 - [ ] **TS51 — Scoping the paint repaint, and the preview it would pay for.** A full board paint is ~2.0s and
@@ -150,11 +143,6 @@ what is gathered here is the parked and dormant slices of the same surface.
 
 ### Water
 
-- [ ] **S46 — A river on the mirror axis is a level canal.** The Terraform River modifier gives a bed that never
-  climbs, per-reach water levels with falls between, and one level where bodies meet (`Courses.cs`). Left: a river
-  lying on the mirror axis holds a single level, and the dressing fluid prop takes reach levels rather than one
-  lowest-surface line. A road draping over what it crosses stays settled as correct. `docs/world-export/decoration.md`.
-
 ### A made thing is a third kind, and it is drawn out of layers
 
 - [ ] **WE74 — A made thing fanned across the axis cannot change colour with the side it lands on.** The
@@ -189,16 +177,6 @@ what is gathered here is the parked and dormant slices of the same surface.
   the fill's filter. Item names differ by path: the world takes 1.8 ids (`minecraft:planks`) and a 1.8 PGM
   parses Bukkit's (`WOOD`), so the prop needs one table between them. `docs/world-export/decoration.md` §8a;
   `docs/pgm/`.
-
-- [ ] **WE152 — A room's door width, stated by its style.** `WX7` cuts a room's door from its wall (`RoomFrames.DoorWidth`: 4 on an even interior of six or more,
-  3 on an odd one, 2 at four across) and a style's `doorway.width` reaches only the dressing's houses. Honouring
-  it is `clamp(stated, 2, interior − 2)`, dropped by one where its parity differs from the wall's so the door
-  stays centred — carried on `RoomShells`, since `Domain` cannot see `HouseStyle`, and re-checked against the
-  iron cube the room seats beside the door (`ResolvedRoom.Iron`, `WX8`). The field is `NOT NULL DEFAULT 2`
-  (`M0027`), and 11 of the deployed 13 room styles hold 2. **The author's ruling:** a stored 2 is the default, so the
-  column becomes nullable and a migration turns every 2 into null; and a door may be 1 wide, which is a literal
-  door — a door block in the opening — rather than a gap. *Evidence: Sootcombe
-  note 10 asks for a 2-wide wool-room door.* `docs/world-export/structures.md` §7.
 
 - [ ] **WE175 — Timber bays along a storey's wall.** `Storey.Bays`: a post every `period` blocks along a wall
   (pgmvox: 4, upper storeys, long walls only), counted from the corners so both ends land on a post, in its own
@@ -340,10 +318,6 @@ the client source.
   Left: `GET /api/terrain/boulder-forms` (`DressingPreview.BoulderFormCards`) still draws flat side-view SVG; route it
   through `StructureCard` with the studio's sprites. `docs/tools/library.md`.
 
-- [ ] **TL45 — A house card is drawn on the footprint its editor chose.** `RoomStylePreview.CardOnce` renders the
-  default 8×8 sample footprint from a fixed front camera, not the footprint the house editor's dock states.
-  `docs/tools/library.md`.
-
 - [ ] **C89 — A map can be deleted from `/maps`.** `DELETE /api/map/{slug}` ends a map and everything under it
   (`docs/tools/flow.md`), and the maps list has no control for it, so abandoned drafts and variants pile up.
   Add a delete action on a row for its owner and admins, behind a confirm naming the map, greyed with the reason
@@ -359,15 +333,6 @@ the client source.
   re-scan changes the island set, so the island-to-team map is checked again. `docs/tools/configure.md`.
 
 ## The tool hosts and their bridges: one shape for save, feed, selection and the verb table
-
-- [ ] **TS162 — Undo takes back only what the phase in view edited.** *The author's ruling:* an undo never
-  removes work done in another phase. The sketch keeps one stack of whole-document snapshots across every
-  phase (`history` in `sketch-bridge.js`), so the topbar Undo in Theme takes back the last shape drawn in Draw.
-  Tag each step with the phase that made it and restore only that phase's slice of the document — Draw the
-  shapes, Theme the registry and each shape's theme, Dressing `dressing`, Terraform `modifiers`, Info `setup` — so
-  Undo in a phase walks back that phase's own steps and is greyed where it has none; `Ctrl`+`Z` follows the
-  same rule. Identity takes no undo: it holds words and simple choices such as the symmetry (author).
-  `docs/tools/sketch.md`.
 
 ## Refactoring and cleanup
 
@@ -437,14 +402,6 @@ server's backups.
   `PlanGlobals.symmetry`, declaring each set in `Vocabulary` where it is not already; and publish `minimum`/
   `maximum` for the 0–1 shares (`FloraSpec`, `RoofStyle.Wear`) so the kit refuses `coverage=5`.
   `docs/architecture.md`. *Evidence: a constructor sweep against schema `a095aa2c71059f2c`.*
-
-- [ ] **WE134 — A map's own dressing registry still takes a hand-written `copied` body.** The tree library
-  refuses a `copied` save carrying no cut (`DR-COPY`), but a map's `dressing.styles` takes
-  `{"kind":"tree","form":"copied","body":…}` as written and nothing asks where the body came from.
-  **The author's ruling:** "hand-built props are not wanted" is the library's rule only. A map builds whatever
-  prop it needs, and a hand-built one is marked as such: it is a **schematic** (`docs/pgmvox-port.md`, D17), so
-  an inline body that names no library tree is stored and served as a schematic rather than as a `copied` tree.
-  `docs/world-export/decoration.md`.
 
   *Evidence: 11 build specs in `pgm-studio-mapgen/specs` (`opus5-flintwick`'s `library_tree`, the
   `opus5b`/`opus5c` commons) copy a library tree's body inline, which a cut-carrying rule would still allow;

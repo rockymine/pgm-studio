@@ -19,7 +19,7 @@ public sealed class WoolChestsTests
     {
         var world = new VoxelWorld();
         var frame = RoomFrames.Resolve(new BlockRect(-5, -5, 5, 5), footprint: null, shellBound: true, 0, 0, RoomFrames.EntryDoors([(-5, -5, 5, -5)], new BlockRect(-5, -5, 5, 5)), spawn: false, out _)!;
-        WoolChests.Stamp(world, frame, floorY: 64);
+        WoolChests.Stamp(world, RoomFrames.Interior(frame, null, null, out _).Chests, floorY: 64);
 
         // Chest blocks at all four interior corners, bottom (y=65) + top (y=66).
         await Assert.That(world.GetBlock(-3, 65, -3).Id).IsEqualTo(Blocks.Chest);
@@ -74,7 +74,7 @@ public sealed class WoolChestsTests
         // value ever points at the wall the corner actually sits against.
         var world = new VoxelWorld();
         var frame = RoomFrames.Resolve(new BlockRect(-5, -5, 5, 5), footprint: null, shellBound: true, 0, 0, RoomFrames.EntryDoors([(-5, -5, 5, -5)], new BlockRect(-5, -5, 5, 5)), spawn: false, out _)!;
-        WoolChests.Stamp(world, frame, floorY: 64);
+        WoolChests.Stamp(world, RoomFrames.Interior(frame, null, null, out _).Chests, floorY: 64);
 
         await Assert.That(world.GetBlock(-3, 65, -3).Data).IsEqualTo(3);   // near-door corner (west) → south
         await Assert.That(world.GetBlock(2, 65, -3).Data).IsEqualTo(3);    // near-door corner (east) → south
@@ -89,11 +89,22 @@ public sealed class WoolChestsTests
         // corners nearest the door face east (data 5, PosX), the two nearest the far wall face west (data 4).
         var world = new VoxelWorld();
         var frame = RoomFrames.Resolve(new BlockRect(-5, -5, 5, 5), footprint: null, shellBound: true, 0, 0, RoomFrames.EntryDoors([(-5, -5, -5, 5)], new BlockRect(-5, -5, 5, 5)), spawn: false, out _)!;
-        WoolChests.Stamp(world, frame, floorY: 64);
+        WoolChests.Stamp(world, RoomFrames.Interior(frame, null, null, out _).Chests, floorY: 64);
 
         await Assert.That(world.GetBlock(-3, 65, -3).Data).IsEqualTo(5);   // near-door corner (north) → east
         await Assert.That(world.GetBlock(-3, 65, 2).Data).IsEqualTo(5);    // near-door corner (south) → east
         await Assert.That(world.GetBlock(2, 65, -3).Data).IsEqualTo(4);    // far-wall corner (north) → west
         await Assert.That(world.GetBlock(2, 65, 2).Data).IsEqualTo(4);     // far-wall corner (south) → west
+    }
+
+    [Test]
+    public async Task A_stated_stack_stands_on_its_cell_and_opens_the_way_it_is_told()
+    {
+        var world = new VoxelWorld();
+        WoolChests.Stamp(world, [new ChestStack(0, 1, RoomEdge.NegX)], floorY: 64);
+
+        await Assert.That(world.GetBlock(0, 65, 1)).IsEqualTo((Blocks.Chest, 4));
+        await Assert.That(world.GetBlock(0, 66, 1)).IsEqualTo((Blocks.Chest, 4));
+        await Assert.That(world.GetBlock(-3, 65, -3).Id).IsNotEqualTo(Blocks.Chest).Because("no corner is stocked but the one stated");
     }
 }
