@@ -81,7 +81,30 @@ in a room of one wing. The wings after it are building joined to the room, stamp
 held to the room's ground and to the joint model: one reaching outside the region (`WX12`), or meeting the rest at
 a joint a building cannot be made at (the `HJ` ids, `docs/world-export/decoration.md` §8), leaves the room standing
 alone, and the build says so as a complaint naming the room. A room stating no house takes `WX1`'s default, one
-wing, which the sketch draws too (`SpawnIntent.Raised`, `WoolIntent.Raised`). A plan placement's `footprint` compiles to a house of one wing over it, and the sketch draws each wing as a
+wing, which the sketch draws too (`SpawnIntent.Raised`, `WoolIntent.Raised`).
+
+**What stands inside the room is stated on its house, the way its wings are.** A house may state `chests`, the cells
+a wool room's chest stacks stand on, and `monuments`, the cells a spawn room's monument seats stand on in the order
+its captured wools take them — each an `[dx, dz]` offset from the lowest corner of the first wing, the room's own
+footprint corner. A house stating neither, and a room stating no house, has them where the room derives them: a
+stack in each interior corner, and the seats corners first and then along the back wall (§6). That is the shape the
+code reads and the shape stored rows already have, so an absent list is the derived one and no row changes. One
+resolve answers both lists for every caller — `RoomFrames.Interior`, reached through `RoomHouse.Interior`: the
+stampers stock and seat from it, `RoomCheck` and the plan validator count its seats, and `GET
+…/intent/pieces/{id}/interior` answers it. A stated cell stands where it is stated; a chest opens along the door's
+axis away from the nearer wall on it, toward the door where both are equally far, which is how a corner chest has
+always opened, and a stated seat hugs its nearest wall, the back wall, the door wall and then the left-hand side
+wall taking a tie. So a house stating exactly the derived cells builds the room a house stating none does. A
+stated cell off the floor inside the walls or on the pad is `WX15`, two on one cell `WX16`, and fewer seats than
+the wools a spawn's team captures `WX17`; a list that refuses is set aside and the room is stocked and seated as
+it derives. A wool room's house stating seats, or a spawn room's stating chests, is refused by the house route as
+a list the room does not hold.
+
+**A room's image states the images of its cells.** Wherever a house is carried — the orbit fill
+(`SymmetryExpander`), the house route's images (`PlayPieceHouse`), a move, a turn or a resize
+(`PlayPieceMove`) — `RoomHouse.Mapped` takes each stated block through the same map as the wings, as a cell of
+its own, and states it again from the mapped first wing's corner, so the *n*-th chest and seat of a room and of
+its image are images of each other under every mirror and rotation. A plan placement's `footprint` compiles to a house of one wing over it, and the sketch draws each wing as a
 `building` shape — `{id}-building` for the room, `{id}-building-2` on for the rest — where a drag of any one moves
 the whole house (`wing` on `PATCH …/intent/pieces/{id}`). An intent stating a room's `footprint` is refused by name.
 
@@ -298,6 +321,15 @@ structure, and structures never fuse.
   have been stamped on. It refuses where the style is **bound** — `PUT /api/map/{slug}/sketch`, 400 — rather
   than correcting at stamp time, because silently shortening a building the author drew is the worse answer.
 
+- **WX15–WX17** *What a house states inside its room has to fit there.* A chest or seat a house states (§1) stands
+  on the room's floor inside its walls and off its pad (`WX15`), each on a cell of its own (`WX16`), and a spawn
+  room's house states a seat for every wool its team captures (`WX17` — `PL8` is the same count over seats the room
+  derives, whose remedy is a larger room rather than another cell). Where the floor is depends on the wall the
+  map's style raises, so the room's own check asks it of the resolved frame (`RoomCheck`), and the house route
+  asks the same check before it stores: `PUT …/house` answers 400 naming the rule. A stored house that a later
+  change leaves with a cell off the floor still builds — the list is set aside and the room stocked and seated as
+  it derives — and the map's findings say so.
+
 - **WX14** *A room is not left in the bedrock box.* The shipped shell — bedrock walls, a bedrock lid and a
   team band — is what a board is drawn with before it is finished, not a building, so a spawn or a wool room
   still standing in it is complained of at every build: once per kind of room, naming every room of that kind
@@ -322,13 +354,14 @@ the preview both call, so the stamped volume, the emitted region and the drawn b
    them. `PadStamp.Lay` writes the pad: one square of the block the caller names — the team's wool
    for a spawn, the objective's for a wool room — and it answers the point that square resolves to
    (WX5), which is the whole of what a caller gets back.
-3. **The furnishers** — `RoomFrames.InteriorCorners` seats the chest stacks and
-   `RoomFrames.MonumentSlots` the monuments (door-wall corners, back-wall corners, then the walls
-   fill, skipping the door opening — each row from the left hand of someone standing in the door looking
-   out, a reflected room's from the right, so wool *n* of one team and of the other sit at each other's
-   image). A larger spawn room gains monument capacity from its longer
-   walls with no new rules; the validator refuses a plan whose captured-wool count exceeds the
-   seats.
+3. **The furnishers** — `RoomFrames.Interior` answers where the chest stacks and the monuments stand:
+   where the room's house states them (§1), else the chests in the interior corners and the monuments
+   door-wall corners, back-wall corners, then the walls filling, skipping the door opening — each row from
+   the left hand of someone standing in the door looking out, a reflected room's from the right, so wool *n*
+   of one team and of the other sit at each other's image. `WoolChests` stocks the stacks and
+   `SpawnStructureStamper` seats the monuments from that one answer. A larger spawn room gains monument
+   capacity from its longer walls with no new rules; the validator refuses a plan whose captured-wool count
+   exceeds the seats.
 4. **The style** — `RoomStyle`, choosing shell materials and decoration, **never the footprint**; the
    footprint always comes from the piece, which is what makes every style adaptive. §7 is the model.
 
@@ -1047,8 +1080,8 @@ A deck needs a way through it or an upper storey is a sealed volume — a pictur
 house. That way is a **ladder**, standing in the storey below and reaching the slab, so a player steps off it
 onto the new floor rather than into its underside. It hangs on the **door wall**, one cell along from an
 interior corner, and both halves of that are about what else claims those cells. The chests and the wool
-monuments fill a room's corners first and then the far wall inward (`MonumentSlots`), so the door wall is
-untouched until a room carries more monuments than a team ever captures — six wools is the ceiling in
+monuments a room derives fill its corners first and then the far wall inward (`RoomFrames.Interior`), so the door
+wall is untouched until a room carries more monuments than a team ever captures — six wools is the ceiling in
 practice, and one cell off the door wall's corner is free. The corner itself is not, which is why the ladder
 sits one along from it — at the **left-hand** end, seen from inside looking out (the right-hand one in a
 reflected room), so both teams climb in the same corner of their own room (§1). Where the doorway reaches that end the ladder takes the right-hand one

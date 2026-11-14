@@ -19,6 +19,15 @@ public readonly record struct AskedDoor(RoomEdge Edge, double? Along = null, int
 /// pedestal hugs (which side its label sign hangs toward the room centre from).</summary>
 public readonly record struct MonumentSlot(int X, int Z, RoomEdge Wall);
 
+/// <summary>A stack of two chests inside a wool room: the interior floor cell it stands on and the way its
+/// fronts open.</summary>
+public readonly record struct ChestStack(int X, int Z, RoomEdge Facing);
+
+/// <summary>What a room holds inside its walls, in absolute blocks: the chest stacks a wool room is stocked
+/// with and the monument seats a spawn room offers, in seat order — <see cref="RoomFrames.Interior"/>'s
+/// answer.</summary>
+public sealed record RoomInterior(IReadOnlyList<ChestStack> Chests, IReadOnlyList<MonumentSlot> Monuments);
+
 /// <summary>The room-frame rule ids a refusal cites, from the WX checklist in
 /// <c>docs/world-export/structures.md</c>. Stable names for what a refusal is about, the way <c>HS*</c> names
 /// a house-style rule and <c>PL*</c> a plan one — and kept apart from any task-tracking id, since a rule an
@@ -117,6 +126,25 @@ public static class RoomFrameRules
     /// move the <c>rect</c> of the room's piece in <c>pieces</c> onto level ground.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Structure, RuleConcern.World, RuleConcern.Terrain)]
     public const string StructureOnAPlinth = "WX11";
+
+    /// <summary>A chest or a monument seat a room's house states is not on the floor inside the room's walls, or is
+    /// on its pad.</summary>
+    /// <remarks>Either move the cell in <c>house.chests</c> or <c>house.monuments</c> until it is inside the walls
+    /// and off the pad, or delete it from <c>house.chests</c> or <c>house.monuments</c>.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Structure, RuleConcern.Objective)]
+    public const string InteriorCellOutside = "WX15";
+
+    /// <summary>Two chests, or two monument seats, a room's house states stand on the same cell.</summary>
+    /// <remarks>Move one of the two in <c>house.chests</c> or <c>house.monuments</c> onto a cell of its
+    /// own.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Structure, RuleConcern.Objective)]
+    public const string InteriorCellShared = "WX16";
+
+    /// <summary>The monument seats a spawn room's house states are fewer than the wools its team captures.</summary>
+    /// <remarks>Either add a seat to <c>house.monuments</c> for each wool the team captures, or delete
+    /// <c>monuments</c> from the <c>house</c>.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Structure, RuleConcern.Spawn, RuleConcern.Objective)]
+    public const string MonumentSeatsStated = "WX17";
 }
 
 /// <summary>One iron marker's resolution beside a spawn room (WX8/WX9): the cube footprint min corner and
@@ -470,8 +498,99 @@ public static class RoomFrames
             : new IronResolution(ironX, ironZ, 0, 0, 0, Placeable: false);
     }
 
-    /// <summary>The interior corner cells (chest stacks in a wool room), door-wall corners first.</summary>
-    public static IReadOnlyList<(int X, int Z)> InteriorCorners(RoomFrame frame) =>
+    /// <summary>
+    /// What a room holds inside its walls: the chest stacks and the monument seats, each where the room's house
+    /// states it, else where the room derives it. A stated cell is an <c>(dx, dz)</c> offset from the footprint's
+    /// lowest corner — the first wing's — and a list stated with a cell outside the interior or on the pad
+    /// (<c>WX15</c>), or two on one cell (<c>WX16</c>), is the refusal and the derived list stands in its place.
+    ///
+    /// <para>Derived, the chests stand in the four interior corners, door-wall corners first, and the seats run
+    /// in <see cref="MonumentSlots"/> order. Every chest opens along the door's axis, away from whichever wall on
+    /// that axis is nearer — toward the door where the two are equally far; every stated seat hugs its nearest
+    /// wall, the back wall then the door wall then the left-hand side wall on a tie, so a room and its orbit
+    /// image seat alike.</para>
+    /// </summary>
+    /// <param name="frame">The room.</param>
+    /// <param name="chests">The chest cells the house states, or null for the corners.</param>
+    /// <param name="monuments">The seat cells the house states, in seat order, or null for the derived
+    /// seats.</param>
+    /// <param name="refusal">The <see cref="RoomFrameRules"/> finding a stated list raised, or null.</param>
+    public static RoomInterior Interior(
+        RoomFrame frame, IReadOnlyList<(int Dx, int Dz)>? chests, IReadOnlyList<(int Dx, int Dz)>? monuments,
+        out Finding? refusal)
+    {
+        var doorEdge = frame.Doors.Count > 0 ? frame.Doors[0].Edge : RoomEdge.NegZ;
+        var chestRefusal = Unseatable(frame, chests, "chest");
+        var seatRefusal = Unseatable(frame, monuments, "monument seat");
+        refusal = chestRefusal ?? seatRefusal;
+
+        IReadOnlyList<(int X, int Z)> chestCells = chests is not null && chestRefusal is null
+            ? Absolute(frame, chests)
+            : InteriorCorners(frame);
+        IReadOnlyList<MonumentSlot> seats = monuments is not null && seatRefusal is null
+            ? [.. Absolute(frame, monuments).Select(cell => new MonumentSlot(cell.X, cell.Z, NearestWall(frame, doorEdge, cell.X, cell.Z)))]
+            : frame.Doors.Count > 0 ? MonumentSlots(frame, frame.Doors[0]) : [];
+        return new RoomInterior(
+            [.. chestCells.Select(cell => new ChestStack(cell.X, cell.Z, ChestFacing(frame, doorEdge, cell.X, cell.Z)))],
+            seats);
+    }
+
+    private static List<(int X, int Z)> Absolute(RoomFrame frame, IReadOnlyList<(int Dx, int Dz)> cells) =>
+        [.. cells.Select(cell => (frame.MinX + cell.Dx, frame.MinZ + cell.Dz))];
+
+    /// <summary>The refusal a stated list raises — a cell off the interior or on the pad, or two on one cell —
+    /// or null where every cell can be seated.</summary>
+    private static Finding? Unseatable(RoomFrame frame, IReadOnlyList<(int Dx, int Dz)>? cells, string what)
+    {
+        if (cells is null) return null;
+        var pad = frame.Pad;
+        var taken = new HashSet<(int X, int Z)>();
+        for (var at = 0; at < cells.Count; at++)
+        {
+            var (x, z) = (frame.MinX + cells[at].Dx, frame.MinZ + cells[at].Dz);
+            var inside = x >= frame.InteriorMinX && x < frame.InteriorMaxX && z >= frame.InteriorMinZ && z < frame.InteriorMaxZ;
+            var onPad = x >= pad.MinX && x < pad.MinX + pad.Size && z >= pad.MinZ && z < pad.MinZ + pad.Size;
+            if (!inside || onPad)
+                return new Finding(RoomFrameRules.InteriorCellOutside,
+                    $"states {what} {at} at ({cells[at].Dx}, {cells[at].Dz}) from its corner, "
+                    + (onPad ? "on its pad" : "outside the floor inside its walls"));
+            if (!taken.Add((x, z)))
+                return new Finding(RoomFrameRules.InteriorCellShared,
+                    $"states {what} {at} at ({cells[at].Dx}, {cells[at].Dz}) from its corner, on the cell of another");
+        }
+        return null;
+    }
+
+    /// <summary>The way a chest on (<paramref name="x"/>, <paramref name="z"/>) opens: along the door's axis, away
+    /// from the nearer wall on it, which is open room on the other side whichever wall that is — toward the door
+    /// where both are equally far.</summary>
+    private static RoomEdge ChestFacing(RoomFrame frame, RoomEdge doorEdge, int x, int z)
+    {
+        var (toLow, toHigh, low, high) = doorEdge.AlongX()
+            ? (z - frame.InteriorMinZ, frame.InteriorMaxZ - 1 - z, RoomEdge.NegZ, RoomEdge.PosZ)
+            : (x - frame.InteriorMinX, frame.InteriorMaxX - 1 - x, RoomEdge.NegX, RoomEdge.PosX);
+        return toLow < toHigh ? high : toHigh < toLow ? low : doorEdge;
+    }
+
+    /// <summary>The wall a seat on (<paramref name="x"/>, <paramref name="z"/>) hugs: the nearest, ties going to
+    /// the back wall, then the door wall, then the left-hand side wall of someone in the door looking out.</summary>
+    private static RoomEdge NearestWall(RoomFrame frame, RoomEdge doorEdge, int x, int z)
+    {
+        var (lowSide, highSide) = doorEdge.AlongX() ? (RoomEdge.NegX, RoomEdge.PosX) : (RoomEdge.NegZ, RoomEdge.PosZ);
+        var leftSide = doorEdge.AlongRunsRight(frame.Reflected) ? lowSide : highSide;
+        RoomEdge[] ranked = [doorEdge.Opposite(), doorEdge, leftSide, leftSide.Opposite()];
+        int Distance(RoomEdge wall) => wall switch
+        {
+            RoomEdge.NegX => x - frame.InteriorMinX,
+            RoomEdge.PosX => frame.InteriorMaxX - 1 - x,
+            RoomEdge.NegZ => z - frame.InteriorMinZ,
+            _ => frame.InteriorMaxZ - 1 - z,
+        };
+        return ranked.MinBy(Distance);
+    }
+
+    /// <summary>The interior corner cells, door-wall corners first.</summary>
+    private static IReadOnlyList<(int X, int Z)> InteriorCorners(RoomFrame frame) =>
     [
         (frame.InteriorMinX, frame.InteriorMinZ), (frame.InteriorMaxX - 1, frame.InteriorMinZ),
         (frame.InteriorMinX, frame.InteriorMaxZ - 1), (frame.InteriorMaxX - 1, frame.InteriorMaxZ - 1),
@@ -485,7 +604,7 @@ public static class RoomFrames
     /// under a reflection too, since a <see cref="RoomFrame.Reflected"/> frame counts from the other hand.
     /// The list's length is the room's monument capacity; the caller takes the first N.
     /// </summary>
-    public static IReadOnlyList<MonumentSlot> MonumentSlots(RoomFrame frame, RoomDoor door)
+    private static IReadOnlyList<MonumentSlot> MonumentSlots(RoomFrame frame, RoomDoor door)
     {
         // Work in a door-local reading: `along` runs along the door wall, `near` is the door wall's interior
         // row/column and `far` the opposite wall's. Mapping back out depends only on the door edge.

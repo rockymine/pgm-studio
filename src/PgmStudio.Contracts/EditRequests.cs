@@ -339,6 +339,22 @@ public sealed record PieceDoor(
 /// it, which these are.</param>
 public sealed record RoomDoorsDto(List<PieceDoor> Doors, bool Stated);
 
+/// <summary>The chests and monument seats a room is built with — the answer of
+/// <c>GET /map/{slug}/intent/pieces/{id}/interior</c>. Every cell is an <c>[dx, dz]</c> offset from
+/// <paramref name="Corner"/>, the way the room's house states them.</summary>
+/// <param name="Corner">The lowest corner of the room's first wing, <c>[x, z]</c>.</param>
+/// <param name="Floor">The floor inside the walls, <c>[minDx, minDz, maxDx, maxDz]</c> from the corner,
+/// max-exclusive — where a stated cell may stand.</param>
+/// <param name="Pad">The pad, the same way — where none may.</param>
+/// <param name="Chests">A wool room's chest stacks; empty for a spawn room.</param>
+/// <param name="Monuments">A spawn room's monument seats, in the order its captured wools take them; empty for a
+/// wool room.</param>
+/// <param name="Seated">How many wools the room seats: the first this many seats hold one each.</param>
+/// <param name="Stated">Whether the room's house states the list its kind holds; a room stating none is built with
+/// the one it derives, which these are.</param>
+public sealed record RoomInteriorDto(
+    int[] Corner, int[] Floor, int[] Pad, List<int[]> Chests, List<int[]> Monuments, int Seated, bool Stated);
+
 /// <summary>One setting of a play piece — the body of <c>PATCH /map/{slug}/intent/pieces/{id}/settings</c>: a
 /// goal's name, design, material, lava, float or leak, a wool's colour, or a spawn's facing.</summary>
 /// <param name="Key">Which setting.</param>

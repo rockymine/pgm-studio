@@ -63,7 +63,7 @@ public sealed class RoomFramesTests
             await Assert.That((room!.MinX, room.MinZ, room.MaxX, room.MaxZ)).IsEqualTo((0, 0, 5, 5));
             await Assert.That(room.Pad.Size).IsEqualTo(2);
             await Assert.That(room.Wall).IsEqualTo(0);                    // no walls stand at this span
-            await Assert.That(RoomFrames.InteriorCorners(room)).Contains((0, 0));
+            await Assert.That(RoomFrames.Interior(room, null, null, out _).Chests.Select(chest => (chest.X, chest.Z))).Contains((0, 0));
         }
 
         // Two more blocks on each axis and the same binding raises them.
@@ -183,7 +183,7 @@ public sealed class RoomFramesTests
         // The minimum room: 4×4 interior, 2-wide door → 4 corners + 2 back mids; the two door-row mid
         // cells sit inside the door opening and are never seated.
         var frame = RoomFrames.Resolve(new BlockRect(0, 0, 8, 8), footprint: null, shellBound: true, 4, 4, [new AskedDoor(RoomEdge.NegZ)], spawn: true, out _)!;
-        var slots = RoomFrames.MonumentSlots(frame, frame.Doors[0]);
+        var slots = RoomFrames.Interior(frame, null, null, out _).Monuments;
         await Assert.That(slots.Count).IsEqualTo(6);
         // Corners first: the door wall pair (z=2), then the back pair (z=5).
         await Assert.That((slots[0].X, slots[0].Z)).IsEqualTo((2, 2));
@@ -208,8 +208,8 @@ public sealed class RoomFramesTests
             -8, -14, [new AskedDoor(door)], spawn: true, out _)!;
         var image = RoomFrames.Resolve(new BlockRect(2, 8, 14, 20), footprint: null, shellBound: true,
             8, 14, [new AskedDoor(door.Opposite())], spawn: true, out _)!;
-        var seats = RoomFrames.MonumentSlots(room, room.Doors[0]);
-        var turned = RoomFrames.MonumentSlots(image, image.Doors[0]);
+        var seats = RoomFrames.Interior(room, null, null, out _).Monuments;
+        var turned = RoomFrames.Interior(image, null, null, out _).Monuments;
 
         await Assert.That(string.Join(" ", turned.Select(seat => (-1 - seat.X, -1 - seat.Z, seat.Wall.Opposite()))))
             .IsEqualTo(string.Join(" ", seats.Select(seat => (seat.X, seat.Z, seat.Wall))));
@@ -238,11 +238,87 @@ public sealed class RoomFramesTests
                 8, -14, [new AskedDoor(Mirror(door))], spawn: true, out _)!
             : RoomFrames.Resolve(new BlockRect(-14, 8, -2, 20), footprint: null, shellBound: true,
                 -8, 14, [new AskedDoor(Mirror(door))], spawn: true, out _)!) with { Reflected = true };
-        var seats = RoomFrames.MonumentSlots(room, room.Doors[0]);
-        var mirrored = RoomFrames.MonumentSlots(image, image.Doors[0]);
+        var seats = RoomFrames.Interior(room, null, null, out _).Monuments;
+        var mirrored = RoomFrames.Interior(image, null, null, out _).Monuments;
 
         await Assert.That(string.Join(" ", mirrored.Select(seat => (Cell(seat.X, seat.Z), Mirror(seat.Wall)))))
             .IsEqualTo(string.Join(" ", seats.Select(seat => ((seat.X, seat.Z), seat.Wall))));
+    }
+
+    // ── WX15–WX16 — the interior a house states ─────────────────────────────────────────────────────────
+
+    /// <summary>A walled 12 by 13 room filling its piece from (-10, -10), its marker on the grid line at (-4, -4)
+    /// and one door asked on <paramref name="door"/> — odd along one axis, so a wall has a middle cell.</summary>
+    private static RoomFrame Hall(RoomEdge door, bool reflected) =>
+        RoomFrames.Resolve(new BlockRect(-10, -10, 2, 3), new BlockRect(-10, -10, 2, 3), shellBound: true,
+            -4, -4, [new AskedDoor(door)], spawn: true, out _)! with { Reflected = reflected };
+
+    private static List<(int Dx, int Dz)> Offsets(RoomFrame frame, IEnumerable<(int X, int Z)> cells) =>
+        [.. cells.Select(cell => (cell.X - frame.MinX, cell.Z - frame.MinZ))];
+
+    [Test]
+    [Arguments(RoomEdge.NegZ, false)]
+    [Arguments(RoomEdge.PosZ, false)]
+    [Arguments(RoomEdge.NegX, false)]
+    [Arguments(RoomEdge.PosX, true)]
+    [Arguments(RoomEdge.NegZ, true)]
+    [Arguments(RoomEdge.PosX, false)]
+    public async Task A_house_stating_the_derived_cells_is_built_as_one_stating_none(RoomEdge door, bool reflected)
+    {
+        // What a drag writes first is the whole derived list, so every chest has to open and every seat hug the
+        // same way stated as derived, or moving one marker would turn the rest.
+        var frame = Hall(door, reflected);
+        var derived = RoomFrames.Interior(frame, null, null, out var none);
+        var stated = RoomFrames.Interior(frame,
+            Offsets(frame, derived.Chests.Select(chest => (chest.X, chest.Z))),
+            Offsets(frame, derived.Monuments.Select(seat => (seat.X, seat.Z))), out var refusal);
+
+        await Assert.That(none).IsNull();
+        await Assert.That(refusal).IsNull();
+        await Assert.That(string.Join(" ", stated.Chests)).IsEqualTo(string.Join(" ", derived.Chests));
+        await Assert.That(string.Join(" ", stated.Monuments)).IsEqualTo(string.Join(" ", derived.Monuments));
+    }
+
+    [Test]
+    public async Task A_stated_cell_stands_at_its_offset_from_the_rooms_corner_in_the_order_stated()
+    {
+        var frame = Hall(RoomEdge.NegZ, reflected: false);   // footprint from (-10, -10), interior 1 in from it
+        var interior = RoomFrames.Interior(frame, [(5, 11), (1, 6)], [(10, 6), (1, 1), (5, 11)], out var refusal);
+
+        await Assert.That(refusal).IsNull();
+        // A chest against the back wall opens toward the door; one halfway between the door wall and the back
+        // wall opens toward the door too.
+        await Assert.That(interior.Chests[0]).IsEqualTo(new ChestStack(-5, 1, RoomEdge.NegZ));
+        await Assert.That(interior.Chests[1]).IsEqualTo(new ChestStack(-9, -4, RoomEdge.NegZ));
+        // A seat hugs its nearest wall: the east side wall, the door-wall corner, then the back wall.
+        await Assert.That(interior.Monuments[0]).IsEqualTo(new MonumentSlot(0, -4, RoomEdge.PosX));
+        await Assert.That(interior.Monuments[1]).IsEqualTo(new MonumentSlot(-9, -9, RoomEdge.NegZ));
+        await Assert.That(interior.Monuments[2]).IsEqualTo(new MonumentSlot(-5, 1, RoomEdge.PosZ));
+    }
+
+    [Test]
+    [Arguments(0, 3, "WX15")]     // on the west wall's course
+    [Arguments(11, 3, "WX15")]    // on the east wall's course
+    [Arguments(5, 12, "WX15")]    // outside the footprint
+    [Arguments(5, 6, "WX15")]     // on the pad
+    public async Task A_stated_cell_off_the_floor_or_on_the_pad_is_refused_and_the_derived_cells_stand(int dx, int dz, string rule)
+    {
+        var frame = Hall(RoomEdge.NegZ, reflected: false);
+        var derived = RoomFrames.Interior(frame, null, null, out _);
+        var interior = RoomFrames.Interior(frame, [(1, 1), (dx, dz)], [(dx, dz)], out var refusal);
+
+        await Assert.That(refusal?.Rule).IsEqualTo(rule);
+        await Assert.That(string.Join(" ", interior.Chests)).IsEqualTo(string.Join(" ", derived.Chests));
+        await Assert.That(string.Join(" ", interior.Monuments)).IsEqualTo(string.Join(" ", derived.Monuments));
+    }
+
+    [Test]
+    public async Task Two_stated_cells_on_one_cell_are_refused()
+    {
+        var frame = Hall(RoomEdge.NegZ, reflected: false);
+        RoomFrames.Interior(frame, null, [(1, 1), (2, 1), (1, 1)], out var refusal);
+
+        await Assert.That(refusal?.Rule).IsEqualTo(RoomFrameRules.InteriorCellShared);
     }
 
     // ── WX8/WX9 — iron beside the room ──────────────────────────────────────────────────────────────────
@@ -346,8 +422,8 @@ public sealed class RoomFramesTests
     {
         var small = RoomFrames.Resolve(new BlockRect(0, 0, 8, 8), footprint: null, shellBound: true, 4, 4, [new AskedDoor(RoomEdge.NegZ)], spawn: true, out _)!;
         var large = RoomFrames.Resolve(new BlockRect(0, 0, 14, 14), footprint: null, shellBound: true, 7, 7, [new AskedDoor(RoomEdge.NegZ)], spawn: true, out _)!;
-        var smallSeats = RoomFrames.MonumentSlots(small, small.Doors[0]).Count;
-        var largeSeats = RoomFrames.MonumentSlots(large, large.Doors[0]).Count;
+        var smallSeats = RoomFrames.Interior(small, null, null, out _).Monuments.Count;
+        var largeSeats = RoomFrames.Interior(large, null, null, out _).Monuments.Count;
         await Assert.That(largeSeats).IsGreaterThan(smallSeats);
     }
 

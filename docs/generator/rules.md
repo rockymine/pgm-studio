@@ -680,7 +680,7 @@ disagree with the one that runs.
   the way in, so it carries a line and a door like any other. The editor renders terrain↔wool-room interfaces **red**. Each of the four corner chests
   turns to open into the room rather than facing a wall: a corner touches two shell walls at once,
   and the room's own door breaks the tie — every chest faces away from whichever of its two walls
-  sits on the door's axis (`WoolChests`).
+  sits on the door's axis (`RoomFrames.Interior`).
 - **ST2 [expert]** *Spawn piece* (optional): defines the spawn **region** and **the ground the
   spawn room is framed on** (the WX footprint rule). Iron placed inside it is **auto-renewed** in
   the generated XML (load-bearing for gameplay); lint: every iron marker's **whole cube** belongs

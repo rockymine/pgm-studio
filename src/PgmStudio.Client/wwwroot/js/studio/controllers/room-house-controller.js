@@ -12,6 +12,12 @@
  * adds one there or takes away the one already there; the whole list goes to the host, which writes the doors. The
  * host hands the doors in as the room is built with them, so a wool stating none shows the one it is given.
  *
+ * The room's chests (a wool room) and monument seats (a spawn room) are drawn inside its first wing as the host reads
+ * them built, a small square or ring on each block, and the seats past the wools the room seats are drawn hollow.
+ * Each drags by whole blocks, held to the floor inside the walls and off the pad and off the others; the release
+ * hands the whole list, as offsets from the first wing's lowest corner, to the host, which writes it on the house —
+ * so a room stating none states every derived cell, the dragged one moved.
+ *
  * Wings are read off the canvas's structural shapes — `{room}-building` for the room's own wing, then
  * `{room}-building-2` on — whose bounds are max-exclusive, and handed back the same way.
  */
@@ -29,6 +35,8 @@ const WALL_REACH = 10;
 // Blocks: a door's bar is about a door wide, and a shift-press this close along its wall takes the door away.
 const DOOR_HALF = 1.5;
 const DOOR_REACH = 2;
+// Screen px: the least a chest's or a seat's marker is drawn across, however far out the board is zoomed.
+const CELL_MARKER_MIN = 6;
 
 export class RoomHouseController {
   #layer;
@@ -43,13 +51,14 @@ export class RoomHouseController {
   #ghost = null;
   #hover = null;          // the world point the pointer last stood at
   #doors = null;          // { room, doors } — the doors the picked room is built with, as the host read them
+  #interior = null;       // { room, corner, floor, pad, chests, monuments, seated } — its chests and seats, as built
 
   /**
    * @param layer         SVGGElement — screen-space layer for the grips and the marker
    * @param getViewport   () => { scale, panX, panY }
    * @param getStructural () => the canvas's structural shapes, rooms and their wings among them
-   * @param callbacks     { onEdited(room, wings), onDoorsEdited(room, doors), onRefused(sentence), onPreview(),
-   *                        isEditable() }
+   * @param callbacks     { onEdited(room, wings), onDoorsEdited(room, doors), onInteriorEdited(room, field, cells,
+   *                        wings), onRefused(sentence), onPreview(), isEditable() }
    */
   constructor(layer, getViewport, getStructural, callbacks = {}) {
     this.#layer = layer;
@@ -64,6 +73,13 @@ export class RoomHouseController {
   /** The doors `room` is built with — `[{edge, x?, z?}]`, a door with no point centred on its wall. */
   setDoors(room, doors) {
     this.#doors = room ? { room, doors: doors ?? [] } : null;
+    this.refresh(this.#picked());
+  }
+
+  /** The chests and seats `room` is built with — the interior read `{corner, floor, pad, chests, monuments, seated}`,
+   *  each cell `[dx, dz]` from `corner`. */
+  setInterior(room, interior) {
+    this.#interior = room && interior ? { room, ...structuredClone(interior) } : null;
     this.refresh(this.#picked());
   }
 
@@ -93,6 +109,7 @@ export class RoomHouseController {
         },
       });
     }
+    this.#renderInterior();
     if (this.#doors?.room !== this.#room || wings.length === 0) return;
     for (const door of this.#doors.doors) {
       const at = doorPoint(door, wings);
@@ -108,6 +125,44 @@ export class RoomHouseController {
       bar.dataset.door = door.edge;
       this.#layer.appendChild(bar);
     }
+  }
+
+  /** Each chest and seat of the picked room, a marker on its block that a press takes hold of. */
+  #renderInterior() {
+    const interior = this.#interior;
+    if (!interior || interior.room !== this.#room || !this.#layer) return;
+    const viewport = this.#getViewport();
+    const half = Math.max(CELL_MARKER_MIN / 2, (viewport.scale || 1) * 0.35);
+    for (const field of INTERIOR_FIELDS) {
+      interior[field].forEach((cell, index) => {
+        const at = toScreen(interior.corner[0] + cell[0] + 0.5, interior.corner[1] + cell[1] + 0.5, viewport);
+        const seated = field === "chests" || index < interior.seated;
+        const marker = field === "chests"
+          ? svgEl("rect", { x: at.x - half, y: at.y - half, width: 2 * half, height: 2 * half, rx: "1" })
+          : svgEl("circle", { cx: at.x, cy: at.y, r: half });
+        marker.setAttribute("fill", seated ? "var(--accent)" : "none");
+        marker.setAttribute("stroke", "var(--accent)");
+        marker.setAttribute("stroke-width", "1.5");
+        // A hollow seat is pressed anywhere inside its ring, not on the ring's stroke alone.
+        marker.setAttribute("pointer-events", "all");
+        marker.style.cursor = "move";
+        marker.dataset[field === "chests" ? "chest" : "seat"] = String(index);
+        marker.addEventListener("mousedown", (e) => {
+          if (e.button !== 0) return;
+          e.stopPropagation();
+          this.grabCell(field, index);
+        });
+        marker.addEventListener("click", (e) => e.stopPropagation());
+        this.#layer.appendChild(marker);
+      });
+    }
+  }
+
+  /** Take hold of chest or seat `index` of the picked room — `field` is `chests` or `monuments`. */
+  grabCell(field, index) {
+    const interior = this.#interior;
+    if (!interior || interior.room !== this.#room || !interior[field]?.[index]) return;
+    this.#drag = { cell: { field, index }, putBack: structuredClone(interior[field]), moved: false };
   }
 
   /** A shift-press at (wx, wz): add a door on the free wall there, or take away the one already there. Returns
@@ -162,6 +217,16 @@ export class RoomHouseController {
   /** Document mousemove while a grip is held. Returns true when consumed. */
   onHandleMove(wx, wz) {
     if (!this.#drag) return false;
+    if (this.#drag.cell) {
+      const { field, index } = this.#drag.cell;
+      const next = cellMoved(this.#interior, field, index, wx, wz);
+      if (next) {
+        this.#interior[field] = next;
+        this.#drag.moved = true;
+        this.refresh(this.#picked());
+      }
+      return true;
+    }
     const piece = this.#piece(this.#drag.wing);
     if (!piece) { this.#drag = null; return false; }
     const region = this.#region();
@@ -181,9 +246,10 @@ export class RoomHouseController {
   /** Document mouseup ending a corner drag: a resize that moved is handed to the host. */
   onHandleUp() {
     if (!this.#drag) return false;
-    const moved = this.#drag.moved;
+    const { moved, cell } = this.#drag;
     this.#drag = null;
-    if (moved) this.#callbacks.onEdited?.(this.#room, this.#wings());
+    if (moved && cell) this.#callbacks.onInteriorEdited?.(this.#room, cell.field, structuredClone(this.#interior[cell.field]), this.#wings());
+    else if (moved) this.#callbacks.onEdited?.(this.#room, this.#wings());
     return true;
   }
 
@@ -211,6 +277,35 @@ export class RoomHouseController {
     const region = this.#getStructural().find(s => s.id === this.#room);
     return region ? { min_x: region.min_x, min_z: region.min_z, max_x: region.max_x, max_z: region.max_z } : null;
   }
+}
+
+/** The two lists of cells a room's house states, as its interior read names them. */
+const INTERIOR_FIELDS = ["chests", "monuments"];
+
+/** The cells of `field` with cell `index` moved onto the block under (wx, wz), or null where that block is off the
+ *  floor inside the walls, on the pad, already holds another of the list, or is where the cell already stands. */
+export function cellMoved(interior, field, index, wx, wz) {
+  const dx = Math.floor(wx) - interior.corner[0], dz = Math.floor(wz) - interior.corner[1];
+  const [floorMinX, floorMinZ, floorMaxX, floorMaxZ] = interior.floor;
+  const [padMinX, padMinZ, padMaxX, padMaxZ] = interior.pad;
+  if (dx < floorMinX || dx >= floorMaxX || dz < floorMinZ || dz >= floorMaxZ) return null;
+  if (dx >= padMinX && dx < padMaxX && dz >= padMinZ && dz < padMaxZ) return null;
+  const cells = interior[field];
+  if (cells.some(cell => cell[0] === dx && cell[1] === dz)) return null;
+  return cells.map((cell, at) => (at === index ? [dx, dz] : [...cell]));
+}
+
+/** The cells a house states carried through a change of its room's wing from `from` to `to` (max-exclusive): each
+ *  keeps its block, stated again from the new corner and pushed back onto the floor `floor` — `[minDx, minDz, maxDx,
+ *  maxDz]` from the old corner — keeps inside the walls. */
+export function cellsCarried(cells, from, to, floor) {
+  const [lowX, lowZ] = [floor[0], floor[1]];
+  const [highX, highZ] = [(from.max_x - from.min_x) - floor[2], (from.max_z - from.min_z) - floor[3]];
+  const [spanX, spanZ] = [to.max_x - to.min_x, to.max_z - to.min_z];
+  return cells.map(([dx, dz]) => [
+    Math.min(Math.max(from.min_x + dx - to.min_x, lowX), spanX - highX - 1),
+    Math.min(Math.max(from.min_z + dz - to.min_z, lowZ), spanZ - highZ - 1),
+  ]);
 }
 
 /** The door a press at (wx, wz) on `wall` states: on the wall's outer edge, centred on the block pressed. */

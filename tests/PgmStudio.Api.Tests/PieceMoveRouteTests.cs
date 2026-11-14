@@ -103,6 +103,39 @@ public sealed class PieceMoveRouteTests
     }
 
     [Test]
+    public async Task A_rooms_seats_are_read_as_built_and_set_with_its_house()
+    {
+        var (client, slug) = await BoardAsync();
+        using var _ = client;
+        var route = $"/api/map/{slug}/intent/pieces/spawn-red";
+
+        var derived = await client.GetFromJsonAsync<RoomInteriorDto>($"{route}/interior");
+        await Assert.That(derived!.Stated).IsFalse().Because("the house states no seats");
+        await Assert.That(derived.Corner).IsEquivalentTo(new[] { 2, 2 });
+        await Assert.That(derived.Floor).IsEquivalentTo(new[] { 1, 1, 5, 5 }).Because("a wall course stands round a 6-block room");
+        await Assert.That(derived.Monuments[0]).IsEquivalentTo(new[] { 4, 4 }).Because("the door is on +z, and its left-hand corner is the east one");
+
+        object House(params int[][] seats) => new
+        {
+            house = new { wings = new object[] { new { corners = new[] { new[] { 2, 2 }, new[] { 7, 7 } } } }, monuments = seats },
+        };
+        var padded = await client.PutAsJsonAsync($"{route}/house", House([1, 1], [2, 2]));
+        await Assert.That(padded.StatusCode).IsEqualTo(HttpStatusCode.BadRequest).Because("seat 1 stands on the pad");
+        await Assert.That(await padded.Content.ReadAsStringAsync()).Contains("WX15");
+        var shared = await client.PutAsJsonAsync($"{route}/house", House([1, 1], [1, 1]));
+        await Assert.That(await shared.Content.ReadAsStringAsync()).Contains("WX16");
+
+        var set = await client.PutAsJsonAsync($"{route}/house", House([4, 1], [1, 1]));
+        await Assert.That(set.IsSuccessStatusCode).IsTrue().Because(await set.Content.ReadAsStringAsync());
+        var stated = await client.GetFromJsonAsync<RoomInteriorDto>($"{route}/interior");
+        await Assert.That(stated!.Stated).IsTrue();
+        await Assert.That(stated.Monuments.Select(cell => (cell[0], cell[1]))).IsEquivalentTo(new[] { (4, 1), (1, 1) });
+
+        var missing = await client.GetAsync($"/api/map/{slug}/intent/pieces/spawn-blue/interior");
+        await Assert.That(missing.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
+    }
+
+    [Test]
     public async Task A_rooms_doors_are_set_whole_and_read_back_as_built()
     {
         var (client, slug) = await BoardAsync();

@@ -6,6 +6,7 @@ using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Domain;
+using PgmStudio.Export;
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Vocabulary;
@@ -127,7 +128,8 @@ public sealed class IntentPieceSettingEndpoint(
 }
 
 /// <summary>PUT /api/map/{slug}/intent/pieces/{id}/house — set a room's house whole, on every image of its unit
-/// unless <c>alone</c>. <see cref="PlayPieceHouse"/> holds what it refuses.</summary>
+/// unless <c>alone</c>. <see cref="PlayPieceHouse"/> holds what it refuses of the house, and
+/// <see cref="RoomCheck.Interior"/> what it refuses of the chests and seats inside the room.</summary>
 public sealed class IntentPieceHouseEndpoint(
     MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, FeatureData features,
     PlayerLookup players)
@@ -152,13 +154,19 @@ public sealed class IntentPieceHouseEndpoint(
             return;
         }
         var intent = await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
-        var (set, refused) = PlayPieceHouse.Apply(intent, Route<string>("id")!, house, req.Alone,
+        var id = Route<string>("id")!;
+        var (set, refused) = PlayPieceHouse.Apply(intent, id, house, req.Alone,
                                                   await IntentPieceMoveEndpoint.BoardAsync(artifacts, map.Id, ct));
         if (set is null)
         {
             var missing = refused.Any(finding => finding.Rule == RequestRules.NoSuchSubject);
             await Refusals.StopAsync(HttpContext, missing ? 404 : 400,
                                      missing ? "no such piece" : "the house cannot be built", refused, ct);
+            return;
+        }
+        if (await IntentPieceInteriorEndpoint.BuiltAsync(artifacts, map.Id, set, id, ct) is { Refused.Refuses: true } inside)
+        {
+            await Refusals.StopAsync(HttpContext, 400, "the house cannot be built", inside.Refused, ct);
             return;
         }
         var applied = await IntentWrite.StoreAndProjectAsync(
@@ -261,6 +269,55 @@ public sealed class IntentPieceDoorsReadEndpoint(MapRepository repo, MapArtifact
             return;
         }
         await Send.OkAsync(new RoomDoorsDto([.. doors.Select(door => new PieceDoor(door.Edge, door.X, door.Z))], stated), ct);
+    }
+}
+
+/// <summary>GET /api/map/{slug}/intent/pieces/{id}/interior — the chests and monument seats a room is built with,
+/// each an offset from its first wing's lowest corner, and whether its house states them: a room stating none
+/// answers the ones it derives.</summary>
+public sealed class IntentPieceInteriorEndpoint(MapRepository repo, MapArtifactStore artifacts)
+    : EndpointWithoutRequest<RoomInteriorDto>
+{
+    public override void Configure()
+    {
+        Get("/map/{slug}/intent/pieces/{id}/interior");
+        Description(b => b.Refuses(404));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+        var intent = await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
+        var id = Route<string>("id")!;
+        if (await BuiltAsync(artifacts, map.Id, intent, id, ct) is not { } built)
+        {
+            await Refusals.StopAsync(HttpContext, 404, "no such piece", Findings.Of(new Finding(RequestRules.NoSuchSubject,
+                $"the map has no spawn or wool room with the id '{id}'", Field: "id", Subjects: [id])), ct);
+            return;
+        }
+        var frame = built.Frame;
+        int[] Offset(int x, int z) => [x - frame.MinX, z - frame.MinZ];
+        var spawn = intent.Spawns.Any(entry => entry.Id == id);
+        await Send.OkAsync(new RoomInteriorDto(
+            [frame.MinX, frame.MinZ],
+            [frame.InteriorMinX - frame.MinX, frame.InteriorMinZ - frame.MinZ, frame.InteriorMaxX - frame.MinX, frame.InteriorMaxZ - frame.MinZ],
+            [frame.Pad.MinX - frame.MinX, frame.Pad.MinZ - frame.MinZ,
+             frame.Pad.MinX + frame.Pad.Size - frame.MinX, frame.Pad.MinZ + frame.Pad.Size - frame.MinZ],
+            spawn ? [] : [.. built.Interior.Chests.Select(chest => Offset(chest.X, chest.Z))],
+            spawn ? [.. built.Interior.Monuments.Select(seat => Offset(seat.X, seat.Z))] : [],
+            built.Seated, built.Stated), ct);
+    }
+
+    /// <summary>The interior the room <paramref name="id"/> of <paramref name="intent"/> is built with over the map's
+    /// stored layout — its doors settled and its shells bound the way the export builds them — or null where the
+    /// intent has no such room.</summary>
+    public static async Task<BuiltInterior?> BuiltAsync(
+        MapArtifactStore artifacts, long mapId, MapIntent intent, string id, CancellationToken ct)
+    {
+        var layout = await artifacts.LoadLayoutAsync(mapId, ct);
+        var layoutJson = layout is { Length: > 0 } ? Encoding.UTF8.GetString(layout) : null;
+        var settled = layoutJson is null ? intent : PgmStudio.Pgm.Sketch.WoolDoors.Settled(intent, layoutJson);
+        return RoomCheck.Interior(settled, id, layoutJson is null ? RoomShells.BuiltIn : RoomStyleScope.StylesOf(layoutJson));
     }
 }
 

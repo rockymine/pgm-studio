@@ -1069,6 +1069,24 @@ the room's east wall, and one centred on its south:
 { "doors": [ { "edge": "+x", "x": 0, "z": -10 }, { "edge": "+z" } ] }
 ```
 
+**A room's chests and monument seats are drawn inside its house and dragged into place.** While a wing is picked,
+each chest stack of a wool room is a small square on its block inside the room's wing, and each monument seat of a
+spawn room a small ring — filled for the seats the team's captured wools take, hollow past them. They are read from
+`GET /map/{slug}/intent/pieces/{id}/interior`, which answers the cells as built, `stated` false where the house
+states none (`RoomHouseController`). A drag moves one by whole blocks, held to the floor inside the walls, off the
+pad and off the others, and the release writes the whole list onto the house through `PUT …/house`, so a room
+stating none comes to state every cell it derives with the dragged one moved. Resizing the room's wing keeps each
+stated cell on its block, pushed back onto the floor where a wall now stands over it.
+
+Every cell is an `[dx, dz]` offset from the lowest corner of the house's first wing, and every other image of the
+room takes the images of the cells (`docs/world-export/structures.md` §1). The route refuses a cell off the floor or
+on the pad (`WX15`), two on one cell (`WX16`) and fewer seats than the team captures (`WX17`), and the drawing goes
+back. A spawn whose first seat stands in the north-west corner of a 12-block room:
+
+```json PUT /api/map/{slug}/intent/pieces/{id}/house
+{ "house": { "wings": [ { "corners": [[-16, -16], [-5, -5]] } ], "monuments": [[1, 1], [10, 1], [1, 10]] } }
+```
+
 **A wall runs through its corners, and bends at every one between its ends.** A wall states `points`, two or more
 block corners in order, and is laid two blocks thick along every leg, the four blocks round each bend filled so
 the band turns without a notch (`WallLine`). In Layout a picked wall wears a square grip on each corner: dragging

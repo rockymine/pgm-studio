@@ -6,16 +6,11 @@ using PgmStudio.Minecraft.Palette;
 namespace PgmStudio.Minecraft.Stamping;
 
 /// <summary>
-/// Stamps the wool-room loot: two stacked chests in each of the four interior corners of the room
-/// (docs/world-export/sketch-world-export.md §2a). The lower chest (A) holds a row of planks ×16, a row of
+/// Stamps the wool-room loot: a stack of two chests on each <see cref="ChestStack"/> the room holds
+/// (<see cref="RoomFrames.Interior"/> — the four interior corners where its house states none;
+/// docs/world-export/sketch-world-export.md §2a). The lower chest (A) holds a row of planks ×16, a row of
 /// Speed I (3:00) potions, and a row of golden apples ×16; the upper chest (B) holds a row of diamond
-/// leggings, a row of Power I + Infinity bows, and a row of planks ×16. Corners come from the room's
-/// <see cref="RoomFrame"/>, so the loadout rides any footprint.
-///
-/// <para>Each corner touches two walls at once, so opening away from just one of them is not enough — a
-/// chest that ignores the second wall still fronts it half the time. The room's own door breaks the tie:
-/// every chest opens along the door's axis, away from whichever of its two walls sits on that axis, which
-/// is never the door wall itself and always the wall the room was entered past.</para>
+/// leggings, a row of Power I + Infinity bows, and a row of planks ×16.
 /// </summary>
 public static class WoolChests
 {
@@ -23,25 +18,14 @@ public static class WoolChests
     private const int EnchPower = 48;
     private const int EnchInfinity = 51;
 
-    public static void Stamp(VoxelWorld world, RoomFrame frame, int floorY)
+    public static void Stamp(VoxelWorld world, IReadOnlyList<ChestStack> chests, int floorY)
     {
-        var doorEdge = frame.Doors.Count > 0 ? frame.Doors[0].Edge : RoomEdge.NegZ;
-        foreach (var (cornerX, cornerZ) in RoomFrames.InteriorCorners(frame))
+        foreach (var chest in chests)
         {
-            var facing = CornerFacing(frame, doorEdge, cornerX, cornerZ);
-            ChestBuilder.Place(world, cornerX, floorY + 1, cornerZ, facing, ChestA());   // resting on the bedrock floor
-            ChestBuilder.Place(world, cornerX, floorY + 2, cornerZ, facing, ChestB());
+            var facing = BlockGeometry.Fronting(chest.Facing);
+            ChestBuilder.Place(world, chest.X, floorY + 1, chest.Z, facing, ChestA());   // resting on the bedrock floor
+            ChestBuilder.Place(world, chest.X, floorY + 2, chest.Z, facing, ChestB());
         }
-    }
-
-    // The wall a corner touches on the door's own axis decides the facing: away from that wall is always
-    // open room on the other side, whichever of the corner's two walls it turns out to be. A door wall that
-    // runs along x is a door whose own axis is z, so that is the axis the chest opens on.
-    private static int CornerFacing(RoomFrame frame, RoomEdge doorEdge, int cornerX, int cornerZ)
-    {
-        if (doorEdge.AlongX())
-            return BlockGeometry.Fronting(cornerZ == frame.InteriorMinZ ? RoomEdge.PosZ : RoomEdge.NegZ);
-        return BlockGeometry.Fronting(cornerX == frame.InteriorMinX ? RoomEdge.PosX : RoomEdge.NegX);
     }
 
     private static IEnumerable<(int, NbtCompound)> ChestA() =>

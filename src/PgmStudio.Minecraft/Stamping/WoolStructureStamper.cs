@@ -45,7 +45,9 @@ public sealed record WoolStructure
     /// that wants a gabled roof over its wool can simply say so.</summary>
     public HouseStyle? Shell { get; init; } = HouseStyle.Wool;
 
-    public bool Chests { get; init; } = true;
+    /// <summary>The chest stacks inside it, or null for the ones its <see cref="Frame"/> derives
+    /// (<see cref="RoomFrames.Interior"/>); empty stocks none.</summary>
+    public IReadOnlyList<ChestStack>? Chests { get; init; }
 
     /// <summary>The room's house where it has more than the frame: the frame's own wing first, then the wings
     /// joined to it, max-inclusive. Empty stamps the frame alone.</summary>
@@ -72,7 +74,7 @@ public static class WoolStructureStamper
         var placed = PadStamp.Lay(world, frame.Pad, room.FloorY, Blocks.Wool,
             BlockColors.BlockDamage(room.WoolSlug));
 
-        if (room.Chests) WoolChests.Stamp(world, frame, room.FloorY);
+        WoolChests.Stamp(world, room.Chests ?? RoomFrames.Interior(frame, null, null, out _).Chests, room.FloorY);
         if (room.Entrance is { } line)
             StructureStamper.StampRedstoneLine(world, room.Ground, line.X1, line.Z1, line.X2, line.Z2);
 

@@ -19,6 +19,3 @@ optimisation and the user experience. The generator's behaviour is frozen — a 
 nothing it makes is welcome, a change to what it makes is not — and its layout entries move to
 `docs/generator/ideas.md`.
 
-- [ ] **WE168 — A room's interior is placed relative to its house.** The chests (`WoolChests`, `RoomFrames.InteriorCorners`) and the monuments (`RoomFrames.MonumentSlots`) are
-  stated on the room's `house` as positions relative to its first wing, movable in Layout, and a migration
-  carries each derived position into the stored one. `docs/world-export/structures.md`.

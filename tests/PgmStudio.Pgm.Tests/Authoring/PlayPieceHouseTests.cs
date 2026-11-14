@@ -80,6 +80,33 @@ public sealed class PlayPieceHouseTests
     }
 
     [Test]
+    public async Task The_seats_a_house_states_are_carried_to_the_mirror_from_its_own_corner()
+    {
+        var house = RoomHouse.Over(new Rect(2, 2, 8, 8)) with { Monuments = [[1, 1], [4, 2]] };
+
+        var (set, refused) = PlayPieceHouse.Apply(Mirrored(), "spawn-red", house);
+
+        await Assert.That(refused.Count).IsEqualTo(0);
+        await Assert.That(set!.Spawns[0].House!.Monuments!.Select(cell => (cell[0], cell[1]))).IsEquivalentTo(new[] { (1, 1), (4, 2) });
+        await Assert.That(set.Spawns[1].House!.Monuments!.Select(cell => (cell[0], cell[1])))
+            .IsEquivalentTo(new[] { (4, 1), (1, 2) })
+            .Because("board cell 3 mirrors across x = 50 onto 96, four from the image's corner at 92");
+    }
+
+    [Test]
+    public async Task A_house_stating_what_its_room_does_not_hold_or_a_cell_that_is_no_cell_is_refused()
+    {
+        var chested = RoomHouse.Over(new Rect(2, 2, 8, 8)) with { Chests = [[1, 1]] };
+        var broken = RoomHouse.Over(new Rect(2, 2, 8, 8)) with { Monuments = [[1, 1, 1]] };
+
+        var (_, chests) = PlayPieceHouse.Apply(Mirrored(), "spawn-red", chested);
+        var (_, cell) = PlayPieceHouse.Apply(Mirrored(), "spawn-red", broken);
+
+        await Assert.That(chests.Single().Field).IsEqualTo("house.chests");
+        await Assert.That(cell.Single().Field).IsEqualTo("house.monuments[0]");
+    }
+
+    [Test]
     public async Task A_room_nobody_states_is_no_such_subject()
     {
         var (_, refused) = PlayPieceHouse.Apply(Mirrored(), "spawn-green", RoomHouse.Over(new Rect(2, 2, 8, 8)));

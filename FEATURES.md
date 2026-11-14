@@ -3782,6 +3782,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `<regions>` child, an inline union standing for each member, each with the nearest yaw stated
   (`Spawn.Regions`, the spawn row's `regions_json`, `M0094`), written back so PGM reads the same set; renders,
   traversability and kit reach start from every one. `docs/pgm/region-authoring.md`, `docs/pgm/portals.md`.
+- **A room's interior is stated on its house (`WE168`).** `house.chests` and `house.monuments` are `[dx, dz]` cells
+  from the first wing's lowest corner, absent where the room derives them, so stored rows stand as they are; one
+  resolve answers them for the stampers, the checks and `GET …/intent/pieces/{id}/interior` (`RoomFrames.Interior`),
+  an image states the images of the cells (`RoomHouse.Mapped`), `WX15`–`WX17` refuse what does not fit, and Layout
+  drags each by whole blocks. `docs/world-export/structures.md`, `docs/tools/sketch.md`.
 - **Every seeded house stamps the same columns in a room's mirror and turned images (`WE162`).** A wall-run
   pattern's arc is counted from the door wall's left hand (`BuildingPlan.HandedArc`), so a stilt storey's air gaps
   open on matching columns, and a saltbox fronting an end wall turns its steep side to the left hand; the orbit

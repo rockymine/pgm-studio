@@ -74,6 +74,45 @@ public sealed class RoomCheckTests
     }
 
     [Test]
+    public async Task A_stated_seat_on_a_wall_or_a_chest_on_the_pad_is_refused_and_named_by_its_room()
+    {
+        var walled = Clean() with { Spawns = [Spawn() with { House = Spawn().House! with { Monuments = [[0, 3]] } }] };
+        var padded = Clean() with { Wools = [Wool("wool-lime") with { House = Wool("wool-lime").House! with { Chests = [[1, 1], [5, 5]] } }] };
+
+        var seat = RoomCheck.Check(walled, RoomShells.BuiltIn).Single();
+        var chest = RoomCheck.Check(padded, RoomShells.BuiltIn).Single();
+
+        await Assert.That(seat.Rule).IsEqualTo(RoomFrameRules.InteriorCellOutside);
+        await Assert.That(seat.Message).StartsWith("the spawn room of 'spawn-red' states monument seat 0 at (0, 3)");
+        await Assert.That(chest.Rule).IsEqualTo(RoomFrameRules.InteriorCellOutside);
+        await Assert.That(chest.Subjects!).IsEquivalentTo(new[] { "wool-lime" });
+    }
+
+    [Test]
+    public async Task A_house_stating_fewer_seats_than_its_team_captures_is_refused_by_its_own_rule()
+    {
+        var none = Clean() with { Spawns = [Spawn() with { House = Spawn().House! with { Monuments = [] } }] };
+
+        await Assert.That(Rules(none)).IsEquivalentTo(new[] { RoomFrameRules.MonumentSeatsStated });
+    }
+
+    [Test]
+    public async Task A_rooms_interior_is_answered_on_its_frame_with_the_wools_it_seats()
+    {
+        var stated = Clean() with { Spawns = [Spawn() with { House = Spawn().House! with { Monuments = [[2, 1], [1, 9]] } }] };
+
+        var built = RoomCheck.Interior(stated, "spawn-red", RoomShells.BuiltIn)!;
+        var derived = RoomCheck.Interior(Clean(), "wool-lime", RoomShells.BuiltIn)!;
+
+        await Assert.That(built.Stated).IsTrue();
+        await Assert.That(built.Seated).IsEqualTo(1);
+        await Assert.That(built.Interior.Monuments.Select(seat => (seat.X, seat.Z))).IsEquivalentTo(new[] { (6, 5), (5, 13) });
+        await Assert.That(derived.Stated).IsFalse();
+        await Assert.That(derived.Interior.Chests.Count).IsEqualTo(4);
+        await Assert.That(RoomCheck.Interior(Clean(), "spawn-green", RoomShells.BuiltIn)).IsNull();
+    }
+
+    [Test]
     public async Task An_image_the_symmetry_carried_is_not_asked_again()
     {
         var mirrored = Clean() with { Wools = [Wool("wool-lime"), Wool("wool-lime", image: 1) with { Doors = [new StatedDoor("up", 40, 8)] }] };

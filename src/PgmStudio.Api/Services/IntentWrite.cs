@@ -150,8 +150,9 @@ public static class IntentWrite
     }
 
     /// <summary>The refusal for a room's house the build cannot raise as stated, or null where every one can: a
-    /// house with no wing, a wing that is not two corners with an x and a z each, or a style of its own that
-    /// does not read or that its own checks refuse. Each finding names its field under
+    /// house with no wing, a wing that is not two corners with an x and a z each, a chest or seat cell that is not
+    /// an x and a z, or a style of its own that does not read or that its own checks refuse. Each finding names its
+    /// field under
     /// <paramref name="member"/>.</summary>
     public static Refusal? Unbuildable(MapIntent intent, string member = "")
     {
@@ -168,6 +169,11 @@ public static class IntentWrite
                 if (house.Wings[at].Corners is not { Count: 2 } corners || corners.Any(corner => corner.Length != 2))
                     refused.Add(new Finding(RequestRules.Unreadable,
                         $"wing {at} of `{field}` is not two corners with an x and a z each", Field: $"{field}.wings[{at}]"));
+            foreach (var (cells, list) in new[] { (house.Chests, "chests"), (house.Monuments, "monuments") })
+                for (var at = 0; at < (cells?.Count ?? 0); at++)
+                    if (cells![at] is not { Length: 2 })
+                        refused.Add(new Finding(RequestRules.Unreadable,
+                            $"cell {at} of `{field}.{list}` is not an x and a z", Field: $"{field}.{list}[{at}]"));
             if (house.Style is not { ValueKind: JsonValueKind.Object } own) continue;
             var node = System.Text.Json.Nodes.JsonNode.Parse(own.GetRawText());
             HouseStyleJson.Upgrade(node);

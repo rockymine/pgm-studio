@@ -1,9 +1,10 @@
 // A room's house shaped in Layout (controllers/room-house-controller.js): which room and wing a building shape
-// is, and the wing a click on a free wall adds — five deep, shrunk to the room's region, refused where none fits.
+// is, the wing a click on a free wall adds — five deep, shrunk to the room's region, refused where none fits — and
+// the chests and seats dragged inside it.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { RoomHouseController }
+import { RoomHouseController, cellMoved, cellsCarried }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/controllers/room-house-controller.js";
 import { wingOf } from "../../src/PgmStudio.Client/wwwroot/js/studio/shared/pick.js";
 import { TRANSFORM_CORNERS, TRANSFORM_EDGES }
@@ -126,4 +127,61 @@ test("a door is drawn where the stamper cuts it: on the free wall holding it, ne
   // A second wing along the east wall carries a door stated on its own face.
   const grown = [...wings, { min_x: 12, min_z: 4, max_x: 17, max_z: 14 }];
   assert.deepEqual(doorPoint({ edge: "+x", x: 17, z: 9.5 }, grown), { x: 17, z: 9.5 });
+});
+
+// ── chests and seats ─────────────────────────────────────────────────────────────────────────────────────────
+
+// The spawn's room is the wing at 2..12 × 2..18; a wall course stands round it and the pad covers 6..8 × 9..11.
+const interior = () => ({
+  corner: [2, 2], floor: [1, 1, 9, 15], pad: [4, 7, 6, 9],
+  chests: [], monuments: [[1, 1], [8, 1], [1, 14], [8, 14]], seated: 2,
+});
+
+test("a dragged seat moves by whole blocks, and the release hands the whole list from the room's corner", () => {
+  const edited = [];
+  const tools = new RoomHouseController(null, () => ({ scale: 1, panX: 0, panY: 0 }), () => shapes(), {
+    onInteriorEdited: (room, field, cells, wings) => edited.push({ room, field, cells, wings }),
+  });
+  tools.setEnabled(true);
+  tools.refresh("spawn-red-building");
+  tools.setInterior("spawn-red", interior());
+
+  tools.grabCell("monuments", 1);
+  tools.onHandleMove(7.9, 5.2);          // block (7, 5): offset (5, 3)
+  tools.onHandleUp();
+
+  assert.equal(edited.length, 1);
+  assert.equal(edited[0].field, "monuments");
+  assert.deepEqual(edited[0].cells, [[1, 1], [5, 3], [1, 14], [8, 14]], "every derived seat is stated, the dragged one moved");
+  assert.deepEqual(edited[0].wings[0], { min_x: 2, min_z: 2, max_x: 12, max_z: 18 });
+});
+
+test("a seat is held to the floor inside the walls, off the pad and off the other seats", () => {
+  const read = interior();
+  assert.equal(cellMoved(read, "monuments", 0, 2.5, 8), null, "x = 2 is the west wall's course");
+  assert.equal(cellMoved(read, "monuments", 0, 6.5, 9.5), null, "block (6, 9) is on the pad");
+  assert.equal(cellMoved(read, "monuments", 0, 10.5, 3.5), null, "block (10, 3) holds seat 1");
+  assert.equal(cellMoved(read, "monuments", 0, 3.2, 3.9), null, "block (3, 3) is where seat 0 already stands");
+  assert.deepEqual(cellMoved(read, "monuments", 0, 4.5, 3.1), [[2, 1], [8, 1], [1, 14], [8, 14]]);
+});
+
+test("a drag that never left its block writes nothing", () => {
+  const edited = [];
+  const tools = new RoomHouseController(null, () => ({ scale: 1, panX: 0, panY: 0 }), () => shapes(), {
+    onInteriorEdited: (room, field, cells) => edited.push({ room, field, cells }),
+  });
+  tools.setEnabled(true);
+  tools.refresh("spawn-red-building");
+  tools.setInterior("spawn-red", interior());
+  tools.grabCell("monuments", 0);
+  tools.onHandleMove(3.5, 3.5);           // its own block
+  tools.onHandleUp();
+  assert.deepEqual(edited, []);
+});
+
+test("a resized room keeps each stated cell on its block, pushed back onto the floor", () => {
+  const from = { min_x: 2, min_z: 2, max_x: 12, max_z: 18 };
+  // The west side drawn in two blocks, the south side out one: block (3, 3) is under the new west wall.
+  const to = { min_x: 4, min_z: 2, max_x: 12, max_z: 19 };
+  assert.deepEqual(cellsCarried([[1, 1], [8, 14], [5, 7]], from, to, [1, 1, 9, 15]), [[1, 1], [6, 14], [3, 7]]);
 });
