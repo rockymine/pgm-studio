@@ -63,9 +63,12 @@ public static class NavPoints
         foreach (var spawn in MapDoc.AsList(data.GetValueOrDefault("spawns")).OfType<Dict>())
         {
             var team = spawn.GetValueOrDefault("team") as string ?? "";
-            var box = RegionGeometry2d.Resolve(spawn.GetValueOrDefault("region"), regions);
-            if (Centre(box, regions, bounds) is { } seat)
-                points.Add(new NavPoint("spawn", team, team, seat.x, seat.z, Height(box)));
+            foreach (var region in MapDoc.SpawnRegions(spawn))
+            {
+                var box = RegionGeometry2d.Resolve(region, regions);
+                if (Centre(box, regions, bounds) is { } seat)
+                    points.Add(new NavPoint("spawn", team, team, seat.x, seat.z, Height(box)));
+            }
         }
 
         foreach (var wool in MapDoc.AsList(data.GetValueOrDefault("wools")).OfType<Dict>())

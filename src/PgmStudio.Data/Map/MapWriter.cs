@@ -290,9 +290,9 @@ public sealed class MapWriter(PgmDb db)
             await db.InsertAsync(new ScoreBoxRow { MapId = mapId, SpecJson = Json(Serializer.EncodeScoreBox(box)) }, token: ct);
 
         foreach (var s in m.Spawns)
-            await db.InsertAsync(new SpawnRow { MapId = mapId, IsObserver = false, Team = s.Team, Kit = NullIfEmpty(s.Kit), Yaw = s.Yaw, RegionKey = s.Region?.Id }, token: ct);
+            await db.InsertAsync(SpawnRowOf(mapId, s, isObserver: false), token: ct);
         if (m.ObserverSpawn is { } obs)
-            await db.InsertAsync(new SpawnRow { MapId = mapId, IsObserver = true, Team = obs.Team, Kit = NullIfEmpty(obs.Kit), Yaw = obs.Yaw, RegionKey = obs.Region?.Id }, token: ct);
+            await db.InsertAsync(SpawnRowOf(mapId, obs, isObserver: true), token: ct);
 
         foreach (var sp in m.Spawners)
             await db.InsertAsync(new MapSpawnerRow
@@ -321,6 +321,13 @@ public sealed class MapWriter(PgmDb db)
     }
 
     // ── JSON / value helpers ──────────────────────────────────────────────────────
+    /// <summary>A spawn's row: its regions as <c>[{region, yaw}]</c>, each region by the key it is stored under.</summary>
+    private static SpawnRow SpawnRowOf(long mapId, Spawn spawn, bool isObserver) => new()
+    {
+        MapId = mapId, IsObserver = isObserver, Team = spawn.Team, Kit = NullIfEmpty(spawn.Kit),
+        RegionsJson = Json(spawn.Regions.Select(place => (object?)new Dict { ["region"] = place.Region.Id, ["yaw"] = place.Yaw }).ToList()),
+    };
+
     private static string? NullIfEmpty(string s) => string.IsNullOrEmpty(s) ? null : s;
     private static string Slug(string v) => v.Trim().ToLowerInvariant().Replace(" ", "_");
     private static Dict Xyz(Vec3 v) => new() { ["x"] = v.X, ["y"] = v.Y, ["z"] = v.Z };

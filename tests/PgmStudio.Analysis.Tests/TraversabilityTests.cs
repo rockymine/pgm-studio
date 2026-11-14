@@ -39,7 +39,7 @@ public sealed class TraversabilityTests
         var data = new Dict
         {
             ["regions"] = new Dict { ["home"] = Rect(0, 0, 4, 4) },
-            ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["region"] = "home" } },
+            ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["regions"] = new List<object?> { new Dict { ["region"] = "home" } } } },
             ["flags"] = new List<object?>
             {
                 new Dict
@@ -82,7 +82,7 @@ public sealed class TraversabilityTests
         var data = new Dict
         {
             ["regions"] = regions,
-            ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["region"] = "room" } },
+            ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["regions"] = new List<object?> { new Dict { ["region"] = "room" } } } },
             ["wools"] = new List<object?>(),
         };
 
@@ -111,7 +111,7 @@ public sealed class TraversabilityTests
         var data = new Dict
         {
             ["regions"] = new Dict { ["spawn"] = Rect(0, 0, 4, 4) },
-            ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["region"] = "spawn" } },
+            ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["regions"] = new List<object?> { new Dict { ["region"] = "spawn" } } } },
             ["wools"] = new List<object?> { new Dict { ["color"] = "blue", ["location"] = Xz(100, 2) } },
         };
 
@@ -136,7 +136,7 @@ public sealed class TraversabilityTests
         var data = new Dict
         {
             ["regions"] = regions,
-            ["spawns"] = new List<object?> { new Dict { ["team"] = "blue", ["region"] = "spawn" } },
+            ["spawns"] = new List<object?> { new Dict { ["team"] = "blue", ["regions"] = new List<object?> { new Dict { ["region"] = "spawn" } } } },
             ["wools"] = new List<object?>(),
         };
         var surface = new HashSet<(int, int)>();
@@ -168,8 +168,8 @@ public sealed class TraversabilityTests
             ["regions"] = regions,
             ["spawns"] = new List<object?>
             {
-                new Dict { ["team"] = "red", ["region"] = "red" },
-                new Dict { ["team"] = "blue", ["region"] = "blue" },
+                new Dict { ["team"] = "red", ["regions"] = new List<object?> { new Dict { ["region"] = "red" } } },
+                new Dict { ["team"] = "blue", ["regions"] = new List<object?> { new Dict { ["region"] = "blue" } } },
             },
             ["wools"] = new List<object?>(),
         };
@@ -199,7 +199,7 @@ public sealed class TraversabilityTests
         Dict Data(string? laneRule) => new()
         {
             ["regions"] = regions,
-            ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["region"] = "spawn" } },
+            ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["regions"] = new List<object?> { new Dict { ["region"] = "spawn" } } } },
             ["wools"] = new List<object?> { new Dict { ["color"] = "blue", ["location"] = Xz(26, 2) } },
             ["apply_rules"] = laneRule is null
                 ? new List<object?>()
@@ -229,7 +229,7 @@ public sealed class TraversabilityTests
         var data = new Dict
         {
             ["regions"] = new Dict { ["spawn"] = Rect(0, 0, 4, 4) },
-            ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["region"] = "spawn" } },
+            ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["regions"] = new List<object?> { new Dict { ["region"] = "spawn" } } } },
             ["wools"] = new List<object?> { new Dict { ["color"] = "blue", ["location"] = Xz(26, 2) } },
             ["apply_rules"] = new List<object?>(),
         };
@@ -258,7 +258,7 @@ public sealed class TraversabilityTests
         {
             ["regions"] = regions,
             ["filters"] = new Dict { ["only-blue"] = new Dict { ["type"] = "team", ["team"] = "blue" } },
-            ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["region"] = "red-spawn" } },
+            ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["regions"] = new List<object?> { new Dict { ["region"] = "red-spawn" } } } },
             ["wools"] = new List<object?>
             {
                 new Dict { ["color"] = "blue", ["team"] = "blue", ["location"] = Xz(30, 2) },
@@ -305,8 +305,8 @@ public sealed class TraversabilityTests
             },
             ["spawns"] = new List<object?>
             {
-                new Dict { ["team"] = "red", ["region"] = "red-spawn" },
-                new Dict { ["team"] = "blue", ["region"] = "blue-spawn" },
+                new Dict { ["team"] = "red", ["regions"] = new List<object?> { new Dict { ["region"] = "red-spawn" } } },
+                new Dict { ["team"] = "blue", ["regions"] = new List<object?> { new Dict { ["region"] = "blue-spawn" } } },
             },
             ["wools"] = new List<object?>
             {
@@ -352,8 +352,8 @@ public sealed class TraversabilityTests
             },
             ["spawns"] = new List<object?>
             {
-                new Dict { ["team"] = "red", ["region"] = "red-spawn" },
-                new Dict { ["team"] = "blue", ["region"] = "blue-spawn" },
+                new Dict { ["team"] = "red", ["regions"] = new List<object?> { new Dict { ["region"] = "red-spawn" } } },
+                new Dict { ["team"] = "blue", ["regions"] = new List<object?> { new Dict { ["region"] = "blue-spawn" } } },
             },
             ["wools"] = new List<object?>
             {
@@ -390,7 +390,7 @@ public sealed class TraversabilityTests
         var data = new Dict
         {
             ["regions"] = regions,
-            ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["region"] = "spawn" } },
+            ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["regions"] = new List<object?> { new Dict { ["region"] = "spawn" } } } },
             ["wools"] = new List<object?> { new Dict { ["color"] = "red", ["location"] = Xz(2, 2) } },
             ["destroyables"] = new List<object?>
             {
@@ -417,7 +417,7 @@ public sealed class TraversabilityTests
         var data = new Dict
         {
             ["regions"] = new Dict { ["red-spawn"] = Rect(0, 0, 4, 4) },
-            ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["region"] = "red-spawn" } },
+            ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["regions"] = new List<object?> { new Dict { ["region"] = "red-spawn" } } } },
             ["wools"] = new List<object?>
             {
                 new Dict { ["color"] = "light blue", ["team"] = "blue", ["location"] = Xz(-210, -201) },
@@ -470,8 +470,8 @@ public sealed class TraversabilityTests
             },
             ["spawns"] = new List<object?>
             {
-                new Dict { ["team"] = "red", ["region"] = "red-spawn" },
-                new Dict { ["team"] = "blue", ["region"] = "blue-spawn" },
+                new Dict { ["team"] = "red", ["regions"] = new List<object?> { new Dict { ["region"] = "red-spawn" } } },
+                new Dict { ["team"] = "blue", ["regions"] = new List<object?> { new Dict { ["region"] = "blue-spawn" } } },
             },
             ["wools"] = new List<object?> { new Dict { ["color"] = "blue", ["team"] = "blue", ["location"] = Xz(30, 2) } },
             ["apply_rules"] = new List<object?> { new Dict { ["region"] = "wool-room", ["enter"] = "not-blue" } },
@@ -507,8 +507,8 @@ public sealed class TraversabilityTests
             },
             ["spawns"] = new List<object?>
             {
-                new Dict { ["team"] = "red", ["region"] = "red-spawn" },
-                new Dict { ["team"] = "blue", ["region"] = "blue-spawn" },
+                new Dict { ["team"] = "red", ["regions"] = new List<object?> { new Dict { ["region"] = "red-spawn" } } },
+                new Dict { ["team"] = "blue", ["regions"] = new List<object?> { new Dict { ["region"] = "blue-spawn" } } },
             },
             ["wools"] = new List<object?> { new Dict { ["color"] = "blue", ["team"] = "blue", ["location"] = Xz(30.5, 2) } },
             ["apply_rules"] = new List<object?> { new Dict { ["region"] = "wool-room", ["enter"] = "not-blue" } },
@@ -547,8 +547,8 @@ public sealed class TraversabilityTests
             },
             ["spawns"] = new List<object?>
             {
-                new Dict { ["team"] = "blue", ["region"] = "blue-spawn" },
-                new Dict { ["team"] = "red", ["region"] = "red-spawn" },
+                new Dict { ["team"] = "blue", ["regions"] = new List<object?> { new Dict { ["region"] = "blue-spawn" } } },
+                new Dict { ["team"] = "red", ["regions"] = new List<object?> { new Dict { ["region"] = "red-spawn" } } },
             },
             ["wools"] = new List<object?> { new Dict { ["color"] = "red", ["team"] = "red", ["location"] = Xz(20, 2) } },
             ["apply_rules"] = new List<object?> { new Dict { ["region"] = "blue-room", ["enter"] = "not-blue" } },

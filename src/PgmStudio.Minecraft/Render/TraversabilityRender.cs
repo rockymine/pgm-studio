@@ -103,8 +103,8 @@ public static class TraversabilityRender
     public static List<Marker> Markers(MapXml map)
     {
         var markers = new List<Marker>();
-        foreach (var spawn in map.Spawns.Where(spawn => spawn.Region is not null))
-            foreach (var box in RegionBoxes.Of(map.Regions, spawn.Region!))
+        foreach (var spawn in map.Spawns)
+            foreach (var box in spawn.Regions.SelectMany(place => RegionBoxes.Of(map.Regions, place.Region)))
                 markers.Add(new Marker(box, $"spawn {spawn.Team}", 0x34d399));
         foreach (var wool in map.Wools)
         {

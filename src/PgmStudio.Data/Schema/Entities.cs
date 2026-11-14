@@ -461,8 +461,7 @@ public sealed class SpawnRow
     [Column("is_observer"), NotNull] public bool IsObserver { get; set; }
     [Column("team"), NotNull] public string Team { get; set; } = "";
     [Column("kit")] public string? Kit { get; set; }
-    [Column("yaw"), NotNull] public double Yaw { get; set; }
-    [Column("region_key")] public string? RegionKey { get; set; }
+    [Column("regions_json"), NotNull] public string RegionsJson { get; set; } = "[]";   // [{region, yaw}]
     [Column("region_json")] public string? RegionJson { get; set; }
 }
 

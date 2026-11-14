@@ -356,13 +356,23 @@ public static class Deserializer
         Name = Str(d, "name"), DyeColor = Str(d, "dye_color"),
     };
 
-    private static Spawn DecodeSpawn(Dict d, Dictionary<string, Region> regions)
+    private static Spawn DecodeSpawn(Dict d, Dictionary<string, Region> regions) => new()
     {
-        Region? region = null;
-        var raw = Val(d, "region");
-        if (raw is string s) region = regions.GetValueOrDefault(s);
-        else if (raw is Dict rd) region = DecodeRegion(rd);
-        return new Spawn { Team = Str(d, "team"), Kit = Str(d, "kit"), Yaw = AsDouble(Val(d, "yaw"), 0.0), Region = region };
+        Team = Str(d, "team"),
+        Kit = Str(d, "kit"),
+        Regions = ListOf(d, "regions").Select(entry => DecodeSpawnRegion(AsDict(entry), regions)).OfType<SpawnRegion>().ToList(),
+    };
+
+    /// <summary>One <c>{region, yaw}</c> of a spawn; null where it names a region the document does not hold.</summary>
+    private static SpawnRegion? DecodeSpawnRegion(Dict d, Dictionary<string, Region> regions)
+    {
+        var region = Val(d, "region") switch
+        {
+            string id => regions.GetValueOrDefault(id),
+            Dict inline => DecodeRegion(inline),
+            _ => null,
+        };
+        return region is null ? null : new SpawnRegion { Region = region, Yaw = AsDouble(Val(d, "yaw"), 0.0) };
     }
 
     private static List<Wool> DecodeWoolsEntry(Dict d)

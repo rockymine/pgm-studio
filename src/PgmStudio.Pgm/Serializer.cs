@@ -253,13 +253,18 @@ public static class Serializer
         ["dye_color"] = t.DyeColor, ["max_players"] = t.MaxPlayers, ["min_players"] = t.MinPlayers,
     };
 
-    private static Dict EncodeSpawn(Spawn s)
+    /// <summary>A spawn as <c>{team, kit, regions}</c>, each region <c>{region, yaw}</c> where <c>region</c> is
+    /// the region's id, or the whole region where it has none.</summary>
+    private static Dict EncodeSpawn(Spawn s) => new()
     {
-        var r = new Dict { ["team"] = s.Team, ["kit"] = s.Kit, ["yaw"] = s.Yaw };
-        if (s.Region is not null)
-            r["region"] = s.Region.Id.Length > 0 ? s.Region.Id : EncodeRegion(s.Region);
-        return r;
-    }
+        ["team"] = s.Team,
+        ["kit"] = s.Kit,
+        ["regions"] = s.Regions.Select(place => (object?)new Dict
+        {
+            ["region"] = place.Region.Id.Length > 0 ? place.Region.Id : EncodeRegion(place.Region),
+            ["yaw"] = place.Yaw,
+        }).ToList(),
+    };
 
     private static string WoolSlug(string value) => value.Trim().ToLowerInvariant().Replace(" ", "_");
 

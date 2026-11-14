@@ -40,5 +40,6 @@ JSON in `portal` (migration `M0072`), read back in document order. A map importe
 holds no portals until it is imported again.
 
 Swept over both corpora, every one of the 225 parseable maps carrying portals writes the same portals back
-through the XML and the JSON codec. Two arcade maps name a spawn region the studio does not keep, since it
-reads one region per spawn (`PG31`).
+through the XML and the JSON codec. A portal may land on a region a spawn states among several, as two arcade
+maps' do; a spawn keeps every region it states (`docs/pgm/region-authoring.md`, *Spawns*), so the region is
+registered and the portal's reference resolves.

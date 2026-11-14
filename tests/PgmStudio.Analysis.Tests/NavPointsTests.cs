@@ -49,8 +49,8 @@ public sealed class NavPointsTests
             },
             ["spawns"] = new List<object?>
             {
-                new Dict { ["team"] = "red-team", ["region"] = "deck-spawn" },
-                new Dict { ["team"] = "blue-team", ["region"] = "yard-spawn" },
+                new Dict { ["team"] = "red-team", ["regions"] = new List<object?> { new Dict { ["region"] = "deck-spawn" } } },
+                new Dict { ["team"] = "blue-team", ["regions"] = new List<object?> { new Dict { ["region"] = "yard-spawn" } } },
             },
             ["wools"] = new List<object?>
             {
@@ -101,7 +101,7 @@ public sealed class NavPointsTests
                 ["cairn"] = Rect(20, 20, 24, 24),
                 ["keep"] = Rect(-30, 30, -26, 34),
             },
-            ["spawns"] = new List<object?> { new Dict { ["team"] = "red-team", ["region"] = "red-spawn" } },
+            ["spawns"] = new List<object?> { new Dict { ["team"] = "red-team", ["regions"] = new List<object?> { new Dict { ["region"] = "red-spawn" } } } },
             ["wools"] = new List<object?>
             {
                 new Dict { ["color"] = "green", ["team"] = "blue-team", ["location"] = Xz(8, 9) },
@@ -129,7 +129,7 @@ public sealed class NavPointsTests
         var data = new Dict
         {
             ["regions"] = new Dict { ["red-spawn"] = Rect(-10, -10, 0, 0) },
-            ["spawns"] = new List<object?> { new Dict { ["team"] = "red-team", ["region"] = "red-spawn" } },
+            ["spawns"] = new List<object?> { new Dict { ["team"] = "red-team", ["regions"] = new List<object?> { new Dict { ["region"] = "red-spawn" } } } },
         };
         List<NavPoint> declared =
         [
@@ -196,7 +196,7 @@ public sealed class NavPointsTests
                 ["centre-capture"] = Cuboid(-3, 12, -3, 3, 15, 3),
                 ["east-capture"] = Cuboid(20, 12, -3, 26, 15, 3),
             },
-            ["spawns"] = new List<object?> { new Dict { ["team"] = "red-team", ["region"] = "red-spawn" } },
+            ["spawns"] = new List<object?> { new Dict { ["team"] = "red-team", ["regions"] = new List<object?> { new Dict { ["region"] = "red-spawn" } } } },
             ["control_points"] = new List<object?>
             {
                 new Dict { ["id"] = "hill", ["capture_region"] = "centre-capture" },

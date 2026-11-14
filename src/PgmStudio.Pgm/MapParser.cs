@@ -597,29 +597,38 @@ public sealed partial class MapParser
     {
         var spawns = new List<Spawn>();
         Spawn? observer = null;
-        var spawnsElem = _root.Elements("spawns").FirstOrDefault();
-        if (spawnsElem is null) return (spawns, observer);
-
-        var (spawnElems, defaultElem) = CollectSpawnElements(spawnsElem, "");
-        foreach (var (spawnElem, inheritedKit) in spawnElems)
-            spawns.Add(ParseSpawnElement(spawnElem, inheritedKit));
-        if (defaultElem is not null) observer = ParseSpawnElement(defaultElem, "");
+        var syntheticIds = new HashSet<string>();
+        foreach (var spawnsElem in _root.Elements("spawns"))
+        {
+            var inherited = new SpawnInheritance(Xml.Get(spawnsElem, "kit", ""), StatedYaw(spawnsElem, 0.0));
+            var (spawnElems, defaultElem) = CollectSpawnElements(spawnsElem, inherited);
+            foreach (var (spawnElem, spawnInheritance) in spawnElems)
+                spawns.Add(ParseSpawnElement(spawnElem, spawnInheritance, syntheticIds));
+            if (observer is null && defaultElem is { } observerElem)
+                observer = ParseSpawnElement(observerElem.Element, observerElem.Inherited, syntheticIds);
+        }
         return (spawns, observer);
     }
 
-    private (List<(XElement, string)>, XElement?) CollectSpawnElements(XElement parent, string inheritedKit)
+    /// <summary>What a <c>&lt;spawns&gt;</c> block hands each spawn under it: the kit and the yaw, the nearest
+    /// stated winning.</summary>
+    private readonly record struct SpawnInheritance(string Kit, double Yaw);
+
+    private (List<(XElement Element, SpawnInheritance Inherited)>, (XElement Element, SpawnInheritance Inherited)?) CollectSpawnElements(
+        XElement parent, SpawnInheritance inherited)
     {
-        var results = new List<(XElement, string)>();
-        XElement? defaultElem = null;
+        var results = new List<(XElement, SpawnInheritance)>();
+        (XElement, SpawnInheritance)? defaultElem = null;
         foreach (var child in parent.Elements())
         {
             switch (child.Name.LocalName)
             {
-                case "spawn": results.Add((child, inheritedKit)); break;
-                case "default": defaultElem ??= child; break;
+                case "spawn": results.Add((child, inherited)); break;
+                case "default": defaultElem ??= (child, inherited); break;
                 case "spawns":
-                    var kit = NonEmpty(Xml.Get(child, "kit", ""), inheritedKit);
-                    var (nested, nestedDefault) = CollectSpawnElements(child, kit);
+                    var nestedInheritance = new SpawnInheritance(
+                        NonEmpty(Xml.Get(child, "kit", ""), inherited.Kit), StatedYaw(child, inherited.Yaw));
+                    var (nested, nestedDefault) = CollectSpawnElements(child, nestedInheritance);
                     results.AddRange(nested);
                     defaultElem ??= nestedDefault;
                     break;
@@ -628,36 +637,53 @@ public sealed partial class MapParser
         return (results, defaultElem);
     }
 
-    private Spawn ParseSpawnElement(XElement elem, string inheritedKit)
+    /// <summary>
+    /// One spawn and every region PGM's <c>SpawnParser</c> reads for it, in its order: the <c>region</c>
+    /// attribute, each <c>&lt;region&gt;</c> child (wrapping one region), then each child of each
+    /// <c>&lt;regions&gt;</c> block, where an inline union stands for each of its members. Each region carries the
+    /// yaw nearest to it. A region not named is registered under a synthetic id unique across the map's spawns.
+    /// </summary>
+    private Spawn ParseSpawnElement(XElement elem, SpawnInheritance inherited, HashSet<string> syntheticIds)
     {
         var team = Xml.Get(elem, "team", "");
-        Region? region = null;
-        var regionAttr = Xml.Get(elem, "region", "");
-        if (regionAttr.Length > 0)
+        var yaw = StatedYaw(elem, inherited.Yaw);
+        var syntheticBase = team.Length > 0 ? $"__spawn_{team}" : "__observer_spawn";
+        string NextSyntheticId()
         {
-            region = new Region { Id = "", Type = "reference", RefId = regionAttr };  // resolved later
+            var id = UniqueId(syntheticBase, syntheticIds);
+            syntheticIds.Add(id);
+            return id;
         }
-        else
+
+        var regions = new List<SpawnRegion>();
+        if (Xml.Get(elem, "region", "") is { Length: > 0 } reference)
+            regions.Add(new SpawnRegion { Region = new Region { Type = "reference", RefId = reference }, Yaw = yaw });
+        foreach (var wrapper in elem.Elements("region"))
+            if (_regionParser.ParseSpawnRegion(wrapper, NextSyntheticId()) is { } region)
+                regions.Add(new SpawnRegion { Region = region, Yaw = StatedYaw(wrapper, yaw) });
+        foreach (var block in elem.Elements("regions"))
         {
-            var regionElem = elem.Elements("region").FirstOrDefault() ?? elem.Elements("regions").FirstOrDefault();
-            if (regionElem is not null)
+            var blockYaw = StatedYaw(block, yaw);
+            foreach (var child in block.Elements())
             {
-                var syntheticId = team.Length > 0 ? $"__spawn_{team}" : "__observer_spawn";
-                region = _regionParser.ParseSpawnRegion(regionElem, syntheticId);
+                var childYaw = StatedYaw(child, blockYaw);
+                foreach (var region in _regionParser.ParseSpawnRegionsChild(child, NextSyntheticId()))
+                    regions.Add(new SpawnRegion { Region = region, Yaw = childYaw });
             }
         }
 
-        var yaw = double.TryParse(Xml.Get(elem, "yaw", "0"), NumberStyles.Float, CultureInfo.InvariantCulture, out var y) ? y : 0.0;
-        return new Spawn { Team = team, Kit = NonEmpty(Xml.Get(elem, "kit", ""), inheritedKit), Yaw = yaw, Region = region };
+        return new Spawn { Team = team, Kit = NonEmpty(Xml.Get(elem, "kit", ""), inherited.Kit), Regions = regions };
     }
+
+    private static double StatedYaw(XElement elem, double inherited) =>
+        double.TryParse(Xml.Get(elem, "yaw", ""), NumberStyles.Float, CultureInfo.InvariantCulture, out var yaw) ? yaw : inherited;
 
     private void ResolveSpawnRegions(MapXml data)
     {
-        foreach (var spawn in data.Spawns)
-            if (spawn.Region is { Type: "reference" } r)
-                spawn.Region = _regionParser.ResolveReference(r.RefId ?? "") ?? spawn.Region;
-        if (data.ObserverSpawn?.Region is { Type: "reference" } or_)
-            data.ObserverSpawn.Region = _regionParser.ResolveReference(or_.RefId ?? "") ?? data.ObserverSpawn.Region;
+        foreach (var spawn in data.Spawns.Append(data.ObserverSpawn).OfType<Spawn>())
+            foreach (var place in spawn.Regions)
+                if (place.Region is { Type: "reference" } reference)
+                    place.Region = _regionParser.ResolveReference(reference.RefId ?? "") ?? place.Region;
     }
 
     private List<Wool> ParseWools(Dictionary<string, Region> regions)

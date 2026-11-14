@@ -257,7 +257,7 @@ public static class TeamsGenerator
         foreach (var k in regions.Keys.Where(k => IsNumberedChild(protId, k)).ToList()) regions.Remove(k);
         DocAccess.Filters(doc).Remove($"only-{slug}");
         if (doc.GetValueOrDefault("spawns") is List<object?> spawns)
-            spawns.RemoveAll(s => s is Dict d && d.GetValueOrDefault("region") as string == pointId);
+            spawns.RemoveAll(s => s is Dict d && DocAccess.SpawnRegionIds(d).Contains(pointId));
         if (doc.GetValueOrDefault("apply_rules") is List<object?> rules)
             rules.RemoveAll(r => r is Dict d && d.GetValueOrDefault("region") as string == protId);
     }

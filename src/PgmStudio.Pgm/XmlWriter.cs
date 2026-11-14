@@ -404,13 +404,34 @@ public static partial class XmlWriter
         var e = new XElement(tag);
         if (spawn.Team.Length > 0) Set(e, "team", spawn.Team);
         if (spawn.Kit.Length > 0) Set(e, "kit", spawn.Kit);
-        if (spawn.Yaw != 0) Set(e, "yaw", C(spawn.Yaw));
-        var region = spawn.Region;
-        if (region is not null && !IsSynthetic(region.Id))
-            Set(e, "region", region.Id);
-        else if (region is not null)
-            e.Add(new XElement("region", RegionElemInline(region, regions)));
+        if (spawn.Regions is [var only])
+        {
+            if (only.Yaw != 0) Set(e, "yaw", C(only.Yaw));
+            if (!IsSynthetic(only.Region.Id)) Set(e, "region", only.Region.Id);
+            else e.Add(new XElement("region", RegionElemInline(only.Region, regions)));
+        }
+        else if (spawn.Regions.Count > 1)
+            WriteSpawnRegions(e, spawn.Regions, regions);
         parent.Add(e);
+    }
+
+    // Several regions, each with its own yaw: a named one as a <region id> child of one <regions> block, an inline
+    // one as its own element there — except an inline union, which a <regions> block would split into its
+    // members, so it is wrapped in a <region> child of the spawn instead.
+    private static void WriteSpawnRegions(XElement spawnElem, List<SpawnRegion> places, Dictionary<string, Region> regions)
+    {
+        var block = new XElement("regions");
+        foreach (var place in places)
+        {
+            XElement entry;
+            if (!IsSynthetic(place.Region.Id)) entry = new XElement("region", new XAttribute("id", place.Region.Id));
+            else if (place.Region.Type == "union") entry = new XElement("region", RegionElemInline(place.Region, regions));
+            else entry = RegionElemInline(place.Region, regions);
+            if (place.Yaw != 0) Set(entry, "yaw", C(place.Yaw));
+            if (place.Region.Type == "union" && IsSynthetic(place.Region.Id)) spawnElem.Add(entry);
+            else block.Add(entry);
+        }
+        if (block.HasElements) spawnElem.Add(block);
     }
 
     private static void WriteWools(XElement parent, List<Wool> wools)

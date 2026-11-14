@@ -22,14 +22,3 @@ nothing it makes is welcome, a change to what it makes is not — and its layout
 - [ ] **WE168 — A room's interior is placed relative to its house.** The chests (`WoolChests`, `RoomFrames.InteriorCorners`) and the monuments (`RoomFrames.MonumentSlots`) are
   stated on the room's `house` as positions relative to its first wing, movable in Layout, and a migration
   carries each derived position into the stored one. `docs/world-export/structures.md`.
-
-## Bugs: what the studio does wrong now
-**The author put the user-facing bugs first** (the backlog audit, November 2026). Each entry is the product doing
-something wrong today, on a page a person uses or on the API an agent drives; the composer's own bugs wait
-in `docs/generator/ideas.md` with the rest of the generator.
-
-- [ ] **PG31 — A spawn keeps every region it states.** `Spawn.Region` holds one region, so a spawn written
-  with several `<region>` children keeps the first and loses the rest on read — 83 spawns in 34 corpus maps
-  (`skill_issue`'s defenders spawn at either end). A portal naming a lost one exports a reference to nothing.
-  `Spawn.Regions`, each with its own yaw, read and written by `MapParser`/`XmlWriter`, stored and served.
-  `docs/pgm/portals.md`.

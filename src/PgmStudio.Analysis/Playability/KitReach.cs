@@ -61,6 +61,22 @@ public static class KitReach
     /// <param name="Teams">One reading per team.</param>
     public sealed record Result(bool HaveLayers, string Severity, string Message, List<TeamReach> Teams);
 
+    /// <summary>The walk from one spawn region, started on the spawn's own storey rather than its cell's lowest:
+    /// a spawn on a deck over a gallery walks the deck. Empty where the region does not resolve onto ground.</summary>
+    private static Dictionary<WalkPlace, WalkCost> FieldFrom(object? region, Dict regions,
+        (double, double, double, double) bounds, WalkGround ground)
+    {
+        var box = RegionGeometry2d.Resolve(region, regions);
+        var start = NavPoints.Centre(box, regions, bounds) is { } seat
+            ? Cells.SnapToWalkable(seat, ground.Footprint, SnapRadius)
+            : null;
+        var storey = NavPoints.Height(box);
+        var from = start is { } cell
+            ? storey is { } height ? ground.Nearest(cell, height) : ground.Stand(cell)
+            : null;
+        return from is { } origin ? Walk.Field(origin, ground, WalkAim.Reach) : [];
+    }
+
     /// <summary>What each team's kit reaches over <paramref name="shared"/>, the ground every connectivity read
     /// takes. <b>declared</b> is goals the document cannot carry — see <see cref="NavPoints.Of"/>.</summary>
     public static Result Check(Dict data, WalkGround shared, IReadOnlyList<NavPoint>? declared = null)
@@ -86,17 +102,9 @@ public static class KitReach
             // could disagree about the same board.
             var ground = WorldWalk.For(shared, data, team.Length == 0 ? null : team);
 
-            // The spawn's own storey, not its cell's lowest: a spawn on a deck over a gallery walks the deck,
-            // and pricing its kit from the gallery floor is a budget for a route the team never takes.
-            var box = RegionGeometry2d.Resolve(sp.GetValueOrDefault("region"), regions);
-            var start = NavPoints.Centre(box, regions, bounds) is { } seat
-                ? Cells.SnapToWalkable(seat, ground.Footprint, SnapRadius)
-                : null;
-            var storey = NavPoints.Height(box);
-            var from = start is { } cell
-                ? storey is { } height ? ground.Nearest(cell, height) : ground.Stand(cell)
-                : null;
-            var field = from is { } origin ? Walk.Field(origin, ground, WalkAim.Reach) : [];
+            // One field from each region the spawn states, and a wool priced from the one that reaches it
+            // cheapest: a team spawning in any of them can take that route.
+            var fields = MapDoc.SpawnRegions(sp).Select(region => FieldFrom(region, regions, bounds, ground)).ToList();
 
             var perWool = new List<WoolReach>();
             foreach (var wool in wools)
@@ -107,10 +115,12 @@ public static class KitReach
                 // found a cell the team may stand on, and report the walk to that cell as the walk to the
                 // wool.
                 var target = Cells.SnapToWalkable((wx, wz), shared.Footprint, SnapRadius);
-                var cost = target is { } at
-                    && (wool.Y is { } woolY ? shared.Nearest(at, woolY) : shared.Stand(at)) is { } to
-                    && field.TryGetValue(to, out var reached)
-                    ? reached : (WalkCost?)null;
+                var to = target is { } at ? wool.Y is { } woolY ? shared.Nearest(at, woolY) : shared.Stand(at) : null;
+                var cost = to is { } place
+                    ? fields.Select(field => field.TryGetValue(place, out var reached) ? reached : (WalkCost?)null)
+                        .Where(reached => reached is not null)
+                        .MinBy(reached => (reached!.Value.Blocks, reached.Value.Distance))
+                    : null;
                 var reachable = cost is not null;
                 var need = cost?.Blocks ?? -1;
                 var within = reachable && need <= budget;

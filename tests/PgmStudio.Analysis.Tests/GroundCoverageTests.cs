@@ -37,7 +37,7 @@ public sealed class GroundCoverageTests
     private static Dict Board => new()
     {
         ["regions"] = new Dict { ["spawn"] = Rect(0, 0, 4, 4) },
-        ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["region"] = "spawn" } },
+        ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["regions"] = new List<object?> { new Dict { ["region"] = "spawn" } } } },
         ["wools"] = new List<object?> { new Dict { ["color"] = "blue", ["team"] = "blue", ["location"] = Xz(58, 3) } },
     };
 
@@ -96,7 +96,7 @@ public sealed class GroundCoverageTests
     private static Dict RingBoard => new()
     {
         ["regions"] = new Dict { ["spawn"] = Rect(0, 10, 2, 12) },
-        ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["region"] = "spawn" } },
+        ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["regions"] = new List<object?> { new Dict { ["region"] = "spawn" } } } },
         ["wools"] = new List<object?> { new Dict { ["color"] = "blue", ["team"] = "blue", ["location"] = Xz(40, 11) } },
     };
 
@@ -138,8 +138,8 @@ public sealed class GroundCoverageTests
         ["regions"] = new Dict { ["red-spawn"] = Rect(0, 1, 4, 5), ["blue-spawn"] = Rect(56, 1, 60, 5) },
         ["spawns"] = new List<object?>
         {
-            new Dict { ["team"] = "red", ["region"] = "red-spawn" },
-            new Dict { ["team"] = "blue", ["region"] = "blue-spawn" },
+            new Dict { ["team"] = "red", ["regions"] = new List<object?> { new Dict { ["region"] = "red-spawn" } } },
+            new Dict { ["team"] = "blue", ["regions"] = new List<object?> { new Dict { ["region"] = "blue-spawn" } } },
         },
     };
 

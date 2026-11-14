@@ -37,15 +37,22 @@ internal sealed class RegionParser
         return (_registry, applyRules);
     }
 
-    public Region? ParseSpawnRegion(XElement elem, string syntheticId)
+    /// <summary>A spawn's <c>&lt;region&gt;</c> child: the one region it wraps, registered under
+    /// <paramref name="syntheticId"/> where it is not named, or a reference to resolve once every region is
+    /// read.</summary>
+    public Region? ParseSpawnRegion(XElement wrapper, string syntheticId) =>
+        ParseRegionElement(wrapper, syntheticId);
+
+    /// <summary>One child of a spawn's <c>&lt;regions&gt;</c> block, as the regions PGM's <c>PointParser</c> makes
+    /// of it: the region, or each member of an inline union, a member standing as a reference to resolve once
+    /// every region is read.</summary>
+    public List<Region> ParseSpawnRegionsChild(XElement child, string syntheticId)
     {
-        var region = ParseRegionElement(elem, syntheticId);
-        if (region is not null)
-        {
-            if (region.Id.Length == 0) region.Id = syntheticId;
-            _registry.TryAdd(region.Id, region);
-        }
-        return region;
+        var region = ParseRegionNode(child, syntheticId);
+        if (region is null) return [];
+        if (region.Type != "union") return [region];
+        if (region.Id.StartsWith("__")) _registry.Remove(region.Id);
+        return (region.Children ?? []).Select(member => new Region { Type = "reference", RefId = member }).ToList();
     }
 
     /// <summary>

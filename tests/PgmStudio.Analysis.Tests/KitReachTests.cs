@@ -35,7 +35,7 @@ public sealed class KitReachTests
             {
                 new Dict { ["region"] = "field", ["block_place"] = "always" },
             },
-            ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["kit"] = "k", ["region"] = "spawn" } },
+            ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["kit"] = "k", ["regions"] = new List<object?> { new Dict { ["region"] = "spawn" } } } },
             ["wools"] = new List<object?> { new Dict { ["color"] = "green", ["location"] = new Dict { ["x"] = 9.0, ["y"] = 0.0, ["z"] = 1.0 } } },
             ["kits"] = new List<object?>
             {

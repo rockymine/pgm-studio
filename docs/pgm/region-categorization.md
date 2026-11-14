@@ -35,8 +35,8 @@ signals, never from the fact that a filter is applied to it.** Filter targeting 
 
 | value | meaning | primary signal |
 |---|---|---|
-| `spawn` | team spawn point + protected spawn area (subtype `point` \| `protection`) | `spawns[].region`; `enter=only-<team>` (with disambiguation) |
-| `observer_spawn` | observer / `<default>` spawn | `observer_spawn.region` |
+| `spawn` | team spawn point + protected spawn area (subtype `point` \| `protection`) | `spawns[].regions[].region`; `enter=only-<team>` (with disambiguation) |
+| `observer_spawn` | observer / `<default>` spawn | `observer_spawn.regions[].region` |
 | `wool` | the objective, with subtype `room` \| `monument` \| `spawner` | `wool_room_region` / `enter=not-<team>` → `room`; `wool.monuments[].monument_region` → `monument`; wool-dispensing `spawner.spawn_region` → `spawner` |
 | `build` | buildable / traversable space (subtype `footprint` \| `traversal` — *designed, not yet emitted*) | void-structure (§5) |
 | `mechanic` | special mechanic (subtype `kit` \| `shop` \| `renewable` \| … — *designed, not yet emitted*) | **non-wool spawner** regions (golden-apple/arrow/…); renewable refs; `*spawner*` names |
@@ -59,7 +59,7 @@ The flat `wool_room`/`monument`/`wool_spawner` split older tooling emitted is re
 the category says wool and the subtype says which.
 
 **Spawn subtype (implemented).** `spawn` carries a `subtype` separating the two things authors
-treat differently: **`point`** — the literal spawn, the region in `spawns[].region` (where the
+treat differently: **`point`** — the literal spawn, a region in `spawns[].regions[].region` (where the
 player materialises) — and **`protection`** — the surrounding anti-grief zone (`enter=only-<team>`,
 the "…enemy's spawn!" message, the spawn-floor block pattern, spawn-protection kits). The two are
 **disjoint across the whole 350-map corpus** (a spawn point never carries an enter rule), so the
@@ -117,7 +117,8 @@ events `block`, `block_break`, `block_place`, `enter` are recorded; `block_physi
 Assign `category` by the first matching signal (most reliable first). **Never overwrite a
 category already set by a more reliable signal.**
 
-1. **spawn** ← `spawns[].region`, **observer_spawn** ← `observer_spawn.region`. (Authoritative.)
+1. **spawn** ← every `spawns[].regions[].region`, **observer_spawn** ← every `observer_spawn.regions[].region`.
+   (Authoritative.)
 2. **monument** ← `wool.monuments[].monument_region`.
 3. A spawner's `player_region` is the **detection** region the player stands in; its `spawn_region`
    is where the items drop. If the spawner **dispenses wool**: **wool_spawner** ← `spawn_region`,

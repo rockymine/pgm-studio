@@ -1680,9 +1680,10 @@ static List<(string Kind, double X, double Z)> ReadObjectives(
                 outp.Add(("monument", mx, mz));
         }
     }
-    foreach (var sp in AsList(doc.GetValueOrDefault("spawns")).OfType<Dictionary<string, object?>>())
+    foreach (var place in AsList(doc.GetValueOrDefault("spawns")).OfType<Dictionary<string, object?>>()
+                 .SelectMany(sp => AsList(sp.GetValueOrDefault("regions")).OfType<Dictionary<string, object?>>()))
     {
-        var r = sp.GetValueOrDefault("region");
+        var r = place.GetValueOrDefault("region");
         var region = r is string s ? regions.GetValueOrDefault(s) as Dictionary<string, object?> : r as Dictionary<string, object?>;
         if (region is not null
             && PgmStudio.Analysis.Region.RegionGeometry2d.ToGeometry(region, bounds, regions) is { IsEmpty: false } geom)
