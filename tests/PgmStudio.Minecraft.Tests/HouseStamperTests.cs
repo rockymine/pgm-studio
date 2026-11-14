@@ -2056,11 +2056,11 @@ public sealed class HouseStamperTests
         await Assert.That(Leaks(world, 12, 9)).IsFalse();
     }
 
-    /// <summary>The eight seeded houses the stamper tests draw from, and each again with a compass front named on
-    /// the style — the styles a map binds to its rooms, which are fanned across the orbit.</summary>
+    /// <summary>Every house the library seeds, and each again with a compass front named on the style — the styles
+    /// a map binds to its rooms, which are fanned across the orbit.</summary>
     public static IEnumerable<Func<(string Name, HouseStyle Style)>> RoomStyles()
     {
-        var styles = SeededHouses.All.ToList();
+        var styles = PgmStudio.Minecraft.Library.SeedFolder.Houses.ToList();
         styles.Add(("spawn", HouseStyle.Spawn));
         styles.Add(("wool", HouseStyle.Wool));
         foreach (var (name, style) in styles.ToList())

@@ -3771,6 +3771,10 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **A kit loses nothing it states (`PG29`).** Every kit attribute and element the studio does not read is carried
   as written (`Kit.CarriedAttributes`/`CarriedElements`, the kit row's `carried_json`, `M0093`) and written back,
   and a kit stating only those is kept; a map is never refused for a kit. `docs/pgm/supported-maps.md`.
+- **Every seeded house stamps the same columns in a room's mirror and turned images (`WE162`).** A wall-run
+  pattern's arc is counted from the door wall's left hand (`BuildingPlan.HandedArc`), so a stilt storey's air gaps
+  open on matching columns, and a saltbox fronting an end wall turns its steep side to the left hand; the orbit
+  tests run over every house the library seeds. `docs/world-export/structures.md`.
 - **A region carries no draft step (`PG18`).** `draft_step` is gone from `POST /regions`, `/orbit` and the region
   tree, and `M0091` deletes every stored `region_drafts_json`. `docs/pgm/region-data-flow.md`.
 

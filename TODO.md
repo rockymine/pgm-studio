@@ -39,14 +39,3 @@ in `docs/generator/ideas.md` with the rest of the generator.
   (`skill_issue`'s defenders spawn at either end). A portal naming a lost one exports a reference to nothing.
   `Spawn.Regions`, each with its own yaw, read and written by `MapParser`/`XmlWriter`, stored and served.
   `docs/pgm/portals.md`.
-
-- [ ] **WE162 — Two seeded houses stamp their doorway on other columns in a mirror image.** The stamper's
-  orbit tests (`A_room_and_its_rot_180_image_stand_on_the_same_columns`,
-  `A_room_and_its_mirror_images_stand_on_the_same_columns`, `HouseStamperTests`) run over the eight houses they
-  were written for and pass; run over every seeded house, `dark-oak-stilt-hut` (hip roof, stilts) and
-  `jungle-saltbox-cottage` (saltbox) fail, their door columns landing apart between a room and its image. Find
-  which of the two forms moves the doorway, fix it in `HouseStamper`, and widen `RoomStyles()` to
-  `SeedFolder.Houses`. One cause is the saltbox's: a front on an end wall takes the low side as the steep one
-  (`RoofField.SteepSide`), a fixed choice the image cannot mirror, so the image's steep side has to follow the
-  authored room's. `docs/world-export/structures.md`. *Evidence: `dark-oak-stilt-hut 18x9 door -z mirror_x at
-  (-9, 65, -73)`, `jungle-saltbox-cottage 14x13 door -x at (-6, 76, -78)`.*

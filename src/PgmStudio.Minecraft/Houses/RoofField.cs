@@ -51,6 +51,7 @@ public sealed class RoofField
     private readonly int overhang, baseY, pitch;
     private readonly bool inHalves;
     private readonly RoomEdge front;
+    private readonly bool reflected;
 
     /// <summary>Whether the slopes are taken across Z — a gable's ridge runs the length of a building, so the
     /// slope is taken across its <em>shorter</em> side. Pitching the long way would put the ridge on the short
@@ -83,11 +84,14 @@ public sealed class RoofField
     /// <param name="ridgeAlongX">Which way the ridge runs, or null to take it from the proportions. A building of
     /// several wings answers this per wing (<see cref="Wing.RidgeAlongX"/>), because whether two of them make a
     /// junction is whether their ridges cross and their own shapes cannot know that.</param>
+    /// <param name="reflected">Whether the building is a mirror image of the one authored, which turns which hand
+    /// a saltbox fronting an end wall takes as its steep side.</param>
     public RoofField(
         RoofForm form, int wallMinX, int wallMinZ, int wallMaxX, int wallMaxZ,
         int overhang, int baseY, int pitch, RoomEdge front, bool inHalves = false,
-        bool? ridgeAlongX = null)
+        bool? ridgeAlongX = null, bool reflected = false)
     {
+        this.reflected = reflected;
         this.form = form;
         (this.wallMinX, this.wallMinZ, this.wallMaxX, this.wallMaxZ) = (wallMinX, wallMinZ, wallMaxX, wallMaxZ);
         this.overhang = Math.Max(0, overhang);
@@ -115,7 +119,7 @@ public sealed class RoofField
     /// solved for after the field is built rather than guessed before it.</summary>
     public RoofField Raised(int courses) =>
         new(form, wallMinX, wallMinZ, wallMaxX, wallMaxZ, overhang, baseY + courses, pitch, front, inHalves,
-            acrossZ);
+            acrossZ, reflected);
 
     /// <summary>The plan rectangle the roof draws over: the walls plus the overhang on every side.</summary>
     public int MinX => wallMinX - overhang;
@@ -204,14 +208,16 @@ public sealed class RoofField
     private int Reach(int distance) => Math.Min(distance, shortSpan - 1);
 
     /// <summary>Which of a saltbox's two across-distances belongs to the steep slope: the one on the front's own
-    /// side of the building. Where the front wall is an end rather than a side it lies on neither, and the low
-    /// side is taken — a saltbox has to face <em>somewhere</em>, and a stable choice beats one that flips with
-    /// a door the slope does not run toward anyway.</summary>
+    /// side of the building. Where the front wall is an end rather than a side it lies on neither, and the side
+    /// on the left hand of someone standing in the door looking out is taken — a saltbox has to face
+    /// <em>somewhere</em>, and a hand is what a turned or mirrored image of the room keeps.</summary>
     private int SteepSide(int acrossLow, int acrossHigh) => FrontIsHigh ? acrossHigh : acrossLow;
 
     private int ShallowSide(int acrossLow, int acrossHigh) => FrontIsHigh ? acrossLow : acrossHigh;
 
-    private bool FrontIsHigh => acrossZ ? front == RoomEdge.PosZ : front == RoomEdge.PosX;
+    private bool FrontIsHigh => acrossZ
+        ? front.AlongX() ? front == RoomEdge.PosZ : !front.AlongRunsRight(reflected)
+        : front.AlongX() ? !front.AlongRunsRight(reflected) : front == RoomEdge.PosX;
 
     /// <summary>How many courses the column writes. A step of more than one course leaves the slope open between
     /// its treads, so each column carries its own riser as well as its tread — as deep as the deepest step down
