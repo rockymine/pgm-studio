@@ -11020,6 +11020,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   lays it under that modifier's water and along its beach instead of the default bank; `SketchTerraform.Run` answers
   each wet cell as a `WetColumn` carrying its surface and the modifier whose water it is, and the Terraform
   inspector's Bed row picks a block or pattern.
+- **Water steps down in reaches, and is a canal on the symmetry's own line (`S46`).** A River and a fluid channel's
+  derived line hold one law, `Reaches.Floors`: flowing from the first point to the last, never climbing, held level
+  and stepping down in falls, never over the lowest ground beside it; a line the symmetry carries onto itself run
+  backwards (`Symmetry.Reverses`, `MaskArea.RunsBothWays`) holds one level the whole way, and a channel's fall into
+  its own lower reach is not `DR-DRY` (`docs/world-export/decoration.md` §7.1).
 - **Water falls off the edge (`WE173`).** A wet column beside a cell with no ground pours flowing water down the
   face past it to the lowest floor the board built (`Decorator.PourOffEdges`), so a river run to an island's edge
   ends in a fall rather than a wall of still water.

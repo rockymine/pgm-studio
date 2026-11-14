@@ -2,6 +2,7 @@ using System.Globalization;
 using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Geom.Algorithms;
+using PgmStudio.Geom.Relief;
 // Named one by one rather than by namespace: Domain and Geom both carry a Vec3, and this file already means
 // Geom's everywhere it says one.
 using RoomDoor = PgmStudio.Domain.RoomDoor;
@@ -395,13 +396,15 @@ public static class Decorator
     // ── fluid (DR-WA) ───────────────────────────────────────────────────────────
     /// <summary>Cut a channel and fill it with water or lava. A fluid is the one prop that changes the ground
     /// rather than standing on it: water laid flat reads as blue paint, so it has to sit in a carved bed and fill to a level plane. The bed
-    /// is a bowl deepest on the centerline; the fill is one line across the whole run.
+    /// is a bowl deepest on the centerline.
     ///
-    /// <para><b>Where the line comes from decides what the carve may touch.</b> Derived — the lowest surface the
-    /// channel crosses — the carve runs from just above the bed floor to the column's old surface and no higher,
-    /// so nothing is written into what was already air and a channel dug across a hollow keeps the hollow. Every
-    /// column's surface is then at or above the line, so every block written sits at or below terrain that was
-    /// there before. Stated (<see cref="FluidProp.Level"/>), the fill reaches that Y whatever the column beneath
+    /// <para><b>Where the line comes from decides what the carve may touch.</b> Derived, a pool's line is the lowest
+    /// surface it crosses, and a channel's is the <see cref="Reaches"/> a course flowing from its first point to its
+    /// last holds over the lowest surface beside each block of its run, one line the whole way where the symmetry
+    /// runs it back onto itself. The carve runs from just above the bed floor to the column's old surface and no
+    /// higher, so nothing is written into what was already air and a channel dug across a hollow keeps the hollow.
+    /// Every column's surface is then at or above its line, so every block written sits at or below terrain that
+    /// was there before. Stated (<see cref="FluidProp.Level"/>), the fill reaches that Y whatever the column beneath
     /// is doing, which is the only way a basin dug out in the sketch holds a fluid: there is no surface up at the
     /// line for a derived one to find. The footprint bounds it either way.</para></summary>
     private static Placed PlaceFluid(VoxelWorld world, DressingContext context, FluidProp fluid,
@@ -415,6 +418,12 @@ public static class Decorator
             ? FluidBed.PoolCells(fluid.Points, fluid.Radius, fluid.Depth, fluid.Edge, fluid.Seed)
             : FluidBed.Cells(fluid.Points, fluid.Radius, fluid.Depth, fluid.Form, fluid.Edge, fluid.Seed)).ToList();
         if (bed.Count == 0) return Placed.None;
+        // How far down a channel's run each bed cell stands, a station a block; a pool has one station.
+        List<double[]> centerline = pool ? [] : Centerline.Of(fluid.Points);
+        var stationOf = bed.Select(cell => pool ? 0
+                               : (int)Math.Round(Polyline.Nearest(centerline, cell.X + 0.5, cell.Z + 0.5).Arc)).ToArray();
+        double[] arc = [.. Enumerable.Range(0, stationOf.Max() + 1).Select(station => (double)station)];
+        var bothWays = !pool && context.Symmetry.RunsBack(fluid.Points);
         var shore = (pool
             ? FluidBed.PoolShoreCells(fluid.Points, fluid.Shore, fluid.Edge, fluid.ShoreWander, fluid.Seed)
             : FluidBed.ShoreCells(fluid.Points, fluid.Radius, fluid.Form, fluid.Shore, fluid.Edge,
@@ -441,10 +450,12 @@ public static class Decorator
             // the orbit image and the beach below can reach the right one.
             var covered = new List<(int X, int Z)>();
             images.Add(covered);
-            var cells = new List<(int X, int Z, int SurfaceSolid, int Depth, bool FillOnly)>(bed.Count);
-            var lowestSurface = int.MaxValue;
-            foreach (var cell in bed)
+            var cells = new List<(int X, int Z, int SurfaceSolid, int Depth, bool FillOnly, int Station)>(bed.Count);
+            var lowest = new double[arc.Length];
+            Array.Fill(lowest, double.PositiveInfinity);
+            for (var at = 0; at < bed.Count; at++)
             {
+                var cell = bed[at];
                 var (x, z) = context.Symmetry.ImageCell(cell.X, cell.Z, image);
                 if (!ground.TryGetValue((x, z), out var top) || top < 2) continue;
                 var surfaceSolid = top - 1;
@@ -456,17 +467,19 @@ public static class Decorator
                 // different acts on a kept column: carving takes that thing's own ground out from under it,
                 // which is what the keep-out is for, while filling puts the fluid in the air beside a hull or
                 // a pier standing in it — and a harbour dry under the ship floating in it is not one.
-                cells.Add((x, z, surfaceSolid, cell.Depth, context.IsKeptClear(x, z)));
-                lowestSurface = Math.Min(lowestSurface, surfaceSolid);
+                cells.Add((x, z, surfaceSolid, cell.Depth, context.IsKeptClear(x, z), stationOf[at]));
+                lowest[stationOf[at]] = Math.Min(lowest[stationOf[at]], surfaceSolid);
             }
             if (cells.Count == 0) continue;
 
-            // The line the fluid stands at: the author's where they stated one, else the lowest surface this
-            // image crosses. A stated line is the same Y at every image, a level plane being level in all of them.
-            var line = fluid.Level is { } stated ? (int)Math.Floor(stated) : lowestSurface;
+            // The line the fluid stands at: the author's where they stated one, else this image's own reaches over
+            // the surfaces it crosses. A stated line is the same Y at every image, a level plane being level in all
+            // of them.
+            var lines = Reaches.Floors(arc, Reaches.Low(lowest, null), below: 0, water: 0, bothWays);
 
-            foreach (var (x, z, surfaceSolid, depth, fillOnly) in cells)
+            foreach (var (x, z, surfaceSolid, depth, fillOnly, station) in cells)
             {
+                var line = fluid.Level is { } stated ? (int)Math.Floor(stated) : (int)lines[station];
                 var bedFloor = Math.Max(0, line - depth);
                 // Take the material out and fill it: the fluid up to the line, air above it (a bank cut higher
                 // than the fluid stands open, not roofed over). The span starts at the lower of the bed floor and the
@@ -718,7 +731,8 @@ public static class Decorator
     /// <para><b>Air is only a fault where there is ground to hold a fluid back.</b> A pool that reaches the
     /// board's own edge meets the void, and a wall of water or lava at the world's rim is what a coast is — so a
     /// neighbour with no terrain column at all is passed over, and only a neighbour the board <em>drew</em>
-    /// and then left open counts (the author's ruling).</para></summary>
+    /// and then left open counts (the author's ruling). Nor is the air over the fluid's own lower reach, which
+    /// is the fall a channel steps down by.</para></summary>
     private static void DryEdge(
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> ground,
         List<(int X, int Z, int Line)> wet, FluidProp fluid, List<Finding> declined)
@@ -726,12 +740,16 @@ public static class Decorator
         var against = 0;
         (int X, int Y, int Z)? first = null;
         var seen = new HashSet<(int X, int Z)>();
+        var lineAt = new Dictionary<(int X, int Z), int>();
+        foreach (var (x, z, line) in wet)
+            lineAt[(x, z)] = Math.Min(lineAt.GetValueOrDefault((x, z), int.MaxValue), line);
 
         foreach (var (x, z, line) in wet)
             foreach (var (dx, dz) in Sides)
             {
                 var (nx, nz) = (x + dx, z + dz);
                 if (!ground.ContainsKey((nx, nz))) continue;             // the void: a coast, not a fault
+                if (lineAt.TryGetValue((nx, nz), out var below) && below < line) continue;
                 if (world.GetBlock(nx, line, nz).Id != Blocks.Air) continue;
                 if (!seen.Add((nx, nz))) continue;
                 against++;

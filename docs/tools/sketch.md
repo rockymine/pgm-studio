@@ -1361,7 +1361,7 @@ centre and a radius that the mask supplies as its centroid and `scale`:
 | `spire` | Spire | raises it to `base + (top − base) × (1 − e)^(1 / taper)`, `base` the ground at the mask's centroid, `e` roughened by `jag`; only lifts | `top` (absent: the median ground inside + 20), `taper` 1.6, `jag` 0.15 |
 | `scarp` | Scarp | on a `line`: lifts the ground on the `side` hand (1 right, −1 left, walking along the line) by `height`, rising over `cliff` blocks on the line, and eases the other hand up by `apron` of `height` falling to nothing over `talus` blocks; the lift ends at the mask's edge | `height` 6, `side` 1, `cliff` 2, `talus` 5, `apron` 0.3 |
 | `canyon` | Canyon | on a `line`: cuts a floor `bed` of the half width across, `depth` under the ground the line follows, its walls climbing to the rim as the distance across to the power `wall`, in steps of `ledges` blocks when it states any; only cuts | `depth` 12, `bed` 0.35, `wall` 2.5, `ledges` 0 |
-| `river` | River | on a `line`: cuts a bed `depth` under the lowest ground across its channel that never climbs, held level in reaches and stepping down in falls (two blocks or more, after ten of reach, and sooner wherever holding would stand its water above its banks), water an earlier modifier left being ground at its surface so a river leaving a lake leaves at its level; banks climb from the water by the river's depth over `bank` blocks and on at a block a block to higher ground, so a river below its banks runs in a valley rather than a slot; **makes water** | `depth` 2, `water` 1, `bank` 4, `bed_material` (absent: the default bank) |
+| `river` | River | on a `line`: cuts a bed `depth` under the lowest ground across its channel that never climbs, held level in reaches and stepping down in falls (two blocks or more, after ten of reach, and sooner wherever holding would stand its water above its banks), water an earlier modifier left being ground at its surface so a river leaving a lake leaves at its level; on a line the symmetry runs back onto itself the bed holds one level the whole way, a canal; banks climb from the water by the river's depth over `bank` blocks and on at a block a block to higher ground, so a river below its banks runs in a valley rather than a slot; **makes water** | `depth` 2, `water` 1, `bank` 4, `bed_material` (absent: the default bank) |
 | `lake` | Lake | in an area: cuts a bed `depth` under the surface in the middle and a block under it at the rim, holds lower ground within `shore` blocks outside at the surface, easing back to the ground, and brings higher ground down to the water at a block a block, so a lake on a slope has a shore rather than a wall; **makes water** | `level` (absent: one under the ground a tenth of the rim stands at or below, so one cleft in the rim does not drain it), `depth` 3, `shore` 3, `bed_material` (absent: the default bank) |
 | `road` | Road | on a `line`: grades the ground along it to climb or fall no more than `grade` blocks a block, its ends holding the ground they stand on, level across the mask's width with shoulders easing into the ground over `shoulder` blocks | `grade` 0.25, `shoulder` 4 |
 | `gullies` | Gullies | in an area: cuts `count` grooves running outward from its centroid between a quarter of `scale` and `scale`, each up to `depth` deep, bent by `wander` and narrowed by `sharpness`; only cuts | `count` 8, `depth` 3, `wander` 0.9, `sharpness` 3 |
@@ -1398,7 +1398,12 @@ half its `width`, so `e` is 1 at `width / 2` and `scale` is `width / 2`, and the
 With `mask.mirror` (the default) each area also stands at its images under the map's symmetry, through
 `PgmStudio.Geom.Symmetry`; an image that falls on an area the mask already holds, as a centred ellipse does under a
 half turn, counts once. A Scarp's image lifts the mirror image of the ground its original lifts, so a line lying
-on a mirror axis is two areas, one lifting each hand. **An image carries the same noise and the same pieces as the
+on a mirror axis is two areas, one lifting each hand. A line some image carries onto itself run backwards — one
+crossing a mirror, or through the centre of a half turn, its points drawn as their own images
+(`Symmetry.Reverses`) — **runs both ways** (`MaskArea.RunsBothWays`), and a River on it is a canal: one level
+for the whole run, under the lowest ground anywhere along it, so the bed reads the same from either end and a
+river down the middle of the board is as fair as the map. A River lying *along* a mirror is its own image run
+the same way, and falls. **An image carries the same noise and the same pieces as the
 area it is an image of**: every operation that reads noise or scatters by seed reads it at the point of the drawn
 area the column is the image of (`MaskArea.ToDrawn`), and a `board` under a symmetry reads it at the member of
 each column's orbit that stands for all of it, so a Roughness, a Lumps or a Shatter is as fair as the map. Where
@@ -1718,7 +1723,10 @@ so the ground draws the shore and a ring drawn loose round a dug hollow floods e
 states its `level`, and one that does not is refused `DR-DOC`; its beach follows the water rather than the
 ring. It fills round whatever stands in it and never cuts under it,
 so a ship moored in a harbour floats rather than sitting in a dry hole. Absent a `level` the line is
-derived — the lowest surface the channel crosses — and the prop only ever carves existing terrain: the cut
+derived — a pool's the lowest surface it crosses, a channel's the reaches a River's water holds
+(`Reaches.Floors`), flowing from its first point to its last, never climbing and never standing over the lowest
+surface beside it, one line the whole way where the symmetry runs the channel back onto itself — and the prop
+only ever carves existing terrain: the cut
 stops at the surface it crosses and never fills what was already air. **`level` states the world Y instead**,
 and then the fill reaches it whatever the column beneath is doing, which is what fills a basin dug out in the
 shapes: a lake, a harbour, the water a ship floats on has no surface up at the line for a derived one to find.

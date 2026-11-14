@@ -139,6 +139,46 @@ public sealed class CoursesTests
             .Because("the second bed is cut five under the ground the first left at 48, with two blocks of water in it");
     }
 
+    /// <summary>Ground rising from x 30 toward both ends of the field, the same under a mirror across x 30 and a
+    /// half turn about (30, 20).</summary>
+    private static ReliefField Valley() => new(Width, Depth, (x, _) => 50 + 0.4 * Math.Abs(x + 0.5 - 30));
+
+    /// <summary>The cell a cell lands on under an axis about (30, 20).</summary>
+    private static (int X, int Z) Image(int x, int z, string axis) =>
+        axis == "mirror_x" ? (Width - 1 - x, z) : (Width - 1 - x, Depth - 1 - z);
+
+    [Test]
+    [Arguments("mirror_x")]
+    [Arguments("rot_180")]
+    public async Task A_river_the_symmetry_runs_back_onto_itself_holds_one_level_the_same_from_either_end(string axis)
+    {
+        var field = Valley();
+        var line = MaskArea.Line([(2.5, 20), (57.5, 20)], 4);
+        field.Run(River(line) with { Areas = MaskArea.Fanned([line], [axis], 30, 20) });
+
+        var surfaces = Enumerable.Range(3, 54).Select(x => field.WaterAt(x, 20)).Distinct().ToList();
+        await Assert.That(surfaces.Count).IsEqualTo(1).Because("its image flows the other way down the same channel");
+        for (var x = 0; x < Width; x++)
+            for (var z = 0; z < Depth; z++)
+            {
+                var (imageX, imageZ) = Image(x, z, axis);
+                await Assert.That(field.At(x, z)).IsEqualTo(field.At(imageX, imageZ)).Because($"column ({x}, {z})");
+            }
+        for (var x = 3; x < 57; x++)
+            await Assert.That(field.WaterAt(x, 20)).IsLessThanOrEqualTo(field.At(x, 17)).Because($"the water at x {x} tops its bank");
+    }
+
+    [Test]
+    public async Task A_river_lying_along_a_mirror_axis_still_falls()
+    {
+        var field = new ReliefField(Width, Depth, (x, _) => 70 - 0.4 * x);
+        var line = Run(4);
+        field.Run(River(line) with { Areas = MaskArea.Fanned([line], ["mirror_z"], 30, 20.5) });
+
+        var surfaces = Enumerable.Range(3, 54).Select(x => field.WaterAt(x, 20)).Distinct().ToList();
+        await Assert.That(surfaces.Count).IsGreaterThan(1).Because("the mirror carries each point of it onto itself, flowing the same way");
+    }
+
     private static ModifierSpec Lake(MaskArea area, double? level) =>
         new() { Op = ModifierOp.Lake, Areas = [area], Level = level, Depth = 3, Shore = 3 };
 

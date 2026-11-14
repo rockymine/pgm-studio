@@ -190,9 +190,9 @@ public sealed record FluidProp : PlacedProp
     /// single block at the shore, so the fill sits in a bowl rather than a walled trench.</summary>
     public double Depth { get; init; } = 2;
 
-    /// <summary>The world Y the fluid stands at, where the author states one. Absent, the line is the lowest
-    /// surface the channel crosses and the fill never rises past a column's own surface — a channel cut into
-    /// ground that was already there.
+    /// <summary>The world Y the fluid stands at, where the author states one. Absent, a pool's line is the lowest
+    /// surface it crosses and a channel's steps down its run in reaches, flowing from its first point to its last,
+    /// and the fill never rises past a column's own surface — a channel cut into ground that was already there.
     ///
     /// <para>Stated, the line is that Y. A channel or a pool then fills to it whatever the column beneath is
     /// doing: ground dug out in the sketch has no surface up at the line for a derived one to find, so the

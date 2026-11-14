@@ -23,10 +23,6 @@ nothing it makes is welcome, a change to what it makes is not — and its layout
 uses or in what a build writes. They are worked before the fixes and the user experience that wait in
 `BACKLOG.md`.
 
-- [ ] **S46 — A river on the mirror axis is a level canal.** The Terraform River modifier gives a bed that never
-  climbs, per-reach water levels with falls between, and one level where bodies meet (`Courses.cs`). Left: a river
-  lying on the mirror axis holds a single level, and the dressing fluid prop takes reach levels rather than one
-  lowest-surface line. A road draping over what it crosses stays settled as correct. `docs/world-export/decoration.md`.
 - [ ] **WE134 — A map's own dressing registry still takes a hand-written `copied` body.** The tree library
   refuses a `copied` save carrying no cut (`DR-COPY`), but a map's `dressing.styles` takes
   `{"kind":"tree","form":"copied","body":…}` as written and nothing asks where the body came from.

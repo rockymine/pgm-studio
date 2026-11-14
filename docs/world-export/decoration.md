@@ -36,8 +36,8 @@ where the collision cannot bite.
 Read alongside:
 
 - `docs/world-export/terrain-painting.md` — the pass this one runs immediately after; the surface it reads.
-- §7.1 below is what a channel owes ground that is not flat, which is the one part of this stage the
-  flat-plane assumption gets wrong (`S46`).
+- §7.1 below is what a channel owes ground that is not flat: the reaches its water steps down in, and the
+  canal it is on the symmetry's own line.
 - `docs/world-export/structures.md` §6.4 — the preset seam (style-as-data). A dressing style attaches here.
 - `docs/tools/sketch.md` — the sketch document this stage stores its props beside.
 - `docs/world-export/ideas.md` — the dressing-stage gap pool: what turns these tools into one coherent
@@ -752,12 +752,16 @@ wall. `edge` wobbles either boundary by a value field, so a lake is not a ruled 
 The carve is a shallow U — deepest on the centerline, rising to a single block at the band's edge — so the
 fill sits in a bowl rather than a walled trench. `FluidBed` yields a depth per cell from that parabolic law;
 the dressing pass (`Decorator.PlaceFluid`) turns each depth into a cut against the surface the cell actually
-crosses. The fill is one **line** for the whole run, and where that line comes from decides what the
-carve may touch.
+crosses. The fill stands at a **line**, and where that line comes from decides what the carve may touch.
 
-**Derived** — the default — the line is the lowest surface the channel crosses, which is what keeps the fluid
-from floating: every column's surface is at or above it, so the pass fills from just above the bed floor up to
-the line with the stationary fluid and cuts any bank *above* the line back to air, leaving the channel open. The
+**Derived** — the default — a pool's line is the lowest surface it crosses, and a channel's steps down its run
+in **reaches** (§7.1): the channel flows from its first point to its last, each block of its run takes the
+lowest surface beside it, and the line holds level, never climbs and steps down wherever holding would stand
+the fluid over that surface — the law a Terraform River's water holds, through the same function
+(`Reaches.Floors`). That is what keeps the fluid from floating: every column's surface is at or above its
+line, so the pass fills from just above the bed floor up to the line with the stationary fluid and cuts any
+bank *above* the line back to air, leaving the channel open. Where one reach falls into the next, the air over
+the lower reach is the fall and not a hole, so `DR-DRY` passes over it. The
 carve then **only ever touches existing terrain**: it never rises past a column's old surface and skips any
 column the surface map does not carry, so a channel dug across a hollow keeps the hollow and one dug over a
 stamp leaves the stamp — the same exclusion a stroke respects.
@@ -805,14 +809,16 @@ not laid and it claims nothing; and above any column's own surface the pass writ
 fluid goes round a hull, a mast or a stamp rather than through it.
 
 **A kept column the fill leaves dry is ground, and `DR-HELD` says so.** Filling reaches only up to the line,
-and a derived line is the lowest surface the channel crosses, so a channel across a door's approach on level
+and a derived line stands no higher than the lowest surface beside it, so a channel across a door's approach on level
 ground puts no fluid on the approach at all: the bed there is the ground as it stood. Such a column is not
 the channel's in the placement record, so the claims raster, the heightmap text and the fluid count all read
 it as the ground it is, and `DR-HELD` — a complaint — counts the dry columns and names the first and what
 keeps it clear. Moving the channel off the kept ground, or stating a `level` above it, is what puts the fluid there.
 
 Like every prop, a channel is **fanned across the symmetry orbit**, so both teams get the same fluid from the
-same side; a stated line is the same Y at every image, a level plane being level in all of them.
+same side; a stated line is the same Y at every image, a level plane being level in all of them, and a derived
+one is each image's own reaches over its own ground — one line for the whole run where the symmetry carries the
+channel onto itself run backwards (§7.1).
 
 The fluid meets the land through a **beach**. The shore is its own pass — the band *outside* the fluid, out to
 a width that wanders with a noise field and drops to nothing in places, so the fluid meets the grass directly
@@ -838,8 +844,9 @@ pass rather than depending on it: the bed is negative terrain laid straight into
 channel works on the flat layouts the sketch tool builds today and will read as a cut valley once that pass
 gives a layout its heights.
 
-**A pool drawn across a slope digs a pit, and that is `DR-BANK`.** The derived line is the lowest surface the
-body crosses, so every bed column standing above it is emptied down to it — and while `depth` says how far
+**A pool drawn across a slope digs a pit, and that is `DR-BANK`.** A pool's derived line is the lowest surface
+it crosses, and a channel's never climbs, so a channel drawn uphill holds its first reach's line the whole way
+and a pool holds its lowest: every bed column standing above it is emptied down to it — and while `depth` says how far
 *under* the line the bed goes, nothing says how far *over* it the carve may reach. `opus5-mootgate`'s mere is
 two deep by its own word and came out as a five-course vertical wall: grass at y16 on every side, water at y11,
 no shore at all. The finding measures the tallest bank the carve cut against the depth that was stated, and
@@ -891,32 +898,36 @@ work, and both decide where the author's road goes, which is the tool overruling
 *emits* is the draw phase's polyline shape and the erected modes instead, and a polyline whose own height
 varies along its length states `anchor_heights` one to one with its drawn points (`docs/tools/sketch.md`).
 
-**Water** is the half that is genuinely wrong on ground with relief, because it has to obey the ground rather than sit on
-it, and this is `S46`. A channel the author draws as a line is the Terraform River modifier, which cuts a bed that
-never climbs, held level in reaches and stepping down in falls (`docs/tools/sketch.md`); what follows is the design
-for the dressing fluid prop, which still takes one lowest-surface line, and for the canal below, neither of them
-built. Steepest descent from a source stops at the first
-cell with no lower neighbour, and a grained surface is full of one-block pits: measured, the descent stopped
-after **2 cells**. Water is therefore routed on a **depression-filled** copy of the surface, where every basin
-has been raised to the level of its lowest outlet, so a strictly-non-climbing path to the edge of the land
-always exists; the same run then covers **65 cells**. The filled copy is only ever used for routing — a pit an
-author dug is theirs to keep, and the carve goes into the real surface.
+**Water** is the half that has to obey the ground rather than sit on it. A channel the author draws as a line
+is held to the law a river holds, wherever it is drawn: the Terraform River modifier cuts a bed that never
+climbs (`docs/tools/sketch.md`), and the dressing fluid prop's derived line follows the same `Reaches.Floors`.
+Both flow from the line's first point to its last, take at each block of the run the lowest ground beside it,
+and hold their water level in a reach until it drops two blocks or more after ten of reach, or sooner wherever
+holding would stand the water over that ground. A single water line becomes a chain of pools, which is what a
+stream down a hillside actually looks like and what one lowest-surface line cannot express once the ground has
+relief. A prop's line sits flush with the lowest surface beside it, so on ground falling a block every few its
+reaches step a block at a time; a River's bed lies `depth` under that ground with `water` in it, and the
+difference is the slack that lets it hold a reach.
 
-Two consequences follow. The bed's floor is forced non-increasing downstream, so the channel cannot run uphill
-however the centerline wanders. And the water line steps down only where the bed does and holds level in
-between, which turns a single water line into a chain of pools — the measured run holds **14 distinct levels**,
-which is what a stream down a hillside actually looks like and what the single lowest-surface line above
-cannot express once the ground has relief. A basin is also where a channel *ends*, alongside the map edge:
-a cell the fill had to raise is announcing that it sits below its own way out, which is the definition of a
-pond.
+**Water that finds its own way is the half still to come (`G169`).** Steepest descent from a source stops at the
+first cell with no lower neighbour, and a grained surface is full of one-block pits: measured, the descent
+stopped after **2 cells**. Water routed on a **depression-filled** copy of the surface, where every basin has
+been raised to the level of its lowest outlet, always has a strictly-non-climbing path to the edge of the land;
+the same run then covers **65 cells** and holds **14 distinct levels**. The filled copy is only ever for
+routing — a pit an author dug is theirs to keep, and the carve goes into the real surface — and a cell the fill
+had to raise sits below its own way out, which is the definition of a pond and where a routed channel *ends*,
+alongside the map edge.
 
 There is one case where all of that has to be given up, and it is the common one. **A river on the mirror axis
-cannot both fall and be fair.** A half-turn reverses the direction of flow, so a bed that descends from north to
-south descends from south to north in its own image, and the two cannot both be the built surface. The
-resolution is not a compromise but a different thing: on the axis a river is a **canal** — one water level for
-the whole run, a bed the same shape read from either end — which is what a river down the middle of a
-competitive map has always had to be. Falling water belongs to the flanks, where it is authored once and fanned
-like everything else.
+cannot both fall and be fair.** A half-turn, or a mirror the river crosses, reverses the direction of flow, so a
+bed that descends from north to south descends from south to north in its own image, and the two cannot both
+be the built surface. On the axis a river is therefore a **canal** — one water level for the whole run, a bed
+the same shape read from either end — which is what a river down the middle of a competitive map has always
+had to be. The case is a line some image of the symmetry carries onto itself run backwards, its points drawn as
+their own images (`Symmetry.Reverses`, `MaskArea.RunsBothWays`): a River on one cuts its bed to one level under
+the lowest ground anywhere along it, and a fluid channel on one fills every image to the lowest surface it
+crosses. A river lying *along* a mirror is its own image run the same way and still falls. Falling water
+belongs to the flanks, where it is authored once and fanned like everything else.
 
 ## 8. Buildings — a rectangle and a shell (`DR-HO`)
 
