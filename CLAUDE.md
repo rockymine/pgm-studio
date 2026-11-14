@@ -337,6 +337,11 @@ branch, keep history linear; if a branch already exists, fast-forward `main` to 
 there the rule is: develop and push on that branch, and never fast-forward `main` onto it from inside the
 container.
 
+**A pull request describes the change, not its history.** `.github/pull_request_template.md` is the shape. The
+title says what the change does ("Kits keep every element they state"), never where the work came from — no
+"answers", no review or batch names, no "as asked". A fix states the fault it removes and what holds now; task ids
+may appear in the body to trace a change, and never stand in for saying what it is.
+
 ## Status & task board
 Three files, three Kanban columns — keep them current, **never duplicate a task across them**:
 - **`BACKLOG.md`** — the **long tail**: open work not in the current focus (`[ ]` to-do, `[~]`
