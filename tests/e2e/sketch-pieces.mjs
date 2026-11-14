@@ -30,7 +30,9 @@ const pieces = () => api(`/map/${slug}/intent/pieces`);
 const byKind = async (kind) => (await pieces()).filter(piece => piece.kind === kind);
 
 const browser = await openBrowser();
-const page = await newPage(browser, { width: 1600, height: 1000 });
+// The drags here are a few blocks at the zoom a whole board fits at, so the canvas is held at the width they were
+// measured on: 1600 px beside an inspector of 280, which is 1740 beside today's 420.
+const page = await newPage(browser, { width: 1740, height: 1000 });
 const written = [];
 const builds = [];
 page.on("response", res => {
