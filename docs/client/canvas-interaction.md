@@ -98,6 +98,7 @@ canvas layer can then reuse or test it.
 | `geometry/transform.js` | world↔SVG coordinate math — the single bridge between block space and screen space |
 | `geometry/polygon.js` | **the** point-in-polygon home (`pointInRing`, `pointInPoly`), the ring-level `polysOverlap` predicate, rasterisation, half-plane clip |
 | `geometry/shape.js` | the unified primitive model: rectangle / circle / polygon / lasso, `toRing`/`toBounds`/`containsPoint` |
+| `geometry/outline-points.js` | the point edits every outline outside the shape editor takes — a modifier's mask, a dressing route or area, an approach wall: the edge a pointer is near, a point put at an edge's middle, a point taken out while a ring keeps three and a run two |
 | `geometry/boolean.js` | group booleans over `polygon-clipping` — the one sketch-domain geometry layer; falls back to `polysOverlap` where the clipper throws (§5.1) |
 | `geometry/decompose-cut.js` | lane decomposition: lasso enclosure, edge markers, splitting a piece at two seams |
 | `geometry/symmetry.js` | the JS twin of `PgmStudio.Geom.Symmetry` (see the warning in `CLAUDE.md`) |

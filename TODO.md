@@ -19,12 +19,11 @@ optimisation and the user experience. The generator's behaviour is frozen — a 
 nothing it makes is welcome, a change to what it makes is not — and its layout entries move to
 `docs/generator/ideas.md`.
 
-- [ ] **TS130 — Every outline on the canvas edits the same way.** A line the canvas draws — a shape's polygon, a
-  polyline, a modifier's path, a stroke, a fluid's or flora's outline — has points and edges, and wherever the
-  element allows it a point drags, a point is inserted at an edge's midpoint and a point is deleted, by the same
-  gestures as a shape's (`sketch-edit-controller.js`). The API's point edits and bends reach the same outlines:
-  `editShapes` and `bendShapes` address a shape's `vertices` alone (`SketchGeometryEdit.Outline`), where
-  `outlines` already writes a stroke's, fluid's or flora's `points` (`Refinement.Outlined`). `docs/tools/flow.md`.
+- [~] **TS130 — The API's point edits reach every outline the canvas edits.** `editShapes` and `bendShapes` address
+  a shape's `vertices` alone (`SketchGeometryEdit.Outline`), where `outlines` already writes a stroke's, fluid's or
+  flora's `points` (`Refinement.Outlined`). A point move, insert and remove on a prop's `points` — a stroke and a
+  fluid open runs keeping two, a flora ring keeping three, nothing reheighted — through the same routes and the same
+  refinement keys. `docs/tools/flow.md`.
 - [ ] **WE168 — A room's interior is placed relative to its house.** The chests (`WoolChests`, `RoomFrames.InteriorCorners`) and the monuments (`RoomFrames.MonumentSlots`) are
   stated on the room's `house` as positions relative to its first wing, movable in Layout, and a migration
   carries each derived position into the stored one. `docs/world-export/structures.md`.

@@ -1159,6 +1159,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `Features/Plan/`; `PlanRoles` and `PlanBoxKinds` are `Vocabulary` word sets, and `plan-doc.js`'s twin is pinned
   to them by a test.
 
+- **Every outline on the canvas takes a point the same way (TS130).** A modifier's mask, a dressing route or area
+  and an approach wall each offer a point at the middle of the edge under the pointer, pick a point on a press that
+  does not move and take the picked one out on `Delete` while a ring keeps three and a run two, through the one
+  `geometry/outline-points.js`, as a shape's points already did.
+
 - **A live feed, an iso preview and a refusal sentence are one module each (C92).** `bridge/live-feed.js` is the
   debounced, sequence-guarded POST both bridges' seven feeds use, `bridge/iso-preview.js` the 3-D preview both
   tools enter, and `IsoToggle` the one 2D/3D switch.

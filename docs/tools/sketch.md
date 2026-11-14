@@ -1073,8 +1073,10 @@ the room's east wall, and one centred on its south:
 block corners in order, and is laid two blocks thick along every leg, the four blocks round each bend filled so
 the band turns without a notch (`WallLine`). In Layout a picked wall wears a square grip on each corner: dragging
 one moves that corner alone, by block corners, and it snaps to the nearest point on a drawn shape's outline
-within 3 blocks, so a wall run from shore to shore meets both; a shift-press on a leg adds a corner there, and a
-shift-press on a corner takes it out while two stay (`WallCornerController`). Every change writes the line whole
+within 3 blocks, so a wall run from shore to shore meets both. As on every outline the canvas draws, hovering a
+leg offers a corner at its middle, which the press that adds it then drags, and a press on a corner that does not
+move picks it, so `Delete` takes it out while two stay; a shift-press on a leg or a corner does the same at once
+(`WallCornerController`). Every change writes the line whole
 through `PUT /map/{slug}/intent/pieces/{id}/line`, and every image of the wall takes the line carried through
 the symmetry (`PlayPieceLine`); a refusal puts the wall back. The seam rules ask a bent wall as the line between
 its ends, which is the approach it bars (`SketchSeamCheck`). A wall bent once on its way to (-6, 20):
@@ -1238,7 +1240,8 @@ nothing. Every other operation traces an outline, as above.
 an outline picks its modifier, the smallest outline winning where they nest, and a press within half a line's
 width of it picks that, and a drag moves the whole mask. The picked mask carries a grip on each point, and
 hovering an edge offers a new point there, which the press that adds it then drags. A line has no edge from its
-last point back to its first. `Delete` removes the picked modifier. The picked mask is drawn bold and its images
+last point back to its first. A press on a grip that does not move picks that point, and `Delete` takes the picked
+point out while an outline keeps three and a line two; with no point picked, `Delete` removes the picked modifier. The picked mask is drawn bold and its images
 under the map's symmetry dashed, a line with its band faintly beside it, and a modifier switched off is drawn faint.
 
 **The left panel lists the shapes above the stack.** *Shapes* has a row for each drawn shape that is ground (a
@@ -1634,6 +1637,13 @@ Seven things can be placed, in three placement geometries.
 | Tree | `tree` | a click | the built-in recipe, an oak 12 tall, until a tree is picked |
 | Boulder | `boulder` | a click | the built-in recipe, a mossy erratic of size 4, until it is tuned |
 | Chest | `chest` | a click | on the ground, fronting `negZ`, holding nothing until its stacks are listed (`docs/world-export/decoration.md` §8a) |
+
+**A picked route or area is reshaped a point at a time, the way a mask is.** A stroke, a fluid or a ground cover
+wears a grip on each of its points, and a grip drags that point alone. Hovering an edge offers a point at its
+middle, which the press that adds it then drags; the canvas draws a stroke and a fluid as routes, so neither has
+an edge from its last point back to its first, where a ground cover is a ring and does. A press on a grip that does not move
+picks that point, and `Delete` takes it out while a ring keeps three and a route two; with no point picked,
+`Delete` removes the prop.
 
 **A building grows a wing the way an outline grows a point.** A picked building shows the outline editor's round
 insert marker at the middle of the free wall nearest the pointer — a run of wall no other wing stands against, at
