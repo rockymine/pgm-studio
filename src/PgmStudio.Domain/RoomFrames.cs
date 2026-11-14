@@ -93,11 +93,11 @@ public static class RoomFrameRules
     [Rule(RuleCategory.Unplayable, RuleConcern.Plan, RuleConcern.Structure, RuleConcern.Objective)]
     public const string RoomUnreachable = "WX6";
 
-    /// <summary>A door is 3 blocks wide on an interior wall of odd length, and 4 on an even wall at least 6 across,
-    /// or 2 on an even wall 4 across.</summary>
-    /// <remarks>Change the <c>footprint</c> of the spawn or wool in <c>placements.spawns</c> or
-    /// <c>placements.wools</c> until the interior across the door wall is an even number of at least 6
-    /// blocks.</remarks>
+    /// <summary>A door is the width its room's house states, kept 1 block from each corner and centred, or 3
+    /// blocks on an odd interior wall, and up to 4 on an even one.</summary>
+    /// <remarks>Either set the <c>doorway.width</c> of the room's house, or change the <c>footprint</c> of the
+    /// spawn or wool in <c>placements.spawns</c> or <c>placements.wools</c> until the interior across the door wall
+    /// fits the door.</remarks>
     [Rule(RuleConcern.Structure)]
     public const string DoorWidth = "WX7";
 
@@ -296,19 +296,25 @@ public static class RoomFrames
     }
 
     /// <summary>The door width for a wall whose interior runs <paramref name="interiorAcross"/> blocks along
-    /// it (WX7): an odd wall centres a 3-wide door; an even wall takes the common 4 once the interior is 6
-    /// across, narrowing to 2 at the 4-across minimum. Always ≤ interior − 2, so the door-wall corner cells
-    /// are never exposed from outside.</summary>
-    public static int DoorWidth(int interiorAcross) =>
-        interiorAcross % 2 == 1 ? 3 : interiorAcross >= 6 ? 4 : 2;
+    /// it (WX7). A width the room's house <paramref name="stated"/> is clamped to between 2 and interior − 2 and
+    /// dropped by one where its parity differs from the wall's, so it centres — which makes a stated 1 or 2 a
+    /// one-wide door on an odd wall. Where none is stated, an odd wall centres a 3-wide door and an even wall
+    /// takes the common 4 once the interior is 6 across, narrowing to 2 at the 4-across minimum. Always ≤
+    /// interior − 2, so the door-wall corner cells are never exposed from outside.</summary>
+    public static int DoorWidth(int interiorAcross, int? stated = null)
+    {
+        if (stated is not { } asked) return interiorAcross % 2 == 1 ? 3 : interiorAcross >= 6 ? 4 : 2;
+        var width = Math.Clamp(asked, 2, Math.Max(2, interiorAcross - 2));
+        return (interiorAcross - width) % 2 == 0 ? width : width - 1;
+    }
 
     /// <inheritdoc cref="ResolveRoom"/>
     /// <remarks>The frame-only convenience: no iron markers, returns just the frame.</remarks>
     public static RoomFrame? Resolve(
         BlockRect piece, BlockRect? footprint, bool shellBound,
         double markerX, double markerZ, IReadOnlyList<AskedDoor> doors, bool spawn,
-        out Finding? refusal)
-        => ResolveRoom(piece, footprint, shellBound, markerX, markerZ, doors, spawn, [], out refusal)?.Frame;
+        out Finding? refusal, int? doorWidth = null)
+        => ResolveRoom(piece, footprint, shellBound, markerX, markerZ, doors, spawn, [], out refusal, doorWidth)?.Frame;
 
     /// <summary>The doors a set of entry segments asks for: one per degenerate rect lying on an edge of
     /// <paramref name="piece"/>, centred on the segment; a segment on no edge asks for none.</summary>
@@ -351,12 +357,13 @@ public static class RoomFrames
     /// of its doors (WX1).</param>
     /// <param name="ironMarkers">The piece's iron markers, resolved in input order (WX8/WX9).</param>
     /// <param name="refusal">The <see cref="RoomFrameRules"/> finding that refused, where the result is null.</param>
+    /// <param name="doorWidth">The door width the room's house states, or null for the wall's own (WX7).</param>
     public static ResolvedRoom? ResolveRoom(
         BlockRect piece, BlockRect? footprint, bool shellBound,
         double markerX, double markerZ,
         IReadOnlyList<AskedDoor> doors, bool spawn,
         IReadOnlyList<(double X, double Z)> ironMarkers,
-        out Finding? refusal)
+        out Finding? refusal, int? doorWidth = null)
     {
         refusal = null;
         int pieceMinX = piece.MinX, pieceMinZ = piece.MinZ, pieceMaxX = piece.MaxX, pieceMaxZ = piece.MaxZ;
@@ -418,7 +425,7 @@ public static class RoomFrames
         {
             var alongX = asked.Edge.AlongX();
             var interiorAcross = (alongX ? maxX - minX : maxZ - minZ) - 2 * wall;
-            var width = DoorWidth(interiorAcross);
+            var width = DoorWidth(interiorAcross, doorWidth);
             var (runLo, runHi) = alongX ? (minX + wall, maxX - wall) : (minZ + wall, maxZ - wall);
             var (spanLo, spanHi) = alongX ? (minX, maxX) : (minZ, maxZ);
             var lo = asked.Along is { } along

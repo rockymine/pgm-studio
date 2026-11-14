@@ -211,7 +211,7 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
         StoreyClear = Math.Clamp(req.StoreyClear, 0, 16),
         Door = DoorMaterials.IsKnown(req.Door) ? req.Door : DoorMaterials.Slug(DoorMaterial.StainedGlassPane),
         DoorHeight = Math.Max(1, req.DoorHeight),
-        DoorWidth = Math.Max(1, req.DoorWidth),
+        DoorWidth = req.DoorWidth is { } width ? Math.Max(1, width) : null,
         BorderWidth = Math.Clamp(req.BorderWidth, 1, 4),
         InlayInset = Math.Clamp(req.InlayInset, 1, 8),
         WindowForm = WindowForms.Canonical(req.Windows?.Form),
@@ -331,7 +331,7 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
             Doorway = new Doorway
             {
                 Door = DoorMaterials.TryParse(row.Door, out var door) ? door : DoorMaterial.StainedGlassPane,
-                Width = Math.Max(1, row.DoorWidth),
+                Width = row.DoorWidth is { } width ? Math.Max(1, width) : null,
                 Height = Math.Max(1, row.DoorHeight),
                 // A head the row carries columns for. It is off by default and off is what every stored style
                 // was, so a row saved before them builds exactly what it always did.

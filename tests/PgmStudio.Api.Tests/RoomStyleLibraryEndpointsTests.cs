@@ -205,6 +205,26 @@ public sealed class RoomStyleLibraryEndpointsTests
         await Assert.That(after.Windows.HostBlock).IsEqualTo(Blocks.Cobblestone);
     }
 
+    /// <summary>A doorway's width is what a save last stated: a single door, then none, which is the
+    /// default.</summary>
+    [Test]
+    public async Task An_edit_restates_the_door_width_down_to_the_default()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var created = await client.PostAsJsonAsync("/api/room-styles", Draft("door-width-house") with { DoorWidth = 3 });
+        var saved = (await created.Content.ReadFromJsonAsync<RoomStyleDetail>())!;
+
+        foreach (var width in (int?[])[1, null])
+        {
+            var response = await client.PutAsJsonAsync($"/api/room-styles/{saved.Id}",
+                saved.AsSaveRequest() with { DoorWidth = width });
+            await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+            var after = await client.GetFromJsonAsync<RoomStyleDetail>($"/api/room-styles/{saved.Id}");
+            await Assert.That(after!.DoorWidth).IsEqualTo(width);
+        }
+    }
+
     /// <summary>A house that states none of them answers absent rather than a shape meaning none, so the
     /// editor reads the absence — and saving what it read stores the same nothing back.</summary>
     [Test]

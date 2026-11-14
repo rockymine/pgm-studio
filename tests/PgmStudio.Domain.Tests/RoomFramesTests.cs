@@ -168,6 +168,57 @@ public sealed class RoomFramesTests
     }
 
     [Test]
+    public async Task A_stated_door_width_stays_clear_of_the_corners_and_centres_on_its_wall()
+    {
+        for (var interior = 4; interior <= 18; interior++)
+            for (var stated = 1; stated <= 12; stated++)
+            {
+                var width = RoomFrames.DoorWidth(interior, stated);
+                await Assert.That(width).IsGreaterThanOrEqualTo(1);
+                await Assert.That(width).IsLessThanOrEqualTo(interior - 2).Because("the door-wall corners stay walled");
+                await Assert.That((interior - width) % 2).IsEqualTo(0).Because("the door centres on its wall");
+                await Assert.That(width).IsGreaterThanOrEqualTo(Math.Min(stated, interior - 2) - 1)
+                    .Because("a width is narrowed by one at most to centre");
+                if (stated >= 2 && stated <= interior - 2 && (interior - stated) % 2 == 0)
+                    await Assert.That(width).IsEqualTo(stated).Because("a width that fits and centres is the width cut");
+            }
+        await Assert.That(RoomFrames.DoorWidth(6, 2)).IsEqualTo(2);   // a stated two where the wall's own is four
+        await Assert.That(RoomFrames.DoorWidth(7, 2)).IsEqualTo(1);   // an odd wall centres a single door
+        await Assert.That(RoomFrames.DoorWidth(6, 1)).IsEqualTo(2);   // an even wall cannot centre a single one
+        await Assert.That(RoomFrames.DoorWidth(6, null)).IsEqualTo(RoomFrames.DoorWidth(6));
+    }
+
+    [Test]
+    public async Task A_room_cuts_the_door_its_house_states_and_seats_nothing_in_front_of_it()
+    {
+        // An 8×8 shell's 6-across interior takes a 4-wide door by its wall, and the 2 its house states instead.
+        var piece = new BlockRect(0, 0, 10, 10);
+        var stated = RoomFrames.Resolve(piece, footprint: null, shellBound: true, 5, 5, [new AskedDoor(RoomEdge.NegZ)],
+            spawn: true, out _, doorWidth: 2)!;
+        await Assert.That(stated.Doors[0]).IsEqualTo(new RoomDoor(RoomEdge.NegZ, 4, 2));
+
+        var seats = RoomFrames.Interior(stated, null, null, out _).Monuments;
+        var inFront = seats.Where(seat => seat.Z == stated.InteriorMinZ && seat.X >= 4 && seat.X < 6).ToList();
+        await Assert.That(inFront).IsEmpty().Because("the cells just inside the opening are the way in");
+        var byWall = RoomFrames.Interior(
+            RoomFrames.Resolve(piece, footprint: null, shellBound: true, 5, 5, [new AskedDoor(RoomEdge.NegZ)], spawn: true, out _)!,
+            null, null, out _).Monuments;
+        await Assert.That(seats.Count).IsEqualTo(byWall.Count + 2).Because("a narrower door frees two door-row seats");
+    }
+
+    [Test]
+    public async Task The_iron_cube_stands_where_it_did_whatever_door_the_house_states()
+    {
+        // The cube is placed against the room's footprint, never its door, so a stated width moves neither the
+        // room nor the cube in front of it (WX8).
+        IronResolution Iron(int? width) => RoomFrames.ResolveRoom(new BlockRect(0, 0, 20, 20), footprint: null,
+            shellBound: true, 10, 16, [new AskedDoor(RoomEdge.NegZ)], spawn: true, [(10, 1.5)], out _, width)!.Iron[0];
+        foreach (var width in (int?[])[1, 2, 3, 8, 16])
+            await Assert.That(Iron(width)).IsEqualTo(Iron(null));
+        await Assert.That(Iron(16).Placeable).IsTrue();
+    }
+
+    [Test]
     public async Task Spawn_door_centres_on_its_yaw_derived_wall()
     {
         var frame = RoomFrames.Resolve(new BlockRect(0, 0, 10, 10), footprint: null, shellBound: true, 5, 5, [new AskedDoor(RoomEdge.PosX)], spawn: true, out _)!;

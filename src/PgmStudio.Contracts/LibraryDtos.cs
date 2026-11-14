@@ -460,7 +460,7 @@ public sealed record RoomStyleDetail(
     long? RoofStyleId, long? PorchStyleId, IReadOnlyList<RoomStoreyDto> StoreyStack,
     IReadOnlyList<RoomCourseDto> Courses,
     RoomBeamDto? Beams = null, int RoofSlab = -1, int RoofSlabData = 0,
-    RoomWindowDto? GableWindows = null, RoomDoorHeadDto? DoorHead = null, int DoorWidth = 2,
+    RoomWindowDto? GableWindows = null, RoomDoorHeadDto? DoorHead = null, int? DoorWidth = null,
     int RoofStair = -1, double RoofWear = 0, string Front = PorchEdges.Front, bool Seeded = false)
     : RoomStyleSaveRequest(
         Name, FloorDepth, WallHeight, RoofForm, Pitch, Overhang, RoofHole, RidgeCap, BorderWidth, InlayInset,
@@ -524,9 +524,9 @@ public sealed record RoomStyleDetail(
 /// absent for a gable left blank.</param>
 /// <param name="DoorHead">The beam over the doorway, or absent to leave the opening a plain
 /// rectangle.</param>
-/// <param name="DoorWidth">How wide the opening is asked for. Never cut under two however it is set: a
-/// single-width gap is not a door, and a room an objective is carried out of has to read as somewhere to walk
-/// through.</param>
+/// <param name="DoorWidth">How wide the opening is asked for, or absent for the default: a room's door then
+/// follows its wall (<c>WX7</c>) and a house's is 2. A stated width on a room is kept a block from each corner and
+/// narrowed by one where it cannot centre. An opening one block wide holds a wooden door.</param>
 /// <param name="RoofStair">The stair a roof laid in whole courses steps in, or -1 for one laid in cubes.
 /// Never with <paramref name="RoofSlab"/>.</param>
 /// <param name="RoofWear">0–1; how weathered the roof is.</param>
@@ -545,7 +545,7 @@ public record RoomStyleSaveRequest(
     // Trailing and defaulted so every existing construction site keeps compiling and keeps meaning "this
     // building has none" — which is what every stored style already was.
     RoomBeamDto? Beams = null, int RoofSlab = -1, int RoofSlabData = 0,
-    RoomWindowDto? GableWindows = null, RoomDoorHeadDto? DoorHead = null, int DoorWidth = 2,
+    RoomWindowDto? GableWindows = null, RoomDoorHeadDto? DoorHead = null, int? DoorWidth = null,
     int RoofStair = -1, double RoofWear = 0,
     [property: WordSet(typeof(PorchEdges))] string Front = PorchEdges.Front);
 

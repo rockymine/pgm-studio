@@ -489,7 +489,12 @@ public partial class HouseEditor
 
     // ── the doorway ────────────────────────────────────────────────────────────────────────────────
     private Task SetDoorWidth(double value)
-        => Knob(d => d with { DoorWidth = Math.Clamp((int)value, 2, 8) });
+        => Knob(d => d with { DoorWidth = Math.Clamp((int)value, 1, 8) });
+
+    /// <summary>States a width, starting from the two a house takes, or leaves the doorway's default.</summary>
+    private Task SetDoorWidthStated(bool stated) => stated == (draft?.DoorWidth is not null)
+        ? Task.CompletedTask
+        : Knob(d => d with { DoorWidth = stated ? 2 : null });
 
     /// <summary>Whether a lintel is stated. Without one the wall simply carries over the opening.</summary>
     private bool Headed => draft?.DoorHead is not null;

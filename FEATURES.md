@@ -3787,6 +3787,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   resolve answers them for the stampers, the checks and `GET …/intent/pieces/{id}/interior` (`RoomFrames.Interior`),
   an image states the images of the cells (`RoomHouse.Mapped`), `WX15`–`WX17` refuse what does not fit, and Layout
   drags each by whole blocks. `docs/world-export/structures.md`, `docs/tools/sketch.md`.
+- **A room's door is as wide as its house states (`WE152`).** `doorway.width` reaches the frame through the style
+  the room is stamped in (`RoomFrames.DoorWidth`), cut at `clamp(stated, 2, interior − 2)` and dropped by one to
+  centre, the wall's own `WX7` width where it states none; an opening one block wide holds a wooden leaf, an oak one
+  where the style's door is not a leaf. A stored width of 2 is the default and `M0097` made every one `null`, in
+  `room_style` and in every snapshot. `docs/world-export/structures.md`, `docs/tools/library.md`.
 - **Every seeded house stamps the same columns in a room's mirror and turned images (`WE162`).** A wall-run
   pattern's arc is counted from the door wall's left hand (`BuildingPlan.HandedArc`), so a stilt storey's air gaps
   open on matching columns, and a saltbox fronting an end wall turns its steep side to the left hand; the orbit

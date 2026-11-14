@@ -849,17 +849,20 @@ public static class HouseStamper
 
         // A doorway cut after the walls so it is a hole in them, and never through a corner post, which is
         // what holds the building up. Air is written here rather than skipped: this one is an opening cut on
-        // purpose, not a gap a material declined to fill.
+        // purpose, not a gap a material declined to fill. An opening one block wide is a door rather than a
+        // gap, so it holds the style's own leaf, or an oak one where the style's door is not a leaf.
         void StampDoors()
         {
             var choice = DoorMaterials.Of(style.Doorway.Door);
             foreach (var door in openings)
             {
+                var fill = door.Width == 1 && !choice.Opens ? DoorMaterials.Of(DoorMaterial.OakDoor) : choice;
+                var height = fill.Opens ? Math.Max(2, doorHeight) : doorHeight;
                 // The head takes the opening's <em>top</em> course where the style names one and the opening
                 // is big enough to spare it, so a three-course door becomes two of clear under a beam.
-                var head = style.Doorway.Head.Fits(door.Width, doorHeight) ? doorHeight : 0;
+                var head = style.Doorway.Head.Fits(door.Width, height) ? height : 0;
                 var alongX = door.Wall.AlongX;
-                for (var course = 1; course <= doorHeight; course++)
+                for (var course = 1; course <= height; course++)
                     for (var step = 0; step < door.Width; step++)
                     {
                         var (x, z) = door.Wall.Cell(door.Lo + step);
@@ -868,10 +871,10 @@ public static class HouseStamper
                             var (headId, headData) = style.Doorway.Head.Piece(alongX, step, door.Width);
                             world.SetBlock(x, floorY + course, z, headId, headData);
                         }
-                        else if (!choice.Opens)
-                            world.SetBlock(x, floorY + course, z, choice.BlockId, choice.Coloured && color >= 0 ? color : 0);
+                        else if (!fill.Opens)
+                            world.SetBlock(x, floorY + course, z, fill.BlockId, fill.Coloured && color >= 0 ? color : 0);
                         else if (course <= 2)
-                            world.SetBlock(x, floorY + course, z, choice.BlockId, Leaf(door, step, course));
+                            world.SetBlock(x, floorY + course, z, fill.BlockId, Leaf(door, step, course));
                         // A leaf is two blocks tall, so the courses above it and under the head stay wall.
                     }
             }

@@ -32,16 +32,17 @@ public static class RoomStylePreview
 {
     /// <summary>The room a preview is stamped into, at the piece one of the four
     /// <see cref="HouseFootprints"/> names — whose frame resolves to the shell inside it (WX1). One door on
-    /// the −z wall, so a section taken from the front shows a doorway and the courses around it; the marker
-    /// at the piece centre gives the 2×2 pad.</summary>
-    private static RoomFrame SampleOf(string? footprint)
+    /// the −z wall, cut at the width <paramref name="style"/>'s doorway states (WX7), so a section taken from the
+    /// front shows a doorway and the courses around it; the marker at the piece centre gives the 2×2 pad.</summary>
+    private static RoomFrame SampleOf(HouseStyle style, string? footprint)
     {
         var (width, depth) = HouseFootprints.PieceOf(footprint);
         // A whole-number marker in both axes: the pad is square, so a piece whose axes differ in parity is
         // refused outright where the marker is taken as the piece centre (WX3).
         var piece = new BlockRect(0, 0, width, depth);
         return RoomFrames.Resolve(piece, footprint: null, shellBound: true,
-                width / 2, depth / 2, RoomFrames.EntryDoors([(0, 0, width, 0)], piece), spawn: false, out _)
+                width / 2, depth / 2, RoomFrames.EntryDoors([(0, 0, width, 0)], piece), spawn: false, out _,
+                style.Doorway.Width)
             ?? throw new InvalidOperationException(
                 $"the {footprint} sample piece ({width}×{depth}) does not resolve to a shell");
     }
@@ -61,7 +62,7 @@ public static class RoomStylePreview
     /// <see cref="Views"/> so listing the library does not draw an isometric per row.</summary>
     public static string Card(HouseStyle style, int cell = 6, string? footprint = null, string? part = null)
     {
-        var sample = SampleOf(footprint);
+        var sample = SampleOf(style, footprint);
         return WorldViews.Section(
             Stamped(style, sample), CutTo(style, Outer(style, sample), part), cell);
     }
@@ -74,7 +75,7 @@ public static class RoomStylePreview
             flat: () => Card(style, part: part),
             volume: () =>
             {
-                var sample = SampleOf(null);
+                var sample = SampleOf(style, null);
                 return (Stamped(style, sample), CutTo(style, Outer(style, sample), part));
             });
 
@@ -114,7 +115,7 @@ public static class RoomStylePreview
     public static RoomStylePreviewDto Views(
         HouseStyle style, int cell = 6, string? footprint = null, string? part = null)
     {
-        var sample = SampleOf(footprint);
+        var sample = SampleOf(style, footprint);
         var world = Stamped(style, sample);
         var box = CutTo(style, Outer(style, sample), part);
         var inner = CutTo(style, Inner(style, sample), part);
@@ -134,7 +135,7 @@ public static class RoomStylePreview
     public static byte[]? Png(
         HouseStyle style, string view, int scale = 1, string? footprint = null, string? part = null)
     {
-        var sample = SampleOf(footprint);
+        var sample = SampleOf(style, footprint);
         var world = Stamped(style, sample);
         var box = CutTo(style, Outer(style, sample), part);
         return view switch

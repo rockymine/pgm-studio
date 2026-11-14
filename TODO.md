@@ -23,15 +23,6 @@ nothing it makes is welcome, a change to what it makes is not — and its layout
 uses or in what a build writes. They are worked before the fixes and the user experience that wait in
 `BACKLOG.md`.
 
-- [ ] **WE152 — A room's door width, stated by its style.** `WX7` cuts a room's door from its wall (`RoomFrames.DoorWidth`: 4 on an even interior of six or more,
-  3 on an odd one, 2 at four across) and a style's `doorway.width` reaches only the dressing's houses. Honouring
-  it is `clamp(stated, 2, interior − 2)`, dropped by one where its parity differs from the wall's so the door
-  stays centred — carried on `RoomShells`, since `Domain` cannot see `HouseStyle`, and re-checked against the
-  iron cube the room seats beside the door (`ResolvedRoom.Iron`, `WX8`). The field is `NOT NULL DEFAULT 2`
-  (`M0027`), and 11 of the deployed 13 room styles hold 2. **The author's ruling:** a stored 2 is the default, so the
-  column becomes nullable and a migration turns every 2 into null; and a door may be 1 wide, which is a literal
-  door — a door block in the opening — rather than a gap. *Evidence: Sootcombe
-  note 10 asks for a 2-wide wool-room door.* `docs/world-export/structures.md` §7.
 - [ ] **S46 — A river on the mirror axis is a level canal.** The Terraform River modifier gives a bed that never
   climbs, per-reach water levels with falls between, and one level where bodies meet (`Courses.cs`). Left: a river
   lying on the mirror axis holds a single level, and the dressing fluid prop takes reach levels rather than one
