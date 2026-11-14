@@ -7,7 +7,7 @@ using PgmStudio.Migrations;
 namespace PgmStudio.Data.Tests;
 
 /// <summary>
-/// <c>M0097</c> makes a doorway width of 2 the unstated default everywhere one is stored: a library row's
+/// <c>M0095</c> makes a doorway width of 2 the unstated default everywhere one is stored: a library row's
 /// <c>door_width</c> turns null, and so does every snapshot's <c>doorway.width</c> of 2 — in a composed board, a
 /// map's JSON documents and the documents its changes recorded — while any other width, and a document that is
 /// not JSON, stay as they were. Rolls the schema back and forward, so it runs apart from every other database
@@ -31,7 +31,7 @@ public sealed class DoorwayWidthDefaultMigrationTests
     public async Task Every_stored_doorway_width_of_two_becomes_the_default_and_nothing_else_changes()
     {
         await TestDb.ResetSchemaAsync();
-        SchemaMigrator.MigrateDown(TestDb.ConnectionString, 96);
+        SchemaMigrator.MigrateDown(TestDb.ConnectionString, 94);
         try
         {
             long defaultRow, statedRow, boardId, artifactId, untouchedId, brokenId;
@@ -47,7 +47,7 @@ public sealed class DoorwayWidthDefaultMigrationTests
                 recorded = Record(db, "board", "sketch_layout_json", Layout);
             }
 
-            SchemaMigrator.MigrateUp(TestDb.ConnectionString, 97);
+            SchemaMigrator.MigrateUp(TestDb.ConnectionString, 95);
 
             await using (var db = TestDb.Connect())
             {

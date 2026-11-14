@@ -19,8 +19,8 @@ namespace PgmStudio.Migrations.Migrations;
 /// document a change recorded, stored under the hash of its new bytes. A document that is not JSON, or holds no
 /// such width, is left byte for byte as it was. Forward-only.
 /// </summary>
-[Migration(97, "A doorway's width of 2 is its default")]
-public sealed class M0097_DoorwayWidthDefault : Migration
+[Migration(95, "A doorway's width of 2 is its default")]
+public sealed class M0095_DoorwayWidthDefault : Migration
 {
     private const int DefaultWidth = 2;
 

@@ -263,7 +263,7 @@ because there is no smaller square centred on a corner than the four blocks shar
   resolver is in `Domain` and cannot see a `HouseStyle`. It is cut at `clamp(stated, 2, interior − 2)`, dropped
   by one where its parity differs from the wall's so the door stays centred: a house stating 2 gets a 2-wide door
   on an even wall and a 1-wide one on an odd wall, and a stated 1 is 1 on an odd wall and 2 on an even one, where
-  a single block cannot centre. An unstated width — `null`, which is what every stored 2 became (`M0097`) — is
+  a single block cannot centre. An unstated width — `null`, which is what every stored 2 became (`M0095`) — is
   the wall's own above. The derived chests and monument seats read the cut door, so a narrower door frees the
   door-row seats beside it; the iron cube is placed against the footprint and never the door (WX8), so a stated
   width moves neither. Door *height* and room height are the style's, not the frame's — §7.

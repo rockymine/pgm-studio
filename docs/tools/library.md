@@ -1077,9 +1077,9 @@ out of the pattern library into the slots that lay it, merged the patterns, roof
 same thing into one row each, and gave each seeded pattern the name the folder states it under; a map's current
 refinement naming a block's row holds the block instead, and one naming a merged pattern names the row kept.
 `M0059` gives a room style the wall its doorway faces, which a house style could state and the row had nowhere
-to keep. `M0097` made a doorway width of 2 the default it always was: `door_width` turned nullable and its 2s
+to keep. `M0095` made a doorway width of 2 the default it always was: `door_width` turned nullable and its 2s
 null, and every snapshot a map, a composed board or a recorded change keeps had its `doorway.width` of 2 written
-as `null`. `M0099` gave every room style the `footprint` its card is drawn on, `8x8` for every stored row. `M0060` made every stored name a library name — a `+` spelled `plus`, any other character a name may not
+as `null`. `M0096` gave every room style the `footprint` its card is drawn on, `8x8` for every stored row. `M0060` made every stored name a library name — a `+` spelled `plus`, any other character a name may not
 hold a space — gave each later row sharing a name, compared without case, the first free count after it, put a
 unique index over every table's names, and made each map's current refinement follow a renamed row. `M0061`
 gave the nine tables `seed_key`, empty, which the next start fills. Nothing stored is rewritten for the

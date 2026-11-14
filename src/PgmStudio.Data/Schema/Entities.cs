@@ -963,7 +963,7 @@ public sealed class RoomStyleRow : ILibraryRow
     [Column("storeys")] public int Storeys { get; set; } = 1;
     [Column("storey_clear")] public int StoreyClear { get; set; }
     [Column("door"), NotNull] public string Door { get; set; } = "stained-glass-pane";
-    [Column("door_width")] public int? DoorWidth { get; set; }   // null: the default the doorway takes (M0097)
+    [Column("door_width")] public int? DoorWidth { get; set; }   // null: the default the doorway takes (M0095)
     [Column("door_height")] public int DoorHeight { get; set; } = 3;
 
     // The floor's top course in plan (M0016): how wide the ring hugging the walls is and how far in the
@@ -985,7 +985,7 @@ public sealed class RoomStyleRow : ILibraryRow
     [Column("porch_depth")] public int PorchDepth { get; set; }
     [Column("porch_inset")] public int PorchInset { get; set; }
     [Column("front"), NotNull] public string Front { get; set; } = "front";   // the wall the door faces; front = the building's own
-    [Column("footprint"), NotNull] public string Footprint { get; set; } = "8x8";   // the shell its card is drawn on (M0099)
+    [Column("footprint"), NotNull] public string Footprint { get; set; } = "8x8";   // the shell its card is drawn on (M0096)
     [Column("porch_edge"), NotNull] public string PorchEdge { get; set; } = "front";
     [Column("porch_roof"), NotNull] public string PorchRoof { get; set; } = "gable";
     [Column("porch_rail_block")] public int PorchRailBlock { get; set; } = 85;

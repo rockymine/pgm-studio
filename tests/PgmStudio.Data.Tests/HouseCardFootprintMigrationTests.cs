@@ -4,7 +4,7 @@ using PgmStudio.Migrations;
 namespace PgmStudio.Data.Tests;
 
 /// <summary>
-/// <c>M0099</c> gives every stored room style the shell its card was already drawn on, <c>8x8</c>. Rolls the schema
+/// <c>M0096</c> gives every stored room style the shell its card was already drawn on, <c>8x8</c>. Rolls the schema
 /// back and forward, so it runs apart from every other database test.
 /// </summary>
 [NotInParallel]
@@ -14,7 +14,7 @@ public sealed class HouseCardFootprintMigrationTests
     public async Task Every_stored_house_is_drawn_on_the_default_shell()
     {
         await TestDb.ResetSchemaAsync();
-        SchemaMigrator.MigrateDown(TestDb.ConnectionString, 98);
+        SchemaMigrator.MigrateDown(TestDb.ConnectionString, 95);
         try
         {
             long row;
@@ -24,7 +24,7 @@ public sealed class HouseCardFootprintMigrationTests
                 row = db.Execute<long>("SELECT LAST_INSERT_ID()");
             }
 
-            SchemaMigrator.MigrateUp(TestDb.ConnectionString, 99);
+            SchemaMigrator.MigrateUp(TestDb.ConnectionString, 96);
 
             await using (var db = TestDb.Connect())
                 await Assert.That(db.Execute<string>($"SELECT footprint FROM room_style WHERE id = {row}")).IsEqualTo("8x8");
