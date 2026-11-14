@@ -29,6 +29,10 @@ internal static class MapDoc
     public static bool Truthy(object? value) => value is true
         || (value is string text && (text.Equals("true", StringComparison.OrdinalIgnoreCase) || text == "1"));
 
+    /// <summary>Each region a spawn states, as the document carries it: a region id or a whole inline region.</summary>
+    public static IEnumerable<object?> SpawnRegions(Dict spawn) =>
+        AsList(spawn.GetValueOrDefault("regions")).OfType<Dict>().Select(place => place.GetValueOrDefault("region"));
+
     /// <summary>A material or id as the document spells it, reduced to the one spelling a lookup uses.</summary>
     public static string Normalize(string value) => value.Trim().ToLowerInvariant().Replace('_', ' ');
 }

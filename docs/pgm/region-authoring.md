@@ -38,6 +38,22 @@ A spawn point is an **inline, unnamed, unwired primitive**, and the corpus is un
 `mirror` outlier — and **not one of them is targeted by an apply-rule**. Nothing is attached to the place a
 player appears; the protection is a separate region around it.
 
+A spawn may state **several** regions, and PGM picks one of them each time a player spawns: 83 spawns in 34
+corpus maps do, a team arriving at either end of its base. `SpawnParser` reads them in one order — the
+`region` attribute, each `<region>` child wrapping one region, then each child of each `<regions>` block,
+where an inline union stands for each of its members — and each faces its own `yaw`, the nearest one stated on
+the region, its block, its spawn or an enclosing `<spawns>`. The studio keeps that list in that order as
+`Spawn.Regions` (`Domain/MapModel.cs`), a region and its yaw each. The map document carries a spawn as
+`{team, kit, regions: [{region, yaw}]}`, `region` an id or a whole inline region, and the `spawn` row stores the
+list as `regions_json` (migration `M0094`).
+
+`XmlWriter` writes a spawn of one region as `region="…"` or one `<region>` child, the yaw on the spawn, and a
+spawn of several as one `<regions>` block whose entries each carry their `yaw`. An inline union is the
+exception, written as its own `<region>` child, because a `<regions>` block would split it into its members.
+What a spawn states beyond its regions and yaws is not read: `pitch`, `angle`, `safe` and `outdoors` on a
+region, and `sequential`, `spread`, `spread-teammates`, `filter`, `exclusive` and `persistent` on the spawn,
+so a written spawn picks among its regions at random.
+
 The spawn **area** is a `rectangle`/`cylinder` per team, optionally unioned into an "all spawns" group for
 shared mechanics. Its wiring is `enter = only-<team>` for protection, plus `block_break = only-iron` and
 `block_place = only-iron-cause-world` where the map has the iron/gold replenish blocks, usually with a

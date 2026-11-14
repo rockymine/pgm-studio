@@ -24,12 +24,13 @@
  */
 
 import { paintDressingPreview, paintMarkerGhost, paintPropHover } from "../render/dressing-render.js";
-import { buildingsOverlap, defaultProp, isMarker, isRect, propAnchor, propReach, rectFootprint, rectsJoinUp,
+import { buildingsOverlap, defaultProp, isMarker, isRect, isRoute, propAnchor, propReach, rectFootprint, rectsJoinUp,
          onLayer, translateProp, wingCorners, wingRects, withCorners } from "../dressing/dressing-doc.js";
 import { MIN_FOOTPRINT_SPAN, wallNear, wingOffWall } from "../shared/building.js";
 import { douglasPeucker, simplifyRing } from "../geometry/simplify.js";
 import { svgEl, handleRectAttrs, insertGhost } from "../render/svg.js";
 import { toScreen } from "../geometry/transform.js";
+import { edgeNear, withMidpoint, withoutPoint } from "../geometry/outline-points.js";
 import { renderTransformBox } from "../render/canvas-chrome.js";
 import { resizedRect } from "./piece-resize-controller.js";
 
@@ -46,6 +47,10 @@ const TRACE_SIMPLIFY_TOLERANCE = 3;
 // How near a free wall of a picked building the pointer shows the insert marker, in screen px — the distance the
 // outline editor shows its own at.
 const WALL_REACH = 10;
+
+// How near a picked route's or area's edge, in screen px, the pointer shows the ghost a press adds a point at — the
+// reach the sketch's own outlines and the modifiers' offer theirs at.
+const EDGE_REACH = 10;
 
 // How near a prop's anchor a click counts as picking it, in blocks — a marker is small, so its own reach is
 // too tight a target at a low zoom.
@@ -71,6 +76,9 @@ export class DressingController {
   #selectedWing = 0;      // which wing of a picked building its settings are edited for
   #wall = null;           // the free wall of the picked building the pointer is near, where a press adds a wing
   #wallGhost = null;
+  #selectedPoint = -1;    // the picked route's or area's picked point, which the delete key takes out
+  #edge = -1;             // the edge of the picked route or area the pointer is near, where a press adds a point
+  #edgeGhost = null;
   #settings = {};         // per-kind starting values for the next prop placed
   #onTerrain;             // (bx, bz) → is this cell on the rasterized terrain a marker can seat on?
   #editable;              // () → may this page change the placements at all?
@@ -108,6 +116,7 @@ export class DressingController {
   /** Pick a prop, and its first wing where it is a building. */
   select(id, wing = 0) {
     const live = this.#doc.byId(id) ? id : null;
+    if (live !== this.#selectedId) this.#selectedPoint = -1;
     this.#selectedId = live;
     this.#selectedWing = live ? Math.max(0, Math.min(wing, (this.#doc.byId(live).wings?.length ?? 1) - 1)) : 0;
     this.#wall = null;
@@ -122,6 +131,37 @@ export class DressingController {
     if (!prop || !isRect(prop) || wing < 0 || wing >= (prop.wings?.length ?? 0)) return;
     this.#selectedWing = wing;
     this.#callbacks.onSelected?.(this.#selectedId);
+  }
+
+  /** The picked point of the picked route or area, its index, or -1 where none is picked. */
+  get selectedPoint() { return this.#selectedId && this.#editable() ? this.#selectedPoint : -1; }
+
+  /** Take the picked point out of the picked route or area while it keeps enough to stay one. Returns true if
+   *  it went. */
+  deleteSelectedPoint() {
+    const prop = this.#selectedId ? this.#doc.byId(this.#selectedId) : null;
+    const kept = prop ? withoutPoint(prop.points, this.#selectedPoint, !isRoute(prop)) : null;
+    if (!kept) return false;
+    this.#selectedPoint = -1;
+    this.#doc.update(prop.id, { points: kept });
+    this.refreshHandles();
+    this.#callbacks.onPreviewChanged?.();
+    this.#callbacks.onChanged?.();
+    return true;
+  }
+
+  /** Put a point at the middle of edge `edge` of the picked route or area and take hold of it, so the press that
+   *  adds it is the drag that places it. Returns true if it went in. */
+  insertPoint(edge) {
+    const prop = this.#selectedId ? this.#doc.byId(this.#selectedId) : null;
+    const inserted = prop && Array.isArray(prop.points) ? withMidpoint(prop.points, edge, !isRoute(prop)) : null;
+    if (!inserted) return false;
+    this.#doc.update(prop.id, { points: inserted.points });
+    this.#selectedPoint = inserted.index;
+    this.#pointDrag = { id: prop.id, idx: inserted.index, moved: true };
+    this.refreshHandles();
+    this.#callbacks.onPreviewChanged?.();
+    return true;
   }
 
   /** Delete the selection. Returns true if something went. */
@@ -272,6 +312,7 @@ export class DressingController {
   onPointerHover(wx, wz, activeTool) {
     const prop = this.#selectedId ? this.#doc.byId(this.#selectedId) : null;
     const viewport = this.#getViewport();
+    this.#offerPoint(prop, wx, wz, activeTool, viewport);
     const wall = prop && isRect(prop) && this.#editable() && (activeTool === "select" || !activeTool)
       ? wallNear(wingRects(prop), wx, wz, WALL_REACH / (viewport.scale || 1)) : null;
     this.#wall = wall;
@@ -285,6 +326,24 @@ export class DressingController {
     this.#wallGhost.setAttribute("cx", String(sp.x));
     this.#wallGhost.setAttribute("cy", String(sp.y));
     this.#wallGhost.style.display = "";
+  }
+
+  // A picked route or area offers a point at the middle of the edge the pointer is near, as every outline does.
+  #offerPoint(prop, wx, wz, activeTool, viewport) {
+    const near = prop && Array.isArray(prop.points) && !isMarker(prop) && !isRect(prop) && this.#editable()
+      && (activeTool === "select" || !activeTool) && !this.#pointDrag
+      ? edgeNear(prop.points, !isRoute(prop), toScreen(wx, wz, viewport), viewport, EDGE_REACH)
+      : null;
+    this.#edge = near ? near.edge : -1;
+    if (!this.#handlesLayer) return;
+    if (!near) { if (this.#edgeGhost) this.#edgeGhost.style.display = "none"; return; }
+    if (!this.#edgeGhost || !this.#edgeGhost.isConnected) {
+      this.#edgeGhost = insertGhost(() => this.insertPoint(this.#edge));
+      this.#handlesLayer.appendChild(this.#edgeGhost);
+    }
+    this.#edgeGhost.setAttribute("cx", String(near.x));
+    this.#edgeGhost.setAttribute("cy", String(near.y));
+    this.#edgeGhost.style.display = "";
   }
 
   /** Release — the drag's last point is the stroke's last point, which is the whole interaction. */
@@ -370,9 +429,10 @@ export class DressingController {
   /** Document mouseup ending a point drag. Returns true when consumed. */
   onHandleUp() {
     if (!this.#pointDrag) return false;
-    const moved = this.#pointDrag.moved;
+    const { moved, idx } = this.#pointDrag;
     this.#pointDrag = null;
     if (moved) this.#callbacks.onChanged?.();
+    else if (idx >= 0) { this.#selectedPoint = idx; this.refreshHandles(); }
     return true;
   }
 
@@ -384,6 +444,8 @@ export class DressingController {
     const layer = this.#handlesLayer;
     if (!layer) return;
     while (layer.firstChild) layer.removeChild(layer.firstChild);
+    this.#edgeGhost = null;
+    this.#edge = -1;
     const prop = this.#selectedId ? this.#doc.byId(this.#selectedId) : null;
     if (!prop || !this.#editable()) return;
     // A building's picked wing wears the transform box every rectangle wears, so a joined L is reshaped a
@@ -409,7 +471,8 @@ export class DressingController {
       const sp = toScreen(wx, wz, this.#getViewport());
       const grip = svgEl("rect", {
         ...handleRectAttrs(sp.x, sp.y, POINT_HALF),
-        fill: "var(--bg-deep)", stroke: "var(--accent)", "stroke-width": "1.5", style: "cursor:move",
+        fill: idx >= 0 && idx === this.#selectedPoint ? "var(--accent)" : "var(--bg-deep)", stroke: "var(--accent)",
+        "stroke-width": "1.5", style: "cursor:move",
       });
       grip.addEventListener("mousedown", (e) => {
         if (e.button !== 0) return;
@@ -473,7 +536,7 @@ export class DressingController {
     // splits at the two farthest points and walks both ways round, which is right for an outline and would
     // reorder a route. So the open-line props (a path, a fluid channel) keep their direction through the plain
     // open simplifier.
-    const openLine = kind === "stroke" || kind === "fluid";
+    const openLine = isRoute(kind);
     const simplified = openLine
       ? douglasPeucker(points, TRACE_SIMPLIFY_TOLERANCE)
       : simplifyRing(points, TRACE_SIMPLIFY_TOLERANCE);

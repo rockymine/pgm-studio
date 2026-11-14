@@ -207,7 +207,12 @@ public sealed class MapReader(PgmDb db)
 
         foreach (var s in await db.Spawns.Where(x => x.MapId == id).OrderBy(x => x.Id).ToListAsync(ct))
         {
-            var spawn = new Spawn { Team = s.Team, Kit = s.Kit ?? "", Yaw = s.Yaw, Region = ResolveRegion(m, s.RegionKey) };
+            var spawn = new Spawn
+            {
+                Team = s.Team, Kit = s.Kit ?? "",
+                Regions = ListOfDicts(s.RegionsJson)
+                    .Select(place => new SpawnRegion { Region = ResolveRegion(m, Str(place, "region")), Yaw = Dbl(place, "yaw") }).ToList(),
+            };
             if (s.IsObserver) m.ObserverSpawn = spawn; else m.Spawns.Add(spawn);
         }
 
@@ -273,8 +278,8 @@ public sealed class MapReader(PgmDb db)
             foreach (var (k, v) in extra) d[k] = v;
     }
 
-    private static Region? ResolveRegion(MapXml m, string? key)
-        => key is null ? null : m.Regions.GetValueOrDefault(key) ?? new Region { Id = key, Type = "reference" };
+    private static Region ResolveRegion(MapXml m, string key)
+        => m.Regions.GetValueOrDefault(key) ?? new Region { Id = key, Type = "reference" };
 
     // ── small JSON helpers ──────────────────────────────────────────────────────────
     private static Vec3 Xyz(string? json)

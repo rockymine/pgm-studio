@@ -2,7 +2,11 @@ namespace PgmStudio.Pgm.Editing;
 
 using Dict = Dictionary<string, object?>;
 
-/// <summary>Spawn-link + observer-spawn CRUD on the doc dict.</summary>
+/// <summary>
+/// Spawn-link + observer-spawn CRUD on the doc dict. A link is one region of a spawn, named by the region's id: a
+/// new link is a new spawn of one region, its team and kit are the whole spawn's, its yaw that region's own, and
+/// removing a spawn's last link removes the spawn.
+/// </summary>
 public static class SpawnEditor
 {
     public static Dict AddSpawnLink(Dict data, Dict payload)
@@ -12,35 +16,39 @@ public static class SpawnEditor
         if (!RegionsDict(data).ContainsKey(regionId)) throw EditException.NoSuchSubject($"region '{regionId}' does not exist");
 
         var spawns = EnsureList(data, "spawns");
-        if (spawns.OfType<Dict>().Any(s => SpawnRegionId(s) == regionId))
+        if (spawns.OfType<Dict>().Any(s => DocAccess.SpawnRegionIds(s).Contains(regionId)))
             throw EditException.Conflict($"region '{regionId}' already has a spawn", [regionId]);
 
         spawns.Add(new Dict
         {
             ["team"] = payload.GetValueOrDefault("team") as string ?? "",
             ["kit"] = payload.GetValueOrDefault("kit") as string ?? "",
-            ["yaw"] = CoerceFloat(payload.GetValueOrDefault("yaw"), "yaw", 0.0),
-            ["region"] = regionId,
+            ["regions"] = new List<object?> { Link(regionId, payload) },
         });
         return new Dict();
     }
 
     public static Dict UpdateSpawnLink(Dict data, string regionId, Dict payload)
     {
-        var spawn = ListOf(data, "spawns").OfType<Dict>().FirstOrDefault(s => SpawnRegionId(s) == regionId)
+        var spawn = ListOf(data, "spawns").OfType<Dict>().FirstOrDefault(s => DocAccess.SpawnRegionIds(s).Contains(regionId))
                     ?? throw EditException.NoSuchSubject($"region '{regionId}' has no spawn");
         if (payload.ContainsKey("team")) spawn["team"] = payload["team"]?.ToString() ?? "";
-        if (payload.ContainsKey("yaw")) spawn["yaw"] = CoerceFloat(payload["yaw"], "yaw", 0.0);
         if (payload.ContainsKey("kit")) spawn["kit"] = payload["kit"]?.ToString() ?? "";
+        if (payload.ContainsKey("yaw"))
+            foreach (var entry in DocAccess.SpawnRegions(spawn).Where(entry => DocAccess.SpawnRegionId(entry) == regionId))
+                entry["yaw"] = CoerceFloat(payload["yaw"], "yaw", 0.0);
         return new Dict();
     }
 
     public static Dict DeleteSpawnLink(Dict data, string regionId)
     {
         var spawns = ListOf(data, "spawns");
-        if (!spawns.OfType<Dict>().Any(s => SpawnRegionId(s) == regionId))
+        if (!spawns.OfType<Dict>().Any(s => DocAccess.SpawnRegionIds(s).Contains(regionId)))
             throw EditException.NoSuchSubject($"region '{regionId}' has no spawn");
-        data["spawns"] = spawns.Where(s => SpawnRegionId(s as Dict) != regionId).ToList();
+        foreach (var spawn in spawns.OfType<Dict>())
+            if (spawn.GetValueOrDefault("regions") is List<object?> entries)
+                entries.RemoveAll(entry => entry is Dict linked && DocAccess.SpawnRegionId(linked) == regionId);
+        data["spawns"] = spawns.Where(s => DocAccess.SpawnRegions(s as Dict).Any()).ToList();
         return new Dict();
     }
 
@@ -54,8 +62,7 @@ public static class SpawnEditor
         {
             ["team"] = "",
             ["kit"] = payload.GetValueOrDefault("kit") as string ?? "",
-            ["yaw"] = CoerceFloat(payload.GetValueOrDefault("yaw"), "yaw", 0.0),
-            ["region"] = regionId,
+            ["regions"] = new List<object?> { Link(regionId, payload) },
         };
         return new Dict();
     }
@@ -67,11 +74,10 @@ public static class SpawnEditor
         return new Dict();
     }
 
-    private static string SpawnRegionId(Dict? spawn) => spawn?.GetValueOrDefault("region") switch
+    private static Dict Link(string regionId, Dict payload) => new()
     {
-        string s => s,
-        Dict d => d.GetValueOrDefault("id") as string ?? "",
-        _ => "",
+        ["region"] = regionId,
+        ["yaw"] = CoerceFloat(payload.GetValueOrDefault("yaw"), "yaw", 0.0),
     };
 
     private static Dict RegionsDict(Dict data) => data.GetValueOrDefault("regions") as Dict ?? new Dict();

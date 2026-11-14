@@ -306,6 +306,42 @@ public sealed class BuildingPlan
     /// edge — one material stripes both.</summary>
     public int Arc(int x, int z) => Perimeter.Arc.GetValueOrDefault((x, z), -1);
 
+    /// <summary>An <see cref="Arc"/> counted the way a mirror or a turn of the building counts it: from the left
+    /// end of the <paramref name="front"/> wall, as someone standing in the door looking out has it, toward the
+    /// right hand — <see cref="RoomEdges.AlongRunsRight"/> under <paramref name="reflected"/>. A wall-run pattern
+    /// read along it lays its stripes, and the gaps between them, on the same columns of every image of the
+    /// room. -1 off the ring, as <see cref="Arc"/>.</summary>
+    public int HandedArc(int arc, RoomEdge front, bool reflected)
+    {
+        var length = Perimeter.Turn.Length;
+        if (arc < 0 || length == 0) return arc;
+        var (origin, direction) = handedFrom.TryGetValue((front, reflected), out var known)
+            ? known
+            : handedFrom[(front, reflected)] = HandedOrigin(front, reflected);
+        return ((direction * (arc - origin)) % length + length) % length;
+    }
+
+    private readonly Dictionary<(RoomEdge Front, bool Reflected), (int Origin, int Direction)> handedFrom = [];
+
+    // The arc of the front wall's left end, and which way the ring's own count runs from it toward the right.
+    private (int Origin, int Direction) HandedOrigin(RoomEdge front, bool reflected)
+    {
+        var line = front switch
+        {
+            RoomEdge.NegZ => MinZ, RoomEdge.PosZ => MaxZ, RoomEdge.NegX => MinX, _ => MaxX,
+        };
+        (int X, int Z) Cell(int along) => front.AlongX() ? (along, line) : (line, along);
+        var walled = (front.AlongX() ? Enumerable.Range(MinX, MaxX - MinX + 1) : Enumerable.Range(MinZ, MaxZ - MinZ + 1))
+            .Where(along => Arc(Cell(along).X, Cell(along).Z) >= 0).ToList();
+        if (walled.Count < 2) return (0, 1);
+        var rightward = front.AlongRunsRight(reflected);
+        var left = rightward ? walled[0] : walled[^1];
+        var next = rightward ? left + 1 : left - 1;
+        var origin = Arc(Cell(left).X, Cell(left).Z);
+        var step = Arc(Cell(next).X, Cell(next).Z);
+        return (origin, step == (origin + 1) % Perimeter.Turn.Length ? 1 : -1);
+    }
+
     /// <summary>How sharply the ring bends where a cell sits, in degrees, to the same scale a painted wall
     /// reads. A right angle measures ninety on the corner itself and ramps to nothing a window away, so a
     /// material thresholding it frames a band either side of each corner.</summary>

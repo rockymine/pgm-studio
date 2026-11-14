@@ -17,7 +17,7 @@
 
 import { BUILDING_COLORS, REFUSED_COLOR } from "./primitive-style.js";
 import { strokeRing, strokePath } from "../geometry/stroke.js";
-import { isMarker, isRect, MAX_FOOTPRINT, onLayer, propAnchor, propReach, rectFootprint, rectPlan, wingCorners }
+import { isMarker, isRect, isRoute, MAX_FOOTPRINT, onLayer, propAnchor, propReach, rectFootprint, rectPlan, wingCorners }
   from "../dressing/dressing-doc.js";
 import polygonClipping from "../vendor/polygon-clipping.js";
 
@@ -85,7 +85,7 @@ export function paintDressing(painter, props, {
     }
     // The line an author dragged, over the band it implies — a path and a fluid channel are edited as their
     // route, so the route has to stay visible inside its own band.
-    if ((prop.kind === "stroke" || prop.kind === "fluid") && (prop.points?.length ?? 0) >= 2) {
+    if (isRoute(prop) && (prop.points?.length ?? 0) >= 2) {
       const curve = strokePath(prop);
       const runs = [];
       for (let i = 1; i < curve.length; i++)
@@ -112,7 +112,7 @@ export function paintDressingPreview(painter, kind, points, radius) {
     if (rect.length >= 3) painter.ring(rect, style);
     return;
   }
-  const ring = (kind === "stroke" || kind === "fluid") ? strokeRing({ points, radius }) : [...points, points[0]];
+  const ring = isRoute(kind) ? strokeRing({ points, radius }) : [...points, points[0]];
   if (ring.length >= 3) painter.ring(ring.slice(0, -1), style);
 }
 
@@ -142,7 +142,7 @@ function footprints(prop, image, mirrorPoint, styles) {
     const [ax, az] = mirror(...propAnchor(prop));
     return [disc(ax, az, propReach(prop, styles))];
   }
-  if (prop.kind === "stroke" || prop.kind === "fluid") {
+  if (isRoute(prop)) {
     const ring = strokeRing(prop);
     return [ring.length ? ring.slice(0, -1).map(([x, z]) => mirror(x, z)) : []];
   }

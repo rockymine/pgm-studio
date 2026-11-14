@@ -460,8 +460,8 @@ public static class TopDownRender
             foreach (var box in RegionBoxes.Of(map.Regions, core.RegionId))
                 overlays.Add(new Overlay(box, ColorOf(core.Owner), true, "core"));
 
-        foreach (var spawn in map.Spawns.Where(spawn => spawn.Region is not null))
-            foreach (var box in RegionBoxes.Of(map.Regions, spawn.Region!))
+        foreach (var spawn in map.Spawns)
+            foreach (var box in spawn.Regions.SelectMany(place => RegionBoxes.Of(map.Regions, place.Region)))
                 overlays.Add(new Overlay(Grow(box, 1), ColorOf(spawn.Team), true, $"spawn {spawn.Team}"));
 
         // A wool room reduces to boxes like any other region; a wool with no declared room still marks the

@@ -45,10 +45,9 @@ public static partial class RegionCategorizer
 
         // ── direct gameplay-signal sets ──────────────────────────────────────────────
         var spawnIds = AsList(data.GetValueOrDefault("spawns"))
-            .OfType<Dict>().Select(s => RefId(s.GetValueOrDefault("region"))).Where(x => x.Length > 0).ToHashSet();
+            .OfType<Dict>().SelectMany(Editing.DocAccess.SpawnRegionIds).ToHashSet();
         var teamIds = Editing.DocAccess.TeamIds(data);
-        var obs = AsDict(data.GetValueOrDefault("observer_spawn"));
-        var observerId = obs.Count > 0 ? RefId(obs.GetValueOrDefault("region")) : "";
+        var observerIds = Editing.DocAccess.SpawnRegionIds(data.GetValueOrDefault("observer_spawn") as Dict).ToList();
 
         var monumentIds = new HashSet<string>();
         var woolRoomIds = new HashSet<string>();
@@ -139,7 +138,7 @@ public static partial class RegionCategorizer
                 if (cat.TryGetValue(rid, out var cur) && cur is null) cat[rid] = value;
         }
 
-        if (observerId.Length > 0) cat[observerId] = "observer_spawn";
+        foreach (var observerId in observerIds) cat[observerId] = "observer_spawn";
         Set(spawnIds, "spawn");
         Set(monumentIds, "monument");
         Set(woolSpawnerIds, "wool_spawner");

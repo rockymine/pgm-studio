@@ -124,7 +124,10 @@ rounding it away.
   **A room and its image stand on the same columns.** The frame is symmetric by construction — its footprint,
   pad and doors are the fanned rect's own — so what could break the image is the stamp, wherever it makes a
   choice a run cannot centre: the spare block of a window row or a narrowed door, the end of the door wall a
-  ladder hangs at, the order the monument seats fill. Every one of those is taken from a **hand** — the left or
+  ladder hangs at, the order the monument seats fill, the side a saltbox fronting an end wall turns steep, and
+  where a wall-run pattern's stripes start — its arc is counted from the door wall's left end toward the right
+  hand (`BuildingPlan.HandedArc`), so a striped wall whose gaps are air, a stilt storey's, opens on the same
+  columns in every image. Every one of those is taken from a **hand** — the left or
   right of someone inside looking out through the wall (`RoomEdges.Handed`) — never from the low coordinate,
   because a rotation of the board carries a hand onto the same hand of the image and a coordinate onto the far
   end of it. A mirror turns a left hand into a right one, so the reflection travels with the room: whoever
@@ -418,7 +421,8 @@ distances — how far the cell stands from each wall line — and in nothing els
 
 A `Hip` over a square footprint is a pyramid: the ridge is the run the longer side has left over, and a square
 leaves none. A `Shed` and a `Saltbox` need to know which wall is the front; every other form is symmetric and
-ignores it. The front is the wall the doors are cut through.
+ignores it. The front is the wall the doors are cut through. A saltbox whose front is an end wall has no side of
+its own to be steep on, and takes the one on the left hand of someone standing in the door looking out.
 
 **No roof climbs with the long side of a building.** A gable, a hip and a gambrel are measured across the
 shorter side by construction, so the law costs them nothing. The two that face a *front* are the ones it is

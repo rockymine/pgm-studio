@@ -131,8 +131,9 @@ public static class RegionEditor
             regions[newId] = region; regions.Remove(regionId); region["id"] = newId;
             foreach (var (_, ids) in Categories(data)) for (var i = 0; i < ids.Count; i++) if (ids[i] as string == regionId) ids[i] = newId;
             foreach (var r in regions.Values.OfType<Dict>()) RenameInChildren(r, regionId, newId);
-            foreach (var spawn in (data.GetValueOrDefault("spawns") as List<object?> ?? []).OfType<Dict>())
-                if (spawn.GetValueOrDefault("region") as string == regionId) spawn["region"] = newId;
+            var spawns = (data.GetValueOrDefault("spawns") as List<object?> ?? []).Append(data.GetValueOrDefault("observer_spawn"));
+            foreach (var entry in spawns.OfType<Dict>().SelectMany(DocAccess.SpawnRegions))
+                if (entry.GetValueOrDefault("region") as string == regionId) entry["region"] = newId;
             foreach (var wool in (data.GetValueOrDefault("wools") as List<object?> ?? []).OfType<Dict>())
                 if (wool.GetValueOrDefault("wool_room_region") as string == regionId) wool["wool_room_region"] = newId;
             regionId = newId;

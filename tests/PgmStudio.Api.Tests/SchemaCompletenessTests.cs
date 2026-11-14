@@ -177,7 +177,7 @@ public sealed class SchemaCompletenessTests
         "MapDocumentDto.kits", "MapDocumentDto.spawners", "MapDocumentDto.renewables",
         "MapDocumentDto.block_drop_rules", "MapDocumentDto.filters", "MapDocumentDto.regions",
         "MapDocumentDto.apply_rules", "MapDocumentDto.destroyables", "MapDocumentDto.cores", "MapDocumentDto.modes",
-        "MapSpawnDto.region", "MapWoolDto.location", "MapMonumentDto.location",
+        "MapSpawnRegionDto.region", "MapWoolDto.location", "MapMonumentDto.location",
         "DocumentEdit.before", "DocumentEdit.value", "MaterialFieldDto.default",
     ];
 

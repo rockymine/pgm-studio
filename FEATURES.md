@@ -1159,6 +1159,13 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `Features/Plan/`; `PlanRoles` and `PlanBoxKinds` are `Vocabulary` word sets, and `plan-doc.js`'s twin is pinned
   to them by a test.
 
+- **Every outline on the canvas takes a point the same way (TS130).** A modifier's mask, a dressing route or area
+  and an approach wall each offer a point at the middle of the edge under the pointer, pick a point on a press that
+  does not move and take the picked one out on `Delete` while a ring keeps three and a run two, through the one
+  `geometry/outline-points.js`, as a shape's points already did. The API's point edits — the vertex routes and
+  the refinement's `editShapes` — reach a stroke's, fluid's or flora's `points` by its id the same way, and a fluid
+  `pool` or `basin` is a ring on the canvas and on the server alike (`isRoute`, `SketchGeometryEdit.PointsAt`).
+
 - **A live feed, an iso preview and a refusal sentence are one module each (C92).** `bridge/live-feed.js` is the
   debounced, sequence-guarded POST both bridges' seven feeds use, `bridge/iso-preview.js` the 3-D preview both
   tools enter, and `IsoToggle` the one 2D/3D switch.
@@ -3771,6 +3778,14 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **A kit loses nothing it states (`PG29`).** Every kit attribute and element the studio does not read is carried
   as written (`Kit.CarriedAttributes`/`CarriedElements`, the kit row's `carried_json`, `M0093`) and written back,
   and a kit stating only those is kept; a map is never refused for a kit. `docs/pgm/supported-maps.md`.
+- **A spawn keeps every region it states (`PG31`).** Its `region` attribute, every `<region>` child and every
+  `<regions>` child, an inline union standing for each member, each with the nearest yaw stated
+  (`Spawn.Regions`, the spawn row's `regions_json`, `M0094`), written back so PGM reads the same set; renders,
+  traversability and kit reach start from every one. `docs/pgm/region-authoring.md`, `docs/pgm/portals.md`.
+- **Every seeded house stamps the same columns in a room's mirror and turned images (`WE162`).** A wall-run
+  pattern's arc is counted from the door wall's left hand (`BuildingPlan.HandedArc`), so a stilt storey's air gaps
+  open on matching columns, and a saltbox fronting an end wall turns its steep side to the left hand; the orbit
+  tests run over every house the library seeds. `docs/world-export/structures.md`.
 - **A region carries no draft step (`PG18`).** `draft_step` is gone from `POST /regions`, `/orbit` and the region
   tree, and `M0091` deletes every stored `region_drafts_json`. `docs/pgm/region-data-flow.md`.
 

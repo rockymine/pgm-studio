@@ -24,6 +24,22 @@ internal static class DocAccess
         (doc.GetValueOrDefault("teams") as List<object?> ?? []).OfType<Dict>()
             .Select(team => team.GetValueOrDefault("id") as string).OfType<string>().ToHashSet();
 
+    /// <summary>A spawn's <c>regions</c> entries, each <c>{region, yaw}</c>.</summary>
+    public static IEnumerable<Dict> SpawnRegions(Dict? spawn) =>
+        (spawn?.GetValueOrDefault("regions") as List<object?> ?? []).OfType<Dict>();
+
+    /// <summary>The id of the region one spawn entry names: the id it states, or the id an inline region carries.</summary>
+    public static string SpawnRegionId(Dict entry) => entry.GetValueOrDefault("region") switch
+    {
+        string id => id,
+        Dict inline => inline.GetValueOrDefault("id") as string ?? "",
+        _ => "",
+    };
+
+    /// <summary>The ids of every region a spawn states.</summary>
+    public static IEnumerable<string> SpawnRegionIds(Dict? spawn) =>
+        SpawnRegions(spawn).Select(SpawnRegionId).Where(id => id.Length > 0);
+
     /// <summary>A top-level list (e.g. <c>kits</c>, <c>spawners</c>), created if missing or not a list.</summary>
     public static List<object?> EnsureList(Dict doc, string key) =>
         doc.TryGetValue(key, out var v) && v is List<object?> l ? l : (List<object?>)(doc[key] = new List<object?>());

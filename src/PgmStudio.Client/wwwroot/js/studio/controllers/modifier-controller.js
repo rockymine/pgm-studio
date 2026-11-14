@@ -15,6 +15,7 @@
 
 import { simplifyRing, douglasPeucker } from "../geometry/simplify.js";
 import { distToSegment } from "../geometry/shape.js";
+import { edgeNear, withMidpoint, withoutPoint } from "../geometry/outline-points.js";
 import { pointInRing } from "../geometry/polygon.js";
 import { svgEl, handleRectAttrs, insertGhost } from "../render/svg.js";
 import { toScreen } from "../geometry/transform.js";
@@ -54,6 +55,7 @@ export class ModifierController {
   #hoveredEdge = -1;
   #ghostEl = null;
   #selectedId = null;
+  #selectedPoint = -1;     // the picked outline's picked point, which the delete key takes out
   #selectedArea = 0;      // which of the picked modifier's outlines carries the grips
 
   /**
@@ -78,11 +80,25 @@ export class ModifierController {
   select(id, area = 0) {
     const next = id && this.#byId(id) ? id : null;
     const changed = next !== this.#selectedId;
+    if (changed || area !== this.#selectedArea) this.#selectedPoint = -1;
     this.#selectedId = next;
     this.#selectedArea = area;
     if (changed) this.#callbacks.onSelected?.(next);
     this.refreshHandles();
     this.#callbacks.onPreviewChanged?.();
+  }
+
+  /** The picked point of the picked outline, its index, or -1 where none is picked. */
+  get selectedPoint() { return this.#selectedId && this.#editable() ? this.#selectedPoint : -1; }
+
+  /** Take the picked point out of the picked outline while it keeps enough to stay one. Returns true if it went. */
+  deleteSelectedPoint() {
+    const points = this.#pickedPoints();
+    const kept = withoutPoint(points, this.#selectedPoint, !this.#pickedIsLine());
+    if (!kept) return false;
+    this.#selectedPoint = -1;
+    this.#replace(withAreaPoints(this.#byId(this.#selectedId), this.#selectedArea, kept), false);
+    return true;
   }
 
   /** Delete the picked modifier. Returns true if one went. */
@@ -186,17 +202,9 @@ export class ModifierController {
     const points = (!activeTool || activeTool === "select") && this.#editable() ? this.#pickedPoints() : null;
     if (!points || points.length < 2) { this.#clearGhost(); return; }
     const view = this.#getViewport();
-    const at = toScreen(bx, bz, view);
-    const edges = this.#pickedIsLine() ? points.length - 1 : points.length;
-    let best = EDGE_THRESHOLD, index = -1, mx = 0, my = 0;
-    for (let i = 0; i < edges; i++) {
-      const j = (i + 1) % points.length;
-      const a = toScreen(points[i][0], points[i][1], view);
-      const b = toScreen(points[j][0], points[j][1], view);
-      const away = distToSegment(at.x, at.y, a.x, a.y, b.x, b.y);
-      if (away < best) { best = away; index = i; mx = (a.x + b.x) / 2; my = (a.y + b.y) / 2; }
-    }
-    if (index < 0) { this.#clearGhost(); return; }
+    const near = edgeNear(points, !this.#pickedIsLine(), toScreen(bx, bz, view), view, EDGE_THRESHOLD);
+    if (!near) { this.#clearGhost(); return; }
+    const { edge: index, x: mx, y: my } = near;
     this.#hoveredEdge = index;
     if (!this.#handlesLayer) return;
     if (!this.#ghostEl || !this.#ghostEl.isConnected) {
@@ -216,14 +224,12 @@ export class ModifierController {
   /** Put a point at the middle of one edge of the picked outline and leave it in the hand that pressed for it,
    *  so the press that inserts is the drag that places. Returns true if it went in. */
   insertPoint(edge) {
-    const points = this.#pickedPoints()?.map(point => [...point]);
-    if (!points || edge < 0 || edge >= (this.#pickedIsLine() ? points.length - 1 : points.length)) return false;
-    const next = (edge + 1) % points.length;
-    points.splice(next, 0, [Math.round((points[edge][0] + points[next][0]) / 2),
-                            Math.round((points[edge][1] + points[next][1]) / 2)]);
-    this.#replace(withAreaPoints(this.#byId(this.#selectedId), this.#selectedArea, points), false);
+    const inserted = withMidpoint(this.#pickedPoints(), edge, !this.#pickedIsLine());
+    if (!inserted) return false;
+    this.#replace(withAreaPoints(this.#byId(this.#selectedId), this.#selectedArea, inserted.points), false);
     this.#clearGhost();
-    this.#pointDrag = { id: this.#selectedId, area: this.#selectedArea, idx: next, moved: true };
+    this.#selectedPoint = inserted.index;
+    this.#pointDrag = { id: this.#selectedId, area: this.#selectedArea, idx: inserted.index, moved: true };
     return true;
   }
 
@@ -239,12 +245,21 @@ export class ModifierController {
     return true;
   }
 
+  /** Take hold of point `idx` of the picked outline, as a press on its grip does. Returns true when it is held. */
+  beginPointDrag(idx) {
+    const points = this.#editable() ? this.#pickedPoints() : null;
+    if (!points || idx < 0 || idx >= points.length) return false;
+    this.#pointDrag = { id: this.#selectedId, area: this.#selectedArea, idx, moved: false };
+    return true;
+  }
+
   /** Document mouseup ending a grip drag. Returns true when consumed. */
   onHandleUp() {
     if (!this.#pointDrag) return false;
-    const moved = this.#pointDrag.moved;
+    const { moved, idx } = this.#pointDrag;
     this.#pointDrag = null;
     if (moved) this.#callbacks.onChanged?.(this.#getModifiers());
+    else { this.#selectedPoint = idx; this.refreshHandles(); }
     return true;
   }
 
@@ -266,17 +281,17 @@ export class ModifierController {
     this.#hoveredEdge = -1;
     const points = this.#editable() ? this.#pickedPoints() : null;
     if (!points) return;
-    const id = this.#selectedId, area = this.#selectedArea;
     points.forEach(([wx, wz], idx) => {
       const at = toScreen(wx, wz, this.#getViewport());
       const grip = svgEl("rect", {
         ...handleRectAttrs(at.x, at.y, POINT_HALF),
-        fill: "var(--bg-deep)", stroke: "var(--accent)", "stroke-width": "1.5", style: "cursor:move",
+        fill: idx === this.#selectedPoint ? "var(--accent)" : "var(--bg-deep)", stroke: "var(--accent)",
+        "stroke-width": "1.5", style: "cursor:move",
       });
       grip.addEventListener("mousedown", (e) => {
         if (e.button !== 0) return;
         e.stopPropagation();
-        this.#pointDrag = { id, area, idx, moved: false };
+        this.beginPointDrag(idx);
       });
       grip.addEventListener("click", (e) => e.stopPropagation());
       layer.appendChild(grip);

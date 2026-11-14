@@ -98,7 +98,10 @@ try {
   checks.section("the authored wall moves where it is dropped, and the image moves with it");
   await page.keyboard.press("Escape");
   const wall = (await byKind("wall")).find(piece => piece.id === wallId);
-  const middle = { x: (wall.minX + wall.maxX) / 2, z: (wall.minZ + wall.maxZ) / 2 };
+  // A quarter of the way along, not at the middle: the middle of a picked wall's leg is where the ghost that
+  // adds a corner stands, and a press there bends the wall rather than moving it.
+  const [[startX, startZ], [endX, endZ]] = wall.line;
+  const middle = { x: startX + (endX - startX) / 4, z: startZ + (endZ - startZ) / 4 };
   const grab = at(middle.x, middle.z);
   await page.mouse.click(grab.x, grab.y);
   await page.waitForTimeout(300);

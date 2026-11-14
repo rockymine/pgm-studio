@@ -8,8 +8,8 @@ namespace PgmStudio.Contracts;
 /// rows, in the same JSON shape the importer read it from.
 ///
 /// <para>Named rather than mapped: the encoding below the top level is the codec's, conditional field by
-/// field (an author's contribution appears only when there is one, a spawn's region is a key or a whole
-/// region), and a second walk of it here would be a second codec free to disagree with the first. So the
+/// field (an author's contribution appears only when there is one, each region of a spawn is a key or a
+/// whole region), and a second walk of it here would be a second codec free to disagree with the first. So the
 /// keys a caller reads by name are typed and the codec's own encodings stay open. <c>MapDocumentShapeTests</c>
 /// holds this record to what the serializer writes.</para>
 /// </summary>
@@ -86,14 +86,18 @@ public sealed record MapTeamDto(
     [property: JsonPropertyName("max_players")] int? MaxPlayers,
     [property: JsonPropertyName("min_players")] int? MinPlayers);
 
-/// <summary>Where a team enters. <paramref name="Region"/> is a region id where the spawn names one and a
-/// whole inline region where it states one, which is the contract's own choice and stays open here.</summary>
+/// <summary>Where a team enters: every region it may enter in, of which PGM picks one each time a player
+/// spawns.</summary>
 /// <param name="Team">The team that enters here, or absent for the observer spawn.</param>
 /// <param name="Kit">The kit given on entering.</param>
-/// <param name="Yaw">Which way the player faces, in degrees.</param>
-/// <param name="Region">Where they arrive: a region id where the spawn names one, a whole inline region
-/// where it states one — the contract's own choice, kept open here.</param>
-public sealed record MapSpawnDto(string? Team, string? Kit, double? Yaw, JsonElement Region);
+/// <param name="Regions">The regions, in the order the map states them.</param>
+public sealed record MapSpawnDto(string? Team, string? Kit, IReadOnlyList<MapSpawnRegionDto> Regions);
+
+/// <summary>One region a spawn places a player in.</summary>
+/// <param name="Region">A region id where the spawn names one, a whole inline region where it states one — the
+/// contract's own choice, kept open here.</param>
+/// <param name="Yaw">Which way the player faces there, in degrees.</param>
+public sealed record MapSpawnRegionDto(JsonElement Region, double? Yaw);
 
 /// <summary>One wool objective and the monuments it is placed on, grouped the way the map document carries
 /// them rather than the way the rows store them.</summary>

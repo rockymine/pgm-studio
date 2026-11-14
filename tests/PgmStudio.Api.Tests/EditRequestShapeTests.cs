@@ -162,11 +162,11 @@ public sealed class EditRequestShapeTests
         var spawn = Spawn(doc, "pad");
         await Assert.That(spawn["team"]).IsEqualTo("red-team");
         await Assert.That(spawn["kit"]).IsEqualTo("spawn-kit");
-        await Assert.That(Num(spawn["yaw"])).IsEqualTo(90.0);
+        await Assert.That(Num(Link(spawn, "pad")["yaw"])).IsEqualTo(90.0);
 
         SpawnEditor.UpdateSpawnLink(doc, "pad", Posted(new SpawnUpdateRequest(Kit: "rush", Yaw: 180)));
         await Assert.That(Spawn(doc, "pad")["kit"]).IsEqualTo("rush");
-        await Assert.That(Num(Spawn(doc, "pad")["yaw"])).IsEqualTo(180.0);
+        await Assert.That(Num(Link(Spawn(doc, "pad"), "pad")["yaw"])).IsEqualTo(180.0);
     }
 
     [Test]
@@ -177,9 +177,8 @@ public sealed class EditRequestShapeTests
             RegionId: "deck", Kit: "obs", Yaw: 45)));
 
         var observer = (Dict)doc["observer_spawn"]!;
-        await Assert.That(observer["region"]).IsEqualTo("deck");
         await Assert.That(observer["kit"]).IsEqualTo("obs");
-        await Assert.That(Num(observer["yaw"])).IsEqualTo(45.0);
+        await Assert.That(Num(Link(observer, "deck")["yaw"])).IsEqualTo(45.0);
     }
 
     // ── teams ───────────────────────────────────────────────────────────────────────
@@ -282,7 +281,11 @@ public sealed class EditRequestShapeTests
     }
 
     private static Dict Spawn(Dict doc, string regionId) =>
-        ((List<object?>)doc["spawns"]!).OfType<Dict>().First(s => s.GetValueOrDefault("region") as string == regionId);
+        ((List<object?>)doc["spawns"]!).OfType<Dict>().First(s => Links(s).Any(link => link["region"] as string == regionId));
+
+    private static IEnumerable<Dict> Links(Dict spawn) => ((List<object?>)spawn["regions"]!).OfType<Dict>();
+
+    private static Dict Link(Dict spawn, string regionId) => Links(spawn).Single(link => link["region"] as string == regionId);
 
     private static Dict Wool(Dict doc, string id) =>
         ((List<object?>)doc["wools"]!).OfType<Dict>().First(w => w.GetValueOrDefault("id") as string == id);

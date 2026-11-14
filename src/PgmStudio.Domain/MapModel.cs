@@ -125,12 +125,23 @@ public sealed class Kit
     public List<string> CarriedElements = [];
 }
 
+/// <summary>A <c>&lt;spawn&gt;</c> or the <c>&lt;default&gt;</c>: who enters, with which kit, and every region a
+/// player may enter in. PGM picks one of <see cref="Regions"/> each time a player spawns.</summary>
 public sealed class Spawn
 {
     public string Team = "";
     public string Kit = "";
+    /// <summary>The regions the spawn states, in the order PGM reads them: its <c>region</c> attribute, each
+    /// <c>&lt;region&gt;</c> child, then each child of each <c>&lt;regions&gt;</c> block.</summary>
+    public List<SpawnRegion> Regions = [];
+}
+
+/// <summary>One region a spawn places a player in, and the yaw the player faces there — the region's own, or the
+/// nearest one its spawn or enclosing block states.</summary>
+public sealed class SpawnRegion
+{
+    public Region Region = new();
     public double Yaw;
-    public Region? Region;
 }
 
 public sealed class Wool

@@ -45,7 +45,8 @@ public sealed record Refinement
     /// no layer joins the compiled ground, and one naming no group joins its layer's first.</summary>
     [JsonPropertyName("addShapes")] public List<JsonElement>? AddShapes { get; init; }
 
-    /// <summary>Outlines reshaped one point at a time, in order, by shape id.</summary>
+    /// <summary>Outlines reshaped one point at a time, in order, by the id of what they outline: a shape's
+    /// vertices, a stroke's, fluid's or flora's points.</summary>
     [JsonPropertyName("editShapes")] public Dictionary<string, List<VertexEdit>>? EditShapes { get; init; }
 
     /// <summary>Outlines drawn as coasts, by shape id, after every point edit.</summary>

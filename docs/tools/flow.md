@@ -143,7 +143,7 @@ given, which is why every point edit comes before it.
 | `shapePropsByHeight` · `shapePropsById` | fields merged onto a shape by the height it stands at or by its id; a field stated as null is removed | `PATCH …/sketch/shapes/{shapeId}` |
 | `addLayers` | storeys, each `{id, name, base_y, below, kind, part_of, seat, shapes, groups}` — over the compiled ground, or under it where `below` is true | `PUT …/sketch/layers/{layerId}` |
 | `addShapes` | shapes, each carrying the `layer` and `group` it joins beside its own fields. One naming neither joins the compiled ground and its first group | `POST …/sketch/layers/{layerId}/shapes?group=` |
-| `editShapes` | `{shapeId: [edit, …]}`, in order, each stating exactly one of `after` (insert a point on that edge, at `x`/`z` or its midpoint), `index` (move that point to `x`/`z`), `remove` (drop that point) and `pulls` (`{edge: [[fraction, blocks], …]}` — points a fraction of the way along each named edge, moved that many blocks into the ring, or out of it where negative); on a shape the board's symmetry carries onto itself the edit is made at every image unless it states `fan: false` | `POST …/vertices`, `PATCH·DELETE …/vertices/{index}` on the shape, once per image; a pull has none |
+| `editShapes` | `{id: [edit, …]}`, in order, by the id of a shape or of a stroke, fluid or flora prop, each stating exactly one of `after` (insert a point on that edge, at `x`/`z` or its midpoint), `index` (move that point to `x`/`z`), `remove` (drop that point) and `pulls` (`{edge: [[fraction, blocks], …]}` — points a fraction of the way along each named edge, moved that many blocks into the ring, or out of it where negative), which reaches a shape alone; on a shape the board's symmetry carries onto itself the edit is made at every image unless it states `fan: false` | `POST …/vertices`, `PATCH·DELETE …/vertices/{index}` on the shape, once per image; a pull has none |
 | `bendShapes` | `{shapeId: {wander, step, seed, tension, side, edges, fan}}` — `edges` names the edges drawn as coast, each by the vertex it leaves, and every other edge stays as drawn; on a shape the board's symmetry carries onto itself the coast is its own image too unless `fan` is false | `POST …/sketch/shapes/{shapeId}/bend` |
 | `outlines` | `{id: {at, radius, radiusZ, points, lobes, wobble, phase, turn}}` — an ellipse pulled in and out by lobes, written as the points of whatever carries that id: a shape's vertices (a rectangle or a circle becoming a polygon), the points of a stroke, a fluid or a flora prop | the points stated on the thing itself |
 | `modifiers` | `[modifier, …]` — the terraform operations run in list order over the built ground, replacing the stack the base held (`docs/tools/sketch.md`, *The modifier stack*) | `PUT /map/{slug}/sketch` |
@@ -510,7 +510,7 @@ a new map through them means writing every region, filter and apply-rule by hand
 | `GET /minecraft/player[?name=\|uuid=]` | one player as `{uuid, name}` — a typed username to the canonical uuid an author entry is stored under, and back. A value not shaped like an account name is never asked about, and a resolved pair is answered from `minecraft_player` for thirty days. **404** means no account is called that |
 | `GET /minecraft/player/{uuid}/head` | the front of the player's head as an 8×8 PNG — the face with the hat over it, a hat area opaque everywhere dropped the way the game drops it — served from the studio so a browser draws a head without asking a third party; the skin is fetched from Mojang's texture server on first ask and kept thirty days beside the name. **404** means there is none to be had, and the client draws the player's initial instead |
 | `POST` · `PATCH` · `DELETE /map/{slug}/teams[/{teamId}]` | the teams |
-| `POST` · `PATCH` · `DELETE /map/{slug}/spawns[/{regionId}]` | a spawn's region, team, yaw and kit — the `kit` field names which kit the spawn grants, and nothing in the studio states what a kit contains |
+| `POST` · `PATCH` · `DELETE /map/{slug}/spawns[/{regionId}]` | one region of a spawn, named by the region's id: a `POST` adds a spawn of that one region, a `PATCH` sets the team and kit of the spawn holding it and that region's own yaw, and a `DELETE` takes the region off its spawn, the spawn going with its last region. The `kit` field names which kit the spawn grants, and nothing in the studio states what a kit contains |
 | `PATCH` · `DELETE /map/{slug}/observer-spawn` | the `<default>` spawn |
 | `POST` · `PATCH` · `DELETE /map/{slug}/wools[/{woolId}]` | the wool objectives |
 | `POST` · `PATCH` · `DELETE /map/{slug}/wools/{woolId}/monuments[/{monId}]` | their capture points |
@@ -539,8 +539,8 @@ fanned region answers the id the caller now names it by, and a wool, a monument 
 answers the row in the shape `GET /map/{slug}` carries it.
 
 **A region's numbers always travel nested under `coords`, on a create and on a patch alike.** A patch takes
-`{"id": …}` to rename — cascading through the categories, every compound's child list, and any spawn or wool
-room pointing at it — and `{"coords": {…}}` to move it, answering the footprint the region now covers. The
+`{"id": …}` to rename — cascading through the categories, every compound's child list, and any spawn, observer
+spawn or wool room pointing at it — and `{"coords": {…}}` to move it, answering the footprint the region now covers. The
 stored type chooses which numbers it reads, and a number the type does not use is accepted and ignored. A flat
 payload is a 400 carrying `RQ1`; a create whose `coords` is short of a number its type needs names it
 (`coords.max_x`), and on a patch an absent or `null` number means leave it.

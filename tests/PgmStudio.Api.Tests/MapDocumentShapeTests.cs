@@ -50,8 +50,8 @@ public sealed class MapDocumentShapeTests
         await Assert.That(doc.Teams.Single().MaxPlayers).IsEqualTo(12);
         await Assert.That(doc.Regions.Keys).Contains("blue-spawn");
         // A spawn names its region by id where the author has one, which is why the field stays open.
-        await Assert.That(doc.Spawns.Single().Region.GetString()).IsEqualTo("blue-spawn");
-        await Assert.That(doc.Spawns.Single().Yaw).IsEqualTo(90.0);
+        await Assert.That(doc.Spawns.Single().Regions.Single().Region.GetString()).IsEqualTo("blue-spawn");
+        await Assert.That(doc.Spawns.Single().Regions.Single().Yaw).IsEqualTo(90.0);
 
         var wool = doc.Wools.Single();
         await Assert.That(wool.Color).IsEqualTo("red");

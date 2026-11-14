@@ -596,6 +596,7 @@ export class SketchCanvas extends CanvasBase {
     this.#edit?.onPointerMove(svgPt.x, svgPt.y, this._activeTool);
     if (this.#dressingOn) this.#dressing?.onPointerHover(svgPt.x, svgPt.y, this._activeTool);
     if (this._activeTool === "select") this.#roomHouse?.onPointerHover(svgPt.x, svgPt.y);
+    if (this._activeTool === "select") this.#wallCorners?.onPointerHover(svgPt.x, svgPt.y);
   }
 
   _onToolMouseup(e, svgPt) {
@@ -1440,6 +1441,20 @@ export class SketchCanvas extends CanvasBase {
         group: "Canvas",
         when: () => writable() && !this.#reliefOn && !this.#dressingOn && !!this.#selectedId && !this.#pointPicked(),
         run: () => this.#callbacks.onShapeDeleted?.(this.#selectedId) },
+      // An outline owned by a phase — a modifier's area or run, a dressing route or area, an approach wall —
+      // takes a picked point out the same way, ahead of the chord that takes the whole thing.
+      { id: "modifier.deletePoint", keys: ["delete", "backspace"], label: "Delete the selected point",
+        group: "Terraform", priority: 10,
+        when: () => writable() && this.#reliefOn && (this.#modifierTools?.selectedPoint ?? -1) >= 0,
+        run: () => this.#modifierTools?.deleteSelectedPoint() },
+      { id: "dressing.deletePoint", keys: ["delete", "backspace"], label: "Delete the selected point",
+        group: "Decoration", priority: 10,
+        when: () => writable() && this.#dressingOn && (this.#dressing?.selectedPoint ?? -1) >= 0,
+        run: () => this.#dressing?.deleteSelectedPoint() },
+      { id: "wall.deletePoint", keys: ["delete", "backspace"], label: "Delete the selected wall corner",
+        group: "Layout", priority: 10,
+        when: () => writable() && (this.#wallCorners?.selectedCorner ?? -1) >= 0,
+        run: () => this.#wallCorners?.removeSelected() },
       { id: "modifier.delete", keys: ["delete", "backspace"], label: "Delete the selected modifier",
         group: "Terraform", when: () => writable() && this.#reliefOn && !!this.#modifierTools?.selectedId,
         run: () => this.#modifierTools?.deleteSelected() },

@@ -170,7 +170,8 @@ public static class HouseStamper
             // is. Without them every cell of the wall answers as arc 0 and a striped wall comes out flat.
             var arc = ring.Arc(x, z);
             var (id, data) = material.Resolve(new BucketContext(
-                x, y, z, TerrainBucket.Fill, depth, color, arc, 0, ring.Turn(arc), run ?? ring.Run(x, z)));
+                x, y, z, TerrainBucket.Fill, depth, color, ring.HandedArc(arc, front, reflected), 0, ring.Turn(arc),
+                run ?? ring.Run(x, z)));
             if (id == Blocks.Air) return;
             world.SetBlock(x, y, z, id, data);
         }
@@ -249,7 +250,7 @@ public static class HouseStamper
             var roof = wing.RoofOver(style.Roof.Form, pitch, style.Roof.Slab);
             var field = new RoofField(
                 roof.Form, minX, minZ, maxX, maxZ, overhang, top + 1,
-                roof.Pitch, front, roof.Slab >= 0, wing.RidgeAlongX);
+                roof.Pitch, front, roof.Slab >= 0, wing.RidgeAlongX, reflected);
             return (Wing: wing, Index: index, Roofed: roofed, Field: field, Top: top, Slab: roof.Slab);
         }).ToList();
         var hole = RoofHole(style, body);
@@ -898,7 +899,7 @@ public static class HouseStamper
             var outer = front;
             var seated = new RoofField(
                 porchStyle.Roof, porch.MinX, porch.MinZ, porch.MaxX, porch.MaxZ, overhang, 0, pitch, outer,
-                porchStyle.ClimbsInHalves(style.Roof));
+                porchStyle.ClimbsInHalves(style.Roof), reflected: reflected);
 
             // The canopy is seated by its own *lowest* course rather than by its ridge: that course has to
             // clear the doorway the porch fronts, and where it lands the ridge follows by however far the form

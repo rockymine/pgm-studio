@@ -37,6 +37,7 @@ public sealed class TeamsGeneratorTests
     private static Dict Regions(Dict d) => (Dict)d["regions"]!;
     private static Dict Filters(Dict d) => (Dict)d["filters"]!;
     private static List<object?> Spawns(Dict d) => (List<object?>)d["spawns"]!;
+    private static Dict OnlyLink(Dict spawn) => ((List<object?>)spawn["regions"]!).OfType<Dict>().Single();
     private static List<object?> Rules(Dict d) => (List<object?>)d["apply_rules"]!;
 
     [Test]
@@ -49,7 +50,7 @@ public sealed class TeamsGeneratorTests
         await Assert.That(Regions(doc).ContainsKey("red-spawn")).IsTrue();
         await Assert.That(Filters(doc).Count).IsEqualTo(0);   // the team id is the filter
 
-        var redSpawn = Spawns(doc).OfType<Dict>().FirstOrDefault(s => s.GetValueOrDefault("region") as string == "red-spawn-point");
+        var redSpawn = Spawns(doc).OfType<Dict>().FirstOrDefault(s => OnlyLink(s)["region"] as string == "red-spawn-point");
         await Assert.That(redSpawn).IsNotNull();
         await Assert.That(redSpawn!["team"]).IsEqualTo("red-team");
 
@@ -305,7 +306,7 @@ public sealed class TeamsGeneratorTests
         await Assert.That(Regions(doc).ContainsKey("observer-spawn")).IsTrue();
         var obs = doc["observer_spawn"] as Dict;
         await Assert.That(obs).IsNotNull();
-        await Assert.That(obs!["region"]).IsEqualTo("observer-spawn");
+        await Assert.That(OnlyLink(obs!)["region"]).IsEqualTo("observer-spawn");
         await Assert.That(RegionCategorizer.DeriveFacets(doc)["observer-spawn"].Category).IsEqualTo("observer_spawn");
     }
 
@@ -320,7 +321,7 @@ public sealed class TeamsGeneratorTests
         });
 
         // team-spawn yaw lands on the spawn link
-        var redSpawn = Spawns(doc).OfType<Dict>().First(s => s.GetValueOrDefault("region") as string == "red-spawn-point");
+        var redSpawn = Spawns(doc).OfType<Dict>().Select(OnlyLink).First(link => link["region"] as string == "red-spawn-point");
         await Assert.That(redSpawn["yaw"]).IsEqualTo(-45.0);
 
         // observer point lands on the region (point regions store coords under "position"), yaw on the link
@@ -328,7 +329,7 @@ public sealed class TeamsGeneratorTests
         await Assert.That(pos["x"]).IsEqualTo(3.0);
         await Assert.That(pos["y"]).IsEqualTo(9.0);
         await Assert.That(pos["z"]).IsEqualTo(-7.0);
-        await Assert.That(((Dict)doc["observer_spawn"]!)["yaw"]).IsEqualTo(135.0);
+        await Assert.That(OnlyLink((Dict)doc["observer_spawn"]!)["yaw"]).IsEqualTo(135.0);
     }
 
     [Test]
@@ -339,7 +340,7 @@ public sealed class TeamsGeneratorTests
 
         var obs = doc["observer_spawn"] as Dict;
         await Assert.That(obs).IsNotNull();
-        await Assert.That(obs!["region"]).IsEqualTo("observer-spawn");
+        await Assert.That(OnlyLink(obs!)["region"]).IsEqualTo("observer-spawn");
         await Assert.That(Regions(doc).ContainsKey("observer-spawn")).IsTrue();
         await Assert.That(RegionCategorizer.DeriveFacets(doc)["observer-spawn"].Category).IsEqualTo("observer_spawn");
     }
