@@ -115,10 +115,11 @@ public partial class SketchTool
     private int infoStep;
 
     /// <summary>The open phase as the bar and the rail show it. <paramref name="Moves"/> is false where Back and
-    /// Next have nothing to move between (History), and <paramref name="NextOpen"/> false at the last step.</summary>
+    /// Next have nothing to move between (History), and <paramref name="Finishes"/> true where Next is the finish
+    /// that builds the world and opens Configure (Review's last step).</summary>
     private sealed record BarPhase(string Title, IReadOnlyList<string> Steps, int Step, string NextLabel,
                                    Func<Task> OnBack, Func<Task> OnNext, Func<int, Task> OnStep,
-                                   bool Moves = true, bool NextOpen = true);
+                                   bool Moves = true, bool Finishes = false);
 
     private static readonly Func<int, Task> NoStep = _ => Task.CompletedTask;
 
@@ -143,7 +144,7 @@ public partial class SketchTool
             if (ReliefActive) return new("Terraform", [], 0, NextTo("Palette"), GoDraw, GoTheme, NoStep);
             if (HistoryActive) return new("History", [], 0, "Next", GoReview, GoDraw, NoStep, Moves: false);
             if (CamerasActive) return new("Review", ReviewSteps, 0, NextTo(ReviewSteps[1]), GoDressing, ShowNotes, StepReview);
-            if (NotesActive) return new("Review", ReviewSteps, 1, "Next", ShowCameras, () => Task.CompletedTask, StepReview, NextOpen: false);
+            if (NotesActive) return new("Review", ReviewSteps, 1, FinishLabel, ShowCameras, FinishAsync, StepReview, Finishes: true);
             // A step's index is into the names this render draws, so the offset that maps it back is the one they
             // were drawn with: the Places step can arrive between a render and the click on it.
             var first = FirstDrawStep;
@@ -155,6 +156,7 @@ public partial class SketchTool
     }
 
     private const string DownloadTitle = "Download map";
+    private const string FinishLabel = "Build & open Configure";
 
     private Task StepReview(int step) => step == 0 ? ShowCameras() : ShowNotes();
 
@@ -374,6 +376,8 @@ public partial class SketchTool
     private async Task PushCanvasMode(string phase)
     {
         if (handle is null) return;
+        // Undo and Redo walk the steps of the phase in view and no other's.
+        await handle.InvokeVoidAsync("setPhase", phase);
         // Geometry is Draw's alone. Theme assigns paint to it and Terraform traces masks over it, so in both the
         // canvas picks and never edits a shape, or the gesture that selects one is also the gesture that
         // reshapes it. Dressing places props rather than shapes,
@@ -501,7 +505,7 @@ public partial class SketchTool
         StateHasChanged();
     }
 
-    /// <summary>What the undo stack can do now, so the tool can say so.</summary>
+    /// <summary>What the open phase's undo stack can do now, so the tool can say so.</summary>
     [JSInvokable]
     public void OnHistory(bool undo, bool redo)
     {
@@ -620,6 +624,8 @@ public partial class SketchTool
             WriteAddress();
         }
         else await TakeAddressAsync();
+        // Identity is entered without a phase switch, so the canvas is told the phase it opened on.
+        await handle.InvokeVoidAsync("setPhase", active);
     }
 
     /// <summary>Take up the stored layout (an empty <c>{}</c> for a fresh sketch, which the bridge draws as
@@ -1102,20 +1108,15 @@ public partial class SketchTool
     /// may not edit the map downloads it as it is stored.</summary>
     private async Task DownloadMap()
     {
-        if (downloading) return;
+        if (downloading || finishing) return;
         downloading = true;
-        downloadRefusal = null;
-        exportRefused = false;
-        Recheck();
-        StateHasChanged();
+        BeginBuild();
         try
         {
-            if (handle is not null && await Access.MayEditMapAsync(Slug))
+            if (handle is not null && await Access.MayEditMapAsync(Slug) && await StoreAndBuildAsync() is { } refused)
             {
-                saveCts?.Cancel();
-                await SaveAsync(CancellationToken.None);
-                if (Document.Superseded) { downloadRefusal = ServerRefusal.Unanswered(saveError ?? DocumentSave.SupersededMessage); return; }
-                if (await BuildWorldIfMissingAsync() is { } refused) { downloadRefusal = refused; return; }
+                downloadRefusal = refused;
+                return;
             }
             downloadRefusal = await MapDownload.SaveAsync(Http, JS, Slug);
             exportRefused = downloadRefusal is not null;
@@ -1123,16 +1124,56 @@ public partial class SketchTool
         finally
         {
             downloading = false;
-            if (downloadRefusal is not null) popOpen = true;
-            Recheck();
-            StateHasChanged();
+            EndBuild();
         }
     }
 
-    /// <summary>Build the map's world from the drawing when it has none. Answers the refusal the build was
-    /// refused with, or null when the map has a world.</summary>
-    private async Task<RefusalDto?> BuildWorldIfMissingAsync()
+    // ── The finish: Review's last step builds the world and opens Configure ──
+
+    private bool finishing;
+
+    /// <summary>Save the drawing, build its world where the map has none yet — the build Download makes — and
+    /// open the map in Configure, which a map holds once it has a world. A refused build stays here and opens
+    /// the problems.</summary>
+    private async Task FinishAsync()
     {
+        if (downloading || finishing || handle is null) return;
+        finishing = true;
+        BeginBuild();
+        try
+        {
+            if (await StoreAndBuildAsync() is { } refused) { downloadRefusal = refused; return; }
+            Nav.NavigateTo($"maps/{Slug}/configure");
+        }
+        finally
+        {
+            finishing = false;
+            EndBuild();
+        }
+    }
+
+    private void BeginBuild()
+    {
+        downloadRefusal = null;
+        exportRefused = false;
+        Recheck();
+        StateHasChanged();
+    }
+
+    private void EndBuild()
+    {
+        if (downloadRefusal is not null) popOpen = true;
+        Recheck();
+        StateHasChanged();
+    }
+
+    /// <summary>Flush the drawing and build the map's world from it where it has none. Answers why either was
+    /// refused, or null when the map holds the drawing on screen and a world built from it.</summary>
+    private async Task<RefusalDto?> StoreAndBuildAsync()
+    {
+        saveCts?.Cancel();
+        await SaveAsync(CancellationToken.None);
+        if (Document.Superseded) return ServerRefusal.Unanswered(saveError ?? DocumentSave.SupersededMessage);
         try
         {
             var state = await Http.GetFromJsonAsync<MapState>($"api/map/{Slug}/state");

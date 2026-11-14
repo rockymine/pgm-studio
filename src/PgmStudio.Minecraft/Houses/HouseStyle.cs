@@ -376,18 +376,22 @@ public sealed record Doorway
     /// <summary>The beam over the opening, or a plain rectangular top where it names no form.</summary>
     public DoorHeadStyle Head { get; init; } = new();
 
-    /// <summary>How wide the opening is asked for. A single-width opening is a gap in a wall rather than a
-    /// door, and a room a player carries an objective out of has to read as somewhere to walk through — so
-    /// what is actually cut is <see cref="CutWidth"/>.</summary>
-    public int Width { get; init; } = 2;
+    /// <summary>How wide the opening is asked for, or null for the default: a room's door then follows its
+    /// wall (<c>WX7</c>) and a house's is <see cref="DefaultWidth"/>. An opening one block wide holds a wooden
+    /// door rather than standing open. What a house actually cuts is <see cref="CutWidth"/>.</summary>
+    public int? Width { get; init; }
 
     /// <summary>How tall the opening is asked for, before the head is laid into its top course. What a player
     /// is actually left to walk through is <see cref="Clearance"/>.</summary>
     public int Height { get; init; } = 3;
 
-    /// <summary>The width an opening is actually cut at: never under two, however it is set.</summary>
+    /// <summary>The width a house's opening is cut at where its doorway states none.</summary>
+    public const int DefaultWidth = 2;
+
+    /// <summary>The width a house's own opening is cut at: the stated width, never under one, else
+    /// <see cref="DefaultWidth"/>. A room's door is the frame's (<c>WX7</c>).</summary>
     [JsonIgnore]
-    public int CutWidth => Math.Max(2, Width);
+    public int CutWidth => Math.Max(1, Width ?? DefaultWidth);
 
     /// <summary>The clear height, in blocks, this doorway actually leaves once its <see cref="Head"/> is
     /// written into the top course — the author's own arithmetic (<see cref="DoorHeadStyle"/>'s own docstring:
@@ -402,7 +406,7 @@ public sealed record Doorway
         get
         {
             if (DoorMaterials.Of(Door).Opens) return Math.Min(2, Height);
-            if (!Head.Fits(Width, Height)) return Height;
+            if (!Head.Fits(CutWidth, Height)) return Height;
             var genuineSlab = Head.Fill == DoorHeadFill.UpperSlab && BlockFamilies.IsSlab(Head.FillBlock);
             return (Height - 1) + (genuineSlab ? 0.5m : 0m);
         }

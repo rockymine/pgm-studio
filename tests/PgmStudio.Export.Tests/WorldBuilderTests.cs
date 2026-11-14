@@ -160,6 +160,31 @@ public sealed class WorldBuilderTests
     }
 
     [Test]
+    public async Task A_room_cuts_the_door_width_its_house_states_and_its_wall_where_it_states_none()
+    {
+        // A 14-across room whose interior is 12: its wall takes the common 4, and a house stating 2 takes 2, on
+        // both kinds of room and on the default frame a room with no region resolves.
+        var wool = new WoolIntent
+        {
+            Owner = "red", Spawn = new Pt(-20.5, 1, 0.5), Protection = [new Rect(-32, -12, -8, 12)],
+            House = RoomHouse.Over(new Rect(-27, -6, -13, 8)),
+        };
+        var spawn = new SpawnIntent
+        {
+            Team = "red", Point = new Pt(-20, 1, 0), Protection = [new Rect(-30, -10, -10, 10)], Doors = [new StatedDoor("+x")],
+        };
+        var bare = new SpawnIntent { Team = "red", Point = new Pt(-20, 1, 0), Doors = [new StatedDoor("+x")] };
+        var narrow = HouseStyle.Wool with { Doorway = HouseStyle.Wool.Doorway with { Width = 2 } };
+        var narrowSpawn = HouseStyle.Spawn with { Doorway = HouseStyle.Spawn.Doorway with { Width = 2 } };
+
+        await Assert.That(WorldBuilder.WoolFrame(wool, HouseStyle.Wool).Doors[0].Width).IsEqualTo(4);
+        await Assert.That(WorldBuilder.WoolFrame(wool, narrow).Doors[0].Width).IsEqualTo(2);
+        await Assert.That(WorldBuilder.SpawnRoom(spawn, HouseStyle.Spawn).Frame.Doors[0].Width).IsEqualTo(4);
+        await Assert.That(WorldBuilder.SpawnRoom(spawn, narrowSpawn).Frame.Doors[0].Width).IsEqualTo(2);
+        await Assert.That(WorldBuilder.SpawnRoom(bare, narrowSpawn).Frame.Doors[0].Width).IsEqualTo(2);
+    }
+
+    [Test]
     [Arguments(false)]
     [Arguments(true)]
     public async Task A_reflected_room_resolves_a_reflected_frame(bool reflected)

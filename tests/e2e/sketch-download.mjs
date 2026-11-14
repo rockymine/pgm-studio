@@ -1,7 +1,8 @@
 /**
  * The Sketch tool hands over a finished map: Download (an icon in the editor bar) builds the world the first time it is pressed and
  * saves the export from whichever phase is up, a map with no game settings says why it cannot be exported and
- * saves nothing, and Draw's Done goes on to Terraform rather than leaving the tool.
+ * saves nothing, Draw's Done goes on to Terraform rather than leaving the tool, and Review's last step builds the
+ * world and opens Configure, which the stage switcher names until the map has one.
  */
 
 import { openBrowser, newPage, clearFaults, Checks, readSeed, api, BASE } from "./lib/harness.mjs";
@@ -101,6 +102,26 @@ await next.click();
 await page.locator(".editor-bar", { hasText: "Terraform" }).waitFor({ timeout: 30000 });
 checks.add("Layout's next phase is Terraform", true);
 
+checks.section("Review's last step builds the world and continues in Configure");
+const drawn = await api("/sketch", { method: "POST", body: { name: "E2E finish" } });
+await api(`/map/${drawn.slug}/sketch`, { method: "PUT", body: compiled.layout });
+await page.goto(`${BASE}/maps/${drawn.slug}/sketch?phase=review&step=notes`, { waitUntil: "networkidle" });
+await page.click(".editor-stage--button");
+await page.waitForFunction(() => !document.querySelector('.editor-menu [title^="Checking"]'), null, { timeout: 10000 });
+const entry = page.locator('.editor-menu .editor-menu-item[aria-disabled="true"]', { hasText: "Configure" });
+const why = (await entry.getAttribute("title")) ?? "";
+checks.add("the closed Configure entry names what makes it", why.includes("Build & open Configure"), why);
+await page.click(".editor-menu-scrim");
+const finish = page.locator(".editor-bar-next", { hasText: "Build & open Configure" });
+await finish.waitFor({ timeout: 30000 });
+checks.add("Notes' Next is the finish, and it is open", await finish.isEnabled());
+await finish.click();
+await page.waitForURL(`**/maps/${drawn.slug}/configure**`, { timeout: 180000 });
+checks.add("it opens the map in Configure", true);
+checks.add("with the world built", (await api(`/map/${drawn.slug}/state`)).artifacts.world);
+await page.goto("about:blank");   // the maps are deleted below, and an open Configure would go on reading one
+
+await api(`/map/${drawn.slug}`, { method: "DELETE" });
 await api(`/map/${unbuilt.slug}`, { method: "DELETE" });
 await api(`/map/${unset.slug}`, { method: "DELETE" });
 await api(`/map/${cut.slug}`, { method: "DELETE" });

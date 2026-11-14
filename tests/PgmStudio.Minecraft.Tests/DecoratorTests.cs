@@ -1196,6 +1196,69 @@ public sealed class DecoratorTests
         await Assert.That(world.GetBlock(20, 7, 34).Id).IsEqualTo(Blocks.Grass);             // clear of the channel + its beach
     }
 
+    /// <summary>Ground of grass over stone, 60 by 40, its surface block at <paramref name="surface"/> of x.</summary>
+    private static (VoxelWorld World, Dictionary<(int X, int Z), int> SurfaceTop) Ground(Func<int, int> surface)
+    {
+        var world = new VoxelWorld();
+        var top = new Dictionary<(int X, int Z), int>();
+        for (var z = 0; z < 40; z++)
+        for (var x = 0; x < 60; x++)
+        {
+            var solid = surface(x);
+            for (var y = 0; y < solid; y++) world.SetBlock(x, y, z, Blocks.Stone);
+            world.SetBlock(x, solid, z, Blocks.Grass);
+            top[(x, z)] = solid + 1;
+        }
+        return (world, top);
+    }
+
+    /// <summary>The highest course of water in a column, or null where it holds none.</summary>
+    private static int? WaterLine(VoxelWorld world, int x, int z) =>
+        Enumerable.Range(0, 40).Reverse().Cast<int?>()
+                  .FirstOrDefault(y => world.GetBlock(x, y!.Value, z).Id == Blocks.StationaryWater);
+
+    [Test]
+    public async Task A_channel_down_a_slope_steps_down_in_reaches_and_never_stands_over_its_ground()
+    {
+        var (world, top) = Ground(x => 20 - x / 4);
+        var report = Decorator.Decorate(world, Context(top, [new FluidProp
+        {
+            Id = "beck", Points = [[2, 20], [57, 20]], Radius = 3, Depth = 2, Seed = 5, Shore = 0,
+            Bank = new SolidMaterial(Blocks.Sand),
+        }]));
+
+        var lines = Enumerable.Range(4, 52).Select(x => WaterLine(world, x, 20)).ToList();
+        await Assert.That(lines.All(line => line is not null)).IsTrue();
+        for (var at = 1; at < lines.Count; at++)
+            await Assert.That(lines[at]!.Value).IsLessThanOrEqualTo(lines[at - 1]!.Value).Because($"the water climbs at x {at + 4}");
+        await Assert.That(lines.Distinct().Count()).IsGreaterThan(1).Because("a channel down a slope is a chain of reaches");
+        for (var x = 4; x < 56; x++)
+            for (var z = 18; z <= 22; z++)
+                if (WaterLine(world, x, z) is { } line)
+                    await Assert.That(line).IsLessThanOrEqualTo(20 - x / 4).Because($"the water at ({x}, {z}) stands over its ground");
+        await Assert.That(report.Declines.Any(finding => finding.Rule == DressingRules.DryEdge)).IsFalse()
+            .Because("a fall into the channel's own lower reach is not a hole in its basin");
+    }
+
+    [Test]
+    public async Task A_channel_the_symmetry_runs_back_onto_itself_holds_one_line_at_both_images()
+    {
+        var (world, top) = Ground(x => 12 + Math.Abs(2 * x + 1 - 60) / 8);
+        Decorator.Decorate(world, Context(top, [new FluidProp
+        {
+            Id = "canal", Points = [[2, 20], [58, 20]], Radius = 3, Depth = 2, Seed = 5, Shore = 0, Edge = 0,
+            Bank = new SolidMaterial(Blocks.Sand),
+        }], symmetry: "rot_180", centerX: 30, centerZ: 20));
+
+        var lines = Enumerable.Range(4, 52).Select(x => WaterLine(world, x, 20)).ToList();
+        await Assert.That(lines.Distinct().Single()).IsEqualTo(12);
+        for (var x = 0; x < 60; x++)
+            for (var z = 0; z < 40; z++)
+                for (var y = 0; y < 24; y++)
+                    await Assert.That(world.GetBlock(x, y, z).Id).IsEqualTo(world.GetBlock(59 - x, y, 39 - z).Id)
+                        .Because($"({x}, {y}, {z}) differs from its image");
+    }
+
     /// <summary><b>A hollow dug wider than the pool that fills it leaves a dry trench beside the water.</b>
     /// The bed a pool carves and the hollow it sits in are two statements about one lake — the second is
     /// usually a relief mark — and where the hollow reaches further the extra is excavated and holds nothing.

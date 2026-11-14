@@ -135,7 +135,7 @@
                           <span class="map-artifacts">
                             @foreach (var (id, label) in MapLayers.All)
                             {
-                              if (!MapLayers.Holds(m, id)) { <span class="map-layer-empty" title="@($"No {label.ToLowerInvariant()} yet")"></span> }
+                              if (!MapLayers.Holds(m, id)) { <span class="map-layer-empty" title="@MapLayers.Missing(id)"></span> }
                               else if (opens == id)
                               {
                                 <a class="map-layer map-layer--now" @onclick:stopPropagation href="@($"maps/{m.Slug}/{id}")"

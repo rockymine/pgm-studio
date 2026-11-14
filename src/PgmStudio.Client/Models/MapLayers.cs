@@ -17,6 +17,14 @@ public static class MapLayers
         _ => map.HasSurface,
     };
 
+    /// <summary>What a map that does not hold <paramref name="layer"/> is told about it: that it is not there yet,
+    /// and for Configure what makes it — the world, which the Sketch tool's finish builds.</summary>
+    public static string Missing(string layer) => layer switch
+    {
+        MapStage.Configure => "No world yet: Build & open Configure, on Sketch's last step, builds it",
+        _ => $"No {LabelOf(layer).ToLowerInvariant()} yet",
+    };
+
     /// <summary>Whether <paramref name="map"/> was imported from a world rather than drawn in the studio: it holds a
     /// world and no sketch layout, the same test <c>GET /api/map/{slug}/origin</c> answers.</summary>
     public static bool Imported(MapSummary map) => map.HasSurface && !map.HasSketch;

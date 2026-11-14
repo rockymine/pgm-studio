@@ -16,6 +16,7 @@ async function boardWithTree() {
 
 test("a recipe pulled into a board that has placements is one undo step", async () => {
   const { handle, firedOf } = await boardWithTree();
+  handle.setPhase("dressing");
   const key = handle.pullRecipe("tower", RECIPE);
   assert.equal(key, "tower");
   assert.ok(firedOf("OnDirty").length > 0, "the board is dirty");

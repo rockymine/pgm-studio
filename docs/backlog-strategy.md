@@ -432,12 +432,12 @@ it, not by working the entries in turn. This is the population the studio's own 
 of them is the same thing: a document, a route or a solver that already answers, and a surface that never
 asks.
 
-**A roadmap** — capabilities the studio does not have and nobody is blocked on: `S46`,
+**A roadmap** — capabilities the studio does not have and nobody is blocked on:
 `S34`, `TS51`, `TS63`, `B9`. `G187` and `G164` left this population by being read against the code
 rather than built — plan-tier flow was already served and `Cells.WaysRound` already in use, so what one entry
 called a project was a primitive and a term, and the other was a term over two corridors that read itself
-(`FEATURES.md`). Five more left it by shipping —
-`B221` and `B258`, the library's pictures, `WE34`, the seat read, `TS30`, the bend, and `B54`, what a rebuild drops — which is the
+(`FEATURES.md`). Six more left it by shipping —
+`S46`, water in reaches and the canal on the axis, `B221` and `B258`, the library's pictures, `WE34`, the seat read, `TS30`, the bend, and `B54`, what a rebuild drops — which is the
 population behaving as intended: a roadmap entry is drained by being built, not by being triaged again.
 `B58` left it the same way, with `N12`: the destroyable suggester and the Configure phase that confirms from
 its list are one capability, and it took a phase to arrive rather than a triage.
@@ -450,8 +450,8 @@ relocation. What went instead was the hygiene population — `C12`, `C14`, `CV12
 — which the previous reading had scheduled as a phase to *gate* rather than to delete.
 
 The reorganisation that followed supersedes the relocation and is the better answer. Each roadmap entry now
-sits under the foundation it spends rather than in a bucket of its own, so `S46` reads beside the terrain
-entries whose model it needs. A capability with no end condition is legible when it is filed against the
+sits under the foundation it spends rather than in a bucket of its own, so a terrain entry reads beside the
+terrain entries whose model it needs. A capability with no end condition is legible when it is filed against the
 thing that would make it possible, and unreadable in a list of its peers.
 The cost is that a section's length no longer says how much *work* is in it, which is what the split above is
 for.

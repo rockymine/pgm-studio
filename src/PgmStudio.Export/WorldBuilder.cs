@@ -1078,21 +1078,23 @@ public static class WorldBuilder
     /// marker-anchored default. A reflected wool (<see cref="WoolIntent.Reflected"/>) resolves a reflected
     /// frame, so its cage is laid out as the mirror of the one it is an image of.</summary>
     public static RoomFrame WoolFrame(WoolIntent w, HouseStyle? mapStyle) =>
-        UnreflectedWoolFrame(w, RoomStyleScope.StyleOf(w.House, mapStyle, HouseStyle.Wool) is not null)
+        UnreflectedWoolFrame(w, RoomStyleScope.StyleOf(w.House, mapStyle, HouseStyle.Wool))
             with { Reflected = w.Reflected };
 
-    private static RoomFrame UnreflectedWoolFrame(WoolIntent w, bool shellBound) =>
-        ResolvedWool(w, shellBound, out _) ?? DefaultFrame(w.Spawn.X, w.Spawn.Z, [], shellBound);
+    private static RoomFrame UnreflectedWoolFrame(WoolIntent w, HouseStyle? style) =>
+        ResolvedWool(w, style, out _) ?? DefaultFrame(w.Spawn.X, w.Spawn.Z, [], style);
 
-    /// <summary>The frame a wool resolves on its region, or null with the refusal that stopped it — null and
-    /// no refusal where it stands on no region.</summary>
-    internal static RoomFrame? ResolvedWool(WoolIntent w, bool shellBound, out Finding? refusal)
+    /// <summary>The frame a wool resolves on its region under the shell <paramref name="style"/> stands it in —
+    /// none for open ground — or null with the refusal that stopped it, and null with no refusal where it stands
+    /// on no region.</summary>
+    internal static RoomFrame? ResolvedWool(WoolIntent w, HouseStyle? style, out Finding? refusal)
     {
         refusal = null;
         if (Ground(w.Protection) is not { } ground) return null;
         var (markerX, markerZ) = PositionSnap.SnapHalfXZ(w.Spawn.X, w.Spawn.Z);
         return RoomFrames.Resolve(
-            ground, StatedFootprint(w.House?.Room), shellBound, markerX, markerZ, CageDoors(w), spawn: false, out refusal);
+            ground, StatedFootprint(w.House?.Room), style is not null, markerX, markerZ, CageDoors(w), spawn: false,
+            out refusal, style?.Doorway.Width);
     }
 
     /// <summary>The doors a wool room is cut with: its stated ones, or where it states none, one centred on the
@@ -1112,24 +1114,25 @@ public static class WorldBuilder
     /// its hall and its monument seats are laid out as the mirror of the ones it is an image of.</remarks>
     public static ResolvedRoom SpawnRoom(SpawnIntent s, HouseStyle? mapStyle)
     {
-        var room = UnreflectedSpawnRoom(s, RoomStyleScope.StyleOf(s.House, mapStyle, HouseStyle.Spawn) is not null);
+        var room = UnreflectedSpawnRoom(s, RoomStyleScope.StyleOf(s.House, mapStyle, HouseStyle.Spawn));
         return room with { Frame = room.Frame with { Reflected = s.Reflected } };
     }
 
-    private static ResolvedRoom UnreflectedSpawnRoom(SpawnIntent s, bool shellBound) =>
-        ResolvedSpawn(s, shellBound, out _)
-        ?? new ResolvedRoom(DefaultFrame(s.Point.X, s.Point.Z, s.AskedDoors(), shellBound), []);
+    private static ResolvedRoom UnreflectedSpawnRoom(SpawnIntent s, HouseStyle? style) =>
+        ResolvedSpawn(s, style, out _)
+        ?? new ResolvedRoom(DefaultFrame(s.Point.X, s.Point.Z, s.AskedDoors(), style), []);
 
-    /// <summary>The room a spawn resolves on its region, its iron with it, or null with the refusal that
-    /// stopped it — null and no refusal where it stands on no region.</summary>
-    internal static ResolvedRoom? ResolvedSpawn(SpawnIntent s, bool shellBound, out Finding? refusal)
+    /// <summary>The room a spawn resolves on its region under the shell <paramref name="style"/> stands it in,
+    /// its iron with it, or null with the refusal that stopped it — null and no refusal where it stands on no
+    /// region.</summary>
+    internal static ResolvedRoom? ResolvedSpawn(SpawnIntent s, HouseStyle? style, out Finding? refusal)
     {
         refusal = null;
         if (Ground(s.Protection) is not { } ground) return null;
         var (markerX, markerZ) = PositionSnap.SnapHalfXZ(s.Point.X, s.Point.Z);
         return RoomFrames.ResolveRoom(
-            ground, StatedFootprint(s.House?.Room), shellBound, markerX, markerZ, s.AskedDoors(), spawn: true,
-            [.. s.Iron.Select(iron => PositionSnap.SnapHalfXZ(iron.X, iron.Z))], out refusal);
+            ground, StatedFootprint(s.House?.Room), style is not null, markerX, markerZ, s.AskedDoors(), spawn: true,
+            [.. s.Iron.Select(iron => PositionSnap.SnapHalfXZ(iron.X, iron.Z))], out refusal, style?.Doorway.Width);
     }
 
     /// <summary>The complaint a resolved room raises when it is larger than a room (<c>WX13</c>), or null.
@@ -1194,7 +1197,7 @@ public static class WorldBuilder
     // centre. Also the fallback when an authored piece refuses to frame (the validator gates plan exports, so
     // reaching that fallback means a hand-edited intent — stamping the default beats failing the export).
     private static RoomFrame DefaultFrame(
-        double x, double z, IReadOnlyList<AskedDoor> spawnDoors, bool shellBound)
+        double x, double z, IReadOnlyList<AskedDoor> spawnDoors, HouseStyle? style)
     {
         var (anchorX, anchorZ) = PositionSnap.SnapXZ(x, z);
         int minX = anchorX - 5, minZ = anchorZ - 5, maxX = anchorX + 5, maxZ = anchorZ + 5;
@@ -1202,8 +1205,8 @@ public static class WorldBuilder
         IReadOnlyList<AskedDoor> doors = spawnDoors.Count > 0 ? spawnDoors : [new AskedDoor(Toward([new Rect(minX, minZ, maxX, maxZ)]))];
         // The footprint is stated rather than defaulted: this synthetic rect is the room a piece-less marker
         // has always resolved to, so the shell is its own one-block inset and no door gap is taken out of it.
-        return RoomFrames.Resolve(piece, new BlockRect(minX + 1, minZ + 1, maxX - 1, maxZ - 1), shellBound,
-            anchorX, anchorZ, doors, spawn: spawnDoors.Count > 0, out _)!;
+        return RoomFrames.Resolve(piece, new BlockRect(minX + 1, minZ + 1, maxX - 1, maxZ - 1), style is not null,
+            anchorX, anchorZ, doors, spawn: spawnDoors.Count > 0, out _, style?.Doorway.Width)!;
     }
 
     /// <summary>The teams that capture a wool: its authored monument teams, or — when none were authored

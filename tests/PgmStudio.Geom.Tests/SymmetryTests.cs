@@ -93,4 +93,20 @@ public sealed class SymmetryTests
         await Assert.That(Symmetry.ImageEdge(Symmetry.SelfImage(centred, "mirror_x", 0, 0)![0], 0)).IsEqualTo(0);
         await Assert.That(Symmetry.ImageEdge(Symmetry.SelfImage(centred, "mirror_x", 0, 0)![0], 1)).IsEqualTo(3);
     }
+
+    /// <summary>A path crossing a mirror, or through the centre of a half turn, is its own image run backwards; a
+    /// path along the mirror is its own image run the same way, and one off to the side is another path's.</summary>
+    [Test]
+    public async Task A_path_through_the_middle_is_its_own_image_run_backwards()
+    {
+        (double X, double Z)[] across = [(-10, 2), (0, 0), (10, -2)];
+        (double X, double Z)[] along = [(0, -10), (0, 10)];
+        (double X, double Z)[] aside = [(5, -10), (5, 10)];
+
+        await Assert.That(Symmetry.Reverses(across, "rot_180", 0, 0)).IsTrue();
+        await Assert.That(Symmetry.Reverses([(-10, 0), (10, 0)], "mirror_x", 0, 0)).IsTrue();
+        await Assert.That(Symmetry.Reverses(along, "mirror_x", 0, 0)).IsFalse();
+        await Assert.That(Symmetry.Reverses(aside, "rot_180", 0, 0)).IsFalse();
+        await Assert.That(Symmetry.Reverses(across, "rot_90", 0, 0)).IsFalse();
+    }
 }

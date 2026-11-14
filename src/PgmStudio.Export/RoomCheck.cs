@@ -28,8 +28,8 @@ public static class RoomCheck
 
         foreach (var wool in wools.Where(wool => Authored(wool.Stamp)))
         {
-            var shellBound = RoomStyleScope.StyleOf(wool.House, shells.Wool, HouseStyle.Wool) is not null;
-            var frame = WorldBuilder.ResolvedWool(wool, shellBound, out var refusal);
+            var style = RoomStyleScope.StyleOf(wool.House, shells.Wool, HouseStyle.Wool);
+            var frame = WorldBuilder.ResolvedWool(wool, style, out var refusal);
             if (refusal is not null) findings.Add(Refused(refusal, "wool", wool.Id));
             if (frame is null) continue;
             if (frame.Pad.Shifted) findings.Add(Shifted("wool", wool.Id));
@@ -38,8 +38,8 @@ public static class RoomCheck
 
         foreach (var spawn in intent.Spawns.Where(spawn => Authored(spawn.Stamp)))
         {
-            var shellBound = RoomStyleScope.StyleOf(spawn.House, shells.Spawn, HouseStyle.Spawn) is not null;
-            var room = WorldBuilder.ResolvedSpawn(spawn, shellBound, out var refusal);
+            var style = RoomStyleScope.StyleOf(spawn.House, shells.Spawn, HouseStyle.Spawn);
+            var room = WorldBuilder.ResolvedSpawn(spawn, style, out var refusal);
             if (refusal is not null) findings.Add(Refused(refusal, "spawn", spawn.Id));
             if (room is null) continue;
             if (room.Frame.Pad.Shifted) findings.Add(Shifted("spawn", spawn.Id));

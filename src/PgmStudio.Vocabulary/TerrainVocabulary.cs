@@ -171,7 +171,8 @@ public static class HouseFootprints
     public static readonly (string Id, int Width, int Depth)[] All =
         [(Small, 6, 6), (Square, 8, 8), (Long, 10, 15), (Large, 16, 16)];
 
-    /// <summary>The shell a card is judged at, and what a caller naming none is answered on.</summary>
+    /// <summary>The shell a house is drawn on where its row states none, and what a caller naming none is
+    /// answered on.</summary>
     public const string Default = Square;
 
     /// <summary>The shell a word names, folding anything outside the set onto <see cref="Default"/> — a

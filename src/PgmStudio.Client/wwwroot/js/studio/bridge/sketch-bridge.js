@@ -22,6 +22,7 @@ import { DRESSING_TOOLS } from "../controllers/dressing-controller.js";
 import { rectsJoinUp, wingRects } from "../dressing/dressing-doc.js";
 import { cellsCarried } from "../controllers/room-house-controller.js";
 import { wingOf } from "../shared/pick.js";
+import { UNDO_PHASES, documentParts, stepBetween, stepBack, composeParts } from "./sketch-undo.js";
 
 // Default footprint = 2-team landscape (120×80), framed about the origin. CTW maps fit a ~120-block long
 // axis with 10–15-wide lanes; a tight default keeps the canvas at a scale where those read true.
@@ -941,38 +942,45 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   ]);
 
   // ── undo ────────────────────────────────────────────────────────────────────────────────────────
-  // A step is a whole document — the value getState() answers and load() restores — so nothing here has to
-  // know which edit happened, only that one did. A step is opened before an edit and closed after it, and
-  // closing compares the two: a press that changed nothing costs no step, and a drag that fires on every
-  // frame between one open and one close costs exactly one.
+  // Each phase that edits the document keeps its own stack (`UNDO_PHASES`), and a step is made in the phase in
+  // view. A step is the parts of the document it changed (`sketch-undo.js`), so nothing here has to know which
+  // edit happened, only that one did. A step is opened before an edit and closed after it, and closing compares
+  // the two: a press that changed nothing costs no step, and a drag that fires on every frame between one open
+  // and one close costs exactly one. Taking one back restores its own phase's parts, and another phase's only
+  // where that phase has not changed it since.
   //
-  // A play piece is not in the layout: it is the intent's, written on the server. So a step that took one is
-  // `{ layout, intent }`, the intent's text as it stood beside the layout, and stepping over it writes the
-  // intent back; a step of the drawing alone is `{ layout }`. While a piece write is open the layout's own steps
-  // are held, so the ground a room placement draws is part of the placement's step rather than one of its own.
-  // Piece writes take turns (`intentTurns`), so two placed close together are two steps.
+  // A play piece is not in the layout: it is the intent's, written on the server. So a step that took one also
+  // holds the intent's text as the part `intent`, and stepping over it writes the intent back. While a piece
+  // write is open the layout's own steps are held, so the ground a room placement draws is part of the
+  // placement's step rather than one of its own. Piece writes take turns (`intentTurns`), so two placed close
+  // together are two steps.
   const HISTORY_DEPTH = 60;
   const history = {
-    past: [], future: [], pending: null, held: false, moving: false,
+    stacks: Object.fromEntries(UNDO_PHASES.map(phase => [phase, { past: [], future: [] }])),
+    phase: "draw", pending: null, held: false, moving: false,
+    /** The stack of the phase in view, or null where that phase takes no undo. */
+    get here() { return this.stacks[this.phase] ?? null; },
     /** Open a step, unless one is already open. Answers whether this call is the one that opened it — only
      *  that caller may close it, so an edit arriving mid-drag folds into the drag rather than ending it. */
     begin() {
       if (this.held || this.pending !== null) return false;
-      this.pending = snapshot();
+      this.pending = { phase: this.phase, parts: partsNow() };
       return true;
     },
     end() {
       if (this.pending === null) return;
-      const before = this.pending;
+      const { phase, parts } = this.pending;
       this.pending = null;
-      if (this.held || snapshot() === before) return;
-      this.record({ layout: before });
+      if (!this.held) this.record(phase, parts, partsNow());
     },
-    /** Keep `entry` as the step back. */
-    record(entry) {
-      this.past.push(entry);
-      if (this.past.length > HISTORY_DEPTH) this.past.shift();
-      this.future.length = 0;
+    /** Keep what changed between `before` and `after` as `phase`'s step back. */
+    record(phase, before, after) {
+      const stack = this.stacks[phase];
+      const step = stack ? stepBetween(phase, before, after) : null;
+      if (!step) return;
+      stack.past.push(step);
+      if (stack.past.length > HISTORY_DEPTH) stack.past.shift();
+      stack.future.length = 0;
       pushHistory();
     },
     /** Run an edit as one step. Inside an already-open step it folds into that one. */
@@ -980,30 +988,35 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       const mine = this.begin();
       try { return fn(); } finally { if (mine) this.end(); }
     },
-    undo() { return this.move(this.past, this.future); },
-    redo() { return this.move(this.future, this.past); },
-    /** Step from `from` to `to`. A step holding the intent writes it back before the drawing is restored; one
-     *  the studio refuses stays where it was and says why. One step at a time: a press while one is on its way
-     *  does nothing, and a press while a piece write is in flight waits for its step, so it steps over that
-     *  write rather than the one before it. */
-    async move(from, to) {
-      if (this.moving) return false;
+    undo() { return this.move(true); },
+    redo() { return this.move(false); },
+    /** Take the phase in view one step back or forward. A step holding the intent writes it back before the
+     *  drawing is restored; one the studio refuses stays where it was and says why. One step at a time: a press
+     *  while one is on its way does nothing, and a press while a piece write is in flight waits for its step, so
+     *  it steps over that write rather than the one before it. */
+    async move(back) {
+      const stack = this.here;
+      if (this.moving || !stack) return false;
+      const [from, to] = back ? [stack.past, stack.future] : [stack.future, stack.past];
       this.moving = true;
       // A step over the intent, or any step while the intent is being written, waits its turn behind the piece
       // write in flight; a step of the drawing alone with nothing in flight is taken at once.
-      const release = intentTurns.busy || from.at(-1)?.intent !== undefined ? await intentTurns.take() : null;
+      const release = intentTurns.busy || from.at(-1)?.before.intent !== undefined ? await intentTurns.take() : null;
       try {
         if (!from.length) return false;
         const entry = from[from.length - 1];
-        const current = { layout: snapshot() };
-        if (entry.intent !== undefined) {
-          current.intent = await intentText();
-          if (current.intent === null || !(await writeIntent(entry.intent))) return false;
+        const now = partsNow();
+        if (entry.before.intent !== undefined) {
+          now.intent = await intentText();
+          if (now.intent === null) return false;
         }
+        const { restore: parts, forward } = stepBack(now, entry);
+        const intent = parts.intent !== undefined;
+        if (intent && !(await writeIntent(parts.intent))) return false;
         from.pop();
-        to.push(current);
-        restore(entry.layout);
-        if (entry.intent !== undefined) { await refreshRooms(); await refreshPieces(); }
+        to.push(forward);
+        restore({ ...now, ...parts });
+        if (intent) { await refreshRooms(); await refreshPieces(); }
         pushHistory();
         return true;
       } finally {
@@ -1011,8 +1024,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         release?.();
       }
     },
-    get canUndo() { return this.past.length > 0; },
-    get canRedo() { return this.future.length > 0; },
+    get canUndo() { return (this.here?.past.length ?? 0) > 0; },
+    get canRedo() { return (this.here?.future.length ?? 0) > 0; },
   };
 
   /** The stored intent as text, or null where it could not be read. */
@@ -1063,7 +1076,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     const turn = await intentTurns.take();
     pieceTurn = turn;
     history.held = true;
-    pieceBefore = { layout: snapshot(), intent: await intentText() };
+    pieceBefore = { phase: history.phase, parts: partsNow(), intent: await intentText() };
   }
   async function endPieceStep() {
     const turn = pieceTurn;
@@ -1075,7 +1088,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       pieceBefore = null;
       if (!before || before.intent === null) return;
       const intent = await intentText();
-      if (intent !== null && (intent !== before.intent || snapshot() !== before.layout)) history.record(before);
+      if (intent !== null) history.record(before.phase, { ...before.parts, intent: before.intent }, { ...partsNow(), intent });
     } finally {
       turn();
     }
@@ -1085,10 +1098,11 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     try { return await write(); } finally { await endPieceStep(); }
   }
 
-  const snapshot = () => JSON.stringify(handle.getState());
+  const partsNow = () => documentParts(handle.getState());
 
-  function restore(text) {
-    let state; try { state = JSON.parse(text); } catch { return; }
+  /** Put the document back to `parts`, every one of them, with the setup as it stands. */
+  function restore(parts) {
+    const state = composeParts(handle.getState(), parts);
     // What was picked, in each of the things that can be. Restoring the document rebuilds the prop document
     // from scratch, and building one clears its selection — so each is taken back afterwards where the step
     // left it standing.
@@ -1107,7 +1121,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     if (wasPiece) selectStructural(wasPiece);
     markDirty();
 
-    // A step replaces the WHOLE document, so every phase reading a part of it has to be told. `load` puts
+    // A step reloads the whole document, so every phase reading a part of it has to be told. `load` puts
     // the shapes back on the canvas and `selectShape` re-announces the selection, which is the Draw phase
     // entire. The modifiers and the props are restored on the canvas by the same call and then not announced, so
     // their panels would go on listing what the step just undid, and the overlays drawn from the server would
@@ -1924,6 +1938,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     },
     undo() { return history.undo(); },
     redo() { return history.redo(); },
+    /** The phase in view, by the host's word for it: Undo and Redo walk that phase's own steps. */
+    setPhase(phase) { history.phase = phase; pushHistory(); },
     fitToBbox() { canvas.fitToBbox(); },
     dispose() {
       paintFeed.cancel();
@@ -1944,12 +1960,12 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   const MUTATORS = [
     "setMode", "setCenter",
     "setHeight", "setVertexHeight", "applySlope", "setStrokeBand", "setHeightMode", "setSkirt", "setReliefScope",
-    "setStructuralHeight",
+    "setStructuralHeight", "setSolid", "setSolidField", "setArchDeck",
     "rotateSelected", "deleteShape", "promoteShape", "toggleOp", "toggleOverride", "toggleMirrors",
     "renameGroup",
     "addLayer", "deleteLayer", "renameLayer", "setLayerBaseY", "setLayerUnderside",
     "setRoomStyle", "defineTheme", "deleteTheme", "setThemeJson", "setMapTheme",
-    "setThemeSource", "setBiome",
+    "setThemeSource", "setBiome", "setPaint",
     "assignShape", "assignGroup",
     "deleteProp", "deleteWing", "updateWing", "pullRecipe", "updateProp",
     "updateModifier", "deleteModifier", "moveModifier",

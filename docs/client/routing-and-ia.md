@@ -228,7 +228,8 @@ is — *Sketch* or *Configure*, by its word alone — as a button
 whose menu lists the two. A tool is a link where the map holds that layer
 and a dashed, disabled entry where it does not, the same distinction the Maps table draws in its *Open in*
 column and read from the same place: `GET /api/maps` and `MapLayers.Holds`, fetched when the menu opens, because
-saving a sketch is what makes the layer. The page's own tool is always offered, marked as current.
+saving a sketch is what makes the layer. A disabled entry is titled `MapLayers.Missing`: Configure's names what
+makes it, the world the Sketch tool's finish builds. The page's own tool is always offered, marked as current.
 Where the page has no map (the import on `/maps/new`) the word is plain text in the same box. The
 button is set in the crumb's own font, size, weight and line height with no vertical padding, so its text shares
 the crumb's baseline; its hover and focus are a shadow that paints around the text without moving it

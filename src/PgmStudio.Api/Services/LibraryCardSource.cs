@@ -19,7 +19,7 @@ public sealed class LibraryCardSource(ThemeStore styles, ThemeLibrary themes, Ro
             ("styles", [.. (await styles.ListStylesAsync(null, ct)).Select(row => ThemeLibraryMapping.CardOf(row, sprites))]),
             ("themes", [.. (await themes.ComposeAllAsync(ct)).Select(entry => ThemeLibraryMapping.CardOf(entry.Theme, sprites))]),
             ("biome-patterns", [.. (await styles.ListBiomesAsync(null, ct)).Select(row => BiomeLibraryMapping.CardOf(row.Params, sprites))]),
-            ("room-styles", [.. (await houses.ComposeAllAsync(ct)).Select(entry => RoomStylePreview.CardOf(entry.Style, sprites))]),
+            ("room-styles", [.. (await houses.ComposeAllAsync(ct)).Select(entry => RoomStylePreview.CardOf(entry.Style, sprites, footprint: entry.Row.Footprint))]),
             ("roof-styles", [.. (await parts.ComposeRoofsAsync(ct)).Select(entry => RoomStylePreview.CardOf(entry.Style, sprites, RoomParts.Roof))]),
             ("storey-styles", [.. (await parts.ComposeStoreysAsync(ct)).Select(entry => RoomStylePreview.CardOf(entry.Style, sprites, RoomParts.Wall))]),
             ("porch-styles", [.. (await parts.ComposePorchesAsync(ct)).Select(entry => RoomStylePreview.CardOf(entry.Style, sprites))]),

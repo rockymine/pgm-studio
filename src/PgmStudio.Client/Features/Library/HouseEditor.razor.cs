@@ -166,15 +166,11 @@ public partial class HouseEditor
 
     private void SetView(string picked) => view = picked;
 
-    /// <summary>The sample the preview is drawn on. It changes what the picture is taken over and nothing
-    /// about what would be saved.</summary>
-    private string footprint = HouseFootprints.Default;
+    /// <summary>The sample shell the house is drawn on — the editor's pictures and the row's card alike. It is
+    /// saved with the row and is never part of the building a map stamps.</summary>
+    private string Footprint => HouseFootprints.Canonical(draft?.Footprint);
 
-    private Task SetFootprint(string id)
-    {
-        footprint = id;
-        return Preview();
-    }
+    private Task SetFootprint(string id) => Knob(d => d with { Footprint = HouseFootprints.Canonical(id) });
 
 
     // ── the draft ──────────────────────────────────────────────────────────────────────────────────
@@ -489,7 +485,12 @@ public partial class HouseEditor
 
     // ── the doorway ────────────────────────────────────────────────────────────────────────────────
     private Task SetDoorWidth(double value)
-        => Knob(d => d with { DoorWidth = Math.Clamp((int)value, 2, 8) });
+        => Knob(d => d with { DoorWidth = Math.Clamp((int)value, 1, 8) });
+
+    /// <summary>States a width, starting from the two a house takes, or leaves the doorway's default.</summary>
+    private Task SetDoorWidthStated(bool stated) => stated == (draft?.DoorWidth is not null)
+        ? Task.CompletedTask
+        : Knob(d => d with { DoorWidth = stated ? 2 : null });
 
     /// <summary>Whether a lintel is stated. Without one the wall simply carries over the opening.</summary>
     private bool Headed => draft?.DoorHead is not null;
@@ -573,7 +574,7 @@ public partial class HouseEditor
         preview = draft is null
             ? null
             : await Library.DraftPreviewAsync<RoomStylePreviewDto>(
-                LibraryKinds.Houses, Saveable(draft), footprint, CutPart);
+                LibraryKinds.Houses, Saveable(draft), Footprint, CutPart);
         StateHasChanged();
     }
 

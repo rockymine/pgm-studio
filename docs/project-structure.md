@@ -102,18 +102,18 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | Project | Files | Lines | Internal shape |
 |---|---|---|---|
 | `Analysis` | 25 | 4,706 | `Playability/` 14 · `Region/` 3 · `Suggest/` 3 · `Footprint/` 2 · `Scan/` 2 · 1 at root |
-| `Api` | 173 | 24,014 | `Endpoints/` 85 · `Services/` 67 · `Access/` 14 · `Http/` 3 · 4 at root |
-| `Client` | 292 | 32,844 | `Features/` 153 (nested) · `Components/` 108 (nested) · `Pages/` 17 · `Models/` 6 · `Layout/` 5 · 3 at root |
-| `Contracts` | 35 | 3,910 | flat |
-| `Data` | 26 | 4,397 | `Map/` 7 · `Features/` 6 · `Theme/` 5 · `Access/` 3 · `Compose/` 2 · `Schema/` 2 · `Plan/` 1 |
-| `Domain` | 33 | 4,468 | flat |
-| `Export` | 24 | 5,428 | flat |
-| `Geom` | 69 | 8,420 | `Algorithms/` 21 · `Relief/` 13 · `Render/` 7 · 28 at root |
+| `Api` | 173 | 24,022 | `Endpoints/` 85 · `Services/` 67 · `Access/` 14 · `Http/` 3 · 4 at root |
+| `Client` | 292 | 32,903 | `Features/` 153 (nested) · `Components/` 108 (nested) · `Pages/` 17 · `Models/` 6 · `Layout/` 5 · 3 at root |
+| `Contracts` | 35 | 3,916 | flat |
+| `Data` | 26 | 4,400 | `Map/` 7 · `Features/` 6 · `Theme/` 5 · `Access/` 3 · `Compose/` 2 · `Schema/` 2 · `Plan/` 1 |
+| `Domain` | 33 | 4,475 | flat |
+| `Export` | 24 | 5,431 | flat |
+| `Geom` | 70 | 8,493 | `Algorithms/` 21 · `Relief/` 14 · `Render/` 7 · 28 at root |
 | `Import` | 4 | 498 | flat |
-| `Migrations` | 95 | 6,946 | `Migrations/` 94 · 1 at root |
-| `Minecraft` | 118 | 24,271 | `Render/` 22 · `Palette/` 18 · `Stamping/` 18 · `Dressing/` 14 · `Painting/` 14 · `Anvil/` 13 · `Houses/` 11 · `Views/` 5 · `Library/` 1 (nested) · `Suggest/` 1 · 1 at root |
+| `Migrations` | 97 | 7,162 | `Migrations/` 96 · 1 at root |
+| `Minecraft` | 118 | 24,304 | `Render/` 22 · `Palette/` 18 · `Stamping/` 18 · `Dressing/` 14 · `Painting/` 14 · `Anvil/` 13 · `Houses/` 11 · `Views/` 5 · `Library/` 1 (nested) · `Suggest/` 1 · 1 at root |
 | `Pgm` | 188 | 37,825 | `Authoring/` 43 · `Compose/` 39 (nested) · `Evaluate/` 24 (nested) · `Sketch/` 21 · `Editing/` 11 · `Derive/` 10 · `Plan/` 10 · `Shapes/` 10 · `Render/` 5 · `Detect/` 1 · 14 at root |
-| `Vocabulary` | 50 | 3,414 | flat |
+| `Vocabulary` | 50 | 3,415 | flat |
 <!-- /census -->
 
 **`Pgm` is two projects wearing one name**, and the table above is where that is visible: it is the largest

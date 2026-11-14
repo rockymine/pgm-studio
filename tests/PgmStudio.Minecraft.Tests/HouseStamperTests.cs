@@ -18,6 +18,8 @@ public sealed class HouseStamperTests
 {
     private const int FloorY = 64;
 
+    private const int OakDoorBlock = 64;
+
     private static VoxelWorld House(int width, int depth, HouseStyle? style = null)
     {
         var world = new VoxelWorld();
@@ -846,19 +848,42 @@ public sealed class HouseStamperTests
     }
 
     [Test]
-    public async Task The_doorway_is_two_wide_and_three_tall_however_it_is_asked_for()
+    public async Task A_one_wide_doorway_holds_a_door_and_an_unstated_one_is_two_wide()
     {
-        // A single-width opening is a gap in a wall, not a door — a room an objective is carried out of has to
-        // be walked through. Asking for less gets the floor, not the number asked for.
-        var world = House(11, 9, new HouseStyle { Doorway = new Doorway { Width = 1, Height = 1 } });
-
-        var open = new List<(int X, int Y)>();
+        // One wide is a door rather than a gap: an oak leaf stands in it where the style's door is not a leaf.
+        var single = House(11, 9, new HouseStyle { Doorway = new Doorway { Width = 1, Height = 1 } });
+        var leaves = new List<(int X, int Y)>();
+        var open = 0;
         for (var x = 1; x < 10; x++)
             for (var y = FloorY + 1; y <= FloorY + 4; y++)
-                if (world.GetBlock(x, y, 0).Id == Blocks.Air) open.Add((x, y));
+            {
+                var block = single.GetBlock(x, y, 0).Id;
+                if (block == OakDoorBlock) leaves.Add((x, y));
+                if (block == Blocks.Air) open++;
+            }
+        await Assert.That(leaves.Select(cell => cell.X).Distinct().Count()).IsEqualTo(1);
+        await Assert.That(leaves.Select(cell => cell.Y)).IsEquivalentTo(new[] { FloorY + 1, FloorY + 2 });
+        await Assert.That(open).IsEqualTo(0).Because("the leaf fills the opening and the wall stands over it");
 
-        await Assert.That(open.Select(cell => cell.X).Distinct().Count()).IsEqualTo(2);
-        await Assert.That(open.Select(cell => cell.Y).Distinct().Count()).IsEqualTo(3);
+        var unstated = House(11, 9, new HouseStyle { Doorway = new Doorway { Height = 3 } });
+        var gap = new List<(int X, int Y)>();
+        for (var x = 1; x < 10; x++)
+            for (var y = FloorY + 1; y <= FloorY + 4; y++)
+                if (unstated.GetBlock(x, y, 0).Id == Blocks.Air) gap.Add((x, y));
+        await Assert.That(gap.Select(cell => cell.X).Distinct().Count()).IsEqualTo(Doorway.DefaultWidth);
+        await Assert.That(gap.Select(cell => cell.Y).Distinct().Count()).IsEqualTo(3);
+    }
+
+    [Test]
+    public async Task A_frame_door_one_wide_holds_a_door_whatever_the_style_fills_it_with()
+    {
+        var world = new VoxelWorld();
+        var style = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.StainedGlassPane, Height = 3 } };
+        HouseStamper.Stamp(world, 0, 0, 11, 9, FloorY, style, doors: [new RoomDoor(RoomEdge.NegZ, 5, 1)]);
+
+        await Assert.That(world.GetBlock(5, FloorY + 1, 0).Id).IsEqualTo(OakDoorBlock);
+        await Assert.That(world.GetBlock(5, FloorY + 2, 0).Id).IsEqualTo(OakDoorBlock);
+        await Assert.That(world.GetBlock(5, FloorY + 3, 0).Id).IsNotEqualTo(Blocks.Air);
     }
 
     [Test]
@@ -1084,9 +1109,10 @@ public sealed class HouseStamperTests
     public async Task A_face_too_narrow_for_a_two_wide_door_narrows_the_door_rather_than_the_margin()
     {
         // Five across leaves one cell once both margins are kept, so the opening narrows to it. The door is
-        // what gives way, never the block of wall carrying the post — a narrow shed says it is narrow.
+        // what gives way, never the block of wall carrying the post — a narrow shed says it is narrow, and a
+        // one-wide opening is a door.
         var world = House(5, 5, new HouseStyle { Doorway = new Doorway { Width = 2 } });
-        var open = Enumerable.Range(0, 5).Where(x => world.GetBlock(x, FloorY + 1, 0).Id == Blocks.Air).ToList();
+        var open = Enumerable.Range(0, 5).Where(x => world.GetBlock(x, FloorY + 1, 0).Id == OakDoorBlock).ToList();
 
         await Assert.That(open).IsEquivalentTo(new[] { 2 });
     }
@@ -1102,7 +1128,7 @@ public sealed class HouseStamperTests
         {
             var world = House(width, 5, new HouseStyle { Doorway = new Doorway { Width = 2 } });
             var open = Enumerable.Range(0, width)
-                .Where(x => world.GetBlock(x, FloorY + 1, 0).Id == Blocks.Air).ToList();
+                .Where(x => world.GetBlock(x, FloorY + 1, 0).Id is Blocks.Air or OakDoorBlock).ToList();
 
             await Assert.That(open).IsNotEmpty();
             await Assert.That(open.Min()).IsGreaterThanOrEqualTo(2);

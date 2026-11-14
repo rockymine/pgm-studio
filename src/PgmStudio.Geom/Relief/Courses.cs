@@ -11,10 +11,9 @@ internal static class Courses
 
     /// <summary>
     /// A river along a line, flowing from its first point to its last. The bed is the ground the line follows
-    /// <c>depth</c> down, never climbing, held level in reaches and stepping down in falls where the ground drops
-    /// two blocks or more after a reach of ten, and sooner wherever holding would stand its water above the lowest
-    /// ground across its channel. Water already standing where it runs is ground at its surface, so a river leaving a
-    /// lake leaves at the lake's level. The channel is the mask's width; its banks climb from the water's surface by
+    /// <c>depth</c> down, in the <see cref="Reaches"/> water holds, and one level the whole way on a line that
+    /// <see cref="MaskArea.RunsBothWays"/>. Water already standing where it runs is ground at its surface, so a
+    /// river leaving a lake leaves at the lake's level. The channel is the mask's width; its banks climb from the water's surface by
     /// the river's depth over <c>bank</c> blocks, and where the ground stands higher than that they climb on at a
     /// block a block until they meet it, so a river below its banks runs in a valley rather than a slot. <c>water</c> blocks of water
     /// stand in it, and the ring of columns beside the water is raised to the surface where it is lower, so no water
@@ -38,28 +37,7 @@ internal static class Courses
             var standing = ground.Standing?[i] is { } still && still > ground.Heights[i] ? still : ground.Heights[i];
             lowest[stations[i]] = Math.Min(lowest[stations[i]], standing);
         }
-        var low = new double[lowest.Length];
-        for (var j = 0; j < low.Length; j++)
-        {
-            var near = Math.Min(lowest[j], Math.Min(lowest[Math.Max(j - 1, 0)], lowest[Math.Min(j + 1, low.Length - 1)]));
-            low[j] = double.IsFinite(near) ? near : height[j];
-        }
-
-        var bed = new double[low.Length];
-        var level = low[0] - depth;
-        double running = level, since = 0;
-        for (var j = 0; j < low.Length; j++)
-        {
-            running = Math.Min(running, low[j] - depth);
-            var falls = running <= level - ModifierDefaults.RiverFall && since >= ModifierDefaults.RiverReach;
-            if (j > 0 && (falls || Math.Floor(level) + water > low[j]))
-            {
-                level = running;
-                since = 0;
-            }
-            bed[j] = Math.Floor(level);
-            if (j > 0) since += arc[j] - arc[j - 1];
-        }
+        var bed = Reaches.Floors(arc, Reaches.Low(lowest, height), depth, water, view.Area.RunsBothWays);
 
         var shelving = Math.Min(ModifierDefaults.WaterBankSlope, Math.Max(depth - water, 1) / Math.Max(bank, 1));
         var count = change.Length;

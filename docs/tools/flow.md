@@ -109,7 +109,8 @@ them is `PATCH /api/map/{slug}/metadata`'s, where a stated empty list means exac
 two calls does not matter**, on a first build or any other.
 
 **Layout → world.** `POST /api/map/{slug}/sketch/finish` rasterizes the layout into world geometry and moves
-the map to the configure stage; the sketch tool's **Download** runs it the first time a map is downloaded. This is the only stage transition the studio performs at runtime.
+the map to the configure stage; the sketch tool runs it from Review's last step, *Build & open Configure*,
+and from **Download** the first time a map is downloaded. This is the only stage transition the studio performs at runtime.
 
 **Intent → document → `map.xml`.** `PUT /api/map/{slug}/intent` stores the intent and projects it into the PGM
 document — teams, kits, regions, filters, apply-rules, spawns — in one idempotent pass.

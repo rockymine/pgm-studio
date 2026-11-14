@@ -84,8 +84,8 @@ public static class RoomStyleScope
 /// from a board's finish: a bound style, that kind's bedrock box, or <b>null</b> for open ground.
 ///
 /// <para>It travels rather than being re-asked because a room with no building over it takes its whole
-/// region, while one with a shell is inset by a wall (<see cref="RoomFrames"/>) and sizes a different default
-/// rectangle; the frame resolvers take it and ask each room's house over it (<see cref="RoomStyleScope.StyleOf"/>).
+/// region, while one with a shell is inset by a wall (<see cref="RoomFrames"/>), sizes a different default
+/// rectangle and cuts the door its doorway states (<c>WX7</c>); the frame resolvers take it and ask each room's house over it (<see cref="RoomStyleScope.StyleOf"/>).
 /// A caller that guesses names a different room from the one the export stamps.</para></summary>
 public readonly record struct RoomShells(HouseStyle? Wool, HouseStyle? Spawn)
 {

@@ -3787,6 +3787,15 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   resolve answers them for the stampers, the checks and `GET …/intent/pieces/{id}/interior` (`RoomFrames.Interior`),
   an image states the images of the cells (`RoomHouse.Mapped`), `WX15`–`WX17` refuse what does not fit, and Layout
   drags each by whole blocks. `docs/world-export/structures.md`, `docs/tools/sketch.md`.
+- **A room's door is as wide as its house states (`WE152`).** `doorway.width` reaches the frame through the style
+  the room is stamped in (`RoomFrames.DoorWidth`), cut at `clamp(stated, 2, interior − 2)` and dropped by one to
+  centre, the wall's own `WX7` width where it states none; an opening one block wide holds a wooden leaf, an oak one
+  where the style's door is not a leaf. A stored width of 2 is the default and `M0095` made every one `null`, in
+  `room_style` and in every snapshot. `docs/world-export/structures.md`, `docs/tools/library.md`.
+- **A house card is drawn on the footprint its editor chose (`TL45`).** The house editor's dock sets the row's
+  `footprint` (`room_style.footprint`, `M0096`, `8x8` for every stored row), saved with the house and never part
+  of what a map stamps, and `RoomStylePreview.CardOf` draws the card on that shell under a name of its own.
+  `docs/tools/library.md`.
 - **Every seeded house stamps the same columns in a room's mirror and turned images (`WE162`).** A wall-run
   pattern's arc is counted from the door wall's left hand (`BuildingPlan.HandedArc`), so a stilt storey's air gaps
   open on matching columns, and a saltbox fronting an end wall turns its steep side to the left hand; the orbit
@@ -9270,6 +9279,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   its sentence and *Open Configure*. Draw's *Done* goes on to Terraform, Ctrl+S saves, and the Configuring
   list's "just finished" banner is gone with the redirect that fed it. Plan, Configure's Review and the sketch
   save an export through one `MapDownload`.
+- **A hand-drawn board has a way into Configure (`TS237`).** Review's last step is the finish, *Build & open
+  Configure*: it saves, builds the world where the map has none through the build Download makes
+  (`sketch/finish`), and opens Configure. The stage switcher's disabled Configure entry, and the Maps table's
+  empty cell, are titled with what makes it (`MapLayers.Missing`).
 - **One landform is painted one theme, not a theme per step (`WE47`, `SK27`).** A plan component spanning
   several surfaces compiles to one shape per surface — a stepped island becomes stacked plateaus, each
   `{component}-{surface}` and each addressable — so a theme scoped per plateau paints one hillside as two or
@@ -10911,8 +10924,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **A Follow relief scope reaches the document (TS159).** The bridge validates relief scopes and height modes
   against one JS word module (`shared/relief-words.js`), pinned to `ReliefScopes`/`HeightModes` by a JS test, so
   the inspector's *Follow* is stored rather than dropped back to *Inherit*.
-- **The symmetry setup follows an undo (TS161).** The bridge fires `OnSetup` on load, mode and centre changes and
-  every undo/redo restore, and the host reads the setup only from it, so Info shows the mode the board has.
+- **The symmetry setup is announced, not held twice (TS161).** The bridge fires `OnSetup` on load and on mode and
+  centre changes, and the host reads the setup only from it, so Info shows the mode the board has.
+- **Undo takes back only what the phase in view edited (TS162).** Draw, Terraform, Palette and Decoration each keep
+  their own stack; a step is the slices of the layout it changed (`bridge/sketch-undo.js`), and taking it back
+  restores its phase's slices and another phase's only where nothing has changed it since. Undo is greyed in a
+  phase with no step of its own, and Identity takes none.
 
 - **Each sketch phase owns its state (TS160).** A bridge-sourced phase relays one snapshot (Relief, Dressing, and
   Palette's `SketchThemes`, which now carries the room shells and biome and refreshes on every undo); a server
@@ -11003,6 +11020,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   lays it under that modifier's water and along its beach instead of the default bank; `SketchTerraform.Run` answers
   each wet cell as a `WetColumn` carrying its surface and the modifier whose water it is, and the Terraform
   inspector's Bed row picks a block or pattern.
+- **Water steps down in reaches, and is a canal on the symmetry's own line (`S46`).** A River and a fluid channel's
+  derived line hold one law, `Reaches.Floors`: flowing from the first point to the last, never climbing, held level
+  and stepping down in falls, never over the lowest ground beside it; a line the symmetry carries onto itself run
+  backwards (`Symmetry.Reverses`, `MaskArea.RunsBothWays`) holds one level the whole way, and a channel's fall into
+  its own lower reach is not `DR-DRY` (`docs/world-export/decoration.md` §7.1).
 - **Water falls off the edge (`WE173`).** A wet column beside a cell with no ground pours flowing water down the
   face past it to the lowest floor the board built (`Decorator.PourOffEdges`), so a river run to an island's edge
   ends in a fall rather than a wall of still water.

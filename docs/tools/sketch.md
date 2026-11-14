@@ -51,7 +51,7 @@ glyphs and the open phase's dots, with each name on hover; it opens unfolded, an
 browser. At the right the bar carries the save state, the *View only* tag and the Problems button, then one group of icon buttons
 — **Undo**, **Redo**, **Download** — a divider, and Back and Next, which is the only filled button and names where
 it goes: the step after this one, or the phase after the last step (*Next: Ground*, *Next: Terraform*); on
-Review's last step it is closed, and History draws neither Back nor Next. A visitor
+Review's last step it is the finish, *Build & open Configure*, and History draws neither Back nor Next. A visitor
 who may not change the map is drawn no Undo or Redo, and one who may not have the studio build it no Download.
 Below 960px Back, Undo, Redo and Next are a foot pinned to the window's bottom; below 600px the rail is
 not drawn and the foot's middle is a button naming the phase and step, which opens a sheet drawing the rail. The number of
@@ -59,7 +59,7 @@ groups on the board is not in the bar: the sidebar's *Shapes* list, each group w
 continuously — every change schedules a debounced write 800 ms later, and Ctrl+S flushes it at
 once. The save state reads *Saving…* while an edit waits for that write and *Saved* once every edit has landed;
 in Identity it is the identity's own save, and a refused save leaves it to the Problems button's *Save blocked*. The finished map leaves by **Download** (an icon-only button titled *Download map*, which pulses while it builds) on every phase: it flushes the layout, builds
-the world the first time (the finish below, `POST …/sketch/finish`, which rasterizes the layout and moves the
+the world the first time (the finish, `POST …/sketch/finish`, which rasterizes the layout and moves the
 map to `stage=configure`), and saves the export — the world ZIP with its `map.xml`. A board built from a plan
 carries the plan's game settings, so its export needs nothing from Configure. What stops the map, and what the
 build left out of it, sits behind **one button** in the bar — *Download blocked* or *Save blocked* with the number
@@ -881,17 +881,31 @@ the ground and owns no objective, so they arrive from the map's intent as positi
 name, no handle, nothing to select. An author refining the ground can see what it has to carry; Configure is
 where one is edited.
 
-**Undo is one stack for the whole document, sixty steps deep.** `Ctrl`/`⌘`+`Z` steps back and
-`Ctrl`/`⌘`+`Shift`+`Z` (or `Ctrl`+`Y`) steps forward. A step is the whole layout — the value the canvas can be
-loaded back into — rather than a record of which edit happened, so a press that changes nothing costs no step
-and a drag that fires on every frame between the press and the release costs exactly one. A step is the
-document and not the view: the camera and the layer being drawn on are where the author is, so both survive
-it. The symmetry setup is part of the document, so a step back restores it too: the canvas announces
-`OnSetup(mirrorMode, cx, cz)` on every load, edit and step, and the Setup controls and Identity read nothing else.
+**Undo takes back only what the phase in view edited.** Each phase that edits the layout keeps its own stack of
+steps, sixty deep, and the editor bar's Undo and Redo — and `Ctrl`/`⌘`+`Z`, `Ctrl`/`⌘`+`Shift`+`Z` (or `Ctrl`+`Y`)
+— walk the open phase's stack and no other: a shape drawn in Draw is not taken back from Palette, where Undo is
+greyed until Palette has a step of its own. The host tells the bridge the phase on every switch (`setPhase`).
+
+**The layout is cut into slices, each owned by the phase that edits it** (`bridge/sketch-undo.js`). Draw owns the
+layers — every shape and group as drawn, the play pieces Layout places and the room ground they bring — and the
+intent a piece write changes. Palette owns the finish (the registry, where each theme came from, the map default,
+the room shells, the biome and the paint rules) and each shape's `theme`. Terraform owns the modifier stack and
+each shape's `relief_scope`, which its Shapes list sets. Decoration owns the dressing. Identity takes no undo: it
+holds words and simple choices, the symmetry among them, so a setup edit is no step and no step restores the
+setup. Review and History edit nothing in the layout and keep no stack.
+
+**A step is the slices it changed, as they stood before and after it.** A press that changes nothing costs no
+step, and a drag that fires on every frame between the press and the release costs exactly one. Taking a step
+back restores its own phase's slices, and another phase's slice only where that slice still holds what the step
+left: a shape deleted in Draw and taken back comes back with the theme it carried, while a relief scope set in
+the Draw inspector and changed since in Terraform keeps Terraform's word. A theme is put back on a shape only
+where the registry still holds it. A step is the document and not the view: the camera and the layer being drawn
+on are where the author is, so both survive it. The canvas announces `OnSetup(mirrorMode, cx, cz)` on every load
+and edit, and the Setup controls and Identity read nothing else.
 
 **A play piece is a step too, though it is not in the layout.** A piece is the intent's, written on the server
 through `…/intent/pieces`, so placing, moving, resizing, turning, deleting or setting one keeps the intent's text
-beside the layout as one step, and stepping over it writes that text back with `PUT /api/map/{slug}/intent` before
+beside the layers as one of Draw's steps, and stepping over it writes that text back with `PUT /api/map/{slug}/intent` before
 the layout is restored. The room ground a placement brings is part of the placement's step rather than one of its
 own. A step the studio refuses is not taken, and the note beside the rail says why. Whatever writes the intent takes
 a turn: a piece write waits for the one before it to be kept, so two pieces placed close together are two steps,
@@ -930,8 +944,8 @@ table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+
 | `[` / `]` | Take the previous / next theme in hand — answers only in Palette | Palette |
 | `Shift`+click | Paint every shape the group holds, with a theme in hand | Palette |
 | `Alt`+click | Lift a shape's theme into the hand, with a theme in hand | Palette |
-| `Ctrl`/`⌘`+`Z` | Undo | Everywhere |
-| `Ctrl`/`⌘`+`Shift`+`Z` (or `Ctrl`+`Y`) | Redo | Everywhere |
+| `Ctrl`/`⌘`+`Z` | Undo the open phase's last step | Everywhere |
+| `Ctrl`/`⌘`+`Shift`+`Z` (or `Ctrl`+`Y`) | Redo the open phase's step | Everywhere |
 | `Ctrl`/`⌘`+`S` | Save the sketch | Everywhere |
 
 ### Identity
@@ -1347,7 +1361,7 @@ centre and a radius that the mask supplies as its centroid and `scale`:
 | `spire` | Spire | raises it to `base + (top − base) × (1 − e)^(1 / taper)`, `base` the ground at the mask's centroid, `e` roughened by `jag`; only lifts | `top` (absent: the median ground inside + 20), `taper` 1.6, `jag` 0.15 |
 | `scarp` | Scarp | on a `line`: lifts the ground on the `side` hand (1 right, −1 left, walking along the line) by `height`, rising over `cliff` blocks on the line, and eases the other hand up by `apron` of `height` falling to nothing over `talus` blocks; the lift ends at the mask's edge | `height` 6, `side` 1, `cliff` 2, `talus` 5, `apron` 0.3 |
 | `canyon` | Canyon | on a `line`: cuts a floor `bed` of the half width across, `depth` under the ground the line follows, its walls climbing to the rim as the distance across to the power `wall`, in steps of `ledges` blocks when it states any; only cuts | `depth` 12, `bed` 0.35, `wall` 2.5, `ledges` 0 |
-| `river` | River | on a `line`: cuts a bed `depth` under the lowest ground across its channel that never climbs, held level in reaches and stepping down in falls (two blocks or more, after ten of reach, and sooner wherever holding would stand its water above its banks), water an earlier modifier left being ground at its surface so a river leaving a lake leaves at its level; banks climb from the water by the river's depth over `bank` blocks and on at a block a block to higher ground, so a river below its banks runs in a valley rather than a slot; **makes water** | `depth` 2, `water` 1, `bank` 4, `bed_material` (absent: the default bank) |
+| `river` | River | on a `line`: cuts a bed `depth` under the lowest ground across its channel that never climbs, held level in reaches and stepping down in falls (two blocks or more, after ten of reach, and sooner wherever holding would stand its water above its banks), water an earlier modifier left being ground at its surface so a river leaving a lake leaves at its level; on a line the symmetry runs back onto itself the bed holds one level the whole way, a canal; banks climb from the water by the river's depth over `bank` blocks and on at a block a block to higher ground, so a river below its banks runs in a valley rather than a slot; **makes water** | `depth` 2, `water` 1, `bank` 4, `bed_material` (absent: the default bank) |
 | `lake` | Lake | in an area: cuts a bed `depth` under the surface in the middle and a block under it at the rim, holds lower ground within `shore` blocks outside at the surface, easing back to the ground, and brings higher ground down to the water at a block a block, so a lake on a slope has a shore rather than a wall; **makes water** | `level` (absent: one under the ground a tenth of the rim stands at or below, so one cleft in the rim does not drain it), `depth` 3, `shore` 3, `bed_material` (absent: the default bank) |
 | `road` | Road | on a `line`: grades the ground along it to climb or fall no more than `grade` blocks a block, its ends holding the ground they stand on, level across the mask's width with shoulders easing into the ground over `shoulder` blocks | `grade` 0.25, `shoulder` 4 |
 | `gullies` | Gullies | in an area: cuts `count` grooves running outward from its centroid between a quarter of `scale` and `scale`, each up to `depth` deep, bent by `wander` and narrowed by `sharpness`; only cuts | `count` 8, `depth` 3, `wander` 0.9, `sharpness` 3 |
@@ -1384,7 +1398,12 @@ half its `width`, so `e` is 1 at `width / 2` and `scale` is `width / 2`, and the
 With `mask.mirror` (the default) each area also stands at its images under the map's symmetry, through
 `PgmStudio.Geom.Symmetry`; an image that falls on an area the mask already holds, as a centred ellipse does under a
 half turn, counts once. A Scarp's image lifts the mirror image of the ground its original lifts, so a line lying
-on a mirror axis is two areas, one lifting each hand. **An image carries the same noise and the same pieces as the
+on a mirror axis is two areas, one lifting each hand. A line some image carries onto itself run backwards — one
+crossing a mirror, or through the centre of a half turn, its points drawn as their own images
+(`Symmetry.Reverses`) — **runs both ways** (`MaskArea.RunsBothWays`), and a River on it is a canal: one level
+for the whole run, under the lowest ground anywhere along it, so the bed reads the same from either end and a
+river down the middle of the board is as fair as the map. A River lying *along* a mirror is its own image run
+the same way, and falls. **An image carries the same noise and the same pieces as the
 area it is an image of**: every operation that reads noise or scatters by seed reads it at the point of the drawn
 area the column is the image of (`MaskArea.ToDrawn`), and a `board` under a symmetry reads it at the member of
 each column's orbit that stands for all of it, so a Roughness, a Lumps or a Shatter is as fair as the map. Where
@@ -1704,7 +1723,10 @@ so the ground draws the shore and a ring drawn loose round a dug hollow floods e
 states its `level`, and one that does not is refused `DR-DOC`; its beach follows the water rather than the
 ring. It fills round whatever stands in it and never cuts under it,
 so a ship moored in a harbour floats rather than sitting in a dry hole. Absent a `level` the line is
-derived — the lowest surface the channel crosses — and the prop only ever carves existing terrain: the cut
+derived — a pool's the lowest surface it crosses, a channel's the reaches a River's water holds
+(`Reaches.Floors`), flowing from its first point to its last, never climbing and never standing over the lowest
+surface beside it, one line the whole way where the symmetry runs the channel back onto itself — and the prop
+only ever carves existing terrain: the cut
 stops at the surface it crosses and never fills what was already air. **`level` states the world Y instead**,
 and then the fill reaches it whatever the column beneath is doing, which is what fills a basin dug out in the
 shapes: a lake, a harbour, the water a ship floats on has no surface up at the line for a derived one to find.
@@ -2001,8 +2023,15 @@ without them answers the list with the reason, and the Notes step says so instea
 **Review is two steps, Cameras and then Notes, and it opens on Cameras.** Cameras is the canvas, where the views
 are placed, kept, removed and the map's picture is chosen; Notes is the gallery of what those cameras see, with
 the author's notes beside it. On Cameras, **Back** goes to Decoration and **Next** to Notes; on Notes, **Back** goes
-to Cameras and **Next** is closed, since Notes is the last step of the work, and the rail reaches either step directly. A link to a note — `?note={id}`
+to Cameras and **Next** is the finish, since Notes is the last step of the work, and the rail reaches either step directly. A link to a note — `?note={id}`
 on the route, or a thread opened from History — lands on Notes, on that thread.
+
+**The finish is how a drawn board reaches Configure.** Notes' **Next** reads *Build & open Configure*: it
+flushes the layout, builds the world where the map has none — the same `POST …/sketch/finish` Download runs the
+first time — and opens the map in Configure, which the stage switcher offers only once the map holds a world.
+Until then the switcher's Configure entry is disabled and titled with what makes it. The button reads
+*Building…* while the build runs, needs an account on the whitelist as Download does, and a refused build stays
+on Notes and opens the Problems list with the build's refusal.
 
 **Entering it saves the board's unsaved edits first**, because every picture is of the board as stored. A board that has
 changed builds a new world, and every picture is drawn again the first time it is asked for; a board that has

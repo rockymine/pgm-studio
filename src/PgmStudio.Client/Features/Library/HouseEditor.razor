@@ -19,10 +19,10 @@
   </Views>
   <Dock>
     @* A style states nothing about the rectangle it is stamped over, and a ridge follows that rectangle, so
-       the proportion the sample is judged at is asked here rather than set on the style. *@
+       the proportion the house is judged at is the library row's: its card is drawn on the shell picked here. *@
     @foreach (var (id, width, depth) in HouseFootprints.All)
     {
-      <DockChoice Active="@(id == footprint)" @key="id"
+      <DockChoice Active="@(id == Footprint)" @key="id"
                   OnClick="() => SetFootprint(id)">@width × @depth</DockChoice>
     }
   </Dock>
@@ -328,9 +328,18 @@
         <Field Label="Door height" Unit="blocks">
           <NumberField Slim Min="1" Value="draft.DoorHeight" ValueChanged="SetDoorHeight" />
         </Field>
-        <Field Label="Door width" Unit="blocks" Note="At least 2.">
-          <NumberField Slim Min="2" Max="8" Value="draft.DoorWidth" ValueChanged="SetDoorWidth" />
+        <Field Label="Door width" Note="A room's door follows its wall, a house's is 2 wide. 1 wide holds a wooden door.">
+          <div class="chip-row">
+            <Chip Active="@(draft.DoorWidth is null)" OnClick="() => SetDoorWidthStated(false)">Default</Chip>
+            <Chip Active="@(draft.DoorWidth is not null)" OnClick="() => SetDoorWidthStated(true)">Stated</Chip>
+          </div>
         </Field>
+        @if (draft.DoorWidth is { } doorWidth)
+        {
+          <Field Label="Width" Unit="blocks">
+            <NumberField Slim Min="1" Max="8" Value="doorWidth" ValueChanged="SetDoorWidth" />
+          </Field>
+        }
       </Section>
 
       <Section Title="Door head" Term="door head">

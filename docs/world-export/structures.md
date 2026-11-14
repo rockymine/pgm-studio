@@ -250,15 +250,26 @@ because there is no smaller square centred on a corner than the four blocks shar
   slots and the iron cube all read. A piece that meets nothing at all opens on the wall its facing leans
   into, which is the one door it can still be given.
 
-- **WX7** *Door width follows the door wall — one rule for both kinds.* An **odd** interior wall
-  centres an odd **3-wide** door — never 1-wide, and wider odd doors (5) are a later decision,
-  capped at 3 for now. An **even** wall takes the common **4-wide** door once the interior is at
-  least **6 across**, narrowing to **2** at the 4-across minimum. There is no per-kind canonical
-  width: the wool cage's shipped 2-wide doors widen to 4 wherever the room affords it. The
-  invariant behind the numbers: the door is always at least one block narrower than the interior on
-  each side (width ≤ interior − 2), so the door-wall corner cells — where a spawn cube seats
-  monuments — are never exposed to the outside. Door *height* and room height are the style's, not
-  the frame's — §7.
+- **WX7** *Door width follows the door wall — one rule for both kinds — unless the house states one.* An
+  **odd** interior wall centres an odd **3-wide** door. An **even** wall takes the common **4-wide** door once
+  the interior is at least **6 across**, narrowing to **2** at the 4-across minimum. There is no per-kind
+  canonical width: the wool cage's shipped doors widen to 4 wherever the room affords it. The invariant behind
+  the numbers: the door is always at least one block narrower than the interior on each side (width ≤
+  interior − 2), so the door-wall corner cells — where a spawn cube seats monuments — are never exposed to the
+  outside.
+
+  **A width the room's house states is honoured, under the same invariant.** `doorway.width` reaches the frame
+  through the style the room is stamped in (`RoomShells`, then `RoomStyleScope.StyleOf` per room), because the
+  resolver is in `Domain` and cannot see a `HouseStyle`. It is cut at `clamp(stated, 2, interior − 2)`, dropped
+  by one where its parity differs from the wall's so the door stays centred: a house stating 2 gets a 2-wide door
+  on an even wall and a 1-wide one on an odd wall, and a stated 1 is 1 on an odd wall and 2 on an even one, where
+  a single block cannot centre. An unstated width — `null`, which is what every stored 2 became (`M0095`) — is
+  the wall's own above. The derived chests and monument seats read the cut door, so a narrower door frees the
+  door-row seats beside it; the iron cube is placed against the footprint and never the door (WX8), so a stated
+  width moves neither. Door *height* and room height are the style's, not the frame's — §7.
+
+  **A door one block wide is a door, not a gap.** The opening holds a wooden leaf — the style's own where its
+  door is one, an oak door otherwise, on a spawn as on a cage — two courses tall under the wall (§7.5).
 
 ## 5. Iron and placeability
 
@@ -913,7 +924,8 @@ the centre in every image of the building, mirrored or turned. The courses above
 are left as the wall laid them, so a three-course doorway with a head reads as a door under a beam rather than
 a door with a gap over it, and the doorway's clear height is two. One row read by both sides is what prevents that; `Pgm` and `Minecraft` are siblings, so `Domain` is
 the lowest place both reach. A spawn's door is pinned to air whatever its style says: a player spawning in has
-to walk straight out, and the spawn protection rule already keeps enemies from walking in.
+to walk straight out, and the spawn protection rule already keeps enemies from walking in. A spawn door one
+block wide is the exception the next rule makes: it holds an oak leaf, which a player opens by hand.
 
 Windows are deliberately **not** on that list, and the distinction is worth stating. A door is the way an
 attacker gets in and so is governed by a filter; a window is a hole a player can see through and, in a
@@ -922,10 +934,16 @@ lattice's case, shoot through, but it is never the entrance the block rule is ab
 **Every opening keeps a block of wall clear of each corner, and the opening is what gives way.** Clearing the
 corner cell is not enough: an opening starting in the very next cell still meets the corner, and one hard
 against it reads as a wall that failed rather than as a way through. The margin costs four blocks of the face,
-so a five-wide face has one cell left and carries a **centred single opening** rather than a two-wide one
+so a five-wide face has one cell left and carries a **centred single door** rather than a two-wide opening
 against the turn — a building too narrow for the door it asked for says so by having a narrow door. Only a
 face with no seat at all falls back to the run between the corners, because a building nobody can walk into is
 worse than one with a tight door. It is the same margin §7.4 keeps for a window, and it is the same number.
+
+**An opening one block wide holds a door leaf.** A single-width hole in a wall reads as a gap rather than as a
+way in, so one block wide is a literal door: the style's own wooden leaf where its `door` is one, an oak leaf
+where it is air, cobweb or glass. The leaf takes the opening's two lowest courses and the wall stands over it, as
+any wooden door does. A doorway's `width` states how wide it is asked for, `null` for the default — 2 on a
+house, the wall's own on a room (WX7) — and a width of 1 is the way to ask for a single door.
 
 **It does not depend on a post standing there.** A post makes the reason easy to see — a column wants a block
 of wall beside it before anything is taken out — but the rule is about the *corner*, which is where two walls

@@ -32,6 +32,14 @@ public sealed record DressingSymmetry(string? Mode = null, double CenterX = 0, d
     /// <summary>The <paramref name="k"/>-th image of a cell, as a cell.</summary>
     public (int X, int Z) ImageCell(int x, int z, int k) => Symmetry.Cell(x, z, Mode, CenterX, CenterZ, k);
 
+    /// <summary>Whether some image of the orbit carries an open path onto itself run the other way
+    /// (<see cref="Symmetry.Reverses"/>).</summary>
+    public bool RunsBack(IReadOnlyList<double[]> path)
+    {
+        (double X, double Z)[] points = [.. path.Select(point => (point[0], point[1]))];
+        return Mode is { } mode && Symmetry.OrbitAxes(mode).Any(axis => Symmetry.Reverses(points, axis, CenterX, CenterZ));
+    }
+
     /// <summary>The <paramref name="k"/>-th image of an inclusive rectangle of cells — a wing's own rectangle,
     /// and the transform a footprint takes rather than the one an outline takes.</summary>
     public (int MinX, int MinZ, int MaxX, int MaxZ) ImageCellRect(int minX, int minZ, int maxX, int maxZ, int k)

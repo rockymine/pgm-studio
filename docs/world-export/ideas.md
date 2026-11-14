@@ -85,5 +85,5 @@ why `CLAUDE.md` retires a prefix without renaming the entries already carrying i
   does not grow (its lily pads float on open water, §3) — on a water fill only, since a lava bed grows none; and
   **ponds**, an organic basin (the §5 boulder blob read concave) scattered onto low ground and joined to channels
   into one watershed. On ground with relief a fluid routes on a depression-filled surface with its bed forced
-  non-increasing downstream and one level per pool (§7.1, `S46`), and the ponds are then the same mechanism, not a
+  non-increasing downstream and one level per pool (§7.1), and the ponds are then the same mechanism, not a
   second one.

@@ -38,6 +38,11 @@ public sealed class MaskArea
     /// line, one for a board.</summary>
     public double Scale { get; }
 
+    /// <summary>Whether the symmetry the mask is fanned by carries this line onto itself run the other way
+    /// (<see cref="Symmetry.Reverses"/>), its first point landing on its last: what flows along it falls toward
+    /// both its ends at once, so a course down it holds one level.</summary>
+    public bool RunsBothWays { get; private init; }
+
     private MaskArea(MaskShape shape, double scale) { Shape = shape; Scale = scale; Drawn = this; }
 
     private MaskArea(double centreX, double centreZ, double radiusX, double radiusZ,
@@ -202,7 +207,7 @@ public sealed class MaskArea
             }
         }
         curve.Add(_points[^1]);
-        var smoothed = new MaskArea([.. curve], Scale, _flipped);
+        var smoothed = new MaskArea([.. curve], Scale, _flipped) { RunsBothWays = RunsBothWays };
         return _axis is null ? smoothed : smoothed.ImageOf(Drawn, _axis, _aboutX, _aboutZ);
     }
 
@@ -302,7 +307,8 @@ public sealed class MaskArea
 
     /// <summary>The areas and each of their images under every axis, in order, without any outline twice: an
     /// area standing on the symmetry, or an image the author also drew, would otherwise count double wherever
-    /// areas add or melt.</summary>
+    /// areas add or melt. A line some axis carries onto itself run backwards stands, with its images, as
+    /// <see cref="RunsBothWays"/>.</summary>
     public static List<MaskArea> Fanned(IEnumerable<MaskArea> areas, IReadOnlyList<string> axes, double centreX, double centreZ)
     {
         var fanned = new List<MaskArea>();
@@ -313,14 +319,25 @@ public sealed class MaskArea
                 if (!fanned.Any(area.SameOutline)) fanned.Add(axes.Count > 0 ? FoldedBoard(axes, centreX, centreZ) : area);
                 continue;
             }
-            if (!fanned.Any(area.SameOutline)) fanned.Add(area);
+            var bothWays = area.Shape == MaskShape.Line
+                           && axes.Any(axis => Symmetry.Reverses(area._points, axis, centreX, centreZ));
+            var drawn = bothWays ? area.BothWays() : area;
+            if (!fanned.Any(drawn.SameOutline)) fanned.Add(drawn);
             foreach (var axis in axes)
             {
                 var image = area.Image(axis, centreX, centreZ);
+                if (bothWays) image = image.BothWays();
                 if (!fanned.Any(image.SameOutline)) fanned.Add(image);
             }
         }
         return fanned;
+    }
+
+    // This line marked as running both ways, standing where it stands and an image of what this one is an image of.
+    private MaskArea BothWays()
+    {
+        var copy = new MaskArea(_points, Scale, _flipped) { RunsBothWays = true };
+        return _axis is null ? copy : copy.ImageOf(Drawn, _axis, _aboutX, _aboutZ);
     }
 
     /// <summary>Whether two areas measure every point the same way. An ellipse is its centre and the quadratic

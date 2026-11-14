@@ -1,7 +1,6 @@
 // The sketch's symmetry setup, as the host is told it. The host holds no copy of the setup of its own: the
 // bridge announces `OnSetup(mirrorMode, cx, cz)` whenever the document's setup changes, so Info and the Setup
-// controls cannot show a mode the document no longer has — which is what an undo of `setMode` would otherwise
-// leave behind.
+// controls cannot show a mode the document no longer has.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mountSketchBridge } from "./_sketch-bridge-stub.js";
@@ -22,16 +21,14 @@ test("an edit of the mode or the centre is announced", async () => {
   assert.deepEqual(lastSetup(board), ["rot_90", 12, 6]);
 });
 
-test("undoing a setup edit announces the setup the step took back to", async () => {
+test("a setup edit is no step: Identity takes no undo, and no other phase's undo takes it back", async () => {
   const board = await mountSketchBridge();
+  board.handle.setPhase("info");
   board.handle.setMode("mirror_z");
   board.handle.setCenter(5, 5);
-  assert.deepEqual(lastSetup(board), ["mirror_z", 5, 5]);
+  assert.deepEqual(board.firedOf("OnHistory").at(-1), [false, false], "Identity's Undo is greyed");
 
+  board.handle.setPhase("draw");
   board.handle.undo();
-  assert.deepEqual(lastSetup(board), ["mirror_z", 0, 0], "the centre edit is undone, the mode edit is not");
-  board.handle.undo();
-  assert.deepEqual(lastSetup(board), ["rot_180", 0, 0], "the mode edit is undone");
-  board.handle.redo();
-  assert.deepEqual(lastSetup(board), ["mirror_z", 0, 0]);
+  assert.deepEqual(lastSetup(board), ["mirror_z", 5, 5], "the setup stands");
 });

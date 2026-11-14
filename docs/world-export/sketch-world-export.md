@@ -74,7 +74,7 @@ away from being something else.
 | 0 (floor) | bedrock, **wool pad** (room colour) — wool spawn point | bedrock, **wool pad** (team colour) — player spawn |
 
 **Doors** (begin at layer 1; widths per `structures.md` WX7 — 4 on a roomy even wall, 3 on an odd wall, 2 at
-the 4-across minimum):
+the 4-across minimum, or the width the room's house states):
 - **Wool cage:** one door per **stated door** — the plan states one at each entry interface, a land seam or an
   abutting build zone (WX6) — **3 tall**
   (layers 1–3), made of **stained-glass panes (id 160) in the room's wool colour**. The marker-anchored

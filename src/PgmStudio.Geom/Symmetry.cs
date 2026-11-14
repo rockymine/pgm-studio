@@ -134,6 +134,21 @@ public static class Symmetry
         return images;
     }
 
+    /// <summary>Whether <paramref name="axis"/> carries an open path onto itself run the other way, each point
+    /// landing on the one as far from the other end, to a hundredth of a block: what flows along such a path falls
+    /// toward both of its ends at once in the path and its image.</summary>
+    public static bool Reverses(IReadOnlyList<(double X, double Z)> path, string axis, double cx, double cz)
+    {
+        if (path.Count < 2) return false;
+        for (var at = 0; at < path.Count; at++)
+        {
+            var (x, z) = Apply(path[at].X, path[at].Z, axis, cx, cz);
+            var (backX, backZ) = path[path.Count - 1 - at];
+            if (Math.Abs(x - backX) >= 0.01 || Math.Abs(z - backZ) >= 0.01) return false;
+        }
+        return true;
+    }
+
     /// <summary>The edge an edge lands on under an image a ring carries onto itself, each named by the vertex
     /// it leaves: a turn keeps the ring's direction and the edge leaves the image of its own first vertex, a
     /// reflection reverses it and the edge leaves the image of its second.</summary>

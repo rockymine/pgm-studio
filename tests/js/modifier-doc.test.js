@@ -93,6 +93,7 @@ test("a drag with a modifier's tool traces its outline, and Select picks and dra
 
 test("an edit through the bridge is the layout's modifiers, and each is an undo step", async () => {
   const { handle } = await mountSketchBridge();
+  handle.setPhase("relief");
   handle.load({ layers: [] });
   assert.equal(handle.getState().modifiers, undefined, "an empty stack writes no key");
 

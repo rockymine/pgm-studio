@@ -43,6 +43,26 @@ public sealed class RoomStylePreviewTests
             .IsEqualTo(RoomStylePreview.Views(style, footprint: HouseFootprints.Default).Plan);
     }
 
+    /// <summary>A card is the building on the shell its row states, under a name of its own for each shell, so a
+    /// row moved to another shell is a different picture and never the old one served from the cache.</summary>
+    [Test]
+    public async Task A_card_is_drawn_on_the_footprint_it_is_asked_for()
+    {
+        var style = SeedFolder.Houses[0].Style;
+        var names = new HashSet<string>();
+        foreach (var (footprint, _, _) in HouseFootprints.All)
+        {
+            var card = RoomStylePreview.CardOf(style, PictureSprites.Flat, footprint: footprint);
+            await Assert.That(Text(card.Draw())).IsEqualTo(RoomStylePreview.Card(style, footprint: footprint));
+            names.Add(card.Name);
+        }
+        await Assert.That(names.Count).IsEqualTo(HouseFootprints.All.Length);
+        await Assert.That(RoomStylePreview.CardOf(style, PictureSprites.Flat).Name)
+            .IsEqualTo(RoomStylePreview.CardOf(style, PictureSprites.Flat, footprint: HouseFootprints.Default).Name);
+    }
+
+    private static string Text(byte[]? drawn) => System.Text.Encoding.UTF8.GetString(drawn ?? []);
+
     public static IEnumerable<Func<string>> Footprints()
         => HouseFootprints.All.Select(one => (Func<string>)(() => one.Id));
 }
