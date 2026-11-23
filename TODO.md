@@ -28,12 +28,17 @@ uses or in what a build writes. They are worked before the fixes and the user ex
   passes as a library tree. **The author's ruling:** a library tree is referenced by its identifier; anything a
   model builds itself (a truck, a balloon) is a **schematic**, written in the made-layer format
   (`SketchLayout.MadeKind`) and labelled as one. It may be stated inline in the map or in a file of its own that
-  the map references, as `map.xml` includes another file. Open before building: how a stored `copied` body with
-  no library identifier is recognised, since a map's copy carries no library row id. `docs/pgmvox-port.md` D17,
+  the map references, as `map.xml` includes another file. A migration backfills what is stored: a `copied` tree
+  body that matches a tree the library builds becomes a reference to that tree, and every other body, tree-shaped
+  or not, becomes a schematic, since no tree is hand-built. `docs/pgmvox-port.md` D17,
   `docs/world-export/decoration.md`.
+
+## Doors, as the author means them
+**What shipped works as written but not as the author intended**, which was never stated and is stated now.
+
 - [ ] **WE181 — A door is stated, not given to every narrow opening.** `HouseStamper.StampDoors` hangs a wooden
-  leaf in every one-wide opening and `RoomFrames.DoorWidth` shrinks a stated width to centre it on the wall.
-  **The author's ruling:** a door is placed only where it is stated, one leaf per block of opening, and only in an
+  leaf in every one-wide opening and `RoomFrames.DoorWidth` shrinks a stated width to centre it on the wall. **The
+  author's intent:** a door is placed only where it is stated, one leaf per block of opening, and only in an
   opening at least two tall; an opening need not be centred and may sit off to one side of its wall. `HS2`
   (`HouseStyleValidation.DoorClearance`) keeps one job: every opening stays passable, at least one wide and two
   tall; a three-wide, three-tall opening hung with cobwebs is as valid as a door. `docs/world-export/structures.md` §7.
