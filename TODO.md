@@ -23,10 +23,17 @@ nothing it makes is welcome, a change to what it makes is not — and its layout
 uses or in what a build writes. They are worked before the fixes and the user experience that wait in
 `BACKLOG.md`.
 
-- [ ] **WE134 — A map's own dressing registry still takes a hand-written `copied` body.** The tree library
-  refuses a `copied` save carrying no cut (`DR-COPY`), but a map's `dressing.styles` takes
-  `{"kind":"tree","form":"copied","body":…}` as written and nothing asks where the body came from.
-  **The author's ruling:** "hand-built props are not wanted" is the library's rule only. A map builds whatever
-  prop it needs, and a hand-built one is marked as such: it is a **schematic** (`docs/pgmvox-port.md`, D17), so
-  an inline body that names no library tree is stored and served as a schematic rather than as a `copied` tree.
+- [ ] **WE134 — A hand-built prop is a labelled schematic, stated inline or by reference.** A map's
+  `dressing.styles` takes `{"kind":"tree","form":"copied","body":…}` as written, so a body a model built itself
+  passes as a library tree. **The author's ruling:** a library tree is referenced by its identifier; anything a
+  model builds itself (a truck, a balloon) is a **schematic**, written in the made-layer format
+  (`SketchLayout.MadeKind`) and labelled as one. It may be stated inline in the map or in a file of its own that
+  the map references, as `map.xml` includes another file. Open before building: how a stored `copied` body with
+  no library identifier is recognised, since a map's copy carries no library row id. `docs/pgmvox-port.md` D17,
   `docs/world-export/decoration.md`.
+- [ ] **WE181 — A door is stated, not given to every narrow opening.** `HouseStamper.StampDoors` hangs a wooden
+  leaf in every one-wide opening and `RoomFrames.DoorWidth` shrinks a stated width to centre it on the wall.
+  **The author's ruling:** a door is placed only where it is stated, one leaf per block of opening, and only in an
+  opening at least two tall; an opening need not be centred and may sit off to one side of its wall. `HS2`
+  (`HouseStyleValidation.DoorClearance`) keeps one job: every opening stays passable, at least one wide and two
+  tall; a three-wide, three-tall opening hung with cobwebs is as valid as a door. `docs/world-export/structures.md` §7.
